@@ -1,0 +1,9 @@
+flowchart TD
+    A[Admin logs in] --> B[Open admin dashboard]
+    B --> C[Load summary metrics and quick actions]
+    C --> D{Choose area}
+    D -->|Content| E[Open Content Management]
+    D -->|Students| F[Open Student Management]
+    D -->|Assignments| G[Open Assignment Review]
+    D -->|Certificates| H[Open Certificate Management]
+    D -->|Email| I[Open Email Settings]

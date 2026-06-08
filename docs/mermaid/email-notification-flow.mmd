@@ -1,0 +1,20 @@
+flowchart TD
+    A[Admin opens Email Notification menu] --> B[Choose one notification sub menu]
+    B --> C[Load current template state]
+    C --> D[Admin edits notification settings]
+    D --> E[Click Save Changes]
+    E --> F[Store template]
+
+    F --> G{Business trigger occurs?}
+    G -->|Yes| H[Load template by notification type]
+    H --> I{Template enabled?}
+    I -->|No| J[Skip sending]
+    I -->|Yes| K[Render merge tags with real data]
+    K --> L[Send admin and or user email]
+    L --> M[Store email log]
+
+    F --> N{Admin clicks Send Test?}
+    N -->|Yes| O[Input test recipient]
+    O --> P[Render template with sample data]
+    P --> Q[Send test email]
+    Q --> R[Store email log]

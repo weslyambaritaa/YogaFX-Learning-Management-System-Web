@@ -1,0 +1,11 @@
+flowchart TD
+    A[Student logs in] --> B[System checks profile completeness]
+    B --> C{Profile complete?}
+    C -->|Yes| D[Redirect to Student Dashboard]
+    C -->|No| E[Redirect to Profile Completion]
+    E --> F[Student fills profile form]
+    F --> G[Validate profile data]
+    G --> H{Valid?}
+    H -->|No| I[Show validation errors]
+    H -->|Yes| J[Save profile]
+    J --> D

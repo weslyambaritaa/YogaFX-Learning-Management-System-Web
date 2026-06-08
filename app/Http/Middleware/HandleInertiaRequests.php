@@ -29,10 +29,34 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'role' => $user->role,
+                    'email' => $user->email,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'whatsapp' => $user->whatsapp,
+                    'preferred_certificate_picture' => $user->preferred_certificate_picture,
+                    'instagram' => $user->instagram,
+                    'country' => $user->country,
+                    'birth_date' => optional($user->birth_date)->toDateString(),
+                    'gender' => $user->gender,
+                    'practicing_yoga_for' => $user->practicing_yoga_for,
+                    'yoga_sequence_experience' => $user->yoga_sequence_experience,
+                    'hours_per_week' => $user->hours_per_week,
+                    'current_fitness_level' => $user->current_fitness_level,
+                    'flexibility_rating' => $user->flexibility_rating,
+                    'motivation' => $user->motivation,
+                    'why_yogafx' => $user->why_yogafx,
+                    'how_did_you_find_us' => $user->how_did_you_find_us,
+                    'profile_is_complete' => $user->hasCompletedStudentProfile(),
+                ] : null,
             ],
         ];
     }

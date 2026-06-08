@@ -1,0 +1,23 @@
+flowchart TD
+    A[Student opens modules page] --> B[System filters modules by tier]
+    B --> C[Student selects module]
+    C --> D[System loads lesson list]
+    D --> E[Student selects lesson]
+    E --> F[Check tier and sequence access]
+    F --> G{Lesson unlocked?}
+    G -->|No| H[Show locked state]
+    G -->|Yes| I[Open lesson detail]
+    I --> J{Workbook exists?}
+    J -->|Yes| K[Require workbook download]
+    J -->|No| L[Allow content access]
+    K --> M[Student downloads workbook]
+    M --> L
+    L --> N[Student watches video and reads content]
+    N --> O[System saves watch progress]
+    O --> P{Assessment exists?}
+    P -->|No| Q[Mark lesson complete when video finished]
+    P -->|Yes| R{Watch progress >= 95%?}
+    R -->|No| S[Keep assessment locked]
+    R -->|Yes| T[Unlock assessment]
+    Q --> U[Unlock next lesson]
+    T --> V[Student may start assessment]

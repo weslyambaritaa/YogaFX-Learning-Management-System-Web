@@ -1,0 +1,9 @@
+flowchart TD
+    A[Student opens dashboard] --> B[Load student summary data]
+    B --> C[Show progress and available actions]
+    C --> D{Choose action}
+    D -->|Continue Learning| E[Go to last active lesson]
+    D -->|Modules| F[Open Modules]
+    D -->|Assignment| G[Open Assignment Page]
+    D -->|Certificates| H[Open Certificate Page]
+    D -->|Resources| I[Open Ebooks or Courses]

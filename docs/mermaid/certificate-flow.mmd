@@ -1,0 +1,14 @@
+flowchart TD
+    A[Admin opens certificate area] --> B[Select student and certificate type]
+    B --> C[Click Generate Certificate]
+    C --> D[Validate student eligibility]
+    D --> E{Eligible?}
+    E -->|No| F[Show not eligible message]
+    E -->|Yes| G[Generate certificate file]
+    G --> H{Generation success?}
+    H -->|No| I[Show generation error]
+    H -->|Yes| J[Store certificate record]
+    J --> K[Store version and file reference]
+    K --> L[Trigger certificate created email if enabled]
+    L --> M[Student opens certificate page]
+    M --> N[Student downloads certificate]

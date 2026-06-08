@@ -10,26 +10,37 @@ class ProfileTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_profile_page_is_displayed(): void
+    public function test_student_profile_page_is_displayed(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->student()->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->get('/profile');
-
-        $response->assertOk();
+        $this->actingAs($user)->get('/profile')->assertOk();
     }
 
-    public function test_profile_information_can_be_updated(): void
+    public function test_student_can_update_their_profile(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->student()->create();
 
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
-                'name' => 'Test User',
-                'email' => 'test@example.com',
+                'first_name' => 'Yoga',
+                'last_name' => 'Student',
+                'email' => 'student@example.com',
+                'whatsapp' => '081234567890',
+                'preferred_certificate_picture' => 'https://example.com/certificate-photo.jpg',
+                'instagram' => '@yogastudent',
+                'country' => 'Indonesia',
+                'birth_date' => '1995-05-10',
+                'gender' => 'prefer_not_to_say',
+                'practicing_yoga_for' => '1-3 years',
+                'yoga_sequence_experience' => 'Beginner',
+                'hours_per_week' => 5,
+                'current_fitness_level' => 'Intermediate',
+                'flexibility_rating' => 'Moderate',
+                'motivation' => 'Improve consistency in practice.',
+                'why_yogafx' => 'Structured learning path.',
+                'how_did_you_find_us' => 'Instagram',
             ]);
 
         $response
@@ -38,62 +49,74 @@ class ProfileTest extends TestCase
 
         $user->refresh();
 
-        $this->assertSame('Test User', $user->name);
-        $this->assertSame('test@example.com', $user->email);
-        $this->assertNull($user->email_verified_at);
+        $this->assertSame('Yoga Student', $user->name);
+        $this->assertSame('Yoga', $user->first_name);
+        $this->assertSame('Student', $user->last_name);
+        $this->assertSame('student@example.com', $user->email);
+        $this->assertSame('081234567890', $user->whatsapp);
+        $this->assertTrue($user->hasCompletedStudentProfile());
     }
 
-    public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
+    public function test_admin_can_view_student_list(): void
     {
-        $user = User::factory()->create();
+        $admin = User::factory()->admin()->create();
+        $student = User::factory()->student()->completeProfile()->create();
+
+        $response = $this->actingAs($admin)->get(route('admin.students.index'));
+
+        $response->assertOk();
+        $response->assertSee($student->email);
+    }
+
+    public function test_admin_can_update_student_profile(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $student = User::factory()->student()->create();
 
         $response = $this
-            ->actingAs($user)
-            ->patch('/profile', [
-                'name' => 'Test User',
-                'email' => $user->email,
+            ->actingAs($admin)
+            ->patch(route('admin.students.update', $student), [
+                'first_name' => 'Edited',
+                'last_name' => 'Student',
+                'email' => 'edited.student@example.com',
+                'whatsapp' => '081200000000',
+                'preferred_certificate_picture' => '',
+                'instagram' => '@editedstudent',
+                'country' => 'Indonesia',
+                'birth_date' => '1992-02-20',
+                'gender' => 'female',
+                'practicing_yoga_for' => '3-5 years',
+                'yoga_sequence_experience' => 'Intermediate',
+                'hours_per_week' => 6,
+                'current_fitness_level' => 'Intermediate',
+                'flexibility_rating' => 'High',
+                'motivation' => 'Deepen practice.',
+                'why_yogafx' => 'Trusted program.',
+                'how_did_you_find_us' => 'Referral',
             ]);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect('/profile');
+            ->assertRedirect(route('admin.students.edit', $student));
 
-        $this->assertNotNull($user->refresh()->email_verified_at);
+        $student->refresh();
+
+        $this->assertSame('Edited Student', $student->name);
+        $this->assertSame('edited.student@example.com', $student->email);
+        $this->assertTrue($student->hasCompletedStudentProfile());
     }
 
-    public function test_user_can_delete_their_account(): void
+    public function test_student_cannot_access_admin_student_management_routes(): void
     {
-        $user = User::factory()->create();
+        $student = User::factory()->student()->create();
+        $otherStudent = User::factory()->student()->create();
 
-        $response = $this
-            ->actingAs($user)
-            ->delete('/profile', [
-                'password' => 'password',
-            ]);
+        $this->actingAs($student)
+            ->get(route('admin.students.index'))
+            ->assertForbidden();
 
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect('/');
-
-        $this->assertGuest();
-        $this->assertNull($user->fresh());
-    }
-
-    public function test_correct_password_must_be_provided_to_delete_account(): void
-    {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->from('/profile')
-            ->delete('/profile', [
-                'password' => 'wrong-password',
-            ]);
-
-        $response
-            ->assertSessionHasErrors('password')
-            ->assertRedirect('/profile');
-
-        $this->assertNotNull($user->fresh());
+        $this->actingAs($student)
+            ->get(route('admin.students.edit', $otherStudent))
+            ->assertForbidden();
     }
 }

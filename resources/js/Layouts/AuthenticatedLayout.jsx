@@ -7,6 +7,16 @@ import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
+    const navigationItems =
+        user?.role === 'admin'
+            ? [
+                  { label: 'Dashboard', route: 'admin.dashboard' },
+                  { label: 'Students', route: 'admin.students.index' },
+              ]
+            : [
+                  { label: 'Dashboard', route: 'student.dashboard' },
+                  { label: 'Profile', route: 'profile.edit' },
+              ];
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
@@ -24,12 +34,15 @@ export default function AuthenticatedLayout({ header, children }) {
                             </div>
 
                             <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
+                                {navigationItems.map((item) => (
+                                    <NavLink
+                                        key={item.route}
+                                        href={route(item.route)}
+                                        active={route().current(item.route)}
+                                    >
+                                        {item.label}
+                                    </NavLink>
+                                ))}
                             </div>
                         </div>
 
@@ -61,11 +74,6 @@ export default function AuthenticatedLayout({ header, children }) {
                                     </Dropdown.Trigger>
 
                                     <Dropdown.Content>
-                                        <Dropdown.Link
-                                            href={route('profile.edit')}
-                                        >
-                                            Profile
-                                        </Dropdown.Link>
                                         <Dropdown.Link
                                             href={route('logout')}
                                             method="post"
@@ -128,12 +136,15 @@ export default function AuthenticatedLayout({ header, children }) {
                     }
                 >
                     <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
+                        {navigationItems.map((item) => (
+                            <ResponsiveNavLink
+                                key={item.route}
+                                href={route(item.route)}
+                                active={route().current(item.route)}
+                            >
+                                {item.label}
+                            </ResponsiveNavLink>
+                        ))}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">
@@ -147,9 +158,6 @@ export default function AuthenticatedLayout({ header, children }) {
                         </div>
 
                         <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink href={route('profile.edit')}>
-                                Profile
-                            </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 method="post"
                                 href={route('logout')}

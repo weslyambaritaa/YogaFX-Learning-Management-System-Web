@@ -1,0 +1,15 @@
+flowchart TD
+    A[Admin opens certificate management] --> B[Select certificate record or student]
+    B --> C{Action?}
+    C -->|Generate| D[Validate eligibility and generate certificate]
+    C -->|Recreate| E[Generate new version]
+    C -->|Download| F[Download certificate file]
+    C -->|Delete| G[Confirm delete]
+    D --> H{Success?}
+    E --> H
+    H -->|No| I[Show generation error]
+    H -->|Yes| J[Save certificate record and version]
+    J --> K[Trigger certificate email if enabled]
+    G --> L{Confirmed?}
+    L -->|No| M[Cancel action]
+    L -->|Yes| N[Delete certificate record]
