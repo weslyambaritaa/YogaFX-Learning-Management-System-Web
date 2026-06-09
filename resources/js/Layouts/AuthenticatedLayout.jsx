@@ -16,7 +16,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/Components/ui/sheet';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     BookMarked,
     BookOpen,
@@ -216,6 +216,10 @@ const adminPageTitles = {
 };
 
 function UserMenu({ user }) {
+    const handleLogout = () => {
+        router.post(route('logout'));
+    };
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -234,10 +238,13 @@ function UserMenu({ user }) {
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <Link href={route('logout')} method="post" as="button">
-                        Log Out
-                    </Link>
+                <DropdownMenuItem
+                    onSelect={(event) => {
+                        event.preventDefault();
+                        handleLogout();
+                    }}
+                >
+                    Log Out
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
