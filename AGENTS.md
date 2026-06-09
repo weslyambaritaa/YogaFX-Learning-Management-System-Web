@@ -2,297 +2,267 @@
 
 ## Project Overview
 
-YogaFX LMS is a premium web-based learning platform for YogaFX. It is not a traditional academic LMS. The product serves two main roles: **Admin** and **Student**.
+YogaFX LMS adalah platform pembelajaran web premium untuk YogaFX. Produk ini bukan LMS akademik tradisional dan saat ini memiliki dua role aktif:
+- **Admin**
+- **Student**
 
-The system supports:
-- structured digital learning
-- tier-based content access
-- sequential lesson progression
-- assessment flow with timer and autosave
-- assignment submission and review
-- certificate generation
-- email notification templates and trigger-based delivery
+Produk dipisahkan menjadi dua pengalaman:
+- **Student Side**: premium, calm, content-first
+- **Admin Side**: structured, professional, management-oriented
 
-The product experience must follow two distinct directions:
-- **Student Side**: premium, calm, streaming-inspired learning experience
-- **Admin Side**: professional, structured, management-oriented dashboard
-
-The stack and architecture direction are already decided. Do not redesign them during implementation.
+Stack dan arah arsitektur sudah ditetapkan. Jangan mendesain ulang stack atau mental model produk saat implementasi.
 
 ---
 
 ## Source of Truth Documents
 
-Before implementing any feature, read the documentation in the following order:
+Sebelum mengerjakan fitur apa pun, baca dokumentasi dalam urutan berikut:
 
-1. `docs/01-prd.md`
-2. `docs/02-user-flow.md`
-3. `docs/03-business-rules.md`
-4. `docs/04-erd.md`
-5. `docs/05-information-architecture.md`
-6. `docs/06-modular-implementation.md`
+1. `docs/00-current-project-status.md`
+2. `docs/01-prd.md`
+3. `docs/02-user-flow.md`
+4. `docs/03-erd.md`
+5. `docs/04-design-system.md`
+6. `docs/05-information-architecture.md`
+7. `docs/06-modular-implementation.md`
+
+Jika domain yang dikerjakan punya dokumen khusus, baca juga setelah dokumen inti:
+- `docs/student-progress-flow.md`
+- `docs/email-notification-flow.md`
+
+Dokumen dalam `docs/history/` adalah arsip implementasi fase sebelumnya dan tidak menjadi source of truth aktif.
 
 ### Reading Order Rules
-- `01-prd.md` defines **what the product must do**
-- `02-user-flow.md` defines **how users move through the system**
-- `03-business-rules.md` defines **what the system must enforce**
-- `04-erd.md` defines **the data model and entity relationships**
-- `05-information-architecture.md` defines **how pages and features are organized**
-- `06-modular-implementation.md` defines **the build order and implementation strategy**
+- `00-current-project-status.md` menjelaskan **apa yang sudah benar-benar terimplementasi**
+- `01-prd.md` menjelaskan **scope produk aktif**
+- `02-user-flow.md` menjelaskan **alur user yang sudah hidup atau sudah disetujui**
+- `03-erd.md` menjelaskan **entity dan relasi data aktif**
+- `04-design-system.md` menjelaskan **arah visual dan guardrail UI**
+- `05-information-architecture.md` menjelaskan **penempatan halaman, menu, dan grouping fitur**
+- `06-modular-implementation.md` menjelaskan **status fase dan urutan pengembangan**
 
-You must not skip this reading order.
+Jangan melewati urutan baca ini.
 
 ---
 
 ## Diagram Location
 
-All Mermaid diagrams are located in:
-
+Seluruh diagram Mermaid berada di:
 - `docs/mermaid/`
 
-Use these diagrams as visual support only.  
-If a Mermaid diagram conflicts with the written documentation, trust the written documentation first, using the conflict rules defined below.
+Diagram digunakan sebagai visual support. Jika diagram bertentangan dengan dokumen tertulis, prioritaskan dokumen tertulis.
 
 ---
 
 ## Core Development Rules
 
-1. **Follow the approved scope only.**
-   Do not invent features outside the documented requirement.
+1. **Follow approved scope only.**
+   Jangan menambah fitur di luar dokumentasi aktif.
 
 2. **Build incrementally.**
-   Implement one domain at a time.
+   Kerjakan satu domain atau subdomain dalam satu waktu.
 
 3. **Respect dependency order.**
-   Do not implement downstream domains before upstream domains are stable.
+   Jangan mengerjakan domain hilir sebelum fondasi domain hulunya stabil.
 
-4. **Do not redesign the architecture.**
-   The project already has a decided architecture and stack.
+4. **Do not redesign architecture.**
+   Stack, role model, dan arah produk sudah diputuskan.
 
-5. **Use the approved product model.**
-   This is a premium wellness learning platform, not a traditional school LMS.
+5. **Respect the product model.**
+   Student side harus terasa seperti premium learning platform, bukan portal sekolah.
 
-6. **Student side and Admin side are different products within one system.**
-   Do not mix their mental models.
+6. **Admin and Student are distinct experiences.**
+   Jangan campur mental model student dan admin.
 
-7. **Business rules are mandatory.**
-   Never ignore access tier rules, lesson locking rules, assessment rules, assignment rules, certificate rules, or email rules.
+7. **Current documentation beats stale assumptions.**
+   Jika dokumentasi lama atau ingatan lama bertentangan dengan `docs/00-current-project-status.md`, ikuti dokumen terbaru.
 
-8. **Data model must follow the ERD.**
-   Do not add, remove, or reshape entities without explicit requirement support.
+8. **ERD is an implementation document, not a wishlist.**
+   Jangan tambahkan entity atau relasi baru tanpa dukungan requirement yang jelas.
 
-9. **UI must follow the Information Architecture and Design direction.**
-   Do not create screens, flows, or navigation patterns outside the documented structure.
+9. **IA defines placement.**
+   Jangan membuat halaman atau navigasi baru di luar penempatan yang sudah didokumentasikan.
 
-10. **Do not over-engineer phase 1.**
-    Build what is required, no more.
+10. **Do not overbuild unfinished domains.**
+    Jika domain future belum aktif, jangan diam-diam mengimplementasikan seluruh domain tersebut.
 
 ---
 
 ## Coding Principles
 
 1. **Clarity over cleverness**
-   Write code that is easy to read, review, and extend.
-
 2. **Maintainability first**
-   Prefer explicit, modular, understandable implementation.
-
-3. **Reusability where patterns repeat**
-   Reuse components, patterns, and logic only when the abstraction is genuinely helpful.
-
+3. **Reuse only when it helps**
 4. **Business rules before UI polish**
-   Correct flow and validation come before visual enhancement.
-
 5. **Keep domains isolated**
-   Implement per domain, not by random file edits across the whole system.
-
-6. **Do not create speculative abstractions**
-   Do not build future-proof layers unless current requirements need them.
-
+6. **Avoid speculative abstractions**
 7. **Respect role boundaries**
-   Student-facing logic and admin-facing logic must remain clearly separated.
-
 8. **Respect product tone**
-   Student-facing UI should feel premium and calm. Admin-facing UI should feel structured and efficient.
-
-9. **Avoid hidden logic**
-   Important business rules must be implemented in predictable, reviewable places.
-
-10. **Do not bypass requirements with shortcuts**
-    A fast implementation that breaks the PRD or Business Rules is not acceptable.
+9. **Keep important rules explicit**
+10. **Do not shortcut around requirements**
 
 ---
 
 ## Implementation Workflow
 
-For every domain or feature, follow this workflow:
-
-### Step 1 — Read First
-Before touching code, read the relevant sections from:
+### Step 1 - Read First
+Sebelum menyentuh kode, baca bagian yang relevan dari:
+- Current Project Status
 - PRD
 - User Flow
-- Business Rules
 - ERD
+- Design System
 - Information Architecture
 - Modular Implementation Guide
+- dokumen domain khusus jika ada
 
-### Step 2 — Confirm Domain Scope
-Identify:
-- which domain you are working on
-- what the domain depends on
-- what must already exist before starting
+### Step 2 - Confirm Domain Scope
+Identifikasi:
+- domain yang sedang dikerjakan
+- dependency yang harus sudah ada
+- apa yang masih out of scope
 
-### Step 3 — Implement in Layer Order
-Implement in this sequence unless the domain specifically requires another order:
+### Step 3 - Implement in Layer Order
+Urutan default:
+1. data layer
+2. backend/domain logic
+3. frontend/page flow
+4. integration points
 
-1. **Data layer**
-2. **Backend/domain logic**
-3. **Frontend/page flow**
-4. **Integration points**
+### Step 4 - Validate Against Rules
+Periksa:
+- alur user
+- role restriction
+- tier restriction
+- konsistensi data
+- penempatan fitur di IA
 
-### Step 4 — Validate Against Rules
-Check:
-- user flow correctness
-- business rule compliance
-- entity relationship consistency
-- role and tier restrictions
-- page placement in IA
+### Step 5 - Stop at Domain Boundary
+Jangan meluas ke domain lain tanpa permintaan eksplisit.
 
-### Step 5 — Stop at Domain Boundary
-Do not continue into adjacent domains unless explicitly asked or required by dependency completion.
-
-### Step 6 — Report What Changed
-When finishing a task, clearly state:
-- what was implemented
-- which documents were followed
-- what remains out of scope
+### Step 6 - Report What Changed
+Saat selesai, laporkan:
+- apa yang diimplementasikan
+- dokumen apa yang diikuti
+- apa yang tetap di luar scope
 
 ---
 
 ## Definition of Done
 
-A domain or feature is only considered done when all of the following are true:
+Sebuah domain atau fitur baru dianggap selesai jika:
 
 1. **Requirement alignment**
-   - matches the PRD
-   - matches the User Flow
-   - matches the Business Rules
-   - matches the ERD
-   - matches the Information Architecture
+   - sesuai `docs/00-current-project-status.md`
+   - sesuai PRD
+   - sesuai User Flow
+   - sesuai ERD
+   - sesuai Design System
+   - sesuai Information Architecture
 
 2. **Functional completeness**
-   - the main use case works end-to-end
-   - required validations are in place
-   - required state transitions are handled
+   - use case utama berjalan end-to-end
+   - validasi penting sudah ada
+   - state penting tersimpan dan terlihat
 
 3. **Boundary correctness**
-   - role restrictions work
-   - tier restrictions work
-   - ownership restrictions work
-   - locked/unlocked states work where applicable
+   - role restriction benar
+   - tier restriction benar
+   - ownership restriction benar jika relevan
 
 4. **UI correctness**
-   - the feature appears in the correct place
-   - the interaction flow matches the documented journey
-   - the experience matches student/admin intent
+   - fitur muncul di tempat yang benar
+   - flow cocok dengan perjalanan user yang didokumentasikan
+   - tone student/admin tetap terjaga
 
 5. **No unauthorized scope expansion**
-   - no extra features were added without requirement support
+   - tidak ada fitur tambahan yang tidak diminta
 
 6. **Code quality**
    - readable
    - maintainable
-   - consistent with project direction
+   - konsisten dengan arah proyek
 
-A feature is **not done** just because the page renders.
+Fitur belum dianggap selesai hanya karena halaman sudah tampil.
 
 ---
 
 ## Conflict Resolution Rules
 
-If you detect conflicts between documents, follow this order:
+Jika ada konflik antar dokumen:
 
-### Rule 1 — Latest agreed revision wins
-The latest explicitly agreed project decision overrides older assumptions.
+### Rule 1 - Latest agreed revision wins
+Keputusan terbaru yang sudah disetujui mengalahkan asumsi lama.
 
-### Rule 2 — Written requirement beats diagram
-If a Mermaid diagram conflicts with written documentation, trust the written documentation.
+### Rule 2 - Written docs beat diagrams
+Jika Mermaid berbeda dengan dokumen tertulis, ikuti dokumen tertulis.
 
-### Rule 3 — Business Rules override convenience
-If implementation convenience conflicts with Business Rules, follow the Business Rules.
+### Rule 3 - Current implementation docs beat stale planning docs
+Jika dokumen lama masih menggambarkan future scope sebagai fitur aktif, ikuti dokumen yang sudah disinkronkan dengan implementasi aktual.
 
-### Rule 4 — PRD defines scope
-If a feature appears implied elsewhere but is not supported by the PRD or approved revisions, do not add it.
+### Rule 4 - PRD defines active scope
+Jika sebuah fitur tidak didukung PRD aktif atau status implementasi aktif, jangan menambahkannya.
 
-### Rule 5 — Information Architecture defines placement
-If a feature exists but page placement is unclear, follow the IA document.
+### Rule 5 - IA defines placement
+Jika lokasi fitur tidak jelas, ikuti Information Architecture.
 
-### Rule 6 — ERD defines entity boundaries
-If implementation ideas require changing entities or relationships, do not do it unless the requirement truly supports it.
+### Rule 6 - ERD defines boundaries
+Jika ide implementasi butuh perubahan entity/relationship, jangan lakukan tanpa kebutuhan yang jelas.
 
-### Rule 7 — Ask before inventing
-If a conflict cannot be resolved from the documents, stop and surface the ambiguity instead of guessing.
+### Rule 7 - Ask before inventing
+Jika konflik tidak bisa diselesaikan dari dokumentasi, berhenti dan klarifikasi.
 
 ---
 
 ## Rules Against Building Outside Requirement
 
-You must not:
+Jangan:
+- membuat fitur baru di luar dokumentasi aktif
+- menambah role baru
+- menambah entity baru tanpa dasar requirement
+- mengubah produk menjadi LMS kampus
+- membuat shortcut yang melemahkan tier/role restriction
+- menganggap fitur planned sebagai fitur aktif
 
-- create new features not defined in the approved documentation
-- invent new roles beyond Admin and Student for phase 1
-- add new domains outside the documented system scope
-- add new entities without strong requirement support
-- add extra workflow steps not present in the documented user flow
-- create advanced reporting, analytics, or automation outside approved scope
-- redesign the product into a traditional academic LMS
-- replace the streaming-inspired student experience with school-style UI patterns
-- introduce architecture changes that were not approved
-- introduce implementation shortcuts that weaken business rule enforcement
-
-If something seems useful but is not clearly required, treat it as **out of scope** unless explicitly approved.
+Jika sesuatu terasa berguna tetapi belum jelas diminta, anggap **out of scope**.
 
 ---
 
 ## Product Experience Guardrails
 
 ### Student Side
-Always preserve:
-- premium learning feel
+Jaga:
+- premium feel
 - calm visual flow
-- streaming-inspired content discovery
-- strong Continue Learning experience
-- visible but non-academic-feeling progress
+- content-first discovery
 - clear next step guidance
 
-Do **not** make the student side feel like:
+Jangan membuat student side terasa seperti:
 - Moodle
 - Google Classroom
 - Blackboard
-- Canvas LMS
-- generic campus e-learning portals
+- Canvas
 
 ### Admin Side
-Always preserve:
+Jaga:
 - clarity
-- operational efficiency
+- efficiency
 - structured workflows
 - strong status visibility
-- professional dashboard behavior
 
 ---
 
 ## Final Instruction to AI Coding Assistant
 
-Before implementing anything:
-1. read the required documents in order
-2. identify the current domain
-3. confirm dependencies
-4. implement only within scope
-5. validate against rules
-6. stop when the requested domain is complete
+Sebelum mengimplementasikan apa pun:
+1. baca dokumentasi sesuai urutan
+2. pastikan domain yang sedang dikerjakan
+3. konfirmasi dependency
+4. implementasikan hanya dalam scope
+5. validasi terhadap dokumen
+6. berhenti saat domain yang diminta selesai
 
-Do not guess.  
-Do not improvise requirements.  
-Do not expand scope silently.  
-Build YogaFX LMS exactly as defined.
+Do not guess.
+Do not improvise requirements.
+Do not silently expand scope.
+Build YogaFX LMS sesuai dokumentasi aktif.

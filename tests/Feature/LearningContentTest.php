@@ -45,6 +45,24 @@ class LearningContentTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_create_module_with_thumbnail_larger_than_10mb(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+
+        $response = $this->actingAs($admin)->post(route('admin.modules.store'), [
+            'title' => 'Large Module',
+            'url_slug' => 'large-module',
+            'thumbnail' => UploadedFile::fake()->image('large-module.jpg')->size(10241),
+            'access_tier_ids' => [$tier->id],
+        ]);
+
+        $response->assertSessionHasErrors('thumbnail');
+        $this->assertDatabaseMissing('modules', ['url_slug' => 'large-module']);
+    }
+
     public function test_admin_cannot_delete_module_when_it_still_has_lessons(): void
     {
         $admin = User::factory()->admin()->create();
@@ -172,6 +190,31 @@ class LearningContentTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_create_lesson_with_file_larger_than_10mb(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $response = $this->actingAs($admin)->post(route('admin.lessons.store'), [
+            'module_id' => $module->id,
+            'access_tier_ids' => [$tier->id],
+            'assessment_id' => null,
+            'title' => 'Oversized Lesson',
+            'thumbnail' => UploadedFile::fake()->image('large-lesson.jpg')->size(10241),
+            'workbook' => UploadedFile::fake()->create('large-workbook.pdf', 10241, 'application/pdf'),
+            'video' => 'https://example.com/video',
+            'audio' => null,
+            'content' => '<p>Oversized upload</p>',
+        ]);
+
+        $response->assertSessionHasErrors(['thumbnail', 'workbook']);
+        $this->assertDatabaseMissing('lessons', ['title' => 'Oversized Lesson']);
+    }
+
     public function test_admin_can_create_ebook_with_auto_sort_order_and_multiple_tiers(): void
     {
         Storage::fake('local');
@@ -201,6 +244,43 @@ class LearningContentTest extends TestCase
             'ebook_id' => $ebook->id,
             'access_tier_id' => $online->id,
         ]);
+    }
+
+    public function test_admin_cannot_create_ebook_with_file_larger_than_10mb(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+
+        $response = $this->actingAs($admin)->post(route('admin.ebooks.store'), [
+            'title' => 'Oversized Ebook',
+            'file' => UploadedFile::fake()->create('oversized-ebook.pdf', 10241, 'application/pdf'),
+            'access_tier_ids' => [$tier->id],
+        ]);
+
+        $response->assertSessionHasErrors('file');
+        $this->assertDatabaseMissing('ebooks', ['title' => 'Oversized Ebook']);
+    }
+
+    public function test_admin_cannot_create_course_with_thumbnail_larger_than_10mb(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+
+        $response = $this->actingAs($admin)->post(route('admin.courses.store'), [
+            'title' => 'Oversized Course',
+            'url_slug' => 'oversized-course',
+            'access_tier_id' => $tier->id,
+            'description' => 'Course with invalid thumbnail size.',
+            'thumbnail' => UploadedFile::fake()->image('oversized-course.jpg')->size(10241),
+            'video' => 'https://example.com/course-video',
+        ]);
+
+        $response->assertSessionHasErrors('thumbnail');
+        $this->assertDatabaseMissing('courses', ['url_slug' => 'oversized-course']);
     }
 
     public function test_student_only_sees_modules_for_their_access_tier(): void

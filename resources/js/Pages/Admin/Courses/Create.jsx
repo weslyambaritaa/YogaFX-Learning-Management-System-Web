@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function CreateCourse({ accessTiers }) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         title: '',
         url_slug: '',
         access_tier_id: '',
@@ -40,6 +40,8 @@ export default function CreateCourse({ accessTiers }) {
                         <CourseForm
                             data={data}
                             setData={setData}
+                            setError={setError}
+                            clearErrors={clearErrors}
                             errors={errors}
                             processing={processing}
                             accessTiers={accessTiers}

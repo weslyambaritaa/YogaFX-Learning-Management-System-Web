@@ -1,11 +1,3 @@
 flowchart TD
-    A[Student opens assignment page] --> B[Load assignment types and statuses]
-    B --> C[Student selects assignment type]
-    C --> D[Student uploads assignment video]
-    D --> E[Validate submission]
-    E --> F{Valid?}
-    F -->|No| G[Show upload or validation error]
-    F -->|Yes| H[Create assignment submission]
-    H --> I[Set status pending_review]
-    I --> J[Trigger assignment review email if enabled]
-    J --> K[Show updated assignment status to student]
+    A[Student assignment submission UI] --> B[Planned future scope]
+    B --> C[Not implemented in the current repository state]

@@ -3,10 +3,13 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { MAX_UPLOAD_SIZE_MB, validateUploadSize } from '@/lib/uploads';
 
 export default function LessonForm({
     data,
     setData,
+    setError,
+    clearErrors,
     errors,
     processing,
     modules,
@@ -16,6 +19,22 @@ export default function LessonForm({
     currentThumbnailUrl = null,
     currentWorkbookUrl = null,
 }) {
+    const handleFileChange = (field, label) => (event) => {
+        const file = event.target.files?.[0] ?? null;
+        const errorMessage = validateUploadSize(file, label);
+
+        if (errorMessage) {
+            setError?.(field, errorMessage);
+            setData(field, null);
+            event.target.value = '';
+
+            return;
+        }
+
+        clearErrors?.(field);
+        setData(field, file);
+    };
+
     return (
         <form onSubmit={onSubmit} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
@@ -118,11 +137,12 @@ export default function LessonForm({
                         id="thumbnail"
                         type="file"
                         accept="image/*"
-                        onChange={(event) =>
-                            setData('thumbnail', event.target.files?.[0] ?? null)
-                        }
+                        onChange={handleFileChange('thumbnail', 'thumbnail')}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                     />
+                    <p className="mt-2 text-xs text-gray-500">
+                        Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.
+                    </p>
                     <InputError className="mt-2" message={errors.thumbnail} />
                     {currentThumbnailUrl && (
                         <img
@@ -139,11 +159,12 @@ export default function LessonForm({
                         id="workbook"
                         type="file"
                         accept=".pdf,.doc,.docx"
-                        onChange={(event) =>
-                            setData('workbook', event.target.files?.[0] ?? null)
-                        }
+                        onChange={handleFileChange('workbook', 'workbook file')}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                     />
+                    <p className="mt-2 text-xs text-gray-500">
+                        Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.
+                    </p>
                     <InputError className="mt-2" message={errors.workbook} />
                     {currentWorkbookUrl && (
                         <a

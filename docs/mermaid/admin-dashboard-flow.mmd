@@ -1,9 +1,14 @@
 flowchart TD
-    A[Admin logs in] --> B[Open admin dashboard]
-    B --> C[Load summary metrics and quick actions]
-    C --> D{Choose area}
-    D -->|Content| E[Open Content Management]
-    D -->|Students| F[Open Student Management]
-    D -->|Assignments| G[Open Assignment Review]
-    D -->|Certificates| H[Open Certificate Management]
-    D -->|Email| I[Open Email Settings]
+    A[Admin logs in] --> B[Redirect to Admin Dashboard]
+    B --> C[Show greeting content]
+    C --> D[Use left sidebar navigation]
+    D --> E{Choose admin area}
+    E -->|Modules| F[Open Modules]
+    E -->|Lessons| G[Open Lessons]
+    E -->|Student Progress| H[Open Student Progress]
+    E -->|E-Book| I[Open E-Books]
+    E -->|Video Lecture| J[Open Video Lecture]
+    E -->|Email| K[Open Email Notification]
+    E -->|Access Tiers| L[Open Supporting Page]
+    C --> M[Use topbar for page title toggle and user menu]
+    M --> N[Logout]

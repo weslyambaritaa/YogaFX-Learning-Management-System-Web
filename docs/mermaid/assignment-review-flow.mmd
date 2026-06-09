@@ -1,12 +1,15 @@
 flowchart TD
-    A[Admin opens assignment submissions list] --> B[Select submission]
-    B --> C[Load submission detail and video]
-    C --> D[Review assignment]
-    D --> E{Decision?}
-    E -->|Approve| F[Set status approved]
-    E -->|Reject| G[Enter feedback]
-    G --> H[Set status rejected]
-    F --> I[Trigger approved email if enabled]
-    H --> J[Trigger rejected email if enabled]
-    I --> K[Student sees updated assignment status]
-    J --> K
+    A[Admin opens Student Progress directory] --> B[Open one student action menu]
+    B --> C[Choose Assignment]
+    C --> D[Load assignment detail page]
+    D --> E{Choose action}
+    E -->|Save| F[Update status and feedback]
+    E -->|Send Email| G[Send manual assignment email]
+    E -->|Delete Video| H[Confirm delete video]
+    H --> I{Confirmed?}
+    I -->|No| D
+    I -->|Yes| J[Clear assignment video]
+    F --> K{Approved or Rejected?}
+    K -->|Approved| L[Trigger assignment approved email event]
+    K -->|Rejected| M[Trigger assignment rejected email event]
+    K -->|Other| N[Stay on assignment page]

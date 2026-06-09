@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Models\AccessTier;
 use App\Models\Module;
+use App\Support\UploadConstraints;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,11 +33,19 @@ class LessonRequest extends FormRequest
             'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],
             'assessment_id' => ['nullable', 'integer', 'min:1'],
             'title' => ['required', 'string', 'max:255'],
-            'thumbnail' => [...$thumbnailRule, 'image', 'max:2048'],
-            'workbook' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+            'thumbnail' => [...$thumbnailRule, 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
+            'workbook' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
             'video' => ['nullable', 'string', 'max:2048'],
             'audio' => ['nullable', 'string', 'max:2048'],
             'content' => ['nullable', 'string'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'thumbnail.max' => 'The thumbnail must not be larger than 10 MB.',
+            'workbook.max' => 'The workbook file must not be larger than 10 MB.',
         ];
     }
 

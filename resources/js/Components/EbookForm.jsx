@@ -3,10 +3,13 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { MAX_UPLOAD_SIZE_MB, validateUploadSize } from '@/lib/uploads';
 
 export default function EbookForm({
     data,
     setData,
+    setError,
+    clearErrors,
     errors,
     processing,
     accessTiers,
@@ -14,6 +17,22 @@ export default function EbookForm({
     submitLabel = 'Save Ebook',
     currentFileUrl = null,
 }) {
+    const handleFileChange = (event) => {
+        const file = event.target.files?.[0] ?? null;
+        const errorMessage = validateUploadSize(file, 'ebook file');
+
+        if (errorMessage) {
+            setError?.('file', errorMessage);
+            setData('file', null);
+            event.target.value = '';
+
+            return;
+        }
+
+        clearErrors?.('file');
+        setData('file', file);
+    };
+
     return (
         <form onSubmit={onSubmit} className="space-y-6">
             <div>
@@ -41,11 +60,12 @@ export default function EbookForm({
                     id="file"
                     type="file"
                     accept=".pdf"
-                    onChange={(event) =>
-                        setData('file', event.target.files?.[0] ?? null)
-                    }
+                    onChange={handleFileChange}
                     className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                 />
+                <p className="mt-2 text-xs text-gray-500">
+                    Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.
+                </p>
                 <InputError className="mt-2" message={errors.file} />
                 {currentFileUrl && (
                     <a

@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function EditLesson({ lesson, accessTiers, modules, status }) {
-    const { data, setData, patch, processing, errors } = useForm({
+    const { data, setData, patch, processing, errors, setError, clearErrors } = useForm({
         module_id: lesson.module_id ?? '',
         access_tier_ids: lesson.access_tier_ids ?? [],
         assessment_id: lesson.assessment_id ?? '',
@@ -53,6 +53,8 @@ export default function EditLesson({ lesson, accessTiers, modules, status }) {
                         <LessonForm
                             data={data}
                             setData={setData}
+                            setError={setError}
+                            clearErrors={clearErrors}
                             errors={errors}
                             processing={processing}
                             modules={modules}
