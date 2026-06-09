@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class LearningContentTest extends TestCase
@@ -94,6 +95,80 @@ class LearningContentTest extends TestCase
         $this->assertDatabaseHas('access_tier_lesson', [
             'lesson_id' => $lesson->id,
             'access_tier_id' => $tier->id,
+        ]);
+    }
+
+    public function test_admin_cannot_create_lesson_with_tier_outside_module_tiers(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $online = AccessTier::factory()->create(['name' => 'Online']);
+        $masterClass = AccessTier::factory()->create(['name' => 'MasterClass']);
+        $starterKit = AccessTier::factory()->create(['name' => 'Starter Kit']);
+
+        $module = Module::factory()->create([
+            'title' => 'Advanced Flow',
+        ]);
+        $module->accessTiers()->sync([$online->id, $masterClass->id]);
+
+        $response = $this->actingAs($admin)->post(route('admin.lessons.store'), [
+            'module_id' => $module->id,
+            'access_tier_ids' => [$starterKit->id],
+            'assessment_id' => null,
+            'title' => 'Invalid Tier Lesson',
+            'thumbnail' => UploadedFile::fake()->image('invalid-tier-lesson.jpg'),
+            'workbook' => null,
+            'video' => 'https://example.com/video',
+            'audio' => null,
+            'content' => '<p>Invalid tier content</p>',
+        ]);
+
+        $response->assertSessionHasErrors('access_tier_ids');
+        $this->assertDatabaseMissing('lessons', [
+            'title' => 'Invalid Tier Lesson',
+        ]);
+    }
+
+    public function test_admin_cannot_update_lesson_with_tier_outside_module_tiers(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $online = AccessTier::factory()->create(['name' => 'Online']);
+        $masterClass = AccessTier::factory()->create(['name' => 'MasterClass']);
+        $starterKit = AccessTier::factory()->create(['name' => 'Starter Kit']);
+
+        $module = Module::factory()->create([
+            'title' => 'Intermediate Flow',
+        ]);
+        $module->accessTiers()->sync([$online->id, $masterClass->id]);
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'title' => 'Valid Lesson',
+        ]);
+        $lesson->accessTiers()->sync([$online->id]);
+
+        $response = $this->actingAs($admin)->patch(route('admin.lessons.update', $lesson), [
+            'module_id' => $module->id,
+            'access_tier_ids' => [$online->id, $starterKit->id],
+            'assessment_id' => null,
+            'title' => 'Valid Lesson',
+            'video' => 'https://example.com/video',
+            'audio' => null,
+            'content' => '<p>Updated content</p>',
+        ]);
+
+        $response->assertSessionHasErrors('access_tier_ids');
+
+        $this->assertDatabaseHas('access_tier_lesson', [
+            'lesson_id' => $lesson->id,
+            'access_tier_id' => $online->id,
+        ]);
+        $this->assertDatabaseMissing('access_tier_lesson', [
+            'lesson_id' => $lesson->id,
+            'access_tier_id' => $starterKit->id,
         ]);
     }
 
@@ -211,5 +286,67 @@ class LearningContentTest extends TestCase
             ->assertOk()
             ->assertSee($visibleCourse->title)
             ->assertDontSee('Hidden Course');
+    }
+
+    public function test_student_can_open_pdf_ebook_preview_page_with_separate_download_url(): void
+    {
+        Storage::fake('local');
+
+        $online = AccessTier::factory()->create(['name' => 'Online', 'slug' => 'online']);
+        $student = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $online->id,
+        ]);
+
+        $path = 'ebooks/files/previewable.pdf';
+        Storage::disk('local')->put($path, 'sample pdf content');
+
+        $ebook = Ebook::factory()->create([
+            'title' => 'Previewable Ebook',
+            'file' => $path,
+        ]);
+        $ebook->accessTiers()->sync([$online->id]);
+
+        $this->actingAs($student)
+            ->get(route('ebooks.preview', $ebook))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Ebooks/Preview')
+                ->where('ebook.title', 'Previewable Ebook')
+                ->where('ebook.preview_supported', true)
+                ->where('backLabel', 'Back to Ebooks')
+                ->where('ebook.download_url', route('media.show', [
+                    'entity' => 'ebook',
+                    'id' => $ebook->id,
+                    'field' => 'file',
+                    'download' => 1,
+                ])));
+    }
+
+    public function test_student_sees_fallback_message_for_non_previewable_ebook_file(): void
+    {
+        Storage::fake('local');
+
+        $online = AccessTier::factory()->create(['name' => 'Online', 'slug' => 'online']);
+        $student = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $online->id,
+        ]);
+
+        $path = 'ebooks/files/reference.txt';
+        Storage::disk('local')->put($path, 'plain text reference');
+
+        $ebook = Ebook::factory()->create([
+            'title' => 'Reference Notes',
+            'file' => $path,
+        ]);
+        $ebook->accessTiers()->sync([$online->id]);
+
+        $this->actingAs($student)
+            ->get(route('ebooks.preview', $ebook))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Ebooks/Preview')
+                ->where('ebook.title', 'Reference Notes')
+                ->where('ebook.preview_supported', false)
+                ->where('ebook.preview_message', 'This ebook file cannot be previewed in the browser yet. You can still download it.'));
     }
 }

@@ -2,9 +2,12 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\AccessTier;
+use App\Models\Module;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class LessonRequest extends FormRequest
 {
@@ -35,5 +38,64 @@ class LessonRequest extends FormRequest
             'audio' => ['nullable', 'string', 'max:2048'],
             'content' => ['nullable', 'string'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($validator->errors()->has('module_id') || $validator->errors()->has('access_tier_ids')) {
+                return;
+            }
+
+            $moduleId = $this->integer('module_id');
+            $selectedTierIds = collect($this->input('access_tier_ids', []))
+                ->map(fn ($tierId) => (int) $tierId)
+                ->unique()
+                ->values();
+
+            if ($moduleId === 0 || $selectedTierIds->isEmpty()) {
+                return;
+            }
+
+            $module = Module::query()
+                ->with('accessTiers:id,name')
+                ->find($moduleId);
+
+            if (! $module) {
+                return;
+            }
+
+            $allowedTierIds = $module->accessTiers
+                ->pluck('id')
+                ->map(fn ($tierId) => (int) $tierId);
+
+            $invalidTierIds = $selectedTierIds->diff($allowedTierIds)->values();
+
+            if ($invalidTierIds->isEmpty()) {
+                return;
+            }
+
+            $invalidTierNames = AccessTier::query()
+                ->whereIn('id', $invalidTierIds->all())
+                ->orderBy('name')
+                ->pluck('name')
+                ->all();
+
+            $allowedTierNames = $module->accessTiers
+                ->pluck('name')
+                ->sort()
+                ->values()
+                ->all();
+
+            $validator->errors()->add(
+                'access_tier_ids',
+                sprintf(
+                    'The selected lesson tier(s) are not allowed for module "%s". Invalid tier(s): %s. Allowed tier(s): %s.',
+                    $module->title,
+                    implode(', ', $invalidTierNames),
+                    implode(', ', $allowedTierNames),
+                ),
+            );
+        });
     }
 }

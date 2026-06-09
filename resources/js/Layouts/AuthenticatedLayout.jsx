@@ -200,6 +200,7 @@ const adminPageTitles = {
     'admin.ebooks.index': 'E-Book',
     'admin.ebooks.create': 'Create E-Book',
     'admin.ebooks.edit': 'Edit E-Book',
+    'admin.ebooks.preview': 'E-Book Preview',
     'admin.student-progress.index': 'Student Progress',
     'admin.student-progress.completed-lessons.index': 'Completed Lesson',
     'admin.student-progress.assignments.index': 'Assignment',

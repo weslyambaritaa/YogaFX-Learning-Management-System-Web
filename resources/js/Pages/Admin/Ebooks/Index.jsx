@@ -66,12 +66,10 @@ export default function EbooksIndex({ ebooks, status }) {
                                             <td className="px-4 py-3 text-gray-700">{ebook.sort_order}</td>
                                             <td className="px-4 py-3">
                                                 <a
-                                                    href={ebook.file_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
+                                                    href={ebook.preview_url}
                                                     className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                                                 >
-                                                    Open File
+                                                    Preview File
                                                 </a>
                                             </td>
                                             <td className="px-4 py-3">

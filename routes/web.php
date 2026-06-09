@@ -59,6 +59,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/modules/{module:url_slug}', [ModuleCatalogController::class, 'show'])->name('modules.show');
         Route::get('/lessons/{lesson}', [LessonCatalogController::class, 'show'])->name('lessons.show');
         Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
+        Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
     });
 
@@ -87,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/ebooks', [EbookController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/create', [EbookController::class, 'create'])->name('ebooks.create');
         Route::post('/ebooks', [EbookController::class, 'store'])->name('ebooks.store');
+        Route::get('/ebooks/{ebook}/preview', [EbookController::class, 'preview'])->name('ebooks.preview');
         Route::get('/ebooks/{ebook}/edit', [EbookController::class, 'edit'])->name('ebooks.edit');
         Route::patch('/ebooks/{ebook}', [EbookController::class, 'update'])->name('ebooks.update');
         Route::delete('/ebooks/{ebook}', [EbookController::class, 'destroy'])->name('ebooks.destroy');

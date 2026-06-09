@@ -57,7 +57,7 @@ class ContentFileController extends Controller
             'ebook' => [
                 'model' => Ebook::class,
                 'fields' => [
-                    'file' => ['download' => true],
+                    'file' => ['download' => false],
                 ],
             ],
             'course' => [

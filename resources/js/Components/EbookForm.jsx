@@ -51,10 +51,8 @@ export default function EbookForm({
                     <a
                         href={currentFileUrl}
                         className="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                        target="_blank"
-                        rel="noreferrer"
                     >
-                        Open current ebook file
+                        Preview current ebook file
                     </a>
                 )}
             </div>

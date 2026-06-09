@@ -52,7 +52,7 @@ export default function EditEbook({ ebook, accessTiers, status }) {
                             accessTiers={accessTiers}
                             onSubmit={submit}
                             submitLabel="Save Ebook"
-                            currentFileUrl={ebook.file_url}
+                            currentFileUrl={ebook.preview_url}
                         />
                     </div>
                 </div>

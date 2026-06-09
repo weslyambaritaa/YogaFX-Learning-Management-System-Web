@@ -22,12 +22,10 @@ export default function StudentEbooksIndex({ ebooks }) {
                                 {ebook.title}
                             </h3>
                             <a
-                                href={ebook.file_url}
+                                href={ebook.preview_url}
                                 className="mt-4 inline-flex rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-                                target="_blank"
-                                rel="noreferrer"
                             >
-                                Open Ebook
+                                Preview Ebook
                             </a>
                         </div>
                     ))}
