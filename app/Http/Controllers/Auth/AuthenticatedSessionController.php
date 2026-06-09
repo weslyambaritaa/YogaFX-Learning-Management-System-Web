@@ -33,7 +33,19 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $user = $request->user();
+
+        if (! $user || ! $user->hasRole($user::ROLE_ADMIN, $user::ROLE_STUDENT)) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'This account is not authorized to access YogaFX LMS.',
+            ]);
+        }
+
+        return redirect()->intended(route($user->postLoginRouteName(), absolute: false));
     }
 
     /**
@@ -47,6 +59,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('login');
     }
 }

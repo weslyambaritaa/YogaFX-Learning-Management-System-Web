@@ -19,7 +19,7 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->student()->completeProfile()->create();
 
         $response = $this->post('/login', [
             'email' => $user->email,
@@ -27,7 +27,33 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('student.dashboard', absolute: false));
+    }
+
+    public function test_students_with_incomplete_profiles_are_redirected_to_profile_completion_after_login(): void
+    {
+        $user = User::factory()->student()->create();
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('profile.edit', absolute: false));
+    }
+
+    public function test_admin_users_are_redirected_to_the_admin_dashboard_after_login(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('admin.dashboard', absolute: false));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -49,6 +75,24 @@ class AuthenticationTest extends TestCase
         $response = $this->actingAs($user)->post('/logout');
 
         $this->assertGuest();
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('login'));
+    }
+
+    public function test_student_users_cannot_access_admin_dashboard(): void
+    {
+        $user = User::factory()->student()->create();
+
+        $response = $this->actingAs($user)->get(route('admin.dashboard'));
+
+        $response->assertForbidden();
+    }
+
+    public function test_admin_users_cannot_access_student_dashboard(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $response = $this->actingAs($user)->get(route('student.dashboard'));
+
+        $response->assertForbidden();
     }
 }

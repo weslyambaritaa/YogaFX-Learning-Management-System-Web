@@ -1,0 +1,21 @@
+flowchart TD
+
+    A[User opens auth page] --> B{Signup or Login?}
+    B -->|Signup| C[Fill registration form]
+    C --> D[Validate registration data]
+    D --> E{Valid?}
+    E -->|No| F[Show validation errors]
+    E -->|Yes| G[Create user account]
+    G --> H[Assign access tier]
+    H --> I[Trigger signup email if enabled]
+    I --> J[Redirect to login or auto-auth]
+
+    B -->|Login| K[Fill login form]
+    J --> K
+    K --> L[Validate credentials]
+    L --> M{Valid?}
+    M -->|No| N[Show login error]
+    M -->|Yes| O[Create active session]
+    O --> P{Role?}
+    P -->|Admin| Q[Redirect to Admin Dashboard]
+    P -->|Student| R[Redirect to Student Dashboard]

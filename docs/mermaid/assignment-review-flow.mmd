@@ -1,0 +1,12 @@
+flowchart TD
+    A[Admin opens assignment submissions list] --> B[Select submission]
+    B --> C[Load submission detail and video]
+    C --> D[Review assignment]
+    D --> E{Decision?}
+    E -->|Approve| F[Set status approved]
+    E -->|Reject| G[Enter feedback]
+    G --> H[Set status rejected]
+    F --> I[Trigger approved email if enabled]
+    H --> J[Trigger rejected email if enabled]
+    I --> K[Student sees updated assignment status]
+    J --> K

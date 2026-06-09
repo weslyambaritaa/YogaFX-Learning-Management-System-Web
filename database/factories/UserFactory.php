@@ -26,6 +26,8 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            'role' => User::ROLE_STUDENT,
+            'access_tier_id' => null,
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
@@ -41,5 +43,47 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_ADMIN,
+        ]);
+    }
+
+    public function student(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_STUDENT,
+        ]);
+    }
+
+    public function completeProfile(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'whatsapp' => fake()->numerify('08##########'),
+            'preferred_certificate_picture' => fake()->optional()->imageUrl(),
+            'profile_photo' => fake()->optional()->imageUrl(240, 240, 'people'),
+            'instagram' => '@'.fake()->userName(),
+            'country' => fake()->country(),
+            'birth_date' => fake()->date(),
+            'gender' => 'prefer_not_to_say',
+            'practicing_yoga_for' => '1-3 years',
+            'yoga_sequence_experience' => 'Beginner',
+            'hours_per_week' => 4,
+            'current_fitness_level' => 'Intermediate',
+            'flexibility_rating' => 'Moderate',
+            'motivation' => fake()->sentence(),
+            'why_yogafx' => fake()->sentence(),
+            'how_did_you_find_us' => 'Instagram',
+        ])->afterMaking(function (User $user): void {
+            $user->syncDisplayName();
+        })->afterCreating(function (User $user): void {
+            $user->syncDisplayName();
+            $user->save();
+        });
     }
 }
