@@ -10,6 +10,7 @@ use App\Models\AccessTier;
 use App\Models\Lesson;
 use App\Models\Module;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,6 +33,13 @@ class LessonController extends Controller
                     'module' => $lesson->module?->title,
                     'access_tiers' => $lesson->accessTiers->pluck('name')->all(),
                     'sort_order' => $lesson->sort_order,
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'lesson',
+                        $lesson->id,
+                        'thumbnail',
+                        $lesson->thumbnail,
+                        versionSeed: $lesson->updated_at,
+                    ),
                     'has_workbook' => $lesson->workbook !== null,
                     'has_video' => $lesson->video !== null,
                     'has_audio' => $lesson->audio !== null,
@@ -65,6 +73,10 @@ class LessonController extends Controller
 
     public function edit(Lesson $lesson): Response
     {
+        [$workbookPreviewSupported, $workbookMimeType] = $lesson->workbook
+            ? $this->previewMetadata($lesson->workbook)
+            : [false, null];
+
         return Inertia::render('Admin/Lessons/Edit', [
                 'lesson' => [
                     'id' => $lesson->id,
@@ -82,13 +94,31 @@ class LessonController extends Controller
                     $lesson->thumbnail,
                     versionSeed: $lesson->updated_at,
                 ),
-                'workbook_url' => $this->protectedMediaUrl(
-                    'lesson',
-                    $lesson->id,
-                    'workbook',
-                    $lesson->workbook,
-                    versionSeed: $lesson->updated_at,
-                ),
+                'workbook_preview' => $lesson->workbook ? [
+                    'title' => "{$lesson->title} Workbook",
+                    'file_name' => basename((string) $lesson->workbook),
+                    'mime_type' => $workbookMimeType,
+                    'preview_supported' => $workbookPreviewSupported,
+                    'preview_message' => $workbookPreviewSupported
+                        ? null
+                        : 'This workbook file cannot be previewed in the browser yet. You can still download it.',
+                    'preview_url' => $this->protectedMediaUrl(
+                        'lesson',
+                        $lesson->id,
+                        'workbook',
+                        $lesson->workbook,
+                        versionSeed: $lesson->updated_at,
+                        extraParameters: ['inline' => 1],
+                    ),
+                    'download_url' => $this->protectedMediaUrl(
+                        'lesson',
+                        $lesson->id,
+                        'workbook',
+                        $lesson->workbook,
+                        download: true,
+                        versionSeed: $lesson->updated_at,
+                    ),
+                ] : null,
             ],
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),
@@ -155,5 +185,17 @@ class LessonController extends Controller
                 'title' => $module->title,
             ])
             ->all();
+    }
+
+    /**
+     * @return array{0: bool, 1: string|null}
+     */
+    private function previewMetadata(string $path): array
+    {
+        $mimeType = Storage::disk('local')->mimeType($path);
+        $isPdf = str($path)->lower()->endsWith('.pdf')
+            || $mimeType === 'application/pdf';
+
+        return [$isPdf, $mimeType];
     }
 }

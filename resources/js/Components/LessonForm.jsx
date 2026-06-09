@@ -2,6 +2,15 @@ import AccessTierMultiSelect from '@/Components/AccessTierMultiSelect';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import { Button } from '@/Components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/Components/ui/dialog';
 import TextInput from '@/Components/TextInput';
 import { MAX_UPLOAD_SIZE_MB, validateUploadSize } from '@/lib/uploads';
 
@@ -17,7 +26,7 @@ export default function LessonForm({
     onSubmit,
     submitLabel = 'Save Lesson',
     currentThumbnailUrl = null,
-    currentWorkbookUrl = null,
+    currentWorkbookPreview = null,
 }) {
     const handleFileChange = (field, label) => (event) => {
         const file = event.target.files?.[0] ?? null;
@@ -166,15 +175,60 @@ export default function LessonForm({
                         Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.
                     </p>
                     <InputError className="mt-2" message={errors.workbook} />
-                    {currentWorkbookUrl && (
-                        <a
-                            href={currentWorkbookUrl}
-                            className="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            Open current workbook
-                        </a>
+                    {currentWorkbookPreview && (
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open current workbook
+                                </button>
+                            </DialogTrigger>
+                            <DialogContent className="max-h-[90vh] max-w-5xl overflow-hidden border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl ring-1 ring-black/5">
+                                <DialogHeader className="gap-3 border-b border-slate-200 px-6 py-5">
+                                    <DialogTitle className="text-lg font-semibold text-slate-950">
+                                        {currentWorkbookPreview.title}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-sm leading-6 text-slate-600">
+                                        Preview the workbook here, then continue editing when you are done.
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-6 py-4">
+                                    <div>
+                                        <div className="text-sm font-medium text-slate-900">
+                                            {currentWorkbookPreview.file_name}
+                                        </div>
+                                        <div className="mt-1 text-xs text-slate-500">
+                                            {currentWorkbookPreview.mime_type ?? 'Unknown file type'}
+                                        </div>
+                                    </div>
+
+                                    <Button asChild>
+                                        <a href={currentWorkbookPreview.download_url}>
+                                            Download Workbook
+                                        </a>
+                                    </Button>
+                                </div>
+
+                                <div className="max-h-[65vh] overflow-y-auto bg-slate-100 p-6">
+                                    {currentWorkbookPreview.preview_supported ? (
+                                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                                            <iframe
+                                                src={currentWorkbookPreview.preview_url}
+                                                title={`Preview of ${currentWorkbookPreview.title}`}
+                                                className="h-[60vh] w-full bg-slate-50"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+                                            {currentWorkbookPreview.preview_message}
+                                        </div>
+                                    )}
+                                </div>
+                            </DialogContent>
+                        </Dialog>
                     )}
                 </div>
             </div>

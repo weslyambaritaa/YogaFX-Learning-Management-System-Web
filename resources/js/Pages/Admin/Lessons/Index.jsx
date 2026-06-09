@@ -65,8 +65,23 @@ export default function LessonsIndex({ lessons, status }) {
                                 <tbody className="divide-y divide-gray-100 bg-white">
                                     {lessons.map((lesson) => (
                                         <tr key={lesson.id}>
-                                            <td className="px-4 py-3 font-medium text-gray-900">
-                                                {lesson.title}
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-4">
+                                                    {lesson.thumbnail_url ? (
+                                                        <img
+                                                            src={lesson.thumbnail_url}
+                                                            alt={lesson.title}
+                                                            className="h-14 w-20 rounded-md object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-14 w-20 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                                                            No image
+                                                        </div>
+                                                    )}
+                                                    <div className="font-medium text-gray-900">
+                                                        {lesson.title}
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">{lesson.module}</td>
                                             <td className="px-4 py-3 text-gray-700">

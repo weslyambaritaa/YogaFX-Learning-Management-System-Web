@@ -1,3 +1,4 @@
+import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import {
@@ -92,16 +93,15 @@ export default function Assignments({
         );
     };
 
-    const deleteAssignmentVideo = (assignmentId) => {
-        if (!window.confirm('Delete this assignment video reference?')) {
-            return;
-        }
-
+    const deleteAssignmentVideo = (assignmentId, onFinish) => {
         router.delete(
             route('admin.student-progress.assignments.delete-video', {
                 student: student.id,
                 assignmentSubmission: assignmentId,
             }),
+            {
+                onFinish,
+            },
         );
     };
 
@@ -240,17 +240,27 @@ export default function Assignments({
                                             >
                                                 Send Email
                                             </Button>
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="destructive"
-                                                disabled={!assignment.video}
-                                                onClick={() =>
-                                                    deleteAssignmentVideo(assignment.id)
+                                            <DeleteConfirmationDialog
+                                                title="Delete assignment video?"
+                                                description="This will remove the submitted video reference from this assignment."
+                                                trigger={
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        disabled={!assignment.video}
+                                                    >
+                                                        Delete Video
+                                                    </Button>
                                                 }
-                                            >
-                                                Delete Video
-                                            </Button>
+                                                onConfirm={({ onFinish }) =>
+                                                    deleteAssignmentVideo(
+                                                        assignment.id,
+                                                        onFinish,
+                                                    )
+                                                }
+                                                confirmLabel="Delete Video"
+                                            />
                                         </div>
                                     </TableCell>
                                 </TableRow>

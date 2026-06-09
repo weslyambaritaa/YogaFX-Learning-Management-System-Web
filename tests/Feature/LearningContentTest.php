@@ -172,6 +172,38 @@ class LearningContentTest extends TestCase
         ]);
     }
 
+    public function test_admin_lesson_index_includes_thumbnail_url_for_uploaded_thumbnail(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'thumbnail' => UploadedFile::fake()->image('lesson-index-thumbnail.jpg')
+                ->store('lessons/thumbnails', 'local'),
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
+        $expectedThumbnailUrl = $this->protectedMediaUrl(
+            'lesson',
+            $lesson->id,
+            'thumbnail',
+            $lesson->thumbnail,
+            $lesson->updated_at,
+        );
+
+        $this->actingAs($admin)
+            ->get(route('admin.lessons.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Lessons/Index')
+                ->where('lessons.0.thumbnail_url', $expectedThumbnailUrl));
+    }
+
     public function test_admin_cannot_create_lesson_with_tier_outside_module_tiers(): void
     {
         Storage::fake('local');
@@ -317,6 +349,79 @@ class LearningContentTest extends TestCase
 
         $response->assertSessionHasErrors('file');
         $this->assertDatabaseMissing('ebooks', ['title' => 'Oversized Ebook']);
+    }
+
+    public function test_admin_edit_lesson_includes_pdf_workbook_preview_data(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $path = 'lessons/workbooks/previewable-workbook.pdf';
+        Storage::disk('local')->put($path, 'sample workbook pdf content');
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'title' => 'Workbook Preview Lesson',
+            'workbook' => $path,
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.lessons.edit', $lesson))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Lessons/Edit')
+                ->where('lesson.workbook_preview.title', 'Workbook Preview Lesson Workbook')
+                ->where('lesson.workbook_preview.preview_supported', true)
+                ->where('lesson.workbook_preview.download_url', $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'workbook',
+                    $lesson->workbook,
+                    $lesson->updated_at,
+                    true,
+                ))
+                ->where('lesson.workbook_preview.preview_url', $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'workbook',
+                    $lesson->workbook,
+                    $lesson->updated_at,
+                    false,
+                    ['inline' => 1],
+                )));
+    }
+
+    public function test_admin_edit_lesson_shows_fallback_message_for_non_previewable_workbook_file(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $path = 'lessons/workbooks/reference-workbook.docx';
+        Storage::disk('local')->put($path, 'sample docx content');
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'title' => 'Reference Workbook Lesson',
+            'workbook' => $path,
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.lessons.edit', $lesson))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Lessons/Edit')
+                ->where('lesson.workbook_preview.preview_supported', false)
+                ->where('lesson.workbook_preview.preview_message', 'This workbook file cannot be previewed in the browser yet. You can still download it.'));
     }
 
     public function test_admin_cannot_create_course_with_thumbnail_larger_than_10mb(): void
@@ -495,6 +600,7 @@ class LearningContentTest extends TestCase
         string $path,
         mixed $versionSeed,
         bool $download = false,
+        array $extraParameters = [],
     ): string {
         $parameters = [
             'entity' => $entity,
@@ -506,6 +612,7 @@ class LearningContentTest extends TestCase
                 $field,
                 $path,
                 (string) $versionSeed,
+                json_encode($extraParameters),
             ])),
         ];
 
@@ -513,6 +620,6 @@ class LearningContentTest extends TestCase
             $parameters['download'] = 1;
         }
 
-        return route('media.show', $parameters);
+        return route('media.show', array_merge($parameters, $extraParameters));
     }
 }

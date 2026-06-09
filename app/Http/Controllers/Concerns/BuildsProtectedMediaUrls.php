@@ -11,6 +11,7 @@ trait BuildsProtectedMediaUrls
         ?string $path,
         bool $download = false,
         mixed $versionSeed = null,
+        array $extraParameters = [],
     ): ?string {
         if (! filled($path)) {
             return null;
@@ -26,6 +27,7 @@ trait BuildsProtectedMediaUrls
                 $field,
                 (string) $path,
                 (string) $versionSeed,
+                json_encode($extraParameters),
             ])),
         ];
 
@@ -33,6 +35,6 @@ trait BuildsProtectedMediaUrls
             $parameters['download'] = 1;
         }
 
-        return route('media.show', $parameters);
+        return route('media.show', array_merge($parameters, $extraParameters));
     }
 }

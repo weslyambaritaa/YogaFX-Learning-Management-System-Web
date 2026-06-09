@@ -62,7 +62,7 @@ export default function EditLesson({ lesson, accessTiers, modules, status }) {
                             onSubmit={submit}
                             submitLabel="Save Lesson"
                             currentThumbnailUrl={lesson.thumbnail_url}
-                            currentWorkbookUrl={lesson.workbook_url}
+                            currentWorkbookPreview={lesson.workbook_preview}
                         />
                     </div>
                 </div>

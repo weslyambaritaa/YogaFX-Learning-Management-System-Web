@@ -28,7 +28,7 @@ class ContentFileController extends Controller
         $path = $record->{$field};
         abort_unless($path && Storage::disk('local')->exists($path), 404);
 
-        if ($request->boolean('download') || $config['fields'][$field]['download']) {
+        if ($request->boolean('download') || ($config['fields'][$field]['download'] && ! $request->boolean('inline'))) {
             return Storage::disk('local')->download($path, basename($path));
         }
 
