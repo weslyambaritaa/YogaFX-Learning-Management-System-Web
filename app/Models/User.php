@@ -2,19 +2,19 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'name',
-    'role',
     'email',
     'password',
+    'access_tier_id',
     'first_name',
     'last_name',
     'whatsapp',
@@ -23,6 +23,8 @@ use Illuminate\Notifications\Notifiable;
     'country',
     'birth_date',
     'gender',
+    'last_visit_at',
+    'total_access_duration_seconds',
     'practicing_yoga_for',
     'yoga_sequence_experience',
     'hours_per_week',
@@ -37,9 +39,6 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
-
-    public const ROLE_ADMIN = 'admin';
-    public const ROLE_STUDENT = 'student';
 
     public const STUDENT_PROFILE_COMPLETION_FIELDS = [
         'first_name',
@@ -59,43 +58,51 @@ class User extends Authenticatable
         'how_did_you_find_us',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_visit_at' => 'datetime',
             'birth_date' => 'date',
             'hours_per_week' => 'integer',
+            'total_access_duration_seconds' => 'integer',
             'password' => 'hashed',
         ];
     }
 
+    // RELASI KE ACCESS TIER
+    public function accessTier(): BelongsTo
+    {
+        return $this->belongsTo(AccessTier::class, 'access_tier_id');
+    }
+
+    /**
+     * Admin adalah user yang tidak memiliki Paket Akses (null)
+     */
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return $this->access_tier_id === null;
     }
 
+    /**
+     * Student adalah user yang memiliki Paket Akses (tidak null)
+     */
     public function isStudent(): bool
     {
-        return $this->role === self::ROLE_STUDENT;
-    }
-
-    public function hasRole(string ...$roles): bool
-    {
-        return in_array($this->role, $roles, true);
+        return $this->access_tier_id !== null;
     }
 
     public function dashboardRouteName(): string
     {
-        return match ($this->role) {
-            self::ROLE_ADMIN => 'admin.dashboard',
-            self::ROLE_STUDENT => 'student.dashboard',
-            default => 'login',
-        };
+        if ($this->isAdmin()) {
+            return 'admin.dashboard';
+        }
+
+        if ($this->isStudent()) {
+            return 'student.dashboard';
+        }
+
+        return 'login';
     }
 
     public function postLoginRouteName(): string
