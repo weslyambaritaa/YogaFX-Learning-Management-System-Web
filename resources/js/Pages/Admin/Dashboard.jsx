@@ -53,10 +53,10 @@ export default function AdminDashboard() {
                                     Open Access Tiers
                                 </Link>
                                 <Link
-                                    href={route('admin.students.index')}
+                                    href={route('admin.student-progress.index')}
                                     className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                                 >
-                                    Open Student Management
+                                    Open Student Progress
                                 </Link>
                             </div>
                         </div>

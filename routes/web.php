@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AccessTierController;
 use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\EmailNotificationController;
 use App\Http\Controllers\Admin\EbookController;
 use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\ModuleController;
@@ -97,19 +98,29 @@ Route::middleware('auth')->group(function () {
         Route::patch('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
         Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
 
-        Route::get('/students', [StudentController::class, 'index'])->name('students.index');
-        Route::get('/students/{student}', [StudentController::class, 'edit'])->name('students.edit');
-        Route::patch('/students/{student}', [StudentController::class, 'update'])->name('students.update');
-        Route::get('/students/{student}/progress', [StudentProgressController::class, 'show'])->name('students.progress.show');
-        Route::post('/students/{student}/progress/lessons/{lessonProgress}/reset', [StudentProgressController::class, 'resetLesson'])->name('students.progress.lessons.reset');
-        Route::patch('/students/{student}/progress/assignments/{assignmentSubmission}', [StudentProgressController::class, 'updateAssignment'])->name('students.progress.assignments.update');
-        Route::post('/students/{student}/progress/assignments/{assignmentSubmission}/send-email', [StudentProgressController::class, 'sendAssignmentEmail'])->name('students.progress.assignments.send-email');
-        Route::delete('/students/{student}/progress/assignments/{assignmentSubmission}/video', [StudentProgressController::class, 'deleteAssignmentVideo'])->name('students.progress.assignments.delete-video');
-        Route::post('/students/{student}/progress/certificates', [StudentProgressController::class, 'generateCertificate'])->name('students.progress.certificates.store');
-        Route::post('/students/{student}/progress/certificates/send-graduation-email', [StudentProgressController::class, 'sendGraduationEmail'])->name('students.progress.certificates.send-graduation-email');
-        Route::post('/students/{student}/progress/certificates/{certificate}/recreate', [StudentProgressController::class, 'recreateCertificate'])->name('students.progress.certificates.recreate');
-        Route::get('/students/{student}/progress/certificates/{certificate}/download', [StudentProgressController::class, 'downloadCertificate'])->name('students.progress.certificates.download');
-        Route::delete('/students/{student}/progress/certificates/{certificate}', [StudentProgressController::class, 'destroyCertificate'])->name('students.progress.certificates.destroy');
+        Route::redirect('/email-notifications', '/admin/email-notifications/module_completion')->name('email-notifications.index');
+        Route::get('/email-notifications/{notificationType}', [EmailNotificationController::class, 'show'])->name('email-notifications.show');
+        Route::patch('/email-notifications/{notificationType}', [EmailNotificationController::class, 'update'])->name('email-notifications.update');
+        Route::post('/email-notifications/{notificationType}/send-test', [EmailNotificationController::class, 'sendTest'])->name('email-notifications.send-test');
+
+        Route::get('/student-progress', [StudentController::class, 'index'])->name('student-progress.index');
+        Route::get('/student-progress/completed-lessons', [StudentProgressController::class, 'completedLessonsIndex'])->name('student-progress.completed-lessons.index');
+        Route::get('/student-progress/assignments', [StudentProgressController::class, 'assignmentsIndex'])->name('student-progress.assignments.index');
+        Route::get('/student-progress/certificates', [StudentProgressController::class, 'certificatesIndex'])->name('student-progress.certificates.index');
+        Route::get('/student-progress/students/{student}', [StudentController::class, 'edit'])->name('student-progress.students.edit');
+        Route::patch('/student-progress/students/{student}', [StudentController::class, 'update'])->name('student-progress.students.update');
+        Route::get('/student-progress/students/{student}/completed-lessons', [StudentProgressController::class, 'showCompletedLessons'])->name('student-progress.completed-lessons.show');
+        Route::post('/student-progress/students/{student}/completed-lessons/{lessonProgress}/reset', [StudentProgressController::class, 'resetLesson'])->name('student-progress.completed-lessons.reset');
+        Route::get('/student-progress/students/{student}/assignments', [StudentProgressController::class, 'showAssignments'])->name('student-progress.assignments.show');
+        Route::patch('/student-progress/students/{student}/assignments/{assignmentSubmission}', [StudentProgressController::class, 'updateAssignment'])->name('student-progress.assignments.update');
+        Route::post('/student-progress/students/{student}/assignments/{assignmentSubmission}/send-email', [StudentProgressController::class, 'sendAssignmentEmail'])->name('student-progress.assignments.send-email');
+        Route::delete('/student-progress/students/{student}/assignments/{assignmentSubmission}/video', [StudentProgressController::class, 'deleteAssignmentVideo'])->name('student-progress.assignments.delete-video');
+        Route::get('/student-progress/students/{student}/certificates', [StudentProgressController::class, 'showCertificates'])->name('student-progress.certificates.show');
+        Route::post('/student-progress/students/{student}/certificates', [StudentProgressController::class, 'generateCertificate'])->name('student-progress.certificates.store');
+        Route::post('/student-progress/students/{student}/certificates/send-graduation-email', [StudentProgressController::class, 'sendGraduationEmail'])->name('student-progress.certificates.send-graduation-email');
+        Route::post('/student-progress/students/{student}/certificates/{certificate}/recreate', [StudentProgressController::class, 'recreateCertificate'])->name('student-progress.certificates.recreate');
+        Route::get('/student-progress/students/{student}/certificates/{certificate}/download', [StudentProgressController::class, 'downloadCertificate'])->name('student-progress.certificates.download');
+        Route::delete('/student-progress/students/{student}/certificates/{certificate}', [StudentProgressController::class, 'destroyCertificate'])->name('student-progress.certificates.destroy');
     });
 });
 

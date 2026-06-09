@@ -186,6 +186,23 @@ export default function StudentProfileForm({
 
                     <div className="md:col-span-2">
                         <InputLabel
+                            htmlFor="profile_photo"
+                            value="Profile Photo URL"
+                        />
+                        <TextInput
+                            id="profile_photo"
+                            className="mt-1 block w-full"
+                            value={data.profile_photo ?? ''}
+                            onChange={(e) => setData('profile_photo', e.target.value)}
+                        />
+                        <InputError
+                            className="mt-2"
+                            message={errors.profile_photo}
+                        />
+                    </div>
+
+                    <div className="md:col-span-2">
+                        <InputLabel
                             htmlFor="preferred_certificate_picture"
                             value="Preferred Certificate Picture Reference"
                         />

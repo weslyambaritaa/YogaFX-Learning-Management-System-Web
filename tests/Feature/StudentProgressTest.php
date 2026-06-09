@@ -20,7 +20,48 @@ class StudentProgressTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_can_view_student_progress_page(): void
+    public function test_admin_can_view_student_progress_directory_grouped_by_tier(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $masterclassTier = AccessTier::factory()->create([
+            'name' => 'Masterclass',
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+        ]);
+        $onlineTier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => AccessTier::SLUG_ONLINE,
+        ]);
+        $starterKitTier = AccessTier::factory()->create([
+            'name' => 'Starter Kit',
+            'slug' => AccessTier::SLUG_STARTER_KIT,
+        ]);
+
+        $masterclassStudent = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $masterclassTier->id,
+            'profile_photo' => 'https://example.com/masterclass.jpg',
+        ]);
+        $onlineStudent = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $onlineTier->id,
+        ]);
+        $starterKitStudent = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $starterKitTier->id,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.student-progress.index'));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/StudentProgress/Directory')
+            ->has('tierSections', 3)
+            ->where('tierSections.0.label', 'Masterclass')
+            ->where('tierSections.0.students.0.name', $masterclassStudent->name)
+            ->where('tierSections.0.students.0.assignment_status', 'Not Submitted')
+            ->where('tierSections.1.label', 'Online')
+            ->where('tierSections.1.students.0.name', $onlineStudent->name)
+            ->where('tierSections.2.label', 'Starter Kit')
+            ->where('tierSections.2.students.0.name', $starterKitStudent->name));
+    }
+
+    public function test_admin_can_view_completed_lesson_student_progress_page(): void
     {
         Storage::fake('local');
 
@@ -48,19 +89,14 @@ class StudentProgressTest extends TestCase
         ]);
 
         $response = $this->actingAs($admin)->get(
-            route('admin.students.progress.show', $student),
+            route('admin.student-progress.completed-lessons.show', $student),
         );
 
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Admin/Students/Progress')
+            ->component('Admin/StudentProgress/CompletedLessons')
             ->where('student.id', $student->id)
-            ->where('activeTab', 'completed-lessons')
             ->has('completedLessons', 1)
-            ->where('completedLessons.0.lesson_title', $lesson->title)
-            ->has('assignments', 1)
-            ->where('assignments.0.title', 'Graduation Video')
-            ->has('certificates', 1)
-            ->where('certificates.0.type_label', 'Bikram Yoga Certificate'));
+            ->where('completedLessons.0.lesson_title', $lesson->title));
     }
 
     public function test_admin_can_reset_completed_lesson_progress(): void
@@ -76,17 +112,14 @@ class StudentProgressTest extends TestCase
         ]);
 
         $response = $this->actingAs($admin)->post(
-            route('admin.students.progress.lessons.reset', [
+            route('admin.student-progress.completed-lessons.reset', [
                 'student' => $student,
                 'lessonProgress' => $progress,
             ]),
         );
 
         $response->assertRedirect(
-            route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'completed-lessons',
-            ]),
+            route('admin.student-progress.completed-lessons.show', $student),
         );
 
         $this->assertDatabaseHas('lesson_progress', [
@@ -107,7 +140,7 @@ class StudentProgressTest extends TestCase
         ]);
 
         $response = $this->actingAs($admin)->patch(
-            route('admin.students.progress.assignments.update', [
+            route('admin.student-progress.assignments.update', [
                 'student' => $student,
                 'assignmentSubmission' => $assignment,
             ]),
@@ -118,10 +151,7 @@ class StudentProgressTest extends TestCase
         );
 
         $response->assertRedirect(
-            route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'assignment',
-            ]),
+            route('admin.student-progress.assignments.show', $student),
         );
 
         $this->assertDatabaseHas('assignment_submissions', [
@@ -145,7 +175,7 @@ class StudentProgressTest extends TestCase
         ]);
 
         $this->actingAs($admin)->post(
-            route('admin.students.progress.assignments.send-email', [
+            route('admin.student-progress.assignments.send-email', [
                 'student' => $student,
                 'assignmentSubmission' => $assignment,
             ]),
@@ -157,7 +187,7 @@ class StudentProgressTest extends TestCase
         });
 
         $this->actingAs($admin)->delete(
-            route('admin.students.progress.assignments.delete-video', [
+            route('admin.student-progress.assignments.delete-video', [
                 'student' => $student,
                 'assignmentSubmission' => $assignment,
             ]),
@@ -177,7 +207,7 @@ class StudentProgressTest extends TestCase
         [$admin, $student] = $this->createStudentProgressContext();
 
         $generateResponse = $this->actingAs($admin)->post(
-            route('admin.students.progress.certificates.store', ['student' => $student]),
+            route('admin.student-progress.certificates.store', ['student' => $student]),
             ['certificate_type' => Certificate::TYPE_BIKRAM],
         );
 
@@ -189,14 +219,14 @@ class StudentProgressTest extends TestCase
         Storage::disk('local')->assertExists($certificate->file_path);
 
         $this->actingAs($admin)->get(
-            route('admin.students.progress.certificates.download', [
+            route('admin.student-progress.certificates.download', [
                 'student' => $student,
                 'certificate' => $certificate,
             ]),
         )->assertOk();
 
         $this->actingAs($admin)->post(
-            route('admin.students.progress.certificates.recreate', [
+            route('admin.student-progress.certificates.recreate', [
                 'student' => $student,
                 'certificate' => $certificate,
             ]),
@@ -209,7 +239,7 @@ class StudentProgressTest extends TestCase
         ]);
 
         $this->actingAs($admin)->post(
-            route('admin.students.progress.certificates.send-graduation-email', [
+            route('admin.student-progress.certificates.send-graduation-email', [
                 'student' => $student,
             ]),
         )->assertRedirect();
@@ -220,7 +250,7 @@ class StudentProgressTest extends TestCase
         });
 
         $this->actingAs($admin)->delete(
-            route('admin.students.progress.certificates.destroy', [
+            route('admin.student-progress.certificates.destroy', [
                 'student' => $student,
                 'certificate' => $certificate,
             ]),

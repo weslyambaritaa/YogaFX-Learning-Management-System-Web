@@ -27,20 +27,16 @@ import {
     ChevronsLeft,
     ChevronsRight,
     ClipboardList,
-    FileBadge,
     FileSpreadsheet,
-    GraduationCap,
     LayoutDashboard,
     Mail,
     Menu,
     PlaySquare,
     UserRound,
-    Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const ADMIN_SIDEBAR_STORAGE_KEY = 'yogafx-admin-sidebar-collapsed';
-const ADMIN_PROGRESS_GROUP_STORAGE_KEY = 'yogafx-admin-progress-group-open';
 const ADMIN_EMAIL_GROUP_STORAGE_KEY = 'yogafx-admin-email-group-open';
 
 const adminNavigationItems = [
@@ -69,12 +65,9 @@ const adminNavigationItems = [
     },
     {
         label: 'Student Progress',
+        route: 'admin.student-progress.index',
+        match: ['admin.student-progress.*'],
         icon: FileSpreadsheet,
-        children: [
-            { label: 'Completed Lesson', icon: GraduationCap, disabled: true },
-            { label: 'Assignment', icon: FileBadge, disabled: true },
-            { label: 'Certificate', icon: FileBadge, disabled: true },
-        ],
     },
     {
         label: 'Video Lecture',
@@ -92,23 +85,91 @@ const adminNavigationItems = [
         label: 'Email',
         icon: Mail,
         children: [
-            { label: 'Module Completion', icon: Mail, disabled: true },
-            { label: 'Assignments Review', icon: Mail, disabled: true },
-            { label: 'Assignments Approved', icon: Mail, disabled: true },
-            { label: 'Assignments Rejected', icon: Mail, disabled: true },
-            { label: 'Certificate Created', icon: Mail, disabled: true },
-            { label: 'Signup', icon: Mail, disabled: true },
+            {
+                label: 'Module Completion',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'module_completion' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'module_completion' },
+            },
+            {
+                label: 'Assignments Review',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'assignment_review' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'assignment_review' },
+            },
+            {
+                label: 'Assignments Approved',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'assignment_approved' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'assignment_approved' },
+            },
+            {
+                label: 'Assignments Rejected',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'assignment_rejected' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'assignment_rejected' },
+            },
+            {
+                label: 'Certificate Created',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'certificate_created' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'certificate_created' },
+            },
+            {
+                label: 'Signup',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'signup' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'signup' },
+            },
+            {
+                label: 'Reset Password',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'reset_password' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'reset_password' },
+            },
+            {
+                label: 'Assessment Complete',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'assessment_complete' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'assessment_complete' },
+            },
+            {
+                label: 'Course Complete',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'course_complete' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'course_complete' },
+            },
+            {
+                label: 'Reminder',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'reminder' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'reminder' },
+            },
         ],
     },
 ];
 
 const adminUtilityItems = [
-    {
-        label: 'Students',
-        route: 'admin.students.index',
-        icon: Users,
-        match: ['admin.students.*'],
-    },
     {
         label: 'Access Tiers',
         route: 'admin.access-tiers.index',
@@ -139,9 +200,16 @@ const adminPageTitles = {
     'admin.ebooks.index': 'E-Book',
     'admin.ebooks.create': 'Create E-Book',
     'admin.ebooks.edit': 'Edit E-Book',
-    'admin.students.index': 'Students',
-    'admin.students.edit': 'Student Detail',
-    'admin.students.progress.show': 'Student Progress',
+    'admin.student-progress.index': 'Student Progress',
+    'admin.student-progress.completed-lessons.index': 'Completed Lesson',
+    'admin.student-progress.assignments.index': 'Assignment',
+    'admin.student-progress.certificates.index': 'Certificate',
+    'admin.student-progress.students.edit': 'Student Detail',
+    'admin.student-progress.completed-lessons.show': 'Completed Lesson',
+    'admin.student-progress.assignments.show': 'Assignment',
+    'admin.student-progress.certificates.show': 'Certificate',
+    'admin.email-notifications.index': 'Email Notification',
+    'admin.email-notifications.show': 'Email Notification',
     'admin.access-tiers.index': 'Access Tiers',
     'admin.access-tiers.create': 'Create Access Tier',
     'admin.access-tiers.edit': 'Edit Access Tier',
@@ -177,7 +245,17 @@ function UserMenu({ user }) {
 }
 
 function isItemActive(item) {
-    return item.match?.some((pattern) => route().current(pattern)) ?? false;
+    const routeMatches = item.match?.some((pattern) => route().current(pattern)) ?? false;
+
+    if (! routeMatches) {
+        return false;
+    }
+
+    if (! item.activeWhen) {
+        return true;
+    }
+
+    return Object.entries(item.activeWhen).every(([key, value]) => route().params[key] === value);
 }
 
 function SidebarNavItem({ item, collapsed, onNavigate }) {
@@ -261,22 +339,23 @@ function SidebarGroup({
             {!collapsed && open && (
                 <div className="space-y-1 pl-4">
                     {item.children?.map((child) => {
-                            const ChildIcon = child.icon;
+                        const ChildIcon = child.icon;
+                        const childActive = isItemActive(child);
 
-                            return (
-                                <Button
-                                    key={child.label}
-                                    variant="ghost"
-                                    type="button"
-                                    disabled
-                                    onClick={onNavigate}
-                                    className="h-10 w-full justify-start gap-3 rounded-xl px-3 text-muted-foreground"
-                                >
+                        return (
+                            <Button
+                                key={child.label}
+                                asChild
+                                variant={childActive ? 'secondary' : 'ghost'}
+                                className="h-10 w-full justify-start gap-3 rounded-xl px-3"
+                            >
+                                <Link href={route(child.route, child.params)} onClick={onNavigate}>
                                     <ChildIcon className="size-4 shrink-0" />
                                     <span>{child.label}</span>
-                                </Button>
-                            );
-                        })}
+                                </Link>
+                            </Button>
+                        );
+                    })}
                 </div>
             )}
         </div>
@@ -286,8 +365,6 @@ function SidebarGroup({
 function AdminSidebar({
     collapsed,
     setCollapsed,
-    progressOpen,
-    setProgressOpen,
     emailOpen,
     setEmailOpen,
     onNavigate,
@@ -332,16 +409,8 @@ function AdminSidebar({
                                 key={item.label}
                                 item={item}
                                 collapsed={collapsed}
-                                open={
-                                    item.label === 'Student Progress'
-                                        ? progressOpen
-                                        : emailOpen
-                                }
-                                setOpen={
-                                    item.label === 'Student Progress'
-                                        ? setProgressOpen
-                                        : setEmailOpen
-                                }
+                                open={emailOpen}
+                                setOpen={setEmailOpen}
                                 onNavigate={onNavigate}
                             />
                         ) : (
@@ -360,7 +429,7 @@ function AdminSidebar({
                 <div className="space-y-2">
                     {!collapsed && (
                         <div className="px-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            Existing Pages
+                            Supporting Pages
                         </div>
                     )}
                     {adminUtilityItems.map((item) => (
@@ -380,8 +449,6 @@ function AdminSidebar({
 function AdminMobileSidebar({
     open,
     setOpen,
-    progressOpen,
-    setProgressOpen,
     emailOpen,
     setEmailOpen,
 }) {
@@ -406,16 +473,8 @@ function AdminMobileSidebar({
                                     key={item.label}
                                     item={item}
                                     collapsed={false}
-                                    open={
-                                        item.label === 'Student Progress'
-                                            ? progressOpen
-                                            : emailOpen
-                                    }
-                                    setOpen={
-                                        item.label === 'Student Progress'
-                                            ? setProgressOpen
-                                            : setEmailOpen
-                                    }
+                                    open={emailOpen}
+                                    setOpen={setEmailOpen}
                                     onNavigate={() => setOpen(false)}
                                 />
                             ) : (
@@ -433,7 +492,7 @@ function AdminMobileSidebar({
 
                     <div className="space-y-2">
                         <div className="px-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            Existing Pages
+                            Supporting Pages
                         </div>
                         {adminUtilityItems.map((item) => (
                             <SidebarNavItem
@@ -541,7 +600,6 @@ export default function AuthenticatedLayout({ header, children }) {
 
     const [collapsed, setCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [progressOpen, setProgressOpen] = useState(false);
     const [emailOpen, setEmailOpen] = useState(false);
 
     useEffect(() => {
@@ -551,9 +609,6 @@ export default function AuthenticatedLayout({ header, children }) {
 
         const storedValue = window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY);
         setCollapsed(storedValue === 'true');
-        setProgressOpen(
-            window.localStorage.getItem(ADMIN_PROGRESS_GROUP_STORAGE_KEY) === 'true',
-        );
         setEmailOpen(
             window.localStorage.getItem(ADMIN_EMAIL_GROUP_STORAGE_KEY) === 'true',
         );
@@ -569,17 +624,6 @@ export default function AuthenticatedLayout({ header, children }) {
             String(collapsed),
         );
     }, [collapsed, isAdmin]);
-
-    useEffect(() => {
-        if (!isAdmin) {
-            return;
-        }
-
-        window.localStorage.setItem(
-            ADMIN_PROGRESS_GROUP_STORAGE_KEY,
-            String(progressOpen),
-        );
-    }, [progressOpen, isAdmin]);
 
     useEffect(() => {
         if (!isAdmin) {
@@ -606,8 +650,6 @@ export default function AuthenticatedLayout({ header, children }) {
                 <AdminSidebar
                     collapsed={collapsed}
                     setCollapsed={setCollapsed}
-                    progressOpen={progressOpen}
-                    setProgressOpen={setProgressOpen}
                     emailOpen={emailOpen}
                     setEmailOpen={setEmailOpen}
                 />
@@ -619,8 +661,6 @@ export default function AuthenticatedLayout({ header, children }) {
                                 <AdminMobileSidebar
                                     open={mobileSidebarOpen}
                                     setOpen={setMobileSidebarOpen}
-                                    progressOpen={progressOpen}
-                                    setProgressOpen={setProgressOpen}
                                     emailOpen={emailOpen}
                                     setEmailOpen={setEmailOpen}
                                 />

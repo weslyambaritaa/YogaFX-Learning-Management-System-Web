@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Events\EmailNotifications\AssignmentApproved;
+use App\Events\EmailNotifications\AssignmentRejected;
+use App\Events\EmailNotifications\CertificateCreated;
 use App\Mail\StudentProgressActionMail;
 use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
@@ -18,67 +21,56 @@ use Inertia\Response;
 
 class StudentProgressController extends Controller
 {
-    public function show(Request $request, User $student): Response
+    public function completedLessonsIndex(): RedirectResponse
+    {
+        return to_route('admin.student-progress.index');
+    }
+
+    public function assignmentsIndex(): RedirectResponse
+    {
+        return to_route('admin.student-progress.index');
+    }
+
+    public function certificatesIndex(): RedirectResponse
+    {
+        return to_route('admin.student-progress.index');
+    }
+
+    public function showCompletedLessons(User $student): Response
     {
         $student = $this->resolveStudent($student);
 
-        return Inertia::render('Admin/Students/Progress', [
-            'student' => [
-                'id' => $student->id,
-                'name' => $student->name,
-                'email' => $student->email,
-                'access_tier' => $student->accessTier?->name,
-                'access_tier_slug' => $student->accessTier?->slug,
-            ],
-            'activeTab' => $this->normalizeTab((string) $request->query('tab', 'completed-lessons')),
-            'completedLessons' => LessonProgress::query()
-                ->with(['lesson.module'])
-                ->where('user_id', $student->id)
-                ->where('is_done', true)
-                ->orderByDesc('completed_at')
-                ->get()
-                ->map(fn (LessonProgress $progress) => [
-                    'id' => $progress->id,
-                    'lesson_title' => $progress->lesson?->title ?? 'Unknown lesson',
-                    'module_title' => $progress->lesson?->module?->title ?? '-',
-                    'completed_at' => optional($progress->completed_at)->format('Y-m-d H:i'),
-                    'watch_progress' => (float) $progress->watch_progress,
-                ]),
-            'assignments' => AssignmentSubmission::query()
-                ->where('user_id', $student->id)
-                ->orderByDesc('submitted_at')
-                ->orderByDesc('id')
-                ->get()
-                ->map(fn (AssignmentSubmission $assignment) => [
-                    'id' => $assignment->id,
-                    'title' => $assignment->title(),
-                    'video' => $assignment->assignment_video,
-                    'status' => $assignment->assignment_status,
-                    'feedback' => $assignment->assignment_feedback,
-                    'submitted_at' => optional($assignment->submitted_at)->format('Y-m-d H:i'),
-                ]),
+        return Inertia::render('Admin/StudentProgress/CompletedLessons', [
+            'student' => $this->studentPayload($student),
+            'completedLessons' => $this->completedLessonsPayload($student),
+            'status' => session('status'),
+        ]);
+    }
+
+    public function showAssignments(User $student): Response
+    {
+        $student = $this->resolveStudent($student);
+
+        return Inertia::render('Admin/StudentProgress/Assignments', [
+            'student' => $this->studentPayload($student),
+            'assignments' => $this->assignmentsPayload($student),
             'assignmentStatuses' => collect(AssignmentSubmission::STATUSES)
                 ->map(fn (string $status) => [
                     'value' => $status,
                     'label' => str($status)->replace('_', ' ')->title()->value(),
                 ])
                 ->values(),
-            'certificates' => Certificate::query()
-                ->where('user_id', $student->id)
-                ->latest('generated_at')
-                ->latest('id')
-                ->get()
-                ->map(fn (Certificate $certificate) => [
-                    'id' => $certificate->id,
-                    'type' => $certificate->certificate_type,
-                    'type_label' => $certificate->typeLabel(),
-                    'version' => $certificate->version,
-                    'generated_at' => optional($certificate->generated_at)->format('Y-m-d H:i'),
-                    'download_url' => route('admin.students.progress.certificates.download', [
-                        'student' => $student,
-                        'certificate' => $certificate,
-                    ]),
-                ]),
+            'status' => session('status'),
+        ]);
+    }
+
+    public function showCertificates(User $student): Response
+    {
+        $student = $this->resolveStudent($student);
+
+        return Inertia::render('Admin/StudentProgress/Certificates', [
+            'student' => $this->studentPayload($student),
+            'certificates' => $this->certificatesPayload($student),
             'certificateTypes' => collect(Certificate::TYPES)
                 ->map(fn (string $label, string $value) => [
                     'value' => $value,
@@ -110,10 +102,7 @@ class StudentProgressController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'completed-lessons',
-            ])
+            ->route('admin.student-progress.completed-lessons.show', $student)
             ->with('status', 'student-progress-lesson-reset');
     }
 
@@ -135,11 +124,32 @@ class StudentProgressController extends Controller
         ) ? now() : null;
         $assignmentSubmission->save();
 
+        $emailPayload = [
+            'user_name' => $student->name,
+            'user_email' => $student->email,
+            'assignment_type' => $assignmentSubmission->title(),
+            'feedback' => $assignmentSubmission->assignment_feedback,
+            'admin_email' => config('mail.from.address'),
+        ];
+
+        if ($assignmentSubmission->assignment_status === AssignmentSubmission::STATUS_APPROVED) {
+            event(new AssignmentApproved(
+                $emailPayload,
+                'assignment_submission',
+                $assignmentSubmission->id,
+            ));
+        }
+
+        if ($assignmentSubmission->assignment_status === AssignmentSubmission::STATUS_REJECTED) {
+            event(new AssignmentRejected(
+                $emailPayload,
+                'assignment_submission',
+                $assignmentSubmission->id,
+            ));
+        }
+
         return redirect()
-            ->route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'assignment',
-            ])
+            ->route('admin.student-progress.assignments.show', $student)
             ->with('status', 'student-progress-assignment-saved');
     }
 
@@ -162,10 +172,7 @@ class StudentProgressController extends Controller
         );
 
         return redirect()
-            ->route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'assignment',
-            ])
+            ->route('admin.student-progress.assignments.show', $student)
             ->with('status', 'student-progress-assignment-email-sent');
     }
 
@@ -179,10 +186,7 @@ class StudentProgressController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'assignment',
-            ])
+            ->route('admin.student-progress.assignments.show', $student)
             ->with('status', 'student-progress-assignment-video-deleted');
     }
 
@@ -195,13 +199,17 @@ class StudentProgressController extends Controller
             'certificate_type' => ['required', 'in:'.implode(',', array_keys(Certificate::TYPES))],
         ]);
 
-        $this->createCertificate($student, $data['certificate_type']);
+        $certificate = $this->createCertificate($student, $data['certificate_type']);
+
+        event(new CertificateCreated([
+            'user_name' => $student->name,
+            'user_email' => $student->email,
+            'certificate_type' => $certificate->typeLabel(),
+            'certificate_file_name' => $certificate->file_name,
+        ], 'certificate', $certificate->id));
 
         return redirect()
-            ->route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'certificate',
-            ])
+            ->route('admin.student-progress.certificates.show', $student)
             ->with('status', 'student-progress-certificate-generated');
     }
 
@@ -214,10 +222,7 @@ class StudentProgressController extends Controller
         $this->createCertificate($student, $certificate->certificate_type);
 
         return redirect()
-            ->route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'certificate',
-            ])
+            ->route('admin.student-progress.certificates.show', $student)
             ->with('status', 'student-progress-certificate-recreated');
     }
 
@@ -243,11 +248,17 @@ class StudentProgressController extends Controller
             ],
         );
 
+        $latestCertificate = $certificates->first();
+
+        event(new CertificateCreated([
+            'user_name' => $student->name,
+            'user_email' => $student->email,
+            'certificate_type' => $latestCertificate?->typeLabel(),
+            'certificate_file_name' => $latestCertificate?->file_name,
+        ], 'certificate', $latestCertificate?->id));
+
         return redirect()
-            ->route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'certificate',
-            ])
+            ->route('admin.student-progress.certificates.show', $student)
             ->with('status', 'student-progress-graduation-email-sent');
     }
 
@@ -272,11 +283,75 @@ class StudentProgressController extends Controller
         $certificate->delete();
 
         return redirect()
-            ->route('admin.students.progress.show', [
-                'student' => $student,
-                'tab' => 'certificate',
-            ])
+            ->route('admin.student-progress.certificates.show', $student)
             ->with('status', 'student-progress-certificate-deleted');
+    }
+
+    private function studentPayload(User $student): array
+    {
+        return [
+            'id' => $student->id,
+            'name' => $student->name,
+            'email' => $student->email,
+            'role' => $student->role,
+            'access_tier' => $student->accessTier?->name,
+            'access_tier_slug' => $student->accessTier?->slug,
+            'profile_is_complete' => $student->hasCompletedStudentProfile(),
+        ];
+    }
+
+    private function completedLessonsPayload(User $student)
+    {
+        return LessonProgress::query()
+            ->with(['lesson.module'])
+            ->where('user_id', $student->id)
+            ->where('is_done', true)
+            ->orderByDesc('completed_at')
+            ->get()
+            ->map(fn (LessonProgress $progress) => [
+                'id' => $progress->id,
+                'lesson_title' => $progress->lesson?->title ?? 'Unknown lesson',
+                'module_title' => $progress->lesson?->module?->title ?? '-',
+                'completed_at' => optional($progress->completed_at)->format('Y-m-d H:i'),
+                'watch_progress' => (float) $progress->watch_progress,
+            ]);
+    }
+
+    private function assignmentsPayload(User $student)
+    {
+        return AssignmentSubmission::query()
+            ->where('user_id', $student->id)
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (AssignmentSubmission $assignment) => [
+                'id' => $assignment->id,
+                'title' => $assignment->title(),
+                'video' => $assignment->assignment_video,
+                'status' => $assignment->assignment_status,
+                'feedback' => $assignment->assignment_feedback,
+                'submitted_at' => optional($assignment->submitted_at)->format('Y-m-d H:i'),
+            ]);
+    }
+
+    private function certificatesPayload(User $student)
+    {
+        return Certificate::query()
+            ->where('user_id', $student->id)
+            ->latest('generated_at')
+            ->latest('id')
+            ->get()
+            ->map(fn (Certificate $certificate) => [
+                'id' => $certificate->id,
+                'type' => $certificate->certificate_type,
+                'type_label' => $certificate->typeLabel(),
+                'version' => $certificate->version,
+                'generated_at' => optional($certificate->generated_at)->format('Y-m-d H:i'),
+                'download_url' => route('admin.student-progress.certificates.download', [
+                    'student' => $student,
+                    'certificate' => $certificate,
+                ]),
+            ]);
     }
 
     private function resolveStudent(User $student): User
@@ -284,13 +359,6 @@ class StudentProgressController extends Controller
         abort_unless($student->isStudent(), 404);
 
         return $student->load('accessTier');
-    }
-
-    private function normalizeTab(string $tab): string
-    {
-        return in_array($tab, ['completed-lessons', 'assignment', 'certificate'], true)
-            ? $tab
-            : 'completed-lessons';
     }
 
     private function studentCanReceiveCertificates(User $student): bool

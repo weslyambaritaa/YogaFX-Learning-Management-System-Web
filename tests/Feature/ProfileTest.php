@@ -61,12 +61,18 @@ class ProfileTest extends TestCase
     public function test_admin_can_view_student_list(): void
     {
         $admin = User::factory()->admin()->create();
-        $student = User::factory()->student()->completeProfile()->create();
+        $tier = AccessTier::factory()->create([
+            'name' => 'Masterclass',
+            'slug' => 'master_class',
+        ]);
+        $student = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $tier->id,
+        ]);
 
-        $response = $this->actingAs($admin)->get(route('admin.students.index'));
+        $response = $this->actingAs($admin)->get(route('admin.student-progress.index'));
 
         $response->assertOk();
-        $response->assertSee($student->email);
+        $response->assertSee($student->name);
     }
 
     public function test_admin_can_update_student_profile(): void
@@ -80,7 +86,7 @@ class ProfileTest extends TestCase
 
         $response = $this
             ->actingAs($admin)
-            ->patch(route('admin.students.update', $student), [
+            ->patch(route('admin.student-progress.students.update', $student), [
                 'access_tier_id' => $accessTier->id,
                 'first_name' => 'Edited',
                 'last_name' => 'Student',
@@ -103,7 +109,7 @@ class ProfileTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('admin.students.index'));
+            ->assertRedirect(route('admin.student-progress.index'));
 
         $student->refresh();
 
@@ -119,11 +125,11 @@ class ProfileTest extends TestCase
         $otherStudent = User::factory()->student()->create();
 
         $this->actingAs($student)
-            ->get(route('admin.students.index'))
+            ->get(route('admin.student-progress.index'))
             ->assertForbidden();
 
         $this->actingAs($student)
-            ->get(route('admin.students.edit', $otherStudent))
+            ->get(route('admin.student-progress.students.edit', $otherStudent))
             ->assertForbidden();
     }
 }
