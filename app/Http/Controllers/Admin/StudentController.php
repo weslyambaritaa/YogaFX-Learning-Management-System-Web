@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ProfileUpdateRequest;
+use App\Http\Requests\Admin\AdminStudentUpdateRequest;
+use App\Models\AccessTier;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -15,6 +16,7 @@ class StudentController extends Controller
     {
         return Inertia::render('Admin/Students/Index', [
             'students' => User::query()
+                ->with('accessTier')
                 ->where('role', User::ROLE_STUDENT)
                 ->orderBy('name')
                 ->get([
@@ -33,6 +35,7 @@ class StudentController extends Controller
                     'last_name' => $student->last_name,
                     'email' => $student->email,
                     'country' => $student->country,
+                    'access_tier' => $student->accessTier?->name,
                     'created_at' => optional($student->created_at)->toDateString(),
                     'profile_is_complete' => $student->hasCompletedStudentProfile(),
                 ]),
@@ -48,6 +51,13 @@ class StudentController extends Controller
                 'id' => $student->id,
                 'name' => $student->name,
                 'role' => $student->role,
+                'access_tier_id' => $student->access_tier_id,
+                'access_tier' => $student->accessTier ? [
+                    'id' => $student->accessTier->id,
+                    'name' => $student->accessTier->name,
+                    'slug' => $student->accessTier->slug,
+                    'is_active' => $student->accessTier->is_active,
+                ] : null,
                 'first_name' => $student->first_name,
                 'last_name' => $student->last_name,
                 'email' => $student->email,
@@ -67,11 +77,21 @@ class StudentController extends Controller
                 'how_did_you_find_us' => $student->how_did_you_find_us,
                 'profile_is_complete' => $student->hasCompletedStudentProfile(),
             ],
+            'accessTiers' => AccessTier::query()
+                ->orderByDesc('is_active')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (AccessTier $accessTier) => [
+                    'id' => $accessTier->id,
+                    'name' => $accessTier->name,
+                    'slug' => $accessTier->slug,
+                    'is_active' => $accessTier->is_active,
+                ]),
             'status' => session('status'),
         ]);
     }
 
-    public function update(ProfileUpdateRequest $request, User $student): RedirectResponse
+    public function update(AdminStudentUpdateRequest $request, User $student): RedirectResponse
     {
         abort_unless($student->isStudent(), 404);
 

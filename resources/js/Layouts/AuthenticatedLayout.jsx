@@ -1,184 +1,612 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
+import { Button } from '@/Components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/Components/ui/dropdown-menu';
+import { Separator } from '@/Components/ui/separator';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/Components/ui/sheet';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import {
+    BookMarked,
+    BookOpen,
+    BookOpenCheck,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
+    ClipboardList,
+    FileBadge,
+    FileSpreadsheet,
+    GraduationCap,
+    LayoutDashboard,
+    Mail,
+    Menu,
+    PlaySquare,
+    UserRound,
+    Users,
+} from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
-    const navigationItems =
-        user?.role === 'admin'
-            ? [
-                  { label: 'Dashboard', route: 'admin.dashboard' },
-                  { label: 'Students', route: 'admin.students.index' },
-              ]
-            : [
-                  { label: 'Dashboard', route: 'student.dashboard' },
-                  { label: 'Profile', route: 'profile.edit' },
-              ];
+const ADMIN_SIDEBAR_STORAGE_KEY = 'yogafx-admin-sidebar-collapsed';
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
+const adminNavigationItems = [
+    {
+        label: 'Dashboard',
+        route: 'admin.dashboard',
+        icon: LayoutDashboard,
+        match: ['admin.dashboard'],
+    },
+    {
+        label: 'Modules',
+        route: 'admin.modules.index',
+        icon: BookOpen,
+        match: ['admin.modules.*'],
+    },
+    {
+        label: 'Lessons',
+        route: 'admin.lessons.index',
+        icon: BookOpenCheck,
+        match: ['admin.lessons.*'],
+    },
+    {
+        label: 'Assessment',
+        icon: ClipboardList,
+        disabled: true,
+    },
+    {
+        label: 'Student Progress',
+        icon: FileSpreadsheet,
+        children: [
+            { label: 'Completed Lesson', icon: GraduationCap, disabled: true },
+            { label: 'Assignment', icon: FileBadge, disabled: true },
+            { label: 'Certificate', icon: FileBadge, disabled: true },
+        ],
+    },
+    {
+        label: 'Video Lecture',
+        route: 'admin.courses.index',
+        icon: PlaySquare,
+        match: ['admin.courses.*'],
+    },
+    {
+        label: 'E-Book',
+        route: 'admin.ebooks.index',
+        icon: BookMarked,
+        match: ['admin.ebooks.*'],
+    },
+    {
+        label: 'Email',
+        icon: Mail,
+        disabled: true,
+    },
+];
+
+const adminUtilityItems = [
+    {
+        label: 'Students',
+        route: 'admin.students.index',
+        icon: Users,
+        match: ['admin.students.*'],
+    },
+    {
+        label: 'Access Tiers',
+        route: 'admin.access-tiers.index',
+        icon: FileSpreadsheet,
+        match: ['admin.access-tiers.*'],
+    },
+];
+
+const studentNavigationItems = [
+    { label: 'Dashboard', route: 'student.dashboard' },
+    { label: 'Modules', route: 'modules.index' },
+    { label: 'Ebooks', route: 'ebooks.index' },
+    { label: 'Courses', route: 'courses.index' },
+    { label: 'Profile', route: 'profile.edit' },
+];
+
+const adminPageTitles = {
+    'admin.dashboard': 'Dashboard',
+    'admin.modules.index': 'Modules',
+    'admin.modules.create': 'Create Module',
+    'admin.modules.edit': 'Edit Module',
+    'admin.lessons.index': 'Lessons',
+    'admin.lessons.create': 'Create Lesson',
+    'admin.lessons.edit': 'Edit Lesson',
+    'admin.courses.index': 'Video Lecture',
+    'admin.courses.create': 'Create Video Lecture',
+    'admin.courses.edit': 'Edit Video Lecture',
+    'admin.ebooks.index': 'E-Book',
+    'admin.ebooks.create': 'Create E-Book',
+    'admin.ebooks.edit': 'Edit E-Book',
+    'admin.students.index': 'Students',
+    'admin.students.edit': 'Student Detail',
+    'admin.access-tiers.index': 'Access Tiers',
+    'admin.access-tiers.create': 'Create Access Tier',
+    'admin.access-tiers.edit': 'Edit Access Tier',
+};
+
+function UserMenu({ user }) {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                    <UserRound className="size-4" />
+                    <span className="hidden md:inline">{user.name}</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                    <div className="flex flex-col">
+                        <span className="font-medium text-foreground">{user.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                            {user.email}
+                        </span>
+                    </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link href={route('logout')} method="post" as="button">
+                        Log Out
+                    </Link>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+function isItemActive(item) {
+    return item.match?.some((pattern) => route().current(pattern)) ?? false;
+}
+
+function SidebarNavItem({ item, collapsed, onNavigate }) {
+    const Icon = item.icon;
+    const active = !item.disabled && isItemActive(item);
+    const content = (
+        <>
+            <Icon className="size-4 shrink-0" />
+            {!collapsed && <span className="truncate">{item.label}</span>}
+        </>
+    );
+
+    if (item.disabled) {
+        return (
+            <Button
+                variant="ghost"
+                type="button"
+                disabled
+                title={collapsed ? item.label : undefined}
+                className={[
+                    'h-11 w-full justify-start gap-3 rounded-xl px-3 text-muted-foreground',
+                    collapsed ? 'px-0 justify-center' : '',
+                ].join(' ')}
+            >
+                {content}
+            </Button>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between">
-                        <div className="flex">
-                            <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
-                                </Link>
-                            </div>
+        <Button
+            asChild
+            variant={active ? 'secondary' : 'ghost'}
+            title={collapsed ? item.label : undefined}
+            className={[
+                'h-11 w-full justify-start gap-3 rounded-xl px-3',
+                collapsed ? 'px-0 justify-center' : '',
+            ].join(' ')}
+        >
+            <Link href={route(item.route)} onClick={onNavigate}>
+                {content}
+            </Link>
+        </Button>
+    );
+}
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                {navigationItems.map((item) => (
-                                    <NavLink
-                                        key={item.route}
-                                        href={route(item.route)}
-                                        active={route().current(item.route)}
-                                    >
-                                        {item.label}
-                                    </NavLink>
-                                ))}
-                            </div>
-                        </div>
+function SidebarProgressGroup({
+    collapsed,
+    progressOpen,
+    setProgressOpen,
+    onNavigate,
+}) {
+    const active = false;
 
-                        <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="relative ms-3">
-                                <Dropdown>
-                                    <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                                            >
-                                                {user.name}
+    return (
+        <div className="space-y-1">
+            <Button
+                type="button"
+                variant={active ? 'secondary' : 'ghost'}
+                title={collapsed ? 'Student Progress' : undefined}
+                onClick={() => setProgressOpen((current) => !current)}
+                className={[
+                    'h-11 w-full justify-start gap-3 rounded-xl px-3',
+                    collapsed ? 'px-0 justify-center' : '',
+                ].join(' ')}
+            >
+                <FileSpreadsheet className="size-4 shrink-0" />
+                {!collapsed && (
+                    <>
+                        <span className="truncate">Student Progress</span>
+                        {progressOpen ? (
+                            <ChevronDown className="ml-auto size-4" />
+                        ) : (
+                            <ChevronRight className="ml-auto size-4" />
+                        )}
+                    </>
+                )}
+            </Button>
 
-                                                <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </Dropdown.Trigger>
+            {!collapsed && progressOpen && (
+                <div className="space-y-1 pl-4">
+                    {adminNavigationItems
+                        .find((item) => item.label === 'Student Progress')
+                        ?.children?.map((child) => {
+                            const ChildIcon = child.icon;
 
-                                    <Dropdown.Content>
-                                        <Dropdown.Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
-                                        >
-                                            Log Out
-                                        </Dropdown.Link>
-                                    </Dropdown.Content>
-                                </Dropdown>
-                            </div>
-                        </div>
-
-                        <div className="-me-2 flex items-center sm:hidden">
-                            <button
-                                onClick={() =>
-                                    setShowingNavigationDropdown(
-                                        (previousState) => !previousState,
-                                    )
-                                }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
-                            >
-                                <svg
-                                    className="h-6 w-6"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
+                            return (
+                                <Button
+                                    key={child.label}
+                                    variant="ghost"
+                                    type="button"
+                                    disabled
+                                    onClick={onNavigate}
+                                    className="h-10 w-full justify-start gap-3 rounded-xl px-3 text-muted-foreground"
                                 >
-                                    <path
-                                        className={
-                                            !showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        className={
-                                            showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
+                                    <ChildIcon className="size-4 shrink-0" />
+                                    <span>{child.label}</span>
+                                </Button>
+                            );
+                        })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function AdminSidebar({
+    collapsed,
+    setCollapsed,
+    progressOpen,
+    setProgressOpen,
+    onNavigate,
+}) {
+    return (
+        <aside
+            className={[
+                'hidden border-r border-border bg-background lg:flex lg:flex-col',
+                collapsed ? 'lg:w-24' : 'lg:w-72',
+            ].join(' ')}
+        >
+            <div className="flex h-16 items-center justify-between px-4">
+                {!collapsed && (
+                    <div>
+                        <div className="text-sm font-semibold text-foreground">
+                            YogaFX LMS
                         </div>
+                        <div className="text-xs text-muted-foreground">Admin Console</div>
                     </div>
+                )}
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setCollapsed((current) => !current)}
+                >
+                    {collapsed ? (
+                        <ChevronsRight className="size-4" />
+                    ) : (
+                        <ChevronsLeft className="size-4" />
+                    )}
+                </Button>
+            </div>
+
+            <Separator />
+
+            <div className="flex-1 overflow-y-auto px-3 py-4">
+                <div className="space-y-2">
+                    {adminNavigationItems.map((item) =>
+                        item.children ? (
+                            <SidebarProgressGroup
+                                key={item.label}
+                                collapsed={collapsed}
+                                progressOpen={progressOpen}
+                                setProgressOpen={setProgressOpen}
+                                onNavigate={onNavigate}
+                            />
+                        ) : (
+                            <SidebarNavItem
+                                key={item.label}
+                                item={item}
+                                collapsed={collapsed}
+                                onNavigate={onNavigate}
+                            />
+                        ),
+                    )}
                 </div>
 
-                <div
-                    className={
-                        (showingNavigationDropdown ? 'block' : 'hidden') +
-                        ' sm:hidden'
-                    }
-                >
-                    <div className="space-y-1 pb-3 pt-2">
-                        {navigationItems.map((item) => (
-                            <ResponsiveNavLink
+                <Separator className="my-4" />
+
+                <div className="space-y-2">
+                    {!collapsed && (
+                        <div className="px-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            Existing Pages
+                        </div>
+                    )}
+                    {adminUtilityItems.map((item) => (
+                        <SidebarNavItem
+                            key={item.label}
+                            item={item}
+                            collapsed={collapsed}
+                            onNavigate={onNavigate}
+                        />
+                    ))}
+                </div>
+            </div>
+        </aside>
+    );
+}
+
+function AdminMobileSidebar({
+    open,
+    setOpen,
+    progressOpen,
+    setProgressOpen,
+}) {
+    return (
+        <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="lg:hidden">
+                    <Menu className="size-4" />
+                    <span className="sr-only">Open sidebar</span>
+                </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-80 p-0" showCloseButton={false}>
+                <SheetHeader className="border-b border-border">
+                    <SheetTitle>YogaFX LMS</SheetTitle>
+                    <SheetDescription>Admin navigation</SheetDescription>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto px-3 py-4">
+                    <div className="space-y-2">
+                        {adminNavigationItems.map((item) =>
+                            item.children ? (
+                                <SidebarProgressGroup
+                                    key={item.label}
+                                    collapsed={false}
+                                    progressOpen={progressOpen}
+                                    setProgressOpen={setProgressOpen}
+                                    onNavigate={() => setOpen(false)}
+                                />
+                            ) : (
+                                <SidebarNavItem
+                                    key={item.label}
+                                    item={item}
+                                    collapsed={false}
+                                    onNavigate={() => setOpen(false)}
+                                />
+                            ),
+                        )}
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    <div className="space-y-2">
+                        <div className="px-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            Existing Pages
+                        </div>
+                        {adminUtilityItems.map((item) => (
+                            <SidebarNavItem
+                                key={item.label}
+                                item={item}
+                                collapsed={false}
+                                onNavigate={() => setOpen(false)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            </SheetContent>
+        </Sheet>
+    );
+}
+
+function StudentTopNavigation({ user, header, children }) {
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    return (
+        <div className="min-h-screen bg-slate-50">
+            <nav className="border-b border-border bg-background">
+                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-3">
+                        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                            <SheetTrigger asChild>
+                                <Button variant="outline" size="icon" className="md:hidden">
+                                    <Menu className="size-4" />
+                                    <span className="sr-only">Open navigation</span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="w-72 p-0">
+                                <SheetHeader className="border-b border-border">
+                                    <SheetTitle>YogaFX LMS</SheetTitle>
+                                    <SheetDescription>Student navigation</SheetDescription>
+                                </SheetHeader>
+                                <div className="space-y-2 p-4">
+                                    {studentNavigationItems.map((item) => (
+                                        <Button
+                                            key={item.route}
+                                            asChild
+                                            variant={
+                                                route().current(item.route)
+                                                    ? 'secondary'
+                                                    : 'ghost'
+                                            }
+                                            className="h-11 w-full justify-start rounded-xl px-3"
+                                        >
+                                            <Link
+                                                href={route(item.route)}
+                                                onClick={() => setMobileOpen(false)}
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        </Button>
+                                    ))}
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+
+                        <div>
+                            <div className="text-sm font-semibold text-foreground">
+                                YogaFX LMS
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                                Student Area
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="hidden items-center gap-2 md:flex">
+                        {studentNavigationItems.map((item) => (
+                            <Button
                                 key={item.route}
-                                href={route(item.route)}
-                                active={route().current(item.route)}
+                                asChild
+                                variant={route().current(item.route) ? 'secondary' : 'ghost'}
                             >
-                                {item.label}
-                            </ResponsiveNavLink>
+                                <Link href={route(item.route)}>{item.label}</Link>
+                            </Button>
                         ))}
                     </div>
 
-                    <div className="border-t border-gray-200 pb-1 pt-4">
-                        <div className="px-4">
-                            <div className="text-base font-medium text-gray-800">
-                                {user.name}
-                            </div>
-                            <div className="text-sm font-medium text-gray-500">
-                                {user.email}
-                            </div>
-                        </div>
-
-                        <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route('logout')}
-                                as="button"
-                            >
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
+                    <UserMenu user={user} />
                 </div>
             </nav>
 
             {header && (
-                <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <header className="border-b border-border bg-background/90">
+                    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
                         {header}
                     </div>
                 </header>
             )}
 
             <main>{children}</main>
+        </div>
+    );
+}
+
+export default function AuthenticatedLayout({ header, children }) {
+    const user = usePage().props.auth.user;
+    const currentRouteName = route().current();
+    const isAdmin = user?.role === 'admin';
+    const pageTitle = adminPageTitles[currentRouteName] ?? 'Admin';
+
+    const [collapsed, setCollapsed] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [progressOpen, setProgressOpen] = useState(false);
+    const shouldExpandProgress =
+        route().current('admin.students.*') || route().current('admin.lessons.*');
+
+    useEffect(() => {
+        if (!isAdmin) {
+            return;
+        }
+
+        const storedValue = window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY);
+        setCollapsed(storedValue === 'true');
+    }, [isAdmin]);
+
+    useEffect(() => {
+        if (!isAdmin) {
+            return;
+        }
+
+        window.localStorage.setItem(
+            ADMIN_SIDEBAR_STORAGE_KEY,
+            String(collapsed),
+        );
+    }, [collapsed, isAdmin]);
+
+    useEffect(() => {
+        if (shouldExpandProgress) {
+            setProgressOpen(true);
+        }
+    }, [shouldExpandProgress]);
+
+    if (!isAdmin) {
+        return (
+            <StudentTopNavigation user={user} header={header}>
+                {children}
+            </StudentTopNavigation>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-slate-50">
+            <div className="flex min-h-screen">
+                <AdminSidebar
+                    collapsed={collapsed}
+                    setCollapsed={setCollapsed}
+                    progressOpen={progressOpen}
+                    setProgressOpen={setProgressOpen}
+                />
+
+                <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+                    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+                        <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+                            <div className="flex items-center gap-3">
+                                <AdminMobileSidebar
+                                    open={mobileSidebarOpen}
+                                    setOpen={setMobileSidebarOpen}
+                                    progressOpen={progressOpen}
+                                    setProgressOpen={setProgressOpen}
+                                />
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="hidden lg:inline-flex"
+                                    onClick={() => setCollapsed((current) => !current)}
+                                >
+                                    {collapsed ? (
+                                        <ChevronRight className="size-4" />
+                                    ) : (
+                                        <ChevronLeft className="size-4" />
+                                    )}
+                                    <span className="sr-only">Toggle sidebar</span>
+                                </Button>
+
+                                <div>
+                                    <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                        Admin
+                                    </div>
+                                    <h1 className="text-lg font-semibold text-foreground">
+                                        {pageTitle}
+                                    </h1>
+                                </div>
+                            </div>
+
+                            <UserMenu user={user} />
+                        </div>
+                    </header>
+
+                    {header && (
+                        <div className="border-b border-border bg-background">
+                            <div className="px-4 py-5 sm:px-6 lg:px-8">{header}</div>
+                        </div>
+                    )}
+
+                    <main className="flex-1">{children}</main>
+                </div>
+            </div>
         </div>
     );
 }

@@ -21,7 +21,29 @@ export default function StudentDashboard() {
                             <p>Authentication foundation is active.</p>
                             <p>Signed in as: {auth.user.name}</p>
                             <p>Role: {auth.user.role}</p>
-                            <div className="pt-2">
+                            <p>
+                                Access Tier:{' '}
+                                {auth.user.access_tier?.name ?? 'Not assigned yet'}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-4 pt-2">
+                                <Link
+                                    href={route('modules.index')}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open Modules
+                                </Link>
+                                <Link
+                                    href={route('ebooks.index')}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open Ebooks
+                                </Link>
+                                <Link
+                                    href={route('courses.index')}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open Courses
+                                </Link>
                                 <Link
                                     href={route('profile.edit')}
                                     className="text-sm font-medium text-indigo-600 hover:text-indigo-800"

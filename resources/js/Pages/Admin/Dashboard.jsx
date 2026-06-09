@@ -21,7 +21,37 @@ export default function AdminDashboard() {
                             <p>Authentication foundation is active.</p>
                             <p>Signed in as: {auth.user.name}</p>
                             <p>Role: {auth.user.role}</p>
-                            <div className="pt-2">
+                            <div className="flex flex-wrap items-center gap-4 pt-2">
+                                <Link
+                                    href={route('admin.modules.index')}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open Modules
+                                </Link>
+                                <Link
+                                    href={route('admin.lessons.index')}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open Lessons
+                                </Link>
+                                <Link
+                                    href={route('admin.ebooks.index')}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open Ebooks
+                                </Link>
+                                <Link
+                                    href={route('admin.courses.index')}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open Courses
+                                </Link>
+                                <Link
+                                    href={route('admin.access-tiers.index')}
+                                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                >
+                                    Open Access Tiers
+                                </Link>
                                 <Link
                                     href={route('admin.students.index')}
                                     className="text-sm font-medium text-indigo-600 hover:text-indigo-800"

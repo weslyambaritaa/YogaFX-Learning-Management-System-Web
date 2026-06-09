@@ -2,8 +2,9 @@ import StudentProfileForm from '@/Components/StudentProfileForm';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function EditStudent({ student, status }) {
+export default function EditStudent({ student, accessTiers, status }) {
     const { data, setData, patch, errors, processing } = useForm({
+        access_tier_id: student.access_tier_id ?? '',
         first_name: student.first_name ?? '',
         last_name: student.last_name ?? '',
         email: student.email ?? '',
@@ -90,6 +91,55 @@ export default function EditStudent({ student, status }) {
                             <div className="mt-1 text-lg font-semibold text-gray-900">
                                 {student.role}
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="rounded-lg bg-white p-6 shadow-sm">
+                        <div className="mb-4">
+                            <h3 className="text-lg font-medium text-gray-900">
+                                Access Tier Assignment
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-600">
+                                Assign one active learning tier to this student.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label
+                                htmlFor="access_tier_id"
+                                className="text-sm font-medium text-gray-700"
+                            >
+                                Access Tier
+                            </label>
+                            <select
+                                id="access_tier_id"
+                                value={data.access_tier_id ?? ''}
+                                onChange={(event) =>
+                                    setData(
+                                        'access_tier_id',
+                                        event.target.value === ''
+                                            ? ''
+                                            : Number(event.target.value),
+                                    )
+                                }
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">Not assigned</option>
+                                {accessTiers.map((accessTier) => (
+                                    <option
+                                        key={accessTier.id}
+                                        value={accessTier.id}
+                                    >
+                                        {accessTier.name}
+                                        {!accessTier.is_active ? ' (Inactive)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.access_tier_id && (
+                                <div className="mt-2 text-sm text-rose-600">
+                                    {errors.access_tier_id}
+                                </div>
+                            )}
                         </div>
                     </div>
 

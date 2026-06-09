@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'name',
     'role',
+    'access_tier_id',
     'email',
     'password',
     'first_name',
@@ -72,6 +74,11 @@ class User extends Authenticatable
             'hours_per_week' => 'integer',
             'password' => 'hashed',
         ];
+    }
+
+    public function accessTier(): BelongsTo
+    {
+        return $this->belongsTo(AccessTier::class);
     }
 
     public function isAdmin(): bool

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AccessTier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -72,10 +73,15 @@ class ProfileTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $student = User::factory()->student()->create();
+        $accessTier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => 'online',
+        ]);
 
         $response = $this
             ->actingAs($admin)
             ->patch(route('admin.students.update', $student), [
+                'access_tier_id' => $accessTier->id,
                 'first_name' => 'Edited',
                 'last_name' => 'Student',
                 'email' => 'edited.student@example.com',
@@ -103,6 +109,7 @@ class ProfileTest extends TestCase
 
         $this->assertSame('Edited Student', $student->name);
         $this->assertSame('edited.student@example.com', $student->email);
+        $this->assertSame($accessTier->id, $student->access_tier_id);
         $this->assertTrue($student->hasCompletedStudentProfile());
     }
 

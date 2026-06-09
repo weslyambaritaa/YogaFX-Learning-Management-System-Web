@@ -1,7 +1,17 @@
 <?php
 
+use App\Http\Controllers\Admin\AccessTierController;
+use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\EbookController;
+use App\Http\Controllers\Admin\LessonController;
+use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\ContentFileController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Student\CourseCatalogController;
+use App\Http\Controllers\Student\EbookCatalogController;
+use App\Http\Controllers\Student\LessonCatalogController;
+use App\Http\Controllers\Student\ModuleCatalogController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -16,6 +26,8 @@ Route::get('/', function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/media/{entity}/{id}/{field}', [ContentFileController::class, 'show'])->name('media.show');
+
     Route::get('/dashboard', function () {
         $user = request()->user();
 
@@ -41,9 +53,49 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:student')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::get('/modules', [ModuleCatalogController::class, 'index'])->name('modules.index');
+        Route::get('/modules/{module:url_slug}', [ModuleCatalogController::class, 'show'])->name('modules.show');
+        Route::get('/lessons/{lesson}', [LessonCatalogController::class, 'show'])->name('lessons.show');
+        Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
+        Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
     });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/access-tiers', [AccessTierController::class, 'index'])->name('access-tiers.index');
+        Route::get('/access-tiers/create', [AccessTierController::class, 'create'])->name('access-tiers.create');
+        Route::post('/access-tiers', [AccessTierController::class, 'store'])->name('access-tiers.store');
+        Route::get('/access-tiers/{accessTier}/edit', [AccessTierController::class, 'edit'])->name('access-tiers.edit');
+        Route::patch('/access-tiers/{accessTier}', [AccessTierController::class, 'update'])->name('access-tiers.update');
+        Route::delete('/access-tiers/{accessTier}', [AccessTierController::class, 'destroy'])->name('access-tiers.destroy');
+
+        Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+        Route::get('/modules/create', [ModuleController::class, 'create'])->name('modules.create');
+        Route::post('/modules', [ModuleController::class, 'store'])->name('modules.store');
+        Route::get('/modules/{module}/edit', [ModuleController::class, 'edit'])->name('modules.edit');
+        Route::patch('/modules/{module}', [ModuleController::class, 'update'])->name('modules.update');
+        Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])->name('modules.destroy');
+
+        Route::get('/lessons', [LessonController::class, 'index'])->name('lessons.index');
+        Route::get('/lessons/create', [LessonController::class, 'create'])->name('lessons.create');
+        Route::post('/lessons', [LessonController::class, 'store'])->name('lessons.store');
+        Route::get('/lessons/{lesson}/edit', [LessonController::class, 'edit'])->name('lessons.edit');
+        Route::patch('/lessons/{lesson}', [LessonController::class, 'update'])->name('lessons.update');
+        Route::delete('/lessons/{lesson}', [LessonController::class, 'destroy'])->name('lessons.destroy');
+
+        Route::get('/ebooks', [EbookController::class, 'index'])->name('ebooks.index');
+        Route::get('/ebooks/create', [EbookController::class, 'create'])->name('ebooks.create');
+        Route::post('/ebooks', [EbookController::class, 'store'])->name('ebooks.store');
+        Route::get('/ebooks/{ebook}/edit', [EbookController::class, 'edit'])->name('ebooks.edit');
+        Route::patch('/ebooks/{ebook}', [EbookController::class, 'update'])->name('ebooks.update');
+        Route::delete('/ebooks/{ebook}', [EbookController::class, 'destroy'])->name('ebooks.destroy');
+
+        Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
+        Route::get('/courses/create', [CourseController::class, 'create'])->name('courses.create');
+        Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');
+        Route::get('/courses/{course}/edit', [CourseController::class, 'edit'])->name('courses.edit');
+        Route::patch('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
+        Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+
         Route::get('/students', [StudentController::class, 'index'])->name('students.index');
         Route::get('/students/{student}', [StudentController::class, 'edit'])->name('students.edit');
         Route::patch('/students/{student}', [StudentController::class, 'update'])->name('students.update');

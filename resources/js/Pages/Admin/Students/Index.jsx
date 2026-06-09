@@ -41,6 +41,9 @@ export default function StudentsIndex({ students }) {
                                                 Country
                                             </th>
                                             <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                                Access Tier
+                                            </th>
+                                            <th className="px-4 py-3 text-left font-medium text-gray-700">
                                                 Profile Status
                                             </th>
                                             <th className="px-4 py-3 text-left font-medium text-gray-700">
@@ -64,6 +67,9 @@ export default function StudentsIndex({ students }) {
                                                 </td>
                                                 <td className="px-4 py-3 text-gray-700">
                                                     {student.country || '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-700">
+                                                    {student.access_tier || '-'}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span

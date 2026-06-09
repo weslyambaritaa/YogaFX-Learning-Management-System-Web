@@ -55,6 +55,13 @@ export default function Edit({ status }) {
                         </div>
                     )}
 
+                    <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                        Current access tier:{' '}
+                        <span className="font-medium">
+                            {user.access_tier?.name ?? 'Not assigned yet'}
+                        </span>
+                    </div>
+
                     <div className="bg-white p-6 shadow sm:rounded-lg sm:p-8">
                         <StudentProfileForm
                             data={data}
