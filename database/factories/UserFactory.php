@@ -66,6 +66,7 @@ class UserFactory extends Factory
             'last_name' => fake()->lastName(),
             'whatsapp' => fake()->numerify('08##########'),
             'preferred_certificate_picture' => fake()->optional()->imageUrl(),
+            'profile_photo' => fake()->optional()->imageUrl(240, 240, 'people'),
             'instagram' => '@'.fake()->userName(),
             'country' => fake()->country(),
             'birth_date' => fake()->date(),

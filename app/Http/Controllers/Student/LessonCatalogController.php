@@ -16,8 +16,8 @@ class LessonCatalogController extends Controller
 
         abort_unless(
             $user
-            && $lesson->access_tier_id === $user->access_tier_id
-            && $lesson->module?->access_tier_id === $user->access_tier_id,
+            && $lesson->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists()
+            && $lesson->module?->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists(),
             403,
         );
 

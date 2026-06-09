@@ -6,7 +6,7 @@ export default function CreateEbook({ accessTiers }) {
     const { data, setData, post, processing, errors } = useForm({
         title: '',
         file: null,
-        access_tier_id: '',
+        access_tier_ids: [],
     });
 
     const submit = (event) => {

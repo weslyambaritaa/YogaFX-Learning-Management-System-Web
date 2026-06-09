@@ -31,6 +31,18 @@ export default function AccessTiersIndex({ accessTiers, status }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                    {status === 'access-tier-created' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Access tier has been created.
+                        </div>
+                    )}
+
+                    {status === 'access-tier-updated' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Access tier has been updated.
+                        </div>
+                    )}
+
                     {status === 'access-tier-deleted' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Access tier has been deleted.

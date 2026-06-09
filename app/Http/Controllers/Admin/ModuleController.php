@@ -19,7 +19,7 @@ class ModuleController extends Controller
     {
         return Inertia::render('Admin/Modules/Index', [
             'modules' => Module::query()
-                ->with(['accessTier'])
+                ->with(['accessTiers'])
                 ->withCount('lessons')
                 ->orderBy('sort_order')
                 ->orderBy('title')
@@ -30,7 +30,7 @@ class ModuleController extends Controller
                     'url_slug' => $module->url_slug,
                     'sort_order' => $module->sort_order,
                     'thumbnail_url' => route('media.show', ['entity' => 'module', 'id' => $module->id, 'field' => 'thumbnail']),
-                    'access_tier' => $module->accessTier?->name,
+                    'access_tiers' => $module->accessTiers->pluck('name')->all(),
                     'lessons_count' => $module->lessons_count,
                 ]),
             'status' => session('status'),
@@ -48,11 +48,13 @@ class ModuleController extends Controller
     {
         $data = $request->validated();
         $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'modules/thumbnails');
+        unset($data['access_tier_ids']);
 
         $module = Module::query()->create($data);
+        $module->accessTiers()->sync($request->validated('access_tier_ids'));
 
         return redirect()
-            ->route('admin.modules.edit', $module)
+            ->route('admin.modules.index')
             ->with('status', 'module-created');
     }
 
@@ -63,8 +65,7 @@ class ModuleController extends Controller
                 'id' => $module->id,
                 'title' => $module->title,
                 'url_slug' => $module->url_slug,
-                'access_tier_id' => $module->access_tier_id,
-                'sort_order' => $module->sort_order,
+                'access_tier_ids' => $module->accessTiers()->pluck('access_tiers.id')->all(),
                 'thumbnail_url' => route('media.show', ['entity' => 'module', 'id' => $module->id, 'field' => 'thumbnail']),
             ],
             'accessTiers' => $this->accessTierOptions(),
@@ -80,11 +81,13 @@ class ModuleController extends Controller
             'modules/thumbnails',
             $module->thumbnail,
         );
+        unset($data['access_tier_ids']);
 
         $module->update($data);
+        $module->accessTiers()->sync($request->validated('access_tier_ids'));
 
         return redirect()
-            ->route('admin.modules.edit', $module)
+            ->route('admin.modules.index')
             ->with('status', 'module-updated');
     }
 

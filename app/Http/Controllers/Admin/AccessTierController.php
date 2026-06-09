@@ -38,10 +38,10 @@ class AccessTierController extends Controller
 
     public function store(AccessTierRequest $request): RedirectResponse
     {
-        $accessTier = AccessTier::query()->create($request->validated());
+        AccessTier::query()->create($request->validated());
 
         return redirect()
-            ->route('admin.access-tiers.edit', $accessTier)
+            ->route('admin.access-tiers.index')
             ->with('status', 'access-tier-created');
     }
 
@@ -67,7 +67,7 @@ class AccessTierController extends Controller
         $accessTier->update($request->validated());
 
         return redirect()
-            ->route('admin.access-tiers.edit', $accessTier)
+            ->route('admin.access-tiers.index')
             ->with('status', 'access-tier-updated');
     }
 

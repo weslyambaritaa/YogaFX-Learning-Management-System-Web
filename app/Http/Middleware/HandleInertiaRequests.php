@@ -50,6 +50,7 @@ class HandleInertiaRequests extends Middleware
                     'last_name' => $user->last_name,
                     'whatsapp' => $user->whatsapp,
                     'preferred_certificate_picture' => $user->preferred_certificate_picture,
+                    'profile_photo' => $user->profile_photo,
                     'instagram' => $user->instagram,
                     'country' => $user->country,
                     'birth_date' => optional($user->birth_date)->toDateString(),

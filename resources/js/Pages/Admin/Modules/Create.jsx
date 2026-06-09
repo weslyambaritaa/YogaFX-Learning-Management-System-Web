@@ -7,8 +7,7 @@ export default function CreateModule({ accessTiers }) {
         title: '',
         url_slug: '',
         thumbnail: null,
-        access_tier_id: '',
-        sort_order: 1,
+        access_tier_ids: [],
     });
 
     const submit = (event) => {

@@ -6,6 +6,7 @@ use Database\Factories\AccessTierFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['name', 'slug', 'description', 'is_active'])]
@@ -35,19 +36,19 @@ class AccessTier extends Model
         return $this->hasMany(User::class);
     }
 
-    public function modules(): HasMany
+    public function modules(): BelongsToMany
     {
-        return $this->hasMany(Module::class);
+        return $this->belongsToMany(Module::class, 'access_tier_module')->withTimestamps();
     }
 
-    public function lessons(): HasMany
+    public function lessons(): BelongsToMany
     {
-        return $this->hasMany(Lesson::class);
+        return $this->belongsToMany(Lesson::class, 'access_tier_lesson')->withTimestamps();
     }
 
-    public function ebooks(): HasMany
+    public function ebooks(): BelongsToMany
     {
-        return $this->hasMany(Ebook::class);
+        return $this->belongsToMany(Ebook::class, 'access_tier_ebook')->withTimestamps();
     }
 
     public function courses(): HasMany

@@ -45,10 +45,10 @@ class CourseController extends Controller
         $data = $request->validated();
         $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'courses/thumbnails');
 
-        $course = Course::query()->create($data);
+        Course::query()->create($data);
 
         return redirect()
-            ->route('admin.courses.edit', $course)
+            ->route('admin.courses.index')
             ->with('status', 'course-created');
     }
 
@@ -81,7 +81,7 @@ class CourseController extends Controller
         $course->update($data);
 
         return redirect()
-            ->route('admin.courses.edit', $course)
+            ->route('admin.courses.index')
             ->with('status', 'course-updated');
     }
 

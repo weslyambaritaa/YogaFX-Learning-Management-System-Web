@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\AccessTier;
 use App\Models\Ebook;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -23,7 +22,7 @@ class EbookFactory extends Factory
         return [
             'title' => fake()->sentence(3),
             'file' => 'ebooks/sample.pdf',
-            'access_tier_id' => AccessTier::factory(),
+            'sort_order' => null,
         ];
     }
 }

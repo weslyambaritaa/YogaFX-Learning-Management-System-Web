@@ -1,20 +1,72 @@
 flowchart TD
-    A[Admin opens Email Notification menu] --> B[Choose one notification sub menu]
-    B --> C[Load current template state]
-    C --> D[Admin edits notification settings]
-    D --> E[Click Save Changes]
-    E --> F[Store template]
 
-    F --> G{Business trigger occurs?}
-    G -->|Yes| H[Load template by notification type]
-    H --> I{Template enabled?}
-    I -->|No| J[Skip sending]
-    I -->|Yes| K[Render merge tags with real data]
-    K --> L[Send admin and or user email]
-    L --> M[Store email log]
+    A[Admin opens Email Notification menu] --> B{Choose Notification Type}
 
-    F --> N{Admin clicks Send Test?}
-    N -->|Yes| O[Input test recipient]
-    O --> P[Render template with sample data]
-    P --> Q[Send test email]
-    Q --> R[Store email log]
+    B --> C[Module Completion]
+    B --> D[Assignments Review]
+    B --> E[Assignments Approved]
+    B --> F[Assignments Rejected]
+    B --> G[Certificate Created]
+    B --> H[Signup]
+
+    %% Common configuration flow
+    C --> I[Load template configuration]
+    D --> I
+    E --> I
+    F --> I
+    G --> I
+    H --> I
+
+    I --> J[Admin edits enable status recipients subject body]
+    J --> K[Click Save Changes]
+    K --> L[Store template settings]
+
+    L --> M{Admin clicks Send Test?}
+    M -->|Yes| N[Input Send To email]
+    N --> O[Render template with sample data]
+    O --> P[Send test email]
+    P --> Q[Store email log]
+    M -->|No| R[Wait for automated trigger]
+
+    %% Module Completion automated flow
+    R --> S{Student completes all lessons in a module?}
+    S -->|Yes| T[Load Module Completion template]
+    T --> U[Render module completion placeholders]
+    U --> V[Send to admin and user]
+    V --> W[Store email log]
+
+    %% Assignment Review automated flow
+    R --> X{Student submits assignment?}
+    X -->|Yes| Y[Load Assignments Review template]
+    Y --> Z[Render assignment review placeholders]
+    Z --> AA[Send review notification]
+    AA --> AB[Store email log]
+
+    %% Assignment Approved automated flow
+    R --> AC{Admin approves assignment?}
+    AC -->|Yes| AD[Load Assignments Approved template]
+    AD --> AE[Render assignment approved placeholders]
+    AE --> AF[Send approved notification]
+    AF --> AG[Store email log]
+
+    %% Assignment Rejected automated flow
+    R --> AH{Admin rejects assignment?}
+    AH -->|Yes| AI[Load Assignments Rejected template]
+    AI --> AJ[Render assignment rejected placeholders plus feedback]
+    AJ --> AK[Send rejected notification]
+    AK --> AL[Store email log]
+
+    %% Certificate Created automated flow
+    R --> AM{Admin generates certificate or sends graduation email?}
+    AM -->|Yes| AN[Load Certificate Created template]
+    AN --> AO[Render certificate placeholders]
+    AO --> AP[Attach PDF certificate if implemented]
+    AP --> AQ[Send certificate email]
+    AQ --> AR[Store email log]
+
+    %% Signup automated flow
+    R --> AS{User completes signup?}
+    AS -->|Yes| AT[Load Signup template]
+    AT --> AU[Render signup placeholders]
+    AU --> AV[Send signup email]
+    AV --> AW[Store email log]

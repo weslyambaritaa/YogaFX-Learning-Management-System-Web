@@ -5,7 +5,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 export default function EditLesson({ lesson, accessTiers, modules, status }) {
     const { data, setData, patch, processing, errors } = useForm({
         module_id: lesson.module_id ?? '',
-        access_tier_id: lesson.access_tier_id ?? '',
+        access_tier_ids: lesson.access_tier_ids ?? [],
         assessment_id: lesson.assessment_id ?? '',
         title: lesson.title ?? '',
         thumbnail: null,
@@ -13,7 +13,6 @@ export default function EditLesson({ lesson, accessTiers, modules, status }) {
         video: lesson.video ?? '',
         audio: lesson.audio ?? '',
         content: lesson.content ?? '',
-        sort_order: lesson.sort_order ?? 1,
     });
 
     const submit = (event) => {
