@@ -26,6 +26,16 @@ export default function EbooksIndex({ ebooks, status }) {
             <Head title="Ebooks" />
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                    {status === 'ebook-created' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Ebook has been created.
+                        </div>
+                    )}
+                    {status === 'ebook-updated' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Ebook has been updated.
+                        </div>
+                    )}
                     {status === 'ebook-deleted' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Ebook has been deleted.
@@ -37,7 +47,8 @@ export default function EbooksIndex({ ebooks, status }) {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Title</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Tier</th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Tiers</th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Order</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">File</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Action</th>
                                     </tr>
@@ -48,7 +59,10 @@ export default function EbooksIndex({ ebooks, status }) {
                                             <td className="px-4 py-3 font-medium text-gray-900">
                                                 {ebook.title}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-700">{ebook.access_tier}</td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {ebook.access_tiers.join(', ')}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">{ebook.sort_order}</td>
                                             <td className="px-4 py-3">
                                                 <a
                                                     href={ebook.file_url}

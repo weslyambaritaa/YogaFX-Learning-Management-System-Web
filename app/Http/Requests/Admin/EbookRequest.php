@@ -26,7 +26,8 @@ class EbookRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'file' => [...$fileRule, 'file', 'mimes:pdf', 'max:10240'],
-            'access_tier_id' => ['required', Rule::exists('access_tiers', 'id')],
+            'access_tier_ids' => ['required', 'array', 'min:1'],
+            'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],
         ];
     }
 }

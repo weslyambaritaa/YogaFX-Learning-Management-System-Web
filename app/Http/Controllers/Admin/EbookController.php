@@ -19,13 +19,15 @@ class EbookController extends Controller
     {
         return Inertia::render('Admin/Ebooks/Index', [
             'ebooks' => Ebook::query()
-                ->with('accessTier')
+                ->with('accessTiers')
+                ->orderBy('sort_order')
                 ->orderBy('title')
                 ->get()
                 ->map(fn (Ebook $ebook) => [
                     'id' => $ebook->id,
                     'title' => $ebook->title,
-                    'access_tier' => $ebook->accessTier?->name,
+                    'access_tiers' => $ebook->accessTiers->pluck('name')->all(),
+                    'sort_order' => $ebook->sort_order,
                     'file_url' => route('media.show', ['entity' => 'ebook', 'id' => $ebook->id, 'field' => 'file']),
                 ]),
             'status' => session('status'),
@@ -43,11 +45,13 @@ class EbookController extends Controller
     {
         $data = $request->validated();
         $data['file'] = $this->storeUploadedFile($request->file('file'), 'ebooks/files');
+        unset($data['access_tier_ids']);
 
         $ebook = Ebook::query()->create($data);
+        $ebook->accessTiers()->sync($request->validated('access_tier_ids'));
 
         return redirect()
-            ->route('admin.ebooks.edit', $ebook)
+            ->route('admin.ebooks.index')
             ->with('status', 'ebook-created');
     }
 
@@ -57,7 +61,7 @@ class EbookController extends Controller
             'ebook' => [
                 'id' => $ebook->id,
                 'title' => $ebook->title,
-                'access_tier_id' => $ebook->access_tier_id,
+                'access_tier_ids' => $ebook->accessTiers()->pluck('access_tiers.id')->all(),
                 'file_url' => route('media.show', ['entity' => 'ebook', 'id' => $ebook->id, 'field' => 'file']),
             ],
             'accessTiers' => $this->accessTierOptions(),
@@ -73,11 +77,13 @@ class EbookController extends Controller
             'ebooks/files',
             $ebook->file,
         );
+        unset($data['access_tier_ids']);
 
         $ebook->update($data);
+        $ebook->accessTiers()->sync($request->validated('access_tier_ids'));
 
         return redirect()
-            ->route('admin.ebooks.edit', $ebook)
+            ->route('admin.ebooks.index')
             ->with('status', 'ebook-updated');
     }
 

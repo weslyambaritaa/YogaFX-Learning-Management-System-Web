@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\AccessTier;
 use App\Models\Module;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -27,8 +26,7 @@ class ModuleFactory extends Factory
             'title' => Str::title($title),
             'url_slug' => Str::slug($title),
             'thumbnail' => 'modules/default-thumbnail.jpg',
-            'access_tier_id' => AccessTier::factory(),
-            'sort_order' => fake()->numberBetween(1, 20),
+            'sort_order' => null,
         ];
     }
 }

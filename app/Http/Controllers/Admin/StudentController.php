@@ -39,6 +39,7 @@ class StudentController extends Controller
                     'created_at' => optional($student->created_at)->toDateString(),
                     'profile_is_complete' => $student->hasCompletedStudentProfile(),
                 ]),
+            'status' => session('status'),
         ]);
     }
 
@@ -105,7 +106,7 @@ class StudentController extends Controller
         $student->save();
 
         return redirect()
-            ->route('admin.students.edit', $student)
+            ->route('admin.students.index')
             ->with('status', 'student-profile-updated');
     }
 }

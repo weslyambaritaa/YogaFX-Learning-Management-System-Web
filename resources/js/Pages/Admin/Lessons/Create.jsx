@@ -5,7 +5,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 export default function CreateLesson({ accessTiers, modules }) {
     const { data, setData, post, processing, errors } = useForm({
         module_id: '',
-        access_tier_id: '',
+        access_tier_ids: [],
         assessment_id: '',
         title: '',
         thumbnail: null,
@@ -13,7 +13,6 @@ export default function CreateLesson({ accessTiers, modules }) {
         video: '',
         audio: '',
         content: '',
-        sort_order: 1,
     });
 
     const submit = (event) => {

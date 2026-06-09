@@ -40,6 +40,8 @@ import {
 import { useEffect, useState } from 'react';
 
 const ADMIN_SIDEBAR_STORAGE_KEY = 'yogafx-admin-sidebar-collapsed';
+const ADMIN_PROGRESS_GROUP_STORAGE_KEY = 'yogafx-admin-progress-group-open';
+const ADMIN_EMAIL_GROUP_STORAGE_KEY = 'yogafx-admin-email-group-open';
 
 const adminNavigationItems = [
     {
@@ -89,7 +91,14 @@ const adminNavigationItems = [
     {
         label: 'Email',
         icon: Mail,
-        disabled: true,
+        children: [
+            { label: 'Module Completion', icon: Mail, disabled: true },
+            { label: 'Assignments Review', icon: Mail, disabled: true },
+            { label: 'Assignments Approved', icon: Mail, disabled: true },
+            { label: 'Assignments Rejected', icon: Mail, disabled: true },
+            { label: 'Certificate Created', icon: Mail, disabled: true },
+            { label: 'Signup', icon: Mail, disabled: true },
+        ],
     },
 ];
 
@@ -132,6 +141,7 @@ const adminPageTitles = {
     'admin.ebooks.edit': 'Edit E-Book',
     'admin.students.index': 'Students',
     'admin.students.edit': 'Student Detail',
+    'admin.students.progress.show': 'Student Progress',
     'admin.access-tiers.index': 'Access Tiers',
     'admin.access-tiers.create': 'Create Access Tier',
     'admin.access-tiers.edit': 'Edit Access Tier',
@@ -214,31 +224,32 @@ function SidebarNavItem({ item, collapsed, onNavigate }) {
     );
 }
 
-function SidebarProgressGroup({
+function SidebarGroup({
+    item,
     collapsed,
-    progressOpen,
-    setProgressOpen,
+    open,
+    setOpen,
     onNavigate,
 }) {
-    const active = false;
+    const Icon = item.icon;
 
     return (
         <div className="space-y-1">
             <Button
                 type="button"
-                variant={active ? 'secondary' : 'ghost'}
-                title={collapsed ? 'Student Progress' : undefined}
-                onClick={() => setProgressOpen((current) => !current)}
+                variant="ghost"
+                title={collapsed ? item.label : undefined}
+                onClick={() => setOpen((current) => !current)}
                 className={[
                     'h-11 w-full justify-start gap-3 rounded-xl px-3',
                     collapsed ? 'px-0 justify-center' : '',
                 ].join(' ')}
             >
-                <FileSpreadsheet className="size-4 shrink-0" />
+                <Icon className="size-4 shrink-0" />
                 {!collapsed && (
                     <>
-                        <span className="truncate">Student Progress</span>
-                        {progressOpen ? (
+                        <span className="truncate">{item.label}</span>
+                        {open ? (
                             <ChevronDown className="ml-auto size-4" />
                         ) : (
                             <ChevronRight className="ml-auto size-4" />
@@ -247,11 +258,9 @@ function SidebarProgressGroup({
                 )}
             </Button>
 
-            {!collapsed && progressOpen && (
+            {!collapsed && open && (
                 <div className="space-y-1 pl-4">
-                    {adminNavigationItems
-                        .find((item) => item.label === 'Student Progress')
-                        ?.children?.map((child) => {
+                    {item.children?.map((child) => {
                             const ChildIcon = child.icon;
 
                             return (
@@ -279,6 +288,8 @@ function AdminSidebar({
     setCollapsed,
     progressOpen,
     setProgressOpen,
+    emailOpen,
+    setEmailOpen,
     onNavigate,
 }) {
     return (
@@ -317,11 +328,20 @@ function AdminSidebar({
                 <div className="space-y-2">
                     {adminNavigationItems.map((item) =>
                         item.children ? (
-                            <SidebarProgressGroup
+                            <SidebarGroup
                                 key={item.label}
+                                item={item}
                                 collapsed={collapsed}
-                                progressOpen={progressOpen}
-                                setProgressOpen={setProgressOpen}
+                                open={
+                                    item.label === 'Student Progress'
+                                        ? progressOpen
+                                        : emailOpen
+                                }
+                                setOpen={
+                                    item.label === 'Student Progress'
+                                        ? setProgressOpen
+                                        : setEmailOpen
+                                }
                                 onNavigate={onNavigate}
                             />
                         ) : (
@@ -362,6 +382,8 @@ function AdminMobileSidebar({
     setOpen,
     progressOpen,
     setProgressOpen,
+    emailOpen,
+    setEmailOpen,
 }) {
     return (
         <Sheet open={open} onOpenChange={setOpen}>
@@ -380,11 +402,20 @@ function AdminMobileSidebar({
                     <div className="space-y-2">
                         {adminNavigationItems.map((item) =>
                             item.children ? (
-                                <SidebarProgressGroup
+                                <SidebarGroup
                                     key={item.label}
+                                    item={item}
                                     collapsed={false}
-                                    progressOpen={progressOpen}
-                                    setProgressOpen={setProgressOpen}
+                                    open={
+                                        item.label === 'Student Progress'
+                                            ? progressOpen
+                                            : emailOpen
+                                    }
+                                    setOpen={
+                                        item.label === 'Student Progress'
+                                            ? setProgressOpen
+                                            : setEmailOpen
+                                    }
                                     onNavigate={() => setOpen(false)}
                                 />
                             ) : (
@@ -511,8 +542,7 @@ export default function AuthenticatedLayout({ header, children }) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [progressOpen, setProgressOpen] = useState(false);
-    const shouldExpandProgress =
-        route().current('admin.students.*') || route().current('admin.lessons.*');
+    const [emailOpen, setEmailOpen] = useState(false);
 
     useEffect(() => {
         if (!isAdmin) {
@@ -521,6 +551,12 @@ export default function AuthenticatedLayout({ header, children }) {
 
         const storedValue = window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY);
         setCollapsed(storedValue === 'true');
+        setProgressOpen(
+            window.localStorage.getItem(ADMIN_PROGRESS_GROUP_STORAGE_KEY) === 'true',
+        );
+        setEmailOpen(
+            window.localStorage.getItem(ADMIN_EMAIL_GROUP_STORAGE_KEY) === 'true',
+        );
     }, [isAdmin]);
 
     useEffect(() => {
@@ -535,10 +571,26 @@ export default function AuthenticatedLayout({ header, children }) {
     }, [collapsed, isAdmin]);
 
     useEffect(() => {
-        if (shouldExpandProgress) {
-            setProgressOpen(true);
+        if (!isAdmin) {
+            return;
         }
-    }, [shouldExpandProgress]);
+
+        window.localStorage.setItem(
+            ADMIN_PROGRESS_GROUP_STORAGE_KEY,
+            String(progressOpen),
+        );
+    }, [progressOpen, isAdmin]);
+
+    useEffect(() => {
+        if (!isAdmin) {
+            return;
+        }
+
+        window.localStorage.setItem(
+            ADMIN_EMAIL_GROUP_STORAGE_KEY,
+            String(emailOpen),
+        );
+    }, [emailOpen, isAdmin]);
 
     if (!isAdmin) {
         return (
@@ -556,6 +608,8 @@ export default function AuthenticatedLayout({ header, children }) {
                     setCollapsed={setCollapsed}
                     progressOpen={progressOpen}
                     setProgressOpen={setProgressOpen}
+                    emailOpen={emailOpen}
+                    setEmailOpen={setEmailOpen}
                 />
 
                 <div className="flex min-h-screen min-w-0 flex-1 flex-col">
@@ -567,6 +621,8 @@ export default function AuthenticatedLayout({ header, children }) {
                                     setOpen={setMobileSidebarOpen}
                                     progressOpen={progressOpen}
                                     setProgressOpen={setProgressOpen}
+                                    emailOpen={emailOpen}
+                                    setEmailOpen={setEmailOpen}
                                 />
 
                                 <Button

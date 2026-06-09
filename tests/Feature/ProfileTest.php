@@ -103,7 +103,7 @@ class ProfileTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('admin.students.edit', $student));
+            ->assertRedirect(route('admin.students.index'));
 
         $student->refresh();
 

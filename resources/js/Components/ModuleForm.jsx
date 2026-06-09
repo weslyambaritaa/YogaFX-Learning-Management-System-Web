@@ -1,3 +1,4 @@
+import AccessTierMultiSelect from '@/Components/AccessTierMultiSelect';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -40,41 +41,12 @@ export default function ModuleForm({
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                    <InputLabel htmlFor="access_tier_id" value="Access Tier" />
-                    <select
-                        id="access_tier_id"
-                        value={data.access_tier_id}
-                        onChange={(event) =>
-                            setData('access_tier_id', Number(event.target.value))
-                        }
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    >
-                        <option value="">Select access tier</option>
-                        {accessTiers.map((accessTier) => (
-                            <option key={accessTier.id} value={accessTier.id}>
-                                {accessTier.name}
-                                {!accessTier.is_active ? ' (Inactive)' : ''}
-                            </option>
-                        ))}
-                    </select>
-                    <InputError className="mt-2" message={errors.access_tier_id} />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="sort_order" value="Sort Order" />
-                    <TextInput
-                        id="sort_order"
-                        type="number"
-                        min="1"
-                        className="mt-1 block w-full"
-                        value={data.sort_order}
-                        onChange={(event) => setData('sort_order', event.target.value)}
-                    />
-                    <InputError className="mt-2" message={errors.sort_order} />
-                </div>
-            </div>
+            <AccessTierMultiSelect
+                value={data.access_tier_ids}
+                onChange={(value) => setData('access_tier_ids', value)}
+                accessTiers={accessTiers}
+                error={errors.access_tier_ids}
+            />
 
             <div>
                 <InputLabel htmlFor="thumbnail" value="Thumbnail" />

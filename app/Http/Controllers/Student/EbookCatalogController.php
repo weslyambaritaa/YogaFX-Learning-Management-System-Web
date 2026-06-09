@@ -16,7 +16,8 @@ class EbookCatalogController extends Controller
 
         return Inertia::render('Student/Ebooks/Index', [
             'ebooks' => Ebook::query()
-                ->where('access_tier_id', $user?->access_tier_id)
+                ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user?->access_tier_id))
+                ->orderBy('sort_order')
                 ->orderBy('title')
                 ->get()
                 ->map(fn (Ebook $ebook) => [

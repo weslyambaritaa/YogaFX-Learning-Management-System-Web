@@ -20,7 +20,7 @@ class LessonController extends Controller
     {
         return Inertia::render('Admin/Lessons/Index', [
             'lessons' => Lesson::query()
-                ->with(['module', 'accessTier'])
+                ->with(['module', 'accessTiers'])
                 ->orderBy('sort_order')
                 ->orderBy('title')
                 ->get()
@@ -28,7 +28,7 @@ class LessonController extends Controller
                     'id' => $lesson->id,
                     'title' => $lesson->title,
                     'module' => $lesson->module?->title,
-                    'access_tier' => $lesson->accessTier?->name,
+                    'access_tiers' => $lesson->accessTiers->pluck('name')->all(),
                     'sort_order' => $lesson->sort_order,
                     'has_workbook' => $lesson->workbook !== null,
                     'has_video' => $lesson->video !== null,
@@ -51,11 +51,13 @@ class LessonController extends Controller
         $data = $request->validated();
         $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'lessons/thumbnails');
         $data['workbook'] = $this->storeUploadedFile($request->file('workbook'), 'lessons/workbooks');
+        unset($data['access_tier_ids']);
 
         $lesson = Lesson::query()->create($data);
+        $lesson->accessTiers()->sync($request->validated('access_tier_ids'));
 
         return redirect()
-            ->route('admin.lessons.edit', $lesson)
+            ->route('admin.lessons.index')
             ->with('status', 'lesson-created');
     }
 
@@ -65,13 +67,12 @@ class LessonController extends Controller
             'lesson' => [
                 'id' => $lesson->id,
                 'module_id' => $lesson->module_id,
-                'access_tier_id' => $lesson->access_tier_id,
+                'access_tier_ids' => $lesson->accessTiers()->pluck('access_tiers.id')->all(),
                 'assessment_id' => $lesson->assessment_id,
                 'title' => $lesson->title,
                 'video' => $lesson->video,
                 'audio' => $lesson->audio,
                 'content' => $lesson->content,
-                'sort_order' => $lesson->sort_order,
                 'thumbnail_url' => route('media.show', ['entity' => 'lesson', 'id' => $lesson->id, 'field' => 'thumbnail']),
                 'workbook_url' => $lesson->workbook
                     ? route('media.show', ['entity' => 'lesson', 'id' => $lesson->id, 'field' => 'workbook'])
@@ -96,11 +97,13 @@ class LessonController extends Controller
             'lessons/workbooks',
             $lesson->workbook,
         );
+        unset($data['access_tier_ids']);
 
         $lesson->update($data);
+        $lesson->accessTiers()->sync($request->validated('access_tier_ids'));
 
         return redirect()
-            ->route('admin.lessons.edit', $lesson)
+            ->route('admin.lessons.index')
             ->with('status', 'lesson-updated');
     }
 

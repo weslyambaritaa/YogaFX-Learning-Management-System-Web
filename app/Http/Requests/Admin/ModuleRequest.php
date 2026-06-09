@@ -44,8 +44,8 @@ class ModuleRequest extends FormRequest
                 Rule::unique(Module::class, 'url_slug')->ignore($module?->id),
             ],
             'thumbnail' => [...$thumbnailRule, 'image', 'max:2048'],
-            'access_tier_id' => ['required', Rule::exists('access_tiers', 'id')],
-            'sort_order' => ['required', 'integer', 'min:1'],
+            'access_tier_ids' => ['required', 'array', 'min:1'],
+            'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],
         ];
     }
 }

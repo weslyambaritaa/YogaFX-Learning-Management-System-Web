@@ -26,6 +26,16 @@ export default function CoursesIndex({ courses, status }) {
             <Head title="Courses" />
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                    {status === 'course-created' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Course has been created.
+                        </div>
+                    )}
+                    {status === 'course-updated' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Course has been updated.
+                        </div>
+                    )}
                     {status === 'course-deleted' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Course has been deleted.

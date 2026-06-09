@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
-export default function StudentsIndex({ students }) {
+export default function StudentsIndex({ students, status }) {
     return (
         <AuthenticatedLayout
             header={
@@ -14,6 +14,11 @@ export default function StudentsIndex({ students }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    {status === 'student-profile-updated' && (
+                        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Student profile has been updated.
+                        </div>
+                    )}
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6">
                             <div className="mb-4">
@@ -85,15 +90,26 @@ export default function StudentsIndex({ students }) {
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <Link
-                                                        href={route(
-                                                            'admin.students.edit',
-                                                            student.id,
-                                                        )}
-                                                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                                                    >
-                                                        Open Detail
-                                                    </Link>
+                                                    <div className="flex items-center gap-4">
+                                                        <Link
+                                                            href={route(
+                                                                'admin.students.edit',
+                                                                student.id,
+                                                            )}
+                                                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                                        >
+                                                            Open Detail
+                                                        </Link>
+                                                        <Link
+                                                            href={route(
+                                                                'admin.students.progress.show',
+                                                                student.id,
+                                                            )}
+                                                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                                        >
+                                                            Student Progress
+                                                        </Link>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

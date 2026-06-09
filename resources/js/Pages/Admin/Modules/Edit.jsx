@@ -7,8 +7,7 @@ export default function EditModule({ module, accessTiers, status }) {
         title: module.title ?? '',
         url_slug: module.url_slug ?? '',
         thumbnail: null,
-        access_tier_id: module.access_tier_id ?? '',
-        sort_order: module.sort_order ?? 1,
+        access_tier_ids: module.access_tier_ids ?? [],
     });
 
     const submit = (event) => {

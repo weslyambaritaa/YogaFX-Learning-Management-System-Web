@@ -25,7 +25,8 @@ class LessonRequest extends FormRequest
 
         return [
             'module_id' => ['required', Rule::exists('modules', 'id')],
-            'access_tier_id' => ['required', Rule::exists('access_tiers', 'id')],
+            'access_tier_ids' => ['required', 'array', 'min:1'],
+            'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],
             'assessment_id' => ['nullable', 'integer', 'min:1'],
             'title' => ['required', 'string', 'max:255'],
             'thumbnail' => [...$thumbnailRule, 'image', 'max:2048'],
@@ -33,7 +34,6 @@ class LessonRequest extends FormRequest
             'video' => ['nullable', 'string', 'max:2048'],
             'audio' => ['nullable', 'string', 'max:2048'],
             'content' => ['nullable', 'string'],
-            'sort_order' => ['required', 'integer', 'min:1'],
         ];
     }
 }

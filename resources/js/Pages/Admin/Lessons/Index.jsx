@@ -28,6 +28,16 @@ export default function LessonsIndex({ lessons, status }) {
             <Head title="Lessons" />
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                    {status === 'lesson-created' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Lesson has been created.
+                        </div>
+                    )}
+                    {status === 'lesson-updated' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Lesson has been updated.
+                        </div>
+                    )}
                     {status === 'lesson-deleted' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Lesson has been deleted.
@@ -45,7 +55,7 @@ export default function LessonsIndex({ lessons, status }) {
                                     <tr>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Lesson</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Module</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Tier</th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Tiers</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Order</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Assets</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Action</th>
@@ -58,7 +68,9 @@ export default function LessonsIndex({ lessons, status }) {
                                                 {lesson.title}
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">{lesson.module}</td>
-                                            <td className="px-4 py-3 text-gray-700">{lesson.access_tier}</td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {lesson.access_tiers.join(', ')}
+                                            </td>
                                             <td className="px-4 py-3 text-gray-700">{lesson.sort_order}</td>
                                             <td className="px-4 py-3 text-gray-700">
                                                 {[

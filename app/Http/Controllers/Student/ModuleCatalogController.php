@@ -17,7 +17,7 @@ class ModuleCatalogController extends Controller
 
         return Inertia::render('Student/Modules/Index', [
             'modules' => Module::query()
-                ->where('access_tier_id', $user?->access_tier_id)
+                ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user?->access_tier_id))
                 ->orderBy('sort_order')
                 ->orderBy('title')
                 ->get()
@@ -34,7 +34,11 @@ class ModuleCatalogController extends Controller
     public function show(Request $request, Module $module): Response
     {
         $user = $request->user();
-        abort_unless($user && $user->access_tier_id === $module->access_tier_id, 403);
+        abort_unless(
+            $user
+            && $module->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists(),
+            403,
+        );
 
         return Inertia::render('Student/Modules/Show', [
             'module' => [
@@ -45,7 +49,7 @@ class ModuleCatalogController extends Controller
                 'thumbnail_url' => route('media.show', ['entity' => 'module', 'id' => $module->id, 'field' => 'thumbnail']),
                 'lessons' => Lesson::query()
                     ->where('module_id', $module->id)
-                    ->where('access_tier_id', $user->access_tier_id)
+                    ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user->access_tier_id))
                     ->orderBy('sort_order')
                     ->orderBy('title')
                     ->get()

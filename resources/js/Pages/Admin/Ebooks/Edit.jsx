@@ -6,7 +6,7 @@ export default function EditEbook({ ebook, accessTiers, status }) {
     const { data, setData, patch, processing, errors } = useForm({
         title: ebook.title ?? '',
         file: null,
-        access_tier_id: ebook.access_tier_id ?? '',
+        access_tier_ids: ebook.access_tier_ids ?? [],
     });
 
     const submit = (event) => {

@@ -1,0 +1,58 @@
+flowchart TD
+
+    A[Admin opens Student Detail Progress Page] --> B{Choose Student Progress Feature}
+
+    B --> C[Completed Lesson]
+    B --> D[Assignment]
+    B --> E[Certificate]
+
+    %% Completed Lesson
+    C --> C1[Load completed lessons]
+    C1 --> C2{Any completed lessons?}
+    C2 -->|No| C3[Show empty state]
+    C2 -->|Yes| C4[Show completed lessons list]
+    C4 --> C5{Admin clicks Reset Progress?}
+    C5 -->|No| C6[Stay on completed lesson view]
+    C5 -->|Yes| C7[Show confirmation dialog]
+    C7 --> C8{Confirm reset?}
+    C8 -->|No| C6
+    C8 -->|Yes| C9[Reset lesson progress]
+    C9 --> C10[Refresh completed lesson data]
+
+    %% Assignment
+    D --> D1[Load assignment table]
+    D1 --> D2{Any assignment data?}
+    D2 -->|No| D3[Show empty state]
+    D2 -->|Yes| D4[Show assignment rows with title video status feedback]
+    D4 --> D5{Choose action}
+    D5 -->|Save| D6[Save assignment changes]
+    D5 -->|Send Email| D7[Trigger assignment email process]
+    D5 -->|Delete Video| D8[Show delete confirmation]
+    D8 --> D9{Confirm delete?}
+    D9 -->|No| D4
+    D9 -->|Yes| D10[Delete assignment video]
+    D6 --> D11[Refresh assignment table]
+    D7 --> D11
+    D10 --> D11
+
+    %% Certificate
+    E --> E1[Load certificate management area]
+    E1 --> E2{Choose action}
+    E2 -->|Generate Certificate| E3[Choose certificate type]
+    E3 --> E4{Certificate Type}
+    E4 -->|Bikram Yoga Certificate| E5[Generate Bikram certificate]
+    E4 -->|Yoga Alliance Certification| E6[Generate Yoga Alliance certificate]
+    E5 --> E7[Save certificate record]
+    E6 --> E7
+    E2 -->|Send Graduation Email| E8[Trigger graduation email]
+    E2 -->|Recreate Certificate| E9[Generate new certificate version]
+    E2 -->|Download Certificate| E10[Download certificate file]
+    E2 -->|Delete Certificate| E11[Show delete confirmation]
+    E11 --> E12{Confirm delete?}
+    E12 -->|No| E1
+    E12 -->|Yes| E13[Delete certificate]
+    E7 --> E14[Refresh certificate area]
+    E8 --> E14
+    E9 --> E14
+    E10 --> E14
+    E13 --> E14

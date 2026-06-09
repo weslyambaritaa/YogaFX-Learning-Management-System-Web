@@ -29,6 +29,16 @@ export default function ModulesIndex({ modules, status }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                    {status === 'module-created' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Module has been created.
+                        </div>
+                    )}
+                    {status === 'module-updated' && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Module has been updated.
+                        </div>
+                    )}
                     {status === 'module-deleted' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Module has been deleted.
@@ -48,7 +58,7 @@ export default function ModulesIndex({ modules, status }) {
                                             Module
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
-                                            Tier
+                                            Tiers
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Order
@@ -82,7 +92,7 @@ export default function ModulesIndex({ modules, status }) {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">
-                                                {module.access_tier}
+                                                {module.access_tiers.join(', ')}
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">
                                                 {module.sort_order}

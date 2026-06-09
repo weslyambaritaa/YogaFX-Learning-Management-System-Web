@@ -44,6 +44,13 @@ export default function EditStudent({ student, accessTiers, status }) {
                     </div>
 
                     <Link
+                        href={route('admin.students.progress.show', student.id)}
+                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                    >
+                        Open Student Progress
+                    </Link>
+
+                    <Link
                         href={route('admin.students.index')}
                         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                     >

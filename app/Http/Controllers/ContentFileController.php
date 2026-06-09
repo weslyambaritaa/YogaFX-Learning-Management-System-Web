@@ -1,12 +1,10 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Course;
 use App\Models\Ebook;
 use App\Models\Lesson;
 use App\Models\Module;
-use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -83,6 +81,17 @@ class ContentFileController extends Controller
 
         abort_unless($user->isStudent(), 403);
         abort_unless($user->access_tier_id !== null, 403);
-        abort_unless(isset($record->access_tier_id) && $record->access_tier_id === $user->access_tier_id, 403);
+
+        if ($record instanceof Course) {
+            abort_unless($record->access_tier_id === $user->access_tier_id, 403);
+
+            return;
+        }
+
+        abort_unless(
+            method_exists($record, 'accessTiers')
+            && $record->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists(),
+            403,
+        );
     }
 }
