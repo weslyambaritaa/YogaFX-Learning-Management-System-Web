@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\EbookRequest;
@@ -14,6 +15,7 @@ use Inertia\Response;
 
 class EbookController extends Controller
 {
+    use BuildsProtectedMediaUrls;
     use HandlesLocalUploads;
 
     public function index(): Response
@@ -78,13 +80,21 @@ class EbookController extends Controller
             'ebook' => [
                 'id' => $ebook->id,
                 'title' => $ebook->title,
-                'preview_url' => route('media.show', ['entity' => 'ebook', 'id' => $ebook->id, 'field' => 'file']),
-                'download_url' => route('media.show', [
-                    'entity' => 'ebook',
-                    'id' => $ebook->id,
-                    'field' => 'file',
-                    'download' => 1,
-                ]),
+                'preview_url' => $this->protectedMediaUrl(
+                    'ebook',
+                    $ebook->id,
+                    'file',
+                    $ebook->file,
+                    versionSeed: $ebook->updated_at,
+                ),
+                'download_url' => $this->protectedMediaUrl(
+                    'ebook',
+                    $ebook->id,
+                    'file',
+                    $ebook->file,
+                    download: true,
+                    versionSeed: $ebook->updated_at,
+                ),
                 'preview_supported' => $previewSupported,
                 'preview_message' => $previewSupported
                     ? null

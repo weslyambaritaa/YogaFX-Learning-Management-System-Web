@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
@@ -14,6 +15,7 @@ use Inertia\Response;
 
 class LessonController extends Controller
 {
+    use BuildsProtectedMediaUrls;
     use HandlesLocalUploads;
 
     public function index(): Response
@@ -64,19 +66,29 @@ class LessonController extends Controller
     public function edit(Lesson $lesson): Response
     {
         return Inertia::render('Admin/Lessons/Edit', [
-            'lesson' => [
-                'id' => $lesson->id,
-                'module_id' => $lesson->module_id,
+                'lesson' => [
+                    'id' => $lesson->id,
+                    'module_id' => $lesson->module_id,
                 'access_tier_ids' => $lesson->accessTiers()->pluck('access_tiers.id')->all(),
                 'assessment_id' => $lesson->assessment_id,
                 'title' => $lesson->title,
                 'video' => $lesson->video,
                 'audio' => $lesson->audio,
                 'content' => $lesson->content,
-                'thumbnail_url' => route('media.show', ['entity' => 'lesson', 'id' => $lesson->id, 'field' => 'thumbnail']),
-                'workbook_url' => $lesson->workbook
-                    ? route('media.show', ['entity' => 'lesson', 'id' => $lesson->id, 'field' => 'workbook'])
-                    : null,
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'thumbnail',
+                    $lesson->thumbnail,
+                    versionSeed: $lesson->updated_at,
+                ),
+                'workbook_url' => $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'workbook',
+                    $lesson->workbook,
+                    versionSeed: $lesson->updated_at,
+                ),
             ],
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),

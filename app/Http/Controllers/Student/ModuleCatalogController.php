@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Lesson;
 use App\Models\Module;
@@ -11,6 +12,8 @@ use Inertia\Response;
 
 class ModuleCatalogController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -26,7 +29,13 @@ class ModuleCatalogController extends Controller
                     'title' => $module->title,
                     'url_slug' => $module->url_slug,
                     'sort_order' => $module->sort_order,
-                    'thumbnail_url' => route('media.show', ['entity' => 'module', 'id' => $module->id, 'field' => 'thumbnail']),
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'module',
+                        $module->id,
+                        'thumbnail',
+                        $module->thumbnail,
+                        versionSeed: $module->updated_at,
+                    ),
                 ]),
         ]);
     }
@@ -46,7 +55,13 @@ class ModuleCatalogController extends Controller
                 'title' => $module->title,
                 'url_slug' => $module->url_slug,
                 'sort_order' => $module->sort_order,
-                'thumbnail_url' => route('media.show', ['entity' => 'module', 'id' => $module->id, 'field' => 'thumbnail']),
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'module',
+                    $module->id,
+                    'thumbnail',
+                    $module->thumbnail,
+                    versionSeed: $module->updated_at,
+                ),
                 'lessons' => Lesson::query()
                     ->where('module_id', $module->id)
                     ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user->access_tier_id))

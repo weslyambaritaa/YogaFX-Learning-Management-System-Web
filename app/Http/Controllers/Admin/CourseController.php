@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CourseRequest;
@@ -13,6 +14,7 @@ use Inertia\Response;
 
 class CourseController extends Controller
 {
+    use BuildsProtectedMediaUrls;
     use HandlesLocalUploads;
 
     public function index(): Response
@@ -27,7 +29,13 @@ class CourseController extends Controller
                     'title' => $course->title,
                     'url_slug' => $course->url_slug,
                     'access_tier' => $course->accessTier?->name,
-                    'thumbnail_url' => route('media.show', ['entity' => 'course', 'id' => $course->id, 'field' => 'thumbnail']),
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'course',
+                        $course->id,
+                        'thumbnail',
+                        $course->thumbnail,
+                        versionSeed: $course->updated_at,
+                    ),
                 ]),
             'status' => session('status'),
         ]);
@@ -62,7 +70,13 @@ class CourseController extends Controller
                 'access_tier_id' => $course->access_tier_id,
                 'description' => $course->description,
                 'video' => $course->video,
-                'thumbnail_url' => route('media.show', ['entity' => 'course', 'id' => $course->id, 'field' => 'thumbnail']),
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'course',
+                    $course->id,
+                    'thumbnail',
+                    $course->thumbnail,
+                    versionSeed: $course->updated_at,
+                ),
             ],
             'accessTiers' => $this->accessTierOptions(),
             'status' => session('status'),

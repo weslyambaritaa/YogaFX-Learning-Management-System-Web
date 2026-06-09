@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Ebook;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Inertia\Response;
 
 class EbookCatalogController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -46,13 +49,21 @@ class EbookCatalogController extends Controller
             'ebook' => [
                 'id' => $ebook->id,
                 'title' => $ebook->title,
-                'preview_url' => route('media.show', ['entity' => 'ebook', 'id' => $ebook->id, 'field' => 'file']),
-                'download_url' => route('media.show', [
-                    'entity' => 'ebook',
-                    'id' => $ebook->id,
-                    'field' => 'file',
-                    'download' => 1,
-                ]),
+                'preview_url' => $this->protectedMediaUrl(
+                    'ebook',
+                    $ebook->id,
+                    'file',
+                    $ebook->file,
+                    versionSeed: $ebook->updated_at,
+                ),
+                'download_url' => $this->protectedMediaUrl(
+                    'ebook',
+                    $ebook->id,
+                    'file',
+                    $ebook->file,
+                    download: true,
+                    versionSeed: $ebook->updated_at,
+                ),
                 'preview_supported' => $previewSupported,
                 'preview_message' => $previewSupported
                     ? null

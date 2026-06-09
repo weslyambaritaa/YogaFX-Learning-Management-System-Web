@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Lesson;
 use Illuminate\Http\Request;
@@ -10,6 +11,8 @@ use Inertia\Response;
 
 class LessonCatalogController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+
     public function show(Request $request, Lesson $lesson): Response
     {
         $user = $request->user();
@@ -34,10 +37,20 @@ class LessonCatalogController extends Controller
                     'title' => $lesson->module->title,
                     'url_slug' => $lesson->module->url_slug,
                 ] : null,
-                'thumbnail_url' => route('media.show', ['entity' => 'lesson', 'id' => $lesson->id, 'field' => 'thumbnail']),
-                'workbook_url' => $lesson->workbook
-                    ? route('media.show', ['entity' => 'lesson', 'id' => $lesson->id, 'field' => 'workbook'])
-                    : null,
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'thumbnail',
+                    $lesson->thumbnail,
+                    versionSeed: $lesson->updated_at,
+                ),
+                'workbook_url' => $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'workbook',
+                    $lesson->workbook,
+                    versionSeed: $lesson->updated_at,
+                ),
             ],
         ]);
     }

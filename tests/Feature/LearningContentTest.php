@@ -45,6 +45,62 @@ class LearningContentTest extends TestCase
         ]);
     }
 
+    public function test_module_thumbnail_url_changes_after_thumbnail_update(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create([
+            'thumbnail' => UploadedFile::fake()->image('initial-module.jpg')->store('modules/thumbnails', 'local'),
+        ]);
+        $module->accessTiers()->sync([$tier->id]);
+
+        $initialThumbnailUrl = $this->protectedMediaUrl(
+            'module',
+            $module->id,
+            'thumbnail',
+            $module->thumbnail,
+            $module->updated_at,
+        );
+
+        $this->actingAs($admin)
+            ->get(route('admin.modules.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Modules/Index')
+                ->where('modules.0.thumbnail_url', $initialThumbnailUrl));
+
+        $response = $this->actingAs($admin)->patch(route('admin.modules.update', $module), [
+            'title' => $module->title,
+            'url_slug' => $module->url_slug,
+            'thumbnail' => UploadedFile::fake()->image('updated-module.jpg'),
+            'access_tier_ids' => [$tier->id],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('admin.modules.index'));
+
+        $module->refresh();
+
+        $updatedThumbnailUrl = $this->protectedMediaUrl(
+            'module',
+            $module->id,
+            'thumbnail',
+            $module->thumbnail,
+            $module->updated_at,
+        );
+
+        $this->assertNotSame($initialThumbnailUrl, $updatedThumbnailUrl);
+
+        $this->actingAs($admin)
+            ->get(route('admin.modules.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Modules/Index')
+                ->where('modules.0.thumbnail_url', $updatedThumbnailUrl));
+    }
+
     public function test_admin_cannot_create_module_with_thumbnail_larger_than_10mb(): void
     {
         Storage::fake('local');
@@ -394,12 +450,14 @@ class LearningContentTest extends TestCase
                 ->where('ebook.title', 'Previewable Ebook')
                 ->where('ebook.preview_supported', true)
                 ->where('backLabel', 'Back to Ebooks')
-                ->where('ebook.download_url', route('media.show', [
-                    'entity' => 'ebook',
-                    'id' => $ebook->id,
-                    'field' => 'file',
-                    'download' => 1,
-                ])));
+                ->where('ebook.download_url', $this->protectedMediaUrl(
+                    'ebook',
+                    $ebook->id,
+                    'file',
+                    $ebook->file,
+                    $ebook->updated_at,
+                    true,
+                )));
     }
 
     public function test_student_sees_fallback_message_for_non_previewable_ebook_file(): void
@@ -428,5 +486,33 @@ class LearningContentTest extends TestCase
                 ->where('ebook.title', 'Reference Notes')
                 ->where('ebook.preview_supported', false)
                 ->where('ebook.preview_message', 'This ebook file cannot be previewed in the browser yet. You can still download it.'));
+    }
+
+    private function protectedMediaUrl(
+        string $entity,
+        int $id,
+        string $field,
+        string $path,
+        mixed $versionSeed,
+        bool $download = false,
+    ): string {
+        $parameters = [
+            'entity' => $entity,
+            'id' => $id,
+            'field' => $field,
+            'v' => sha1(implode('|', [
+                $entity,
+                $id,
+                $field,
+                $path,
+                (string) $versionSeed,
+            ])),
+        ];
+
+        if ($download) {
+            $parameters['download'] = 1;
+        }
+
+        return route('media.show', $parameters);
     }
 }
