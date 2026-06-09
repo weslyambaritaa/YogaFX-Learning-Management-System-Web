@@ -1,3 +1,4 @@
+import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 
@@ -108,14 +109,11 @@ export default function ModulesIndex({ modules, status }) {
                                                     >
                                                         Edit
                                                     </Link>
-                                                    <Link
+                                                    <DeleteConfirmationDialog
                                                         href={route('admin.modules.destroy', module.id)}
-                                                        method="delete"
-                                                        as="button"
-                                                        className="text-sm font-medium text-rose-600 hover:text-rose-800"
-                                                    >
-                                                        Delete
-                                                    </Link>
+                                                        title="Delete module?"
+                                                        description={`This will permanently delete "${module.title}". This action cannot be undone.`}
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>

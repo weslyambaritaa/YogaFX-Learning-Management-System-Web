@@ -1,3 +1,4 @@
+import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
@@ -81,14 +82,11 @@ export default function EbooksIndex({ ebooks, status }) {
                                                     >
                                                         Edit
                                                     </Link>
-                                                    <Link
+                                                    <DeleteConfirmationDialog
                                                         href={route('admin.ebooks.destroy', ebook.id)}
-                                                        method="delete"
-                                                        as="button"
-                                                        className="text-sm font-medium text-rose-600 hover:text-rose-800"
-                                                    >
-                                                        Delete
-                                                    </Link>
+                                                        title="Delete ebook?"
+                                                        description={`This will permanently delete "${ebook.title}". This action cannot be undone.`}
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>
