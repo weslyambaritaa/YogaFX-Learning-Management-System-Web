@@ -21,7 +21,9 @@
         "vite": "^8.0.0"
     },
     "dependencies": {
+        "@ckeditor/ckeditor5-react": "^11.2.0",
         "@fontsource-variable/geist": "^5.2.9",
+        "ckeditor5": "^48.2.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-react": "^1.17.0",

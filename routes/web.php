@@ -99,6 +99,7 @@ Route::middleware('auth')->group(function () {
         Route::redirect('/email-notifications', '/admin/email-notifications/module_completion')->name('email-notifications.index');
         Route::get('/email-notifications/{notificationType}', [EmailNotificationController::class, 'show'])->name('email-notifications.show');
         Route::patch('/email-notifications/{notificationType}', [EmailNotificationController::class, 'update'])->name('email-notifications.update');
+        Route::post('/email-notifications/{notificationType}/media', [EmailNotificationController::class, 'uploadMedia'])->name('email-notifications.media');
         Route::post('/email-notifications/{notificationType}/send-test', [EmailNotificationController::class, 'sendTest'])->name('email-notifications.send-test');
 
         Route::get('/student-progress', [StudentController::class, 'index'])->name('student-progress.index');
