@@ -22,6 +22,7 @@ import {
     CircleDot,
     Eye,
     FileQuestion,
+    GripVertical,
     ImageIcon,
     LayoutPanelTop,
     ListTree,
@@ -184,6 +185,14 @@ function questionSupportsCenterAnswerManager(type) {
     return optionBasedTypes.includes(type);
 }
 
+function getOptionSortOrder(option, optionDrafts) {
+    return Number(optionDrafts[option.id]?.sort_order ?? option.sort_order ?? 1);
+}
+
+function getQuestionSortOrder(question, questionDrafts) {
+    return Number(questionDrafts[question.id]?.sort_order ?? question.sort_order ?? 1);
+}
+
 function getQuestionTypeVisual(type) {
     switch (type) {
         case 'yes_no_maybe':
@@ -209,10 +218,20 @@ function getQuestionTypeVisual(type) {
     }
 }
 
-function ScoreboardNavigator({ scoreboardId, questions, selectedQuestionId }) {
+function ScoreboardNavigator({
+    scoreboardId,
+    questions,
+    selectedQuestionId,
+    draggedQuestionId,
+    dropTargetQuestionId,
+    startQuestionDrag,
+    markQuestionDropTarget,
+    dropQuestionAt,
+    finishQuestionDrag,
+}) {
     return (
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] xl:sticky xl:top-6 xl:h-[calc(100vh-12rem)]">
-            <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#faf9f6_0%,#f4f2ec_100%)] px-4 py-4">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] xl:sticky xl:top-6 xl:h-[calc(100vh-12rem)]">
+            <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#f0f0f0_0%,#d7d7d7_100%)] px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#607362]">
@@ -229,7 +248,7 @@ function ScoreboardNavigator({ scoreboardId, questions, selectedQuestionId }) {
 
                     <Button
                         size="sm"
-                        className="h-9 rounded-full px-3"
+                        className="h-9 rounded-lg px-3"
                         onClick={() =>
                             router.post(
                                 route('admin.scoreboards.questions.store', scoreboardId),
@@ -244,7 +263,7 @@ function ScoreboardNavigator({ scoreboardId, questions, selectedQuestionId }) {
                 </div>
             </div>
 
-            <div className="min-h-0 space-y-2 overflow-y-auto bg-[#fcfbf8] p-3 xl:flex-1">
+            <div className="min-h-0 space-y-2 overflow-y-auto bg-[#f0f0f0] p-3 xl:flex-1">
                 {questions.length > 0 ? (
                     questions.map((question, index) => {
                         const active = question.id === selectedQuestionId;
@@ -254,64 +273,100 @@ function ScoreboardNavigator({ scoreboardId, questions, selectedQuestionId }) {
                         const TypeIcon = typeVisual.icon;
 
                         return (
-                            <Link
+                            <div
                                 key={question.id}
-                                href={route('admin.scoreboards.builder', {
-                                    assessment: scoreboardId,
-                                    question: question.id,
-                                })}
-                                preserveScroll
-                                preserveState
+                                onDragOver={(event) => {
+                                    event.preventDefault();
+                                    markQuestionDropTarget?.(question.id);
+                                }}
+                                onDrop={(event) => {
+                                    event.preventDefault();
+                                    dropQuestionAt?.(question.id);
+                                }}
                                 className={[
-                                    'group block rounded-[22px] border px-3.5 py-3.5 transition',
-                                    active
-                                        ? 'border-[#203529] bg-[#203529] text-white shadow-[0_16px_26px_rgba(15,23,42,0.16)]'
-                                        : 'border-slate-200 bg-white text-slate-900 hover:border-[#cfd9cf] hover:bg-[#f8f6f0]',
+                                    'rounded-xl border transition',
+                                    dropTargetQuestionId === question.id
+                                        ? 'border-[#203529] ring-2 ring-[#203529]/10'
+                                        : draggedQuestionId === question.id
+                                          ? 'border-[#cfd9cf] opacity-80'
+                                          : active
+                                            ? 'border-[#203529] bg-[#203529] text-white shadow-[0_16px_26px_rgba(15,23,42,0.16)]'
+                                            : 'border-slate-200 bg-white text-slate-900 hover:border-[#cfd9cf] bg-[#e5e5ehover:bg-[#e0e0e0]',
                                 ].join(' ')}
                             >
-                                <div className="flex items-start gap-3.5">
-                                    <div
+                                <div className="flex items-start gap-2.5 px-3.5 py-3.5">
+                                    <button
+                                        type="button"
+                                        draggable
+                                        onDragStart={(event) => {
+                                            event.dataTransfer.effectAllowed = 'move';
+                                            startQuestionDrag?.(question.id);
+                                        }}
+                                        onDragEnd={() => finishQuestionDrag?.()}
                                         className={[
-                                            'mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-2xl text-xs font-semibold',
+                                            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border transition',
                                             active
-                                                ? 'bg-white/12 text-white'
-                                                : 'bg-white text-slate-700 shadow-sm',
+                                                ? 'border-white/15 bg-white/10 text-white/80'
+                                                : 'border-slate-200 bg-white text-slate-400 hover:border-[#cfd9cf] hover:text-slate-600',
                                         ].join(' ')}
+                                        aria-label="Reorder question"
                                     >
-                                        {question.sort_order}
-                                    </div>
+                                        <GripVertical className="size-4" />
+                                    </button>
 
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="truncate text-sm font-semibold">
-                                                {getNavigatorLabel(question, index)}
-                                            </span>
-                                            {active && <CircleDot className="size-3.5 shrink-0" />}
+                                    <Link
+                                        href={route('admin.scoreboards.builder', {
+                                            assessment: scoreboardId,
+                                            question: question.id,
+                                        })}
+                                        preserveScroll
+                                        preserveState
+                                        className="flex min-w-0 flex-1 items-start gap-3"
+                                    >
+                                        <div
+                                            className={[
+                                                'mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold',
+                                                active
+                                                    ? 'bg-white/12 text-white'
+                                                    : 'bg-white text-slate-700 shadow-sm',
+                                            ].join(' ')}
+                                        >
+                                            {question.sort_order}
                                         </div>
 
-                                        <div className="mt-2 flex items-center gap-2 text-[11px] font-medium">
-                                            <span
-                                                className={[
-                                                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 transition',
-                                                    active
-                                                        ? 'bg-white/10 text-white/82'
-                                                        : 'bg-[#f5f3ed] text-slate-500',
-                                                ].join(' ')}
-                                            >
-                                                <TypeIcon className="size-3.5" />
-                                                {typeVisual.label}
-                                            </span>
-                                        </div>
-                                    </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="truncate text-sm font-semibold">
+                                                    {getNavigatorLabel(question, index)}
+                                                </span>
+                                                {active ? (
+                                                    <CircleDot className="size-3.5 shrink-0" />
+                                                ) : null}
+                                            </div>
 
-                                    <ChevronRight
-                                        className={[
-                                            'mt-1 size-4 shrink-0',
-                                            active ? 'text-white/80' : 'text-slate-400',
-                                        ].join(' ')}
-                                    />
+                                            <div className="mt-2 flex items-center gap-2 text-[11px] font-medium">
+                                                <span
+                                                    className={[
+                                                        'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition',
+                                                        active
+                                                            ? 'bg-white/10 text-white/82'
+                                                            : 'bg-[#e5e5e5] text-slate-500',
+                                                    ].join(' ')}
+                                                >
+                                                    <TypeIcon className="size-3.5" />
+                                                    {typeVisual.label}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <ChevronRight
+                                            className={[
+                                                'mt-1 size-4 shrink-0',
+                                                active ? 'text-white/80' : 'text-slate-400',
+                                            ].join(' ')}
+                                        />
+                                    </Link>
                                 </div>
-                            </Link>
+                            </div>
                         );
                     })
                 ) : (
@@ -335,7 +390,7 @@ function InlineTextBlock({
     const baseClass = [
         'w-full rounded-2xl border border-transparent bg-transparent px-0 text-slate-900 shadow-none outline-none transition placeholder:text-slate-400 focus:border-transparent focus:ring-0',
         dominant
-            ? 'min-h-[120px] text-[2rem] font-semibold leading-[1.15] tracking-tight'
+            ? 'min-h-[30px] text-[2rem] font-semibold leading-[1.15] tracking-tight'
             : 'text-sm font-medium',
     ].join(' ');
 
@@ -369,10 +424,13 @@ function BuilderWorkspaceBar({
     resultRanges,
     design,
     mobilePanel,
+    saveAllChanges,
+    saveState,
+    hasUnsavedChanges,
 }) {
     return (
-        <section className="overflow-hidden rounded-[34px] border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
-            <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#fbfaf7_0%,#f3f1ea_100%)] px-5 py-5 lg:px-6">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
+            <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#f5f5f5_0%,#d7d7d7_100%)] px-5 py-5 lg:px-6">
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div className="min-w-0 space-y-4">
                         <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#607362]">
@@ -408,6 +466,21 @@ function BuilderWorkspaceBar({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+                        <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
+                            {saveState === 'saving'
+                                ? 'Saving...'
+                                : hasUnsavedChanges
+                                  ? 'Unsaved Changes'
+                                  : 'Saved'}
+                        </div>
+                        <Button
+                            type="button"
+                            onClick={saveAllChanges}
+                            disabled={saveState === 'saving' || !hasUnsavedChanges}
+                            className="h-10 rounded-lg bg-[#203529] px-5 text-white shadow-[0_12px_24px_rgba(32,53,41,0.18)] transition hover:bg-[#18281f] hover:shadow-[0_16px_30px_rgba(32,53,41,0.22)] disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none"
+                        >
+                            Save
+                        </Button>
                         <ResultRangesDrawer
                             scoreboardId={scoreboard.id}
                             resultRanges={resultRanges}
@@ -453,7 +526,7 @@ function BuilderWorkspaceBar({
             </div>
 
             <div className="grid gap-3 bg-white px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-6">
-                <div className="flex items-start gap-3 rounded-[22px] border border-slate-200 bg-[#faf8f3] px-4 py-3 text-sm text-slate-600">
+                <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-[#e8e8e8] px-4 py-3 text-sm text-slate-600">
                     <Eye className="mt-0.5 size-4 shrink-0 text-[#607362]" />
                     <div>
                         <div className="font-medium text-slate-900">
@@ -472,7 +545,7 @@ function BuilderWorkspaceBar({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-start rounded-[22px] border border-slate-200 bg-[#faf8f3] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+                <div className="flex items-center gap-2 self-start rounded-xl border border-slate-200 bg-[#e8e8e8] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
                     <span>{selectedQuestion ? 'Builder Ready' : 'Waiting for Screen'}</span>
                 </div>
             </div>
@@ -618,7 +691,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
 
 function CenterCorrectControl({ checked, multiple, onChange, disabled = false }) {
     return (
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
             <input
                 type={multiple ? 'checkbox' : 'radio'}
                 checked={checked}
@@ -644,10 +717,15 @@ function CenterAnswerRow({
     option,
     draft,
     setOptionValue,
-    saveOption,
     toggleCorrectOption,
     allowMultipleCorrect,
-    processing = false,
+    draggable = false,
+    isDragActive = false,
+    isDropTarget = false,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onDragEnd,
 }) {
     const data = draft;
 
@@ -658,15 +736,63 @@ function CenterAnswerRow({
     const labelValue = data.label;
 
     return (
-        <div className="rounded-[22px] border border-slate-200 bg-white/88 px-4 py-4 shadow-sm">
+        <div
+            onDragOver={(event) => {
+                if (!draggable) {
+                    return;
+                }
+
+                event.preventDefault();
+                onDragOver?.();
+            }}
+            onDrop={(event) => {
+                if (!draggable) {
+                    return;
+                }
+
+                event.preventDefault();
+                onDrop?.();
+            }}
+            className={[
+                'rounded-xl border bg-white/88 px-4 py-4 shadow-sm transition',
+                isDropTarget
+                    ? 'border-[#203529] ring-2 ring-[#203529]/10'
+                    : isDragActive
+                      ? 'border-[#cfd9cf] opacity-80'
+                      : 'border-slate-200',
+            ].join(' ')}
+        >
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[#eef2ec] text-xs font-semibold text-[#35513e]">
+                    <button
+                        type="button"
+                        draggable={draggable}
+                        onDragStart={(event) => {
+                            if (!draggable) {
+                                return;
+                            }
+
+                            event.dataTransfer.effectAllowed = 'move';
+                            onDragStart?.();
+                        }}
+                        onDragEnd={() => onDragEnd?.()}
+                        className={[
+                            'mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition',
+                            draggable
+                                ? 'cursor-grab hover:border-[#cfd9cf] hover:text-slate-600'
+                                : 'cursor-default opacity-50',
+                        ].join(' ')}
+                        aria-label="Reorder answer"
+                    >
+                        <GripVertical className="size-4" />
+                    </button>
+
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#eef2ec] text-xs font-semibold text-[#35513e]">
                         {data.sort_order}
                     </div>
 
                     {question.question_type === 'image_button' ? (
-                        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-[#eef2ec]">
+                        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-[#eef2ec]">
                             {option.image_url ? (
                                 <img
                                     src={option.image_url}
@@ -681,7 +807,7 @@ function CenterAnswerRow({
 
                     <div className="min-w-0 flex-1">
                         {option.is_fixed_option ? (
-                            <div className="min-h-11 rounded-2xl border border-slate-200 bg-[#faf8f3] px-4 py-3 text-sm font-medium text-slate-900">
+                            <div className="min-h-11 rounded-lg border border-slate-200 bg-[#e8e8e8] px-4 py-3 text-sm font-medium text-slate-900">
                                 {labelValue}
                             </div>
                         ) : (
@@ -691,7 +817,7 @@ function CenterAnswerRow({
                                     updateField('label', event.target.value)
                                 }
                                 placeholder="Answer label"
-                                className="min-h-11 rounded-2xl border-slate-200 bg-white"
+                                className="min-h-11 rounded-lg border-slate-200 bg-white"
                             />
                         )}
                     </div>
@@ -723,17 +849,6 @@ function CenterAnswerRow({
                             Delete
                         </Button>
                     ) : null}
-
-                    {!option.is_virtual ? (
-                        <Button
-                            type="button"
-                            size="sm"
-                            disabled={processing}
-                            onClick={() => saveOption(option.id)}
-                        >
-                            Save
-                        </Button>
-                    ) : null}
                 </div>
             </div>
         </div>
@@ -746,15 +861,17 @@ function BuilderCanvas({
     values,
     visibleOptions,
     setValue,
-    saveQuestion,
-    questionProcessing,
     error,
     design,
     optionDrafts,
     setOptionValue,
-    saveOption,
-    optionProcessingMap,
     toggleCorrectOption,
+    draggedOptionId,
+    dropTargetOptionId,
+    startOptionDrag,
+    markOptionDropTarget,
+    dropOptionAt,
+    finishOptionDrag,
 }) {
     const sectionBackground =
         design.section_background ||
@@ -770,7 +887,7 @@ function BuilderCanvas({
         : false;
 
     return (
-        <section className="overflow-hidden rounded-[34px] border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.07)]">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.07)]">
             <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#fcfbf8_0%,#f7f6f1_100%)] px-6 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
@@ -785,11 +902,11 @@ function BuilderCanvas({
 
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         {question ? (
-                            <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium">
+                            <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium">
                                 Screen {question.sort_order}
                             </span>
                         ) : null}
-                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium">
+                        <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium">
                             Student Preview
                         </span>
                     </div>
@@ -797,51 +914,39 @@ function BuilderCanvas({
             </div>
 
             {question ? (
-                <div className="bg-[radial-gradient(circle_at_top,rgba(234,239,232,0.45),transparent_48%),linear-gradient(180deg,#ffffff_0%,#fbfaf6_100%)] p-5 md:p-6">
+                <div className="bg-[linear-gradient(180deg,#ffffff_0%,#d7d7d7_100%)] p-5 md:p-6">
                     <div
-                        className="rounded-[34px] border border-white/70 p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] md:p-6"
+                        className="rounded-2xl border border-white/70 p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] md:p-6"
                         style={{ background: sectionBackground }}
                     >
                         <div
-                            className="mx-auto max-w-3xl rounded-[30px] border border-white/60 bg-white/50 p-5 backdrop-blur-sm md:p-8"
+                            className="mx-auto max-w-3xl rounded-2xl border border-white/60 bg-white/50 p-5 backdrop-blur-sm md:p-8"
                             style={{
                                 paddingTop: design.top_margin || 0,
                                 paddingBottom: design.bottom_margin || 0,
                             }}
                         >
                             <div className="space-y-8">
-                                <div className="flex flex-col gap-3 rounded-[22px] border border-white/60 bg-white/55 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex flex-col gap-3 rounded-xl border border-white/60 bg-white/55 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="text-sm text-slate-500">
                                         Edit the active screen directly on canvas.
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="rounded-full"
-                                            onClick={saveQuestion}
-                                            disabled={questionProcessing}
-                                        >
-                                            Save Screen
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="rounded-full"
-                                            onClick={() =>
-                                                router.post(
-                                                    route('admin.scoreboards.questions.store', scoreboard.id),
-                                                    {},
-                                                    { preserveScroll: true },
-                                                )
-                                            }
-                                        >
-                                            <Plus className="size-4" />
-                                            Add Question
-                                        </Button>
-                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="rounded-lg"
+                                        onClick={() =>
+                                            router.post(
+                                                route('admin.scoreboards.questions.store', scoreboard.id),
+                                                {},
+                                                { preserveScroll: true },
+                                            )
+                                        }
+                                    >
+                                        <Plus className="size-4" />
+                                        Add Question
+                                    </Button>
                                 </div>
 
                                 <InlineTextBlock
@@ -881,14 +986,16 @@ function BuilderCanvas({
                                     dominant
                                 />
 
-                                <PreviewOptionGrid
-                                    question={question}
-                                    values={values}
-                                    optionDrafts={optionDrafts}
-                                />
+                                {!supportsCenterAnswers ? (
+                                    <PreviewOptionGrid
+                                        question={question}
+                                        values={values}
+                                        optionDrafts={optionDrafts}
+                                    />
+                                ) : null}
 
                                 {supportsCenterAnswers ? (
-                                    <div className="space-y-3 rounded-[26px] border border-white/60 bg-white/60 p-4">
+                                    <div className="space-y-3 rounded-xl border border-white/60 bg-white/60 p-4">
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#607362]">
@@ -907,7 +1014,7 @@ function BuilderCanvas({
                                                 option.is_virtual ? (
                                                     <div
                                                         key={option.id}
-                                                        className="rounded-[22px] border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-600"
+                                                        className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-600"
                                                     >
                                                         <div className="font-medium text-slate-900">
                                                             Other
@@ -927,14 +1034,29 @@ function BuilderCanvas({
                                                             buildOptionDraft(option)
                                                         }
                                                         setOptionValue={setOptionValue}
-                                                        saveOption={saveOption}
                                                         toggleCorrectOption={toggleCorrectOption}
                                                         allowMultipleCorrect={
                                                             supportsMultipleCorrectAnswers
                                                         }
-                                                        processing={
-                                                            Boolean(optionProcessingMap[option.id])
+                                                        draggable={!option.is_virtual}
+                                                        isDragActive={
+                                                            draggedOptionId === option.id
                                                         }
+                                                        isDropTarget={
+                                                            dropTargetOptionId === option.id
+                                                        }
+                                                        onDragStart={() =>
+                                                            startOptionDrag(option.id)
+                                                        }
+                                                        onDragOver={() =>
+                                                            markOptionDropTarget(
+                                                                option.id,
+                                                            )
+                                                        }
+                                                        onDrop={() =>
+                                                            dropOptionAt(option.id)
+                                                        }
+                                                        onDragEnd={finishOptionDrag}
                                                     />
                                                 ),
                                             )}
@@ -972,7 +1094,7 @@ function BuilderCanvas({
                                 <div className="flex items-center justify-end border-t border-slate-200 pt-6">
                                     <button
                                         type="button"
-                                        className="inline-flex h-11 items-center justify-center rounded-full bg-[#203529] px-6 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(32,53,41,0.24)]"
+                                        className="inline-flex h-11 items-center justify-center rounded-lg bg-[#203529] px-6 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(32,53,41,0.24)]"
                                     >
                                         Next
                                     </button>
@@ -995,9 +1117,9 @@ function BuilderCanvas({
                 </div>
             ) : (
                 <div className="p-6">
-                    <div className="rounded-[30px] border border-dashed border-slate-300 bg-[#fbfaf6] px-6 py-20 text-center">
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-[#fbfaf6] px-6 py-20 text-center">
                         <div className="mx-auto max-w-md">
-                            <div className="inline-flex rounded-full bg-white p-3 text-[#607362] shadow-sm">
+                            <div className="inline-flex rounded-lg bg-white p-3 text-[#607362] shadow-sm">
                                 <Sparkles className="size-5" />
                             </div>
                             <h3 className="mt-5 text-xl font-semibold text-slate-900">
@@ -1016,7 +1138,7 @@ function BuilderCanvas({
 
 function QuestionSection({ title, description, children }) {
     return (
-        <section className="space-y-4 rounded-[20px] border border-slate-200 bg-[#faf8f3] p-4">
+        <section className="space-y-4 rounded-xl border border-slate-200 bg-[#e8e8e8] p-4">
             <div>
                 <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-slate-900">
                     {title}
@@ -1032,7 +1154,7 @@ function QuestionSection({ title, description, children }) {
 
 function ToggleField({ checked, onChange, label, description }) {
     return (
-        <label className="flex w-full items-start justify-between gap-3 rounded-[16px] border border-slate-200 bg-white px-4 py-3.5">
+        <label className="flex w-full items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3.5">
             <div className="min-w-0 flex-1">
                 <div className="break-words text-sm font-medium leading-5 text-slate-900">
                     {label}
@@ -1049,8 +1171,8 @@ function ToggleField({ checked, onChange, label, description }) {
                 onChange={(event) => onChange(event.target.checked)}
                 className="peer sr-only"
             />
-            <div className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full bg-slate-200 transition peer-checked:bg-[#203529]">
-                <span className="absolute left-1 top-1 size-4 rounded-full bg-white shadow-sm transition peer-checked:left-6" />
+            <div className="relative mt-0.5 h-6 w-11 shrink-0 rounded-lg bg-slate-200 transition peer-checked:bg-[#203529]">
+                <span className="absolute left-1 top-1 size-4 rounded-md bg-white shadow-sm transition peer-checked:left-6" />
             </div>
         </label>
     );
@@ -1063,6 +1185,13 @@ function AnswerRow({
     questionTargets,
     draft,
     setOptionValue,
+    draggable = false,
+    isDragActive = false,
+    isDropTarget = false,
+    onDragStart,
+    onDragOver,
+    onDrop,
+    onDragEnd,
 }) {
     const [expanded, setExpanded] = useState(false);
     const { data, setData, patch, processing, errors } = useForm(draft);
@@ -1094,12 +1223,60 @@ function AnswerRow({
     return (
         <form
             onSubmit={submit}
-            className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm"
+            onDragOver={(event) => {
+                if (!draggable) {
+                    return;
+                }
+
+                event.preventDefault();
+                onDragOver?.();
+            }}
+            onDrop={(event) => {
+                if (!draggable) {
+                    return;
+                }
+
+                event.preventDefault();
+                onDrop?.();
+            }}
+            className={[
+                'rounded-xl border bg-white p-4 shadow-sm transition',
+                isDropTarget
+                    ? 'border-[#203529] ring-2 ring-[#203529]/10'
+                    : isDragActive
+                      ? 'border-[#cfd9cf] opacity-80'
+                      : 'border-slate-200',
+            ].join(' ')}
         >
             <div className="space-y-3">
-                <div className="min-w-0">
-                    <div className="break-words text-sm font-semibold leading-6 text-slate-900">
-                        {data.label || option.label || `Answer ${data.sort_order}`}
+                <div className="flex items-start gap-3">
+                    <button
+                        type="button"
+                        draggable={draggable}
+                        onDragStart={(event) => {
+                            if (!draggable) {
+                                return;
+                            }
+
+                            event.dataTransfer.effectAllowed = 'move';
+                            onDragStart?.();
+                        }}
+                        onDragEnd={() => onDragEnd?.()}
+                        className={[
+                            'mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition',
+                            draggable
+                                ? 'cursor-grab hover:border-[#cfd9cf] hover:text-slate-600'
+                                : 'cursor-default opacity-50',
+                        ].join(' ')}
+                        aria-label="Reorder answer settings"
+                    >
+                        <GripVertical className="size-4" />
+                    </button>
+
+                    <div className="min-w-0 flex-1">
+                        <div className="break-words text-sm font-semibold leading-6 text-slate-900">
+                            {data.label || option.label || `Answer ${data.sort_order}`}
+                        </div>
                     </div>
                 </div>
 
@@ -1149,7 +1326,7 @@ function AnswerRow({
                                         event.target.files?.[0] ?? null,
                                     )
                                 }
-                                className="block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                             />
                             <div className="text-xs text-slate-500">
                                 Image is required
@@ -1158,7 +1335,7 @@ function AnswerRow({
                                 <img
                                     src={option.image_url}
                                     alt={option.label}
-                                    className="h-16 w-16 rounded-xl object-cover"
+                                    className="h-16 w-16 rounded-lg object-cover"
                                 />
                             ) : null}
                         </div>
@@ -1193,7 +1370,7 @@ function AnswerRow({
                                         event.target.value,
                                     )
                                 }
-                                className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                                className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
                             >
                                 <option value="">Select target</option>
                                 {questionTargets.map((target) => (
@@ -1210,7 +1387,7 @@ function AnswerRow({
                         'score_value',
                         'jump_to_question_id',
                     ]) ? (
-                        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                             {fieldError(errors, [
                                 'label',
                                 'score_value',
@@ -1237,21 +1414,47 @@ function AnswerRow({
 
 function useQuestionConfigPanel({
     scoreboard,
-    question,
+    questions,
+    selectedQuestionId,
     questionTargets,
     questionTypeOptions,
 }) {
-    const QUESTION_AUTOSAVE_DELAY = 1500;
-    const OPTION_AUTOSAVE_DELAY = 1500;
+    const [questionDrafts, setQuestionDrafts] = useState({});
+    const orderedQuestions = questions
+        .map((currentQuestion) => ({
+            ...currentQuestion,
+            ...(questionDrafts[currentQuestion.id] ?? {}),
+        }))
+        .sort(
+            (left, right) =>
+                getQuestionSortOrder(left, questionDrafts) -
+                    getQuestionSortOrder(right, questionDrafts) || left.id - right.id,
+        );
+    const question =
+        orderedQuestions.find((item) => item.id === selectedQuestionId) ??
+        orderedQuestions[0] ??
+        null;
     const questionForm = useForm(buildQuestionFormData(question));
     const [activeTab, setActiveTab] = useState('question');
-    const [questionDrafts, setQuestionDrafts] = useState({});
     const [optionDrafts, setOptionDrafts] = useState({});
     const [optionProcessingMap, setOptionProcessingMap] = useState({});
-    const questionAutosaveTimerRef = useRef(null);
-    const optionAutosaveTimersRef = useRef({});
-    const lastSavedQuestionSnapshotRef = useRef('');
+    const [draggedQuestionId, setDraggedQuestionId] = useState(null);
+    const [dropTargetQuestionId, setDropTargetQuestionId] = useState(null);
+    const [draggedOptionId, setDraggedOptionId] = useState(null);
+    const [dropTargetOptionId, setDropTargetOptionId] = useState(null);
+    const lastSavedQuestionSnapshotsRef = useRef({});
     const lastSavedOptionSnapshotsRef = useRef({});
+    const [saveState, setSaveState] = useState('saved');
+
+    useEffect(() => {
+        lastSavedQuestionSnapshotsRef.current = questions.reduce(
+            (snapshots, currentQuestion) => ({
+                ...snapshots,
+                [currentQuestion.id]: serializeDraft(buildQuestionFormData(currentQuestion)),
+            }),
+            {},
+        );
+    }, [questions]);
 
     useEffect(() => {
         const nextData = question?.id
@@ -1259,7 +1462,6 @@ function useQuestionConfigPanel({
             : buildQuestionFormData(question);
 
         questionForm.setData(nextData);
-        lastSavedQuestionSnapshotRef.current = serializeDraft(nextData);
 
         if (question?.options?.length) {
             setOptionDrafts((current) => {
@@ -1286,7 +1488,26 @@ function useQuestionConfigPanel({
         }
 
         setActiveTab('question');
+        setDraggedQuestionId(null);
+        setDropTargetQuestionId(null);
+        setDraggedOptionId(null);
+        setDropTargetOptionId(null);
     }, [question?.id]);
+
+    useEffect(() => {
+        if (!question?.id) {
+            return;
+        }
+
+        const draftSortOrder = questionDrafts[question.id]?.sort_order;
+
+        if (
+            draftSortOrder !== undefined &&
+            Number(questionForm.data.sort_order) !== Number(draftSortOrder)
+        ) {
+            questionForm.setData('sort_order', draftSortOrder);
+        }
+    }, [question?.id, questionDrafts, questionForm]);
 
     const setValue = (field, value) => {
         questionForm.setData(field, value);
@@ -1312,7 +1533,31 @@ function useQuestionConfigPanel({
                 ...(current[optionId] ?? buildOptionDraft(currentOption)),
                 [field]: value,
             },
-            }));
+        }));
+    };
+
+    const buildQuestionPayload = (questionId, overrides = {}) => {
+        const sourceQuestion = questions.find((item) => item.id === questionId) ?? null;
+
+        if (!sourceQuestion) {
+            return null;
+        }
+
+        const baseDraft =
+            question?.id === questionId
+                ? questionForm.data
+                : questionDrafts[questionId] ?? buildQuestionFormData(sourceQuestion);
+
+        return {
+            ...baseDraft,
+            ...overrides,
+            sort_order: Number(
+                overrides.sort_order ??
+                    baseDraft.sort_order ??
+                    sourceQuestion.sort_order ??
+                    1,
+            ),
+        };
     };
 
     const buildOptionPayload = (targetOption, overrides = {}) => {
@@ -1352,14 +1597,14 @@ function useQuestionConfigPanel({
 
     const saveOption = (optionId, overrides = {}) => {
         if (!question) {
-            return;
+            return Promise.resolve();
         }
 
         const targetOption =
             question.options?.find((item) => item.id === optionId) ?? null;
 
         if (!targetOption || targetOption.is_virtual) {
-            return;
+            return Promise.resolve();
         }
 
         const payload = buildOptionPayload(targetOption, overrides);
@@ -1373,30 +1618,34 @@ function useQuestionConfigPanel({
             [optionId]: true,
         }));
 
-        router.patch(
-            route('admin.scoreboards.options.update', {
-                assessment: scoreboard.id,
-                question: question.id,
-                option: optionId,
-            }),
-            payload,
-            {
-                preserveScroll: true,
-                forceFormData: true,
-                onSuccess: () => {
-                    lastSavedOptionSnapshotsRef.current = {
-                        ...lastSavedOptionSnapshotsRef.current,
-                        [optionId]: snapshot,
-                    };
+        return new Promise((resolve, reject) => {
+            router.patch(
+                route('admin.scoreboards.options.update', {
+                    assessment: scoreboard.id,
+                    question: question.id,
+                    option: optionId,
+                }),
+                payload,
+                {
+                    preserveScroll: true,
+                    forceFormData: true,
+                    onSuccess: () => {
+                        lastSavedOptionSnapshotsRef.current = {
+                            ...lastSavedOptionSnapshotsRef.current,
+                            [optionId]: snapshot,
+                        };
+                        resolve(true);
+                    },
+                    onError: (errors) => reject(errors),
+                    onFinish: () => {
+                        setOptionProcessingMap((current) => ({
+                            ...current,
+                            [optionId]: false,
+                        }));
+                    },
                 },
-                onFinish: () => {
-                    setOptionProcessingMap((current) => ({
-                        ...current,
-                        [optionId]: false,
-                    }));
-                },
-            },
-        );
+            );
+        });
     };
 
     const toggleCorrectOption = (targetOption) => {
@@ -1440,43 +1689,52 @@ function useQuestionConfigPanel({
         });
     };
 
-    const saveQuestion = () => {
-        if (!question) {
-            return;
+    const saveQuestion = (questionId = question?.id) => {
+        if (!questionId) {
+            return Promise.resolve();
         }
 
-        questionForm.patch(
-            route('admin.scoreboards.questions.update', {
-                assessment: scoreboard.id,
-                question: question.id,
-            }),
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    lastSavedQuestionSnapshotRef.current = serializeDraft(
-                        questionForm.data,
-                    );
-                    setQuestionDrafts((current) => {
-                        if (!question?.id) {
-                            return current;
-                        }
+        const payload = buildQuestionPayload(questionId);
 
-                        const nextDrafts = { ...current };
-                        delete nextDrafts[question.id];
-                        return nextDrafts;
-                    });
+        if (!payload) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve, reject) => {
+            router.patch(
+                route('admin.scoreboards.questions.update', {
+                    assessment: scoreboard.id,
+                    question: questionId,
+                }),
+                payload,
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        lastSavedQuestionSnapshotsRef.current = {
+                            ...lastSavedQuestionSnapshotsRef.current,
+                            [questionId]: serializeDraft(payload),
+                        };
+                        resolve(true);
+                    },
+                    onError: (errors) => reject(errors),
                 },
-            },
-        );
+            );
+        });
     };
 
     const submitQuestion = (event) => {
         event.preventDefault();
-        saveQuestion();
+        saveQuestion(question?.id);
     };
 
     const sharedPreviewValues = questionForm.data;
     const primaryError = Object.values(questionForm.errors)[0];
+    const orderedQuestionTargets = orderedQuestions.map((currentQuestion) => ({
+        id: currentQuestion.id,
+        label: `${
+            currentQuestion.title?.trim() || `Question ${currentQuestion.sort_order}`
+        } (#${currentQuestion.sort_order})`.trim(),
+    }));
     const visibleOptions = (() => {
         if (!question) {
             return [];
@@ -1527,7 +1785,16 @@ function useQuestionConfigPanel({
             ];
         }
 
-        return options;
+        const persistedOptions = options
+            .filter((option) => !option.is_virtual)
+            .sort(
+                (left, right) =>
+                    getOptionSortOrder(left, optionDrafts) -
+                        getOptionSortOrder(right, optionDrafts) || left.id - right.id,
+            );
+        const virtualOptions = options.filter((option) => option.is_virtual);
+
+        return [...persistedOptions, ...virtualOptions];
     })();
     const supportsInstruction = question
         ? question.question_type !== 'info_screen'
@@ -1545,77 +1812,215 @@ function useQuestionConfigPanel({
           ].includes(question.question_type)
         : false;
 
-    useEffect(() => {
-        if (!question) {
-            return undefined;
+    const hasUnsavedQuestionChanges = questions.some((currentQuestion) => {
+        const currentDraft = buildQuestionPayload(currentQuestion.id);
+
+        if (!currentDraft) {
+            return false;
         }
 
-        const serializedQuestion = serializeDraft(questionForm.data);
-
-        if (serializedQuestion === lastSavedQuestionSnapshotRef.current) {
-            return undefined;
-        }
-
-        if (questionForm.processing) {
-            return undefined;
-        }
-
-        if (questionAutosaveTimerRef.current) {
-            clearTimeout(questionAutosaveTimerRef.current);
-        }
-
-        questionAutosaveTimerRef.current = setTimeout(() => {
-            saveQuestion();
-        }, QUESTION_AUTOSAVE_DELAY);
-
-        return () => {
-            if (questionAutosaveTimerRef.current) {
-                clearTimeout(questionAutosaveTimerRef.current);
-            }
-        };
-    }, [question?.id, questionForm.data, questionForm.processing]);
+        return (
+            serializeDraft(currentDraft) !==
+            lastSavedQuestionSnapshotsRef.current[currentQuestion.id]
+        );
+    });
+    const hasUnsavedOptionChanges = question
+        ? (question.options ?? []).some((option) => {
+              const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
+              return (
+                  serializeDraft(currentDraft) !==
+                  lastSavedOptionSnapshotsRef.current[option.id]
+              );
+          })
+        : false;
+    const hasUnsavedChanges = hasUnsavedQuestionChanges || hasUnsavedOptionChanges;
 
     useEffect(() => {
-        if (!question?.options?.length) {
-            return undefined;
+        if (saveState === 'saving') {
+            return;
         }
 
-        const activeOptionIds = new Set(question.options.map((option) => option.id));
+        setSaveState(hasUnsavedChanges ? 'unsaved' : 'saved');
+    }, [hasUnsavedChanges, saveState]);
 
-        Object.keys(optionAutosaveTimersRef.current).forEach((optionId) => {
-            if (!activeOptionIds.has(Number(optionId))) {
-                clearTimeout(optionAutosaveTimersRef.current[optionId]);
-                delete optionAutosaveTimersRef.current[optionId];
+    const saveAllChanges = async () => {
+        if (!hasUnsavedChanges || saveState === 'saving') {
+            return;
+        }
+
+        setSaveState('saving');
+
+        try {
+            const changedQuestions = orderedQuestions.filter((currentQuestion) => {
+                const currentDraft = buildQuestionPayload(currentQuestion.id);
+
+                if (!currentDraft) {
+                    return false;
+                }
+
+                return (
+                    serializeDraft(currentDraft) !==
+                    lastSavedQuestionSnapshotsRef.current[currentQuestion.id]
+                );
+            });
+
+            for (const currentQuestion of changedQuestions) {
+                await saveQuestion(currentQuestion.id);
             }
+
+            const changedOptions = (question?.options ?? []).filter((option) => {
+                const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
+                return (
+                    serializeDraft(currentDraft) !==
+                    lastSavedOptionSnapshotsRef.current[option.id]
+                );
+            });
+
+            for (const option of changedOptions) {
+                await saveOption(option.id);
+            }
+
+            setSaveState('saved');
+        } catch (error) {
+            setSaveState('unsaved');
+        }
+    };
+
+    const reorderQuestionDrafts = (sourceQuestionId, targetQuestionId) => {
+        if (
+            !sourceQuestionId ||
+            !targetQuestionId ||
+            sourceQuestionId === targetQuestionId
+        ) {
+            return;
+        }
+
+        const orderedIds = orderedQuestions.map((currentQuestion) => currentQuestion.id);
+        const sourceIndex = orderedIds.indexOf(sourceQuestionId);
+        const targetIndex = orderedIds.indexOf(targetQuestionId);
+
+        if (sourceIndex === -1 || targetIndex === -1) {
+            return;
+        }
+
+        const nextIds = [...orderedIds];
+        const [movedId] = nextIds.splice(sourceIndex, 1);
+        nextIds.splice(targetIndex, 0, movedId);
+
+        setQuestionDrafts((current) => {
+            const nextDrafts = { ...current };
+
+            nextIds.forEach((questionId, index) => {
+                const sourceQuestion =
+                    questions.find((item) => item.id === questionId) ??
+                    orderedQuestions.find((item) => item.id === questionId);
+
+                nextDrafts[questionId] = {
+                    ...(current[questionId] ?? buildQuestionFormData(sourceQuestion)),
+                    sort_order: index + 1,
+                };
+            });
+
+            return nextDrafts;
         });
+    };
 
-        question.options.forEach((option) => {
-            const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
-            const serializedDraft = serializeDraft(currentDraft);
+    const startQuestionDrag = (questionId) => {
+        setDraggedQuestionId(questionId);
+        setDropTargetQuestionId(questionId);
+    };
 
-            if (serializedDraft === lastSavedOptionSnapshotsRef.current[option.id]) {
-                return;
-            }
+    const markQuestionDropTarget = (questionId) => {
+        if (!draggedQuestionId || draggedQuestionId === questionId) {
+            return;
+        }
 
-             if (optionProcessingMap[option.id]) {
-                return;
-            }
+        setDropTargetQuestionId(questionId);
+    };
 
-            if (optionAutosaveTimersRef.current[option.id]) {
-                clearTimeout(optionAutosaveTimersRef.current[option.id]);
-            }
+    const finishQuestionDrag = () => {
+        setDraggedQuestionId(null);
+        setDropTargetQuestionId(null);
+    };
 
-            optionAutosaveTimersRef.current[option.id] = setTimeout(() => {
-                saveOption(option.id);
-            }, OPTION_AUTOSAVE_DELAY);
+    const dropQuestionAt = (targetQuestionId) => {
+        if (!draggedQuestionId || !targetQuestionId) {
+            finishQuestionDrag();
+            return;
+        }
+
+        reorderQuestionDrafts(draggedQuestionId, targetQuestionId);
+        finishQuestionDrag();
+    };
+
+    const reorderOptionDrafts = (sourceOptionId, targetOptionId) => {
+        if (
+            !question ||
+            !sourceOptionId ||
+            !targetOptionId ||
+            sourceOptionId === targetOptionId
+        ) {
+            return;
+        }
+
+        const reorderableOptions = visibleOptions.filter((option) => !option.is_virtual);
+        const orderedIds = reorderableOptions.map((option) => option.id);
+        const sourceIndex = orderedIds.indexOf(sourceOptionId);
+        const targetIndex = orderedIds.indexOf(targetOptionId);
+
+        if (sourceIndex === -1 || targetIndex === -1) {
+            return;
+        }
+
+        const nextIds = [...orderedIds];
+        const [movedId] = nextIds.splice(sourceIndex, 1);
+        nextIds.splice(targetIndex, 0, movedId);
+
+        setOptionDrafts((current) => {
+            const nextDrafts = { ...current };
+
+            nextIds.forEach((optionId, index) => {
+                const sourceOption =
+                    question.options?.find((item) => item.id === optionId) ??
+                    reorderableOptions.find((item) => item.id === optionId);
+
+                nextDrafts[optionId] = {
+                    ...(current[optionId] ?? buildOptionDraft(sourceOption)),
+                    sort_order: index + 1,
+                };
+            });
+
+            return nextDrafts;
         });
+    };
 
-        return () => {
-            Object.values(optionAutosaveTimersRef.current).forEach((timer) =>
-                clearTimeout(timer),
-            );
-        };
-    }, [question?.id, optionDrafts, optionProcessingMap]);
+    const startOptionDrag = (optionId) => {
+        setDraggedOptionId(optionId);
+        setDropTargetOptionId(optionId);
+    };
+
+    const markOptionDropTarget = (optionId) => {
+        if (!draggedOptionId || draggedOptionId === optionId) {
+            return;
+        }
+
+        setDropTargetOptionId(optionId);
+    };
+
+    const finishOptionDrag = () => {
+        setDraggedOptionId(null);
+        setDropTargetOptionId(null);
+    };
+
+    const dropOptionAt = (targetOptionId) => {
+        if (!draggedOptionId || !targetOptionId) {
+            finishOptionDrag();
+            return;
+        }
+
+        reorderOptionDrafts(draggedOptionId, targetOptionId);
+        finishOptionDrag();
+    };
 
     const questionTabContent = question ? (
         <form onSubmit={submitQuestion} className="space-y-4">
@@ -1726,7 +2131,7 @@ function useQuestionConfigPanel({
                             className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
                         >
                             <option value="">Select target</option>
-                            {questionTargets.map((target) => (
+                            {orderedQuestionTargets.map((target) => (
                                 <option key={target.id} value={target.id}>
                                     {target.label}
                                 </option>
@@ -2064,9 +2469,6 @@ function useQuestionConfigPanel({
             ) : null}
 
             <div className="flex flex-wrap gap-3">
-                <Button type="submit" disabled={questionForm.processing}>
-                    Save Question
-                </Button>
                 <Button
                     type="button"
                     variant="destructive"
@@ -2110,15 +2512,22 @@ function useQuestionConfigPanel({
                             scoreboardId={scoreboard.id}
                             question={question}
                             option={option}
-                            questionTargets={questionTargets}
+                            questionTargets={orderedQuestionTargets}
                             draft={optionDrafts[option.id] ?? buildOptionDraft(option)}
                             setOptionValue={setOptionValue}
+                            draggable={!option.is_virtual}
+                            isDragActive={draggedOptionId === option.id}
+                            isDropTarget={dropTargetOptionId === option.id}
+                            onDragStart={() => startOptionDrag(option.id)}
+                            onDragOver={() => markOptionDropTarget(option.id)}
+                            onDrop={() => dropOptionAt(option.id)}
+                            onDragEnd={finishOptionDrag}
                         />
                     ),
                 )}
             </div>
         ) : (
-            <div className="space-y-4 rounded-[24px] border border-slate-200 bg-[#fbfaf6] px-4 py-5">
+            <div className="space-y-4 rounded-xl border border-slate-200 bg-[#fbfaf6] px-4 py-5">
                 <div className="space-y-2">
                     <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                         Scoring Category
@@ -2147,12 +2556,12 @@ function useQuestionConfigPanel({
 
     const PanelContent = (
         <div className="space-y-4">
-            <div className="grid h-auto w-full grid-cols-2 rounded-full border border-slate-200 bg-[#f3f1eb] p-1">
+            <div className="grid h-auto w-full grid-cols-2 rounded-xl border border-slate-200 bg-[#d7d7d7] p-1">
                 <button
                     type="button"
                     onClick={() => setActiveTab('question')}
                     className={[
-                        'rounded-full px-3 py-2 text-sm font-medium transition',
+                        'rounded-lg px-3 py-2 text-sm font-medium transition',
                         activeTab === 'question'
                             ? 'bg-white text-slate-900 shadow-[0_6px_16px_rgba(15,23,42,0.08)]'
                             : 'text-slate-500 hover:text-slate-700',
@@ -2165,7 +2574,7 @@ function useQuestionConfigPanel({
                     type="button"
                     onClick={() => setActiveTab('answers')}
                     className={[
-                        'rounded-full px-3 py-2 text-sm font-medium transition',
+                        'rounded-lg px-3 py-2 text-sm font-medium transition',
                         activeTab === 'answers'
                             ? 'bg-white text-slate-900 shadow-[0_6px_16px_rgba(15,23,42,0.08)]'
                             : 'text-slate-500 hover:text-slate-700',
@@ -2185,9 +2594,11 @@ function useQuestionConfigPanel({
     const canvasError = primaryError;
 
     return {
+        orderedQuestions,
+        selectedQuestion: question,
         panel: (
-            <section className="flex min-h-0 flex-col rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] xl:sticky xl:top-6 xl:h-[calc(100vh-12rem)]">
-                <div className="shrink-0 overflow-hidden rounded-t-[28px] border-b border-slate-200 bg-[linear-gradient(180deg,#faf9f6_0%,#f4f2ec_100%)] px-5 py-4">
+            <section className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] xl:sticky xl:top-6 xl:h-[calc(100vh-12rem)]">
+                <div className="shrink-0 overflow-hidden rounded-t-2xl border-b border-slate-200 bg-[linear-gradient(180deg,#f0f0f0_0%,#d7d7d7_100%)] px-5 py-4">
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#607362]">
@@ -2199,14 +2610,14 @@ function useQuestionConfigPanel({
                             </h3>
                         </div>
                         {question ? (
-                            <div className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
+                            <div className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
                                 {formatQuestionType(question.question_type)}
                             </div>
                         ) : null}
                     </div>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto rounded-b-[28px] bg-[linear-gradient(180deg,#ffffff_0%,#fbfaf6_100%)] p-4 pb-10 [scrollbar-gutter:stable]">
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-b-2xl bg-[linear-gradient(180deg,#ffffff_0%,#e8e8e8_100%)] p-4 pb-10 [scrollbar-gutter:stable]">
                     {PanelContent}
                 </div>
             </section>
@@ -2215,13 +2626,24 @@ function useQuestionConfigPanel({
         values: sharedPreviewValues,
         visibleOptions,
         setValue,
-        saveQuestion,
-        questionProcessing: questionForm.processing,
         optionDrafts,
         setOptionValue,
-        saveOption,
-        optionProcessingMap,
         toggleCorrectOption,
+        draggedQuestionId,
+        dropTargetQuestionId,
+        startQuestionDrag,
+        markQuestionDropTarget,
+        dropQuestionAt,
+        finishQuestionDrag,
+        draggedOptionId,
+        dropTargetOptionId,
+        startOptionDrag,
+        markOptionDropTarget,
+        dropOptionAt,
+        finishOptionDrag,
+        saveAllChanges,
+        saveState,
+        hasUnsavedChanges,
         error: canvasError,
     };
 }
@@ -2269,121 +2691,123 @@ function DesignSettingsDrawer({ scoreboardId, design }) {
                     Design Settings
                 </Button>
             </SheetTrigger>
-            <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
-                <SheetHeader>
+            <SheetContent className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-none sm:max-w-2xl">
+                <SheetHeader className="shrink-0 border-b border-slate-200 bg-white px-6 py-5 text-left">
                     <SheetTitle>Design Settings</SheetTitle>
                     <SheetDescription>
                         Global visual settings that apply to the scoreboard question flow.
                     </SheetDescription>
                 </SheetHeader>
 
-                <form onSubmit={submitDesign} className="mt-6 space-y-5">
-                    <QuestionSection
-                        title="Layout"
-                        description="Global layout controls for the live builder canvas."
-                    >
-                        <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex-1 overflow-y-auto bg-white px-6 py-6">
+                    <form onSubmit={submitDesign} className="space-y-5">
+                        <QuestionSection
+                            title="Layout"
+                            description="Global layout controls for the live builder canvas."
+                        >
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                        Header Position
+                                    </label>
+                                    <Input
+                                        value={designForm.data.header_position}
+                                        onChange={(event) =>
+                                            designForm.setData(
+                                                'header_position',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="top, inline"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                        Section Background
+                                    </label>
+                                    <Input
+                                        value={designForm.data.section_background}
+                                        onChange={(event) =>
+                                            designForm.setData(
+                                                'section_background',
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="#d7d7d7"
+                                    />
+                                </div>
+                            </div>
+                        </QuestionSection>
+
+                        <QuestionSection
+                            title="Spacing & Footer"
+                            description="Control the frame around the screen without overloading the main builder panel."
+                        >
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                        Top Margin
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        value={designForm.data.top_margin}
+                                        onChange={(event) =>
+                                            designForm.setData(
+                                                'top_margin',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                        Bottom Margin
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        value={designForm.data.bottom_margin}
+                                        onChange={(event) =>
+                                            designForm.setData(
+                                                'bottom_margin',
+                                                event.target.value,
+                                            )
+                                        }
+                                    />
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                    Header Position
+                                    Footer Content
                                 </label>
-                                <Input
-                                    value={designForm.data.header_position}
+                                <Textarea
+                                    value={designForm.data.footer_content}
                                     onChange={(event) =>
                                         designForm.setData(
-                                            'header_position',
+                                            'footer_content',
                                             event.target.value,
                                         )
                                     }
-                                    placeholder="top, inline"
+                                    className="min-h-32"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                    Section Background
-                                </label>
-                                <Input
-                                    value={designForm.data.section_background}
-                                    onChange={(event) =>
-                                        designForm.setData(
-                                            'section_background',
-                                            event.target.value,
-                                        )
-                                    }
-                                    placeholder="#f4f3ef"
-                                />
+                        </QuestionSection>
+
+                        {Object.values(designForm.errors)[0] ? (
+                            <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                                {Object.values(designForm.errors)[0]}
                             </div>
-                        </div>
-                    </QuestionSection>
+                        ) : null}
 
-                    <QuestionSection
-                        title="Spacing & Footer"
-                        description="Control the frame around the screen without overloading the main builder panel."
-                    >
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                    Top Margin
-                                </label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    value={designForm.data.top_margin}
-                                    onChange={(event) =>
-                                        designForm.setData(
-                                            'top_margin',
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                    Bottom Margin
-                                </label>
-                                <Input
-                                    type="number"
-                                    min="0"
-                                    value={designForm.data.bottom_margin}
-                                    onChange={(event) =>
-                                        designForm.setData(
-                                            'bottom_margin',
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                            </div>
+                        <div className="flex justify-end border-t border-slate-200 pt-5">
+                            <Button type="submit" disabled={designForm.processing}>
+                                Save Design Settings
+                            </Button>
                         </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                Footer Content
-                            </label>
-                            <Textarea
-                                value={designForm.data.footer_content}
-                                onChange={(event) =>
-                                    designForm.setData(
-                                        'footer_content',
-                                        event.target.value,
-                                    )
-                                }
-                                className="min-h-32"
-                            />
-                        </div>
-                    </QuestionSection>
-
-                    {Object.values(designForm.errors)[0] ? (
-                        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                            {Object.values(designForm.errors)[0]}
-                        </div>
-                    ) : null}
-
-                    <div className="flex justify-end">
-                        <Button type="submit" disabled={designForm.processing}>
-                            Save Design Settings
-                        </Button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </SheetContent>
         </Sheet>
     );
@@ -2422,46 +2846,72 @@ function ResultRangeRow({ scoreboardId, range }) {
     return (
         <form
             onSubmit={submit}
-            className="rounded-2xl border border-slate-200 bg-white p-4"
+            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
         >
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_110px_110px_90px]">
-                <Input
-                    value={rangeForm.data.title}
-                    onChange={(event) =>
-                        rangeForm.setData('title', event.target.value)
-                    }
-                    placeholder="Result title"
-                />
-                <Input
-                    type="number"
-                    step="0.01"
-                    value={rangeForm.data.min_score}
-                    onChange={(event) =>
-                        rangeForm.setData('min_score', event.target.value)
-                    }
-                    placeholder="Min"
-                />
-                <Input
-                    type="number"
-                    step="0.01"
-                    value={rangeForm.data.max_score}
-                    onChange={(event) =>
-                        rangeForm.setData('max_score', event.target.value)
-                    }
-                    placeholder="Max"
-                />
-                <Input
-                    type="number"
-                    min="1"
-                    value={rangeForm.data.sort_order}
-                    onChange={(event) =>
-                        rangeForm.setData('sort_order', event.target.value)
-                    }
-                    placeholder="Order"
-                />
+            {/* PERBAIKAN: Title di atas (full width), Min/Max/Order di bawah (3 kolom) */}
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Result Title
+                    </label>
+                    <Input
+                        value={rangeForm.data.title}
+                        onChange={(event) =>
+                            rangeForm.setData('title', event.target.value)
+                        }
+                        placeholder="e.g., Beginner"
+                    />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            Min Score
+                        </label>
+                        <Input
+                            type="number"
+                            step="0.01"
+                            value={rangeForm.data.min_score}
+                            onChange={(event) =>
+                                rangeForm.setData('min_score', event.target.value)
+                            }
+                            placeholder="Min"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            Max Score
+                        </label>
+                        <Input
+                            type="number"
+                            step="0.01"
+                            value={rangeForm.data.max_score}
+                            onChange={(event) =>
+                                rangeForm.setData('max_score', event.target.value)
+                            }
+                            placeholder="Max"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            Order
+                        </label>
+                        <Input
+                            type="number"
+                            min="1"
+                            value={rangeForm.data.sort_order}
+                            onChange={(event) =>
+                                rangeForm.setData('sort_order', event.target.value)
+                            }
+                            placeholder="Order"
+                        />
+                    </div>
+                </div>
             </div>
 
-            <div className="mt-3">
+            <div className="mt-4 space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Description
+                </label>
                 <Textarea
                     value={rangeForm.data.description}
                     onChange={(event) =>
@@ -2473,12 +2923,12 @@ function ResultRangeRow({ scoreboardId, range }) {
             </div>
 
             {Object.values(rangeForm.errors)[0] ? (
-                <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                     {Object.values(rangeForm.errors)[0]}
                 </div>
             ) : null}
 
-            <div className="mt-4 flex flex-wrap justify-end gap-3">
+            <div className="mt-5 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-4">
                 <Button type="submit" size="sm" disabled={rangeForm.processing}>
                     Save Range
                 </Button>
@@ -2512,53 +2962,55 @@ function ResultRangesDrawer({ scoreboardId, resultRanges }) {
                     Result Ranges
                 </Button>
             </SheetTrigger>
-            <SheetContent className="w-full overflow-y-auto sm:max-w-3xl">
-                <SheetHeader>
+            <SheetContent className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-none sm:max-w-3xl">
+                <SheetHeader className="shrink-0 border-b border-slate-200 bg-white px-6 py-5 text-left">
                     <SheetTitle>Result Ranges</SheetTitle>
                     <SheetDescription>
                         Configure range-based outcomes. If you leave this empty, the scoreboard can still go live and students will simply see the raw score.
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="mt-6 space-y-4">
-                    <div className="flex justify-end">
-                        <Button
-                            onClick={() =>
-                                router.post(
-                                    route(
-                                        'admin.scoreboards.result-ranges.store',
-                                        scoreboardId,
-                                    ),
-                                    {},
-                                    { preserveScroll: true },
-                                )
-                            }
-                        >
-                            <Plus className="size-4" />
-                            Add Result Range
-                        </Button>
-                    </div>
-
-                    {resultRanges.length > 0 ? (
-                        resultRanges.map((range) => (
-                            <ResultRangeRow
-                                key={range.id}
-                                scoreboardId={scoreboardId}
-                                range={range}
-                            />
-                        ))
-                    ) : (
-                        <div className="rounded-3xl border border-dashed border-slate-300 bg-[#faf8f3] px-5 py-8">
-                            <div className="max-w-xl">
-                                <h4 className="text-lg font-semibold text-slate-900">
-                                    No result ranges configured
-                                </h4>
-                                <p className="mt-2 text-sm leading-7 text-slate-600">
-                                    This scoreboard can still be live. If you leave result ranges empty, the final student result will show the raw score only.
-                                </p>
-                            </div>
+                <div className="flex-1 overflow-y-auto bg-white px-6 py-6">
+                    <div className="space-y-4">
+                        <div className="flex justify-end">
+                            <Button
+                                onClick={() =>
+                                    router.post(
+                                        route(
+                                            'admin.scoreboards.result-ranges.store',
+                                            scoreboardId,
+                                        ),
+                                        {},
+                                        { preserveScroll: true },
+                                    )
+                                }
+                            >
+                                <Plus className="size-4" />
+                                Add Result Range
+                            </Button>
                         </div>
-                    )}
+
+                        {resultRanges.length > 0 ? (
+                            resultRanges.map((range) => (
+                                <ResultRangeRow
+                                    key={range.id}
+                                    scoreboardId={scoreboardId}
+                                    range={range}
+                                />
+                            ))
+                        ) : (
+                            <div className="rounded-xl border border-dashed border-slate-300 bg-[#e8e8e8] px-5 py-8">
+                                <div className="max-w-xl">
+                                    <h4 className="text-lg font-semibold text-slate-900">
+                                        No result ranges configured
+                                    </h4>
+                                    <p className="mt-2 text-sm leading-7 text-slate-600">
+                                        This scoreboard can still be live. If you leave result ranges empty, the final student result will show the raw score only.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </SheetContent>
         </Sheet>
@@ -2575,26 +3027,37 @@ export default function ScoreboardBuilder({
     questionTargets,
     status,
 }) {
-    const selectedQuestion =
-        questions.find((item) => item.id === selectedQuestionId) ?? questions[0] ?? null;
-
     const {
+        orderedQuestions,
+        selectedQuestion,
         panel,
         mobilePanel,
         values,
         visibleOptions,
         setValue,
-        saveQuestion,
-        questionProcessing,
         optionDrafts,
         setOptionValue,
-        saveOption,
-        optionProcessingMap,
         toggleCorrectOption,
+        draggedQuestionId,
+        dropTargetQuestionId,
+        startQuestionDrag,
+        markQuestionDropTarget,
+        dropQuestionAt,
+        finishQuestionDrag,
+        draggedOptionId,
+        dropTargetOptionId,
+        startOptionDrag,
+        markOptionDropTarget,
+        dropOptionAt,
+        finishOptionDrag,
+        saveAllChanges,
+        saveState,
+        hasUnsavedChanges,
         error,
     } = useQuestionConfigPanel({
         scoreboard,
-        question: selectedQuestion,
+        questions,
+        selectedQuestionId,
         questionTargets,
         questionTypeOptions,
     });
@@ -2634,10 +3097,13 @@ export default function ScoreboardBuilder({
                         resultRanges={resultRanges}
                         design={design}
                         mobilePanel={mobilePanel}
+                        saveAllChanges={saveAllChanges}
+                        saveState={saveState}
+                        hasUnsavedChanges={hasUnsavedChanges}
                     />
 
                     <div className="space-y-5">
-                        <div className="hidden rounded-[36px] border border-slate-200 bg-[#f5f3ed] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.05)] xl:block">
+                        <div className="hidden rounded-2xl border border-slate-200 bg-[#e5e5e5] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.05)] xl:block">
                             <div
                                 className="grid min-h-0 items-start gap-5"
                                 style={{
@@ -2647,8 +3113,14 @@ export default function ScoreboardBuilder({
                             >
                                 <ScoreboardNavigator
                                     scoreboardId={scoreboard.id}
-                                    questions={questions}
+                                    questions={orderedQuestions}
                                     selectedQuestionId={selectedQuestion?.id}
+                                    draggedQuestionId={draggedQuestionId}
+                                    dropTargetQuestionId={dropTargetQuestionId}
+                                    startQuestionDrag={startQuestionDrag}
+                                    markQuestionDropTarget={markQuestionDropTarget}
+                                    dropQuestionAt={dropQuestionAt}
+                                    finishQuestionDrag={finishQuestionDrag}
                                 />
 
                                 <BuilderCanvas
@@ -2657,15 +3129,17 @@ export default function ScoreboardBuilder({
                                     values={values}
                                     visibleOptions={visibleOptions}
                                     setValue={setValue}
-                                    saveQuestion={saveQuestion}
-                                    questionProcessing={questionProcessing}
                                     error={error}
                                     design={design}
                                     optionDrafts={optionDrafts}
                                     setOptionValue={setOptionValue}
-                                    saveOption={saveOption}
-                                    optionProcessingMap={optionProcessingMap}
                                     toggleCorrectOption={toggleCorrectOption}
+                                    draggedOptionId={draggedOptionId}
+                                    dropTargetOptionId={dropTargetOptionId}
+                                    startOptionDrag={startOptionDrag}
+                                    markOptionDropTarget={markOptionDropTarget}
+                                    dropOptionAt={dropOptionAt}
+                                    finishOptionDrag={finishOptionDrag}
                                 />
 
                                 <div className="min-h-0 xl:self-stretch">{panel}</div>
@@ -2675,8 +3149,14 @@ export default function ScoreboardBuilder({
                         <div className="space-y-5 xl:hidden">
                             <ScoreboardNavigator
                                 scoreboardId={scoreboard.id}
-                                questions={questions}
+                                questions={orderedQuestions}
                                 selectedQuestionId={selectedQuestion?.id}
+                                draggedQuestionId={draggedQuestionId}
+                                dropTargetQuestionId={dropTargetQuestionId}
+                                startQuestionDrag={startQuestionDrag}
+                                markQuestionDropTarget={markQuestionDropTarget}
+                                dropQuestionAt={dropQuestionAt}
+                                finishQuestionDrag={finishQuestionDrag}
                             />
 
                             <BuilderCanvas
@@ -2685,15 +3165,17 @@ export default function ScoreboardBuilder({
                                 values={values}
                                 visibleOptions={visibleOptions}
                                 setValue={setValue}
-                                saveQuestion={saveQuestion}
-                                questionProcessing={questionProcessing}
                                 error={error}
                                 design={design}
                                 optionDrafts={optionDrafts}
                                 setOptionValue={setOptionValue}
-                                saveOption={saveOption}
-                                optionProcessingMap={optionProcessingMap}
                                 toggleCorrectOption={toggleCorrectOption}
+                                draggedOptionId={draggedOptionId}
+                                dropTargetOptionId={dropTargetOptionId}
+                                startOptionDrag={startOptionDrag}
+                                markOptionDropTarget={markOptionDropTarget}
+                                dropOptionAt={dropOptionAt}
+                                finishOptionDrag={finishOptionDrag}
                             />
                         </div>
                     </div>

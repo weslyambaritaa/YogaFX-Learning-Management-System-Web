@@ -37,13 +37,13 @@ export default function ScoreboardsIndex({ scoreboards, status }) {
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {statusMessages[status] && (
-                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             {statusMessages[status]}
                         </div>
                     )}
 
                     {errors.scoreboard && (
-                        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                             {errors.scoreboard}
                         </div>
                     )}
@@ -52,11 +52,11 @@ export default function ScoreboardsIndex({ scoreboards, status }) {
                         {scoreboards.map((scoreboard) => (
                             <div
                                 key={scoreboard.id}
-                                className="rounded-[28px] border border-slate-200 bg-white shadow-sm"
+                                className="rounded-s-xl border border-slate-200 bg-white shadow-sm"
                             >
                                 <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center">
                                     <div className="flex min-w-0 flex-1 items-start gap-4">
-                                        <div className="hidden h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-[#f6f3ec] lg:block">
+                                        <div className="hidden h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-[#f6f3ec] lg:block">
                                             {scoreboard.thumbnail_url ? (
                                                 <img
                                                     src={scoreboard.thumbnail_url}
@@ -141,7 +141,7 @@ export default function ScoreboardsIndex({ scoreboards, status }) {
                     </div>
 
                     {scoreboards.length === 0 && (
-                        <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
                             <h3 className="text-lg font-semibold text-slate-900">
                                 No scoreboards yet
                             </h3>
