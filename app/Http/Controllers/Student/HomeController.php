@@ -50,7 +50,7 @@ class HomeController extends Controller
         );
 
         return Inertia::render('Student/Home', [
-            'homeStage' => 11,
+            'homeStage' => 12,
             'studentContext' => [
                 'display_name' => $displayName !== '' ? $displayName : 'Student',
                 'full_name' => $user?->name ?: $displayName,

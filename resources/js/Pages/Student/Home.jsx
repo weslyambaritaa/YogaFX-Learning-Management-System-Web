@@ -54,6 +54,40 @@ export default function StudentHome({
           : homeExperience?.state === 'catalog_empty'
             ? 'Next: waiting for catalog access'
             : 'Next: assignment milestone';
+    const secondaryDiscoveryItems = [
+        {
+            title: 'Explore the full module path',
+            description:
+                'Move through the full YogaFX catalog available in your current tier and revisit the modules that shape your learning rhythm.',
+            href: route('modules.index'),
+            label: 'Browse Modules',
+        },
+        {
+            title: 'Open supporting resources',
+            description:
+                ebookResourcesSection?.items?.length
+                    ? 'Keep your practice deepening with supporting ebooks and preview-first resources that stay close to your learning journey.'
+                    : 'Your ebook library will appear here as soon as supporting resources are attached to this tier.',
+            href: route('ebooks.index'),
+            label: 'Open Ebooks',
+        },
+        {
+            title: 'Review your current milestones',
+            description:
+                certificateMilestone?.state === 'download_available'
+                    ? 'Your latest certificate is already ready, while assignment and certificate milestones stay visible in the same calm Home flow.'
+                    : 'Assignment and certificate milestones stay visible here so you can understand where the larger YogaFX journey is heading next.',
+            href:
+                certificateMilestone?.cta_kind === 'download'
+                    ? certificateMilestone?.cta_url
+                    : route('modules.index'),
+            label:
+                certificateMilestone?.cta_kind === 'download'
+                    ? 'Download Certificate'
+                    : 'Review Journey',
+            kind: certificateMilestone?.cta_kind === 'download' ? 'download' : 'link',
+        },
+    ];
 
     return (
         <AuthenticatedLayout
@@ -215,7 +249,7 @@ export default function StudentHome({
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
-                            Phase 11 active
+                            Phase 12 active
                         </span>
                     </div>
 
@@ -301,196 +335,91 @@ export default function StudentHome({
 
                         <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
                             <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
-                                <div className="space-y-2">
-                                    <p className="text-xs uppercase tracking-[0.22em] text-white/50">
-                                        Continue Learning engine
-                                    </p>
-                                    <h3 className="text-xl font-semibold text-white">
-                                        {continueLearning?.state === 'resume'
-                                            ? 'The last active lesson is ready to resume'
-                                            : continueLearning?.state === 'start'
-                                              ? 'A safe first lesson fallback is now ready'
-                                              : 'Home is waiting for lesson data'}
-                                    </h3>
-                                    <p className="text-sm leading-6 text-white/60">
-                                        {continueLearning?.state === 'resume'
-                                            ? 'This card is driven by the most recent accessible lesson progress for the signed-in student.'
-                                            : continueLearning?.state === 'start'
-                                              ? 'No lesson progress was found, so Home safely falls back to the first accessible lesson in the student tier.'
-                                              : 'No accessible lesson was found yet, so Continue Learning stays in an empty but stable state.'}
-                                    </p>
-                                </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+                                            {sequentialAwareness?.eyebrow ?? 'Learning Sequence'}
+                                        </p>
+                                        <h3 className="text-xl font-semibold text-white">
+                                            {sequentialAwareness?.title ??
+                                                'Sequence awareness will appear here'}
+                                        </h3>
+                                        <p className="text-sm leading-6 text-white/60">
+                                            {sequentialAwareness?.description ??
+                                                'Home will explain the current lesson order here.'}
+                                        </p>
+                                    </div>
 
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled
-                                    className="justify-between rounded-full border border-white/12 bg-white/5 px-5 py-6 text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
-                                >
-                                    {continueEngineLabel}
-                                    <ChevronRight className="size-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {sequentialAwareness?.eyebrow ?? 'Learning Sequence'}
-                            </p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                {sequentialAwareness?.title ??
-                                    'Sequence awareness will appear here'}
-                            </h2>
-                        </div>
-                        <span className="hidden text-sm text-white/45 md:inline">
-                            Guidance, not hard locking
-                        </span>
-                    </div>
-
-                    <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-                            <div className="flex h-full flex-col gap-6 rounded-[22px] border border-white/8 bg-[linear-gradient(145deg,rgba(214,90,52,0.16),rgba(255,255,255,0.03))] p-5">
-                                <div className="space-y-3">
                                     <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
                                         <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
                                             {sequentialAwareness?.status ?? 'Sequence guidance'}
                                         </span>
-                                        {sequentialAwareness?.current_lesson?.module_title && (
-                                            <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
-                                                {sequentialAwareness.current_lesson.module_title}
-                                            </span>
-                                        )}
+                                        <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
+                                            Guidance, not hard locking
+                                        </span>
                                     </div>
 
-                                    <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
-                                        {sequentialAwareness?.description ??
-                                            'Home will explain the current lesson order here.'}
-                                    </p>
-                                </div>
-
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-                                        <div className="flex flex-wrap items-center justify-between gap-3">
-                                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                                Current lesson
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                                        Current lesson
+                                                    </p>
+                                                    <p className="mt-2 text-sm font-medium text-white">
+                                                        {currentSequenceLesson?.title ??
+                                                            'No current lesson yet'}
+                                                    </p>
+                                                </div>
+                                                <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
+                                                    {currentSequenceStatus}
+                                                </span>
+                                            </div>
+                                            <p className="mt-3 text-sm leading-6 text-white/58">
+                                                {currentSequenceLesson
+                                                    ? `Lesson ${currentSequenceLesson.sort_order} in ${currentSequenceLesson.module_title}`
+                                                    : 'The active lesson in the sequence will appear here.'}
                                             </p>
-                                            <span className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
-                                                {currentSequenceStatus}
-                                            </span>
                                         </div>
-                                        <h3 className="mt-3 text-xl font-semibold text-white">
-                                            {sequentialAwareness?.current_lesson?.title ??
-                                                'No current lesson yet'}
-                                        </h3>
-                                        <p className="mt-2 text-sm leading-6 text-white/58">
-                                            {sequentialAwareness?.current_lesson
-                                                ? `Lesson ${sequentialAwareness.current_lesson.sort_order} in ${sequentialAwareness.current_lesson.module_title}`
-                                                : 'The active lesson in the sequence will appear here.'}
-                                        </p>
-                                        <div className="mt-4 flex flex-wrap items-center gap-3">
-                                            {currentSequenceLesson?.module_url && (
-                                                <Button
-                                                    asChild
-                                                    variant="outline"
-                                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                                >
-                                                    <Link href={currentSequenceLesson.module_url}>
-                                                        Open Module
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                            {sequentialAwareness?.current_lesson?.url && (
-                                                <Button
-                                                    asChild
-                                                    variant="outline"
-                                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                                >
-                                                    <Link href={sequentialAwareness.current_lesson.url}>
-                                                        Open Current Lesson
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
 
-                                    <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-                                        <div className="flex flex-wrap items-center justify-between gap-3">
-                                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                                Next lesson
+                                        <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                                        Next lesson
+                                                    </p>
+                                                    <p className="mt-2 text-sm font-medium text-white">
+                                                        {nextSequenceLesson?.title ??
+                                                            'No further accessible lesson'}
+                                                    </p>
+                                                </div>
+                                                <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
+                                                    {nextSequenceStatus}
+                                                </span>
+                                            </div>
+                                            <p className="mt-3 text-sm leading-6 text-white/58">
+                                                {nextSequenceLesson
+                                                    ? `Lesson ${nextSequenceLesson.sort_order} in ${nextSequenceLesson.module_title}`
+                                                    : 'When the next lesson in sequence exists, Home will surface it here.'}
                                             </p>
-                                            <span className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
-                                                {nextSequenceStatus}
-                                            </span>
                                         </div>
-                                        <h3 className="mt-3 text-xl font-semibold text-white">
-                                            {sequentialAwareness?.next_lesson?.title ??
-                                                'No further accessible lesson'}
-                                        </h3>
-                                        <p className="mt-2 text-sm leading-6 text-white/58">
-                                            {sequentialAwareness?.next_lesson
-                                                ? `Lesson ${sequentialAwareness.next_lesson.sort_order} in ${sequentialAwareness.next_lesson.module_title}`
-                                                : 'When the next lesson in sequence exists, Home will surface it here.'}
-                                        </p>
-                                        <div className="mt-4 flex flex-wrap items-center gap-3">
-                                            {nextSequenceLesson?.module_url && (
-                                                <Button
-                                                    asChild
-                                                    variant="outline"
-                                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                                >
-                                                    <Link href={nextSequenceLesson.module_url}>
-                                                        Open Module
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                            {sequentialAwareness?.next_lesson?.url && (
-                                                <Button
-                                                    asChild
-                                                    variant="outline"
-                                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                                >
-                                                    <Link href={sequentialAwareness.next_lesson.url}>
-                                                        View Next Lesson
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-                                    <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                        Sequence rule
-                                    </p>
-                                    <h3 className="mt-3 text-lg font-semibold text-white">
-                                        {sequentialAwareness?.sequence_rule?.label ??
-                                            'Sequence guidance is not available yet.'}
-                                    </h3>
-                                    <p className="mt-2 text-sm leading-6 text-white/60">
-                                        {sequentialAwareness?.sequence_rule?.detail ??
-                                            'Home will explain the lesson order and next sequence rule here.'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-                            <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.22em] text-white/50">
-                                            Supporting rules
-                                        </p>
-                                        <h3 className="text-xl font-semibold text-white">
-                                            Home now explains why the sequence feels the way it does
-                                        </h3>
                                     </div>
 
                                     <div className="space-y-3">
+                                        <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                                Sequence rule
+                                            </p>
+                                            <p className="mt-3 text-sm font-medium text-white">
+                                                {sequentialAwareness?.sequence_rule?.label ??
+                                                    'Sequence guidance is not available yet.'}
+                                            </p>
+                                            <p className="mt-2 text-sm leading-6 text-white/58">
+                                                {sequentialAwareness?.sequence_rule?.detail ??
+                                                    'Home will explain the lesson order and next sequence rule here.'}
+                                            </p>
+                                        </div>
+
                                         {(sequentialAwareness?.supporting_rules ?? []).map((rule) => (
                                             <div
                                                 key={rule.label}
@@ -507,16 +436,15 @@ export default function StudentHome({
                                     </div>
                                 </div>
 
-                                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
-                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                        Current boundary
-                                    </p>
-                                    <p className="mt-3 text-sm leading-6 text-white/60">
-                                        This stage adds sequence awareness inside Home only. It
-                                        does not yet enforce hard locking on lesson routes or
-                                        activate assessment player flows.
-                                    </p>
-                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled
+                                    className="justify-between rounded-full border border-white/12 bg-white/5 px-5 py-6 text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
+                                >
+                                    {continueEngineLabel}
+                                    <ChevronRight className="size-4" />
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -617,12 +545,13 @@ export default function StudentHome({
 
                                 <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
                                     <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                        Stage 11 scope
+                                        Stage 12 scope
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        Empty states and edge cases are now being handled more
-                                        deliberately, so Home stays clear for first-time students,
-                                        completed journeys, and incomplete supporting data.
+                                        The final Home order is now aligned to the approved
+                                        product priority, sequence guidance is folded into
+                                        Continue Learning, and the page is tuned to feel calmer
+                                        across mobile, tablet, and desktop.
                                     </p>
                                 </div>
                             </div>
@@ -812,11 +741,11 @@ export default function StudentHome({
                             </div>
 
                             {availableModulesSection?.items?.length ? (
-                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
                                     {availableModulesSection.items.map((module, index) => (
                                         <div
                                             key={module.id}
-                                            className="group rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15"
+                                            className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15 md:min-w-0"
                                         >
                                             <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
                                                 <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.4),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
@@ -1291,11 +1220,11 @@ export default function StudentHome({
                             </div>
 
                             {ebookResourcesSection?.items?.length ? (
-                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
                                     {ebookResourcesSection.items.map((ebook, index) => (
                                         <div
                                             key={ebook.id}
-                                            className="group rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15"
+                                            className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15 md:min-w-0"
                                         >
                                             <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
                                                 <div className="relative aspect-[4/5] overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.45),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
@@ -1368,6 +1297,67 @@ export default function StudentHome({
                                 </div>
                             )}
                         </div>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                Secondary Discovery
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                Explore more without losing your current flow
+                            </h2>
+                        </div>
+                        <span className="hidden text-sm text-white/45 md:inline">
+                            Streaming-style finish
+                        </span>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-3">
+                        {secondaryDiscoveryItems.map((item) => (
+                            <div
+                                key={item.title}
+                                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm"
+                            >
+                                <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                                    <div className="space-y-3">
+                                        <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                            Explore more
+                                        </p>
+                                        <h3 className="text-xl font-semibold text-white">
+                                            {item.title}
+                                        </h3>
+                                        <p className="text-sm leading-6 text-white/60">
+                                            {item.description}
+                                        </p>
+                                    </div>
+
+                                    {item.kind === 'download' ? (
+                                        <Button
+                                            asChild
+                                            className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                        >
+                                            <a href={item.href ?? '#'}>
+                                                <ChevronRight className="mr-2 size-4" />
+                                                {item.label}
+                                            </a>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            asChild
+                                            className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                        >
+                                            <Link href={item.href ?? route('modules.index')}>
+                                                <ChevronRight className="mr-2 size-4" />
+                                                {item.label}
+                                            </Link>
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </section>
             </div>
