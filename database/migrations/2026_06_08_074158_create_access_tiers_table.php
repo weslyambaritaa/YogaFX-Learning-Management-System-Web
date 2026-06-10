@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('access_tiers')) {
+            return;
+        }
+
         Schema::create('access_tiers', function (Blueprint $table) {
             $table->id();
             $table->string('name');
