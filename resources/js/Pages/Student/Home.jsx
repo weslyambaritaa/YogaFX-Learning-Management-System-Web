@@ -9,6 +9,7 @@ export default function StudentHome({
     continueLearning,
     progressSummary,
     nextStep,
+    sequentialAwareness,
     availableModulesSection,
 }) {
     const studentName = studentContext?.display_name ?? 'Student';
@@ -22,6 +23,20 @@ export default function StudentHome({
         : 'No access tier assigned yet';
     const continueProgress = continueLearning?.progress_percentage ?? 0;
     const overallProgress = progressSummary?.overall_progress_percentage ?? 0;
+    const currentSequenceLesson = sequentialAwareness?.current_lesson ?? null;
+    const nextSequenceLesson = sequentialAwareness?.next_lesson ?? null;
+    const currentSequenceStatus = currentSequenceLesson
+        ? currentSequenceLesson.is_done
+            ? 'Completed'
+            : currentSequenceLesson.watch_progress > 0
+              ? `${currentSequenceLesson.watch_progress}% watched`
+              : 'Not started yet'
+        : 'No current lesson';
+    const nextSequenceStatus = nextSequenceLesson
+        ? currentSequenceLesson?.is_done
+            ? 'Ready next'
+            : 'Waiting in sequence'
+        : 'No next lesson';
 
     return (
         <AuthenticatedLayout
@@ -93,7 +108,7 @@ export default function StudentHome({
                                     {tierLabel}
                                 </div>
                                 <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur">
-                                    Module catalog is now live
+                                    Sequence awareness is now live
                                 </div>
                             </div>
                         </div>
@@ -152,7 +167,7 @@ export default function StudentHome({
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
-                            Phase 6 active
+                            Phase 7 active
                         </span>
                     </div>
 
@@ -254,9 +269,196 @@ export default function StudentHome({
                                     disabled
                                     className="justify-between rounded-full border border-white/12 bg-white/5 px-5 py-6 text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
                                 >
-                                    Next: sequential lesson awareness
+                                    Next: assignment milestone
                                     <ChevronRight className="size-4" />
                                 </Button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                {sequentialAwareness?.eyebrow ?? 'Learning Sequence'}
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                {sequentialAwareness?.title ??
+                                    'Sequence awareness will appear here'}
+                            </h2>
+                        </div>
+                        <span className="hidden text-sm text-white/45 md:inline">
+                            Guidance, not hard locking
+                        </span>
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                            <div className="flex h-full flex-col gap-6 rounded-[22px] border border-white/8 bg-[linear-gradient(145deg,rgba(214,90,52,0.16),rgba(255,255,255,0.03))] p-5">
+                                <div className="space-y-3">
+                                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
+                                        <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
+                                            {sequentialAwareness?.status ?? 'Sequence guidance'}
+                                        </span>
+                                        {sequentialAwareness?.current_lesson?.module_title && (
+                                            <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
+                                                {sequentialAwareness.current_lesson.module_title}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
+                                        {sequentialAwareness?.description ??
+                                            'Home will explain the current lesson order here.'}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                                Current lesson
+                                            </p>
+                                            <span className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
+                                                {currentSequenceStatus}
+                                            </span>
+                                        </div>
+                                        <h3 className="mt-3 text-xl font-semibold text-white">
+                                            {sequentialAwareness?.current_lesson?.title ??
+                                                'No current lesson yet'}
+                                        </h3>
+                                        <p className="mt-2 text-sm leading-6 text-white/58">
+                                            {sequentialAwareness?.current_lesson
+                                                ? `Lesson ${sequentialAwareness.current_lesson.sort_order} in ${sequentialAwareness.current_lesson.module_title}`
+                                                : 'The active lesson in the sequence will appear here.'}
+                                        </p>
+                                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                                            {currentSequenceLesson?.module_url && (
+                                                <Button
+                                                    asChild
+                                                    variant="outline"
+                                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                >
+                                                    <Link href={currentSequenceLesson.module_url}>
+                                                        Open Module
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {sequentialAwareness?.current_lesson?.url && (
+                                                <Button
+                                                    asChild
+                                                    variant="outline"
+                                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                >
+                                                    <Link href={sequentialAwareness.current_lesson.url}>
+                                                        Open Current Lesson
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                                Next lesson
+                                            </p>
+                                            <span className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
+                                                {nextSequenceStatus}
+                                            </span>
+                                        </div>
+                                        <h3 className="mt-3 text-xl font-semibold text-white">
+                                            {sequentialAwareness?.next_lesson?.title ??
+                                                'No further accessible lesson'}
+                                        </h3>
+                                        <p className="mt-2 text-sm leading-6 text-white/58">
+                                            {sequentialAwareness?.next_lesson
+                                                ? `Lesson ${sequentialAwareness.next_lesson.sort_order} in ${sequentialAwareness.next_lesson.module_title}`
+                                                : 'When the next lesson in sequence exists, Home will surface it here.'}
+                                        </p>
+                                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                                            {nextSequenceLesson?.module_url && (
+                                                <Button
+                                                    asChild
+                                                    variant="outline"
+                                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                >
+                                                    <Link href={nextSequenceLesson.module_url}>
+                                                        Open Module
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {sequentialAwareness?.next_lesson?.url && (
+                                                <Button
+                                                    asChild
+                                                    variant="outline"
+                                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                >
+                                                    <Link href={sequentialAwareness.next_lesson.url}>
+                                                        View Next Lesson
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
+                                    <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                        Sequence rule
+                                    </p>
+                                    <h3 className="mt-3 text-lg font-semibold text-white">
+                                        {sequentialAwareness?.sequence_rule?.label ??
+                                            'Sequence guidance is not available yet.'}
+                                    </h3>
+                                    <p className="mt-2 text-sm leading-6 text-white/60">
+                                        {sequentialAwareness?.sequence_rule?.detail ??
+                                            'Home will explain the lesson order and next sequence rule here.'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                            <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+                                            Supporting rules
+                                        </p>
+                                        <h3 className="text-xl font-semibold text-white">
+                                            Home now explains why the sequence feels the way it does
+                                        </h3>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {(sequentialAwareness?.supporting_rules ?? []).map((rule) => (
+                                            <div
+                                                key={rule.label}
+                                                className="rounded-[20px] border border-white/10 bg-white/5 p-4"
+                                            >
+                                                <p className="text-sm font-medium text-white">
+                                                    {rule.label}
+                                                </p>
+                                                <p className="mt-2 text-sm leading-6 text-white/58">
+                                                    {rule.detail}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                        Current boundary
+                                    </p>
+                                    <p className="mt-3 text-sm leading-6 text-white/60">
+                                        This stage adds sequence awareness inside Home only. It
+                                        does not yet enforce hard locking on lesson routes or
+                                        activate assessment player flows.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -357,11 +559,12 @@ export default function StudentHome({
 
                                 <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
                                     <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                        Stage 6 scope
+                                        Stage 7 scope
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        Progress summary is now connected. Assignment, certificate,
-                                        and resource sections still stay for the next phases.
+                                        Sequence awareness is now connected. Assignment,
+                                        certificate, and resource sections still stay for the next
+                                        phases.
                                     </p>
                                 </div>
                             </div>

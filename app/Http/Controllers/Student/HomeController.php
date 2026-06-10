@@ -30,10 +30,11 @@ class HomeController extends Controller
         $continueLearning = $this->buildContinueLearning($request, $availableModules);
         $progressSummary = $this->buildProgressSummary($request, $availableModules);
         $nextStep = $this->buildNextStep($request, $availableModules, $continueLearning);
+        $sequentialAwareness = $this->buildSequentialAwareness($request, $availableModules, $continueLearning);
         $availableModulesSection = $this->buildAvailableModulesSection($request, $availableModules);
 
         return Inertia::render('Student/Home', [
-            'homeStage' => 6,
+            'homeStage' => 7,
             'studentContext' => [
                 'display_name' => $displayName !== '' ? $displayName : 'Student',
                 'full_name' => $user?->name ?: $displayName,
@@ -49,6 +50,7 @@ class HomeController extends Controller
             'continueLearning' => $continueLearning,
             'progressSummary' => $progressSummary,
             'nextStep' => $nextStep,
+            'sequentialAwareness' => $sequentialAwareness,
             'availableModulesSection' => $availableModulesSection,
         ]);
     }
@@ -546,6 +548,163 @@ class HomeController extends Controller
                 'active' => $items->where('status', 'active')->count(),
                 'available' => $items->where('status', 'available')->count(),
             ],
+        ];
+    }
+
+    protected function buildSequentialAwareness(Request $request, Collection $availableModules, array $continueLearning): array
+    {
+        $user = $request->user();
+        $moduleCollection = $availableModules
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->values();
+
+        if (! $user || ! $user->access_tier_id || $moduleCollection->isEmpty()) {
+            return [
+                'state' => 'empty',
+                'eyebrow' => 'Learning Sequence',
+                'title' => 'Sequence awareness will appear here.',
+                'description' => 'Once accessible lessons are ready, Home will explain which lesson should come first and what the next step in the sequence looks like.',
+                'status' => 'Awaiting lesson access',
+                'current_lesson' => null,
+                'next_lesson' => null,
+                'sequence_rule' => [
+                    'label' => 'Sequence guidance is not available yet.',
+                    'detail' => 'No accessible lesson has been found for this student tier.',
+                ],
+                'supporting_rules' => [],
+            ];
+        }
+
+        $orderedLessonEntries = $moduleCollection
+            ->flatMap(fn (Module $module) => $module->lessons->map(fn ($lesson) => [
+                'module' => $module,
+                'lesson' => $lesson,
+            ]))
+            ->values();
+
+        $progressMap = $this->lessonProgressMap(
+            $user->id,
+            $orderedLessonEntries->pluck('lesson.id'),
+        );
+
+        $currentEntry = null;
+        if (filled($continueLearning['lesson']['id'] ?? null)) {
+            $currentEntry = $orderedLessonEntries->first(
+                fn (array $entry) => (int) $entry['lesson']->id === (int) $continueLearning['lesson']['id']
+            );
+        }
+
+        if (! $currentEntry) {
+            $latestProgressLessonId = $this->latestProgressLessonId($user->id, $progressMap);
+            $currentEntry = $orderedLessonEntries->first(
+                fn (array $entry) => (int) $entry['lesson']->id === (int) $latestProgressLessonId
+            ) ?: $orderedLessonEntries->first();
+        }
+
+        if (! $currentEntry) {
+            return [
+                'state' => 'empty',
+                'eyebrow' => 'Learning Sequence',
+                'title' => 'Sequence awareness will appear here.',
+                'description' => 'Home could not resolve the current lesson sequence yet.',
+                'status' => 'No sequence data',
+                'current_lesson' => null,
+                'next_lesson' => null,
+                'sequence_rule' => [
+                    'label' => 'No sequence data available.',
+                    'detail' => 'The current lesson ordering is not ready to be shown.',
+                ],
+                'supporting_rules' => [],
+            ];
+        }
+
+        $currentIndex = $orderedLessonEntries->search(
+            fn (array $entry) => (int) $entry['lesson']->id === (int) $currentEntry['lesson']->id
+        );
+        $nextEntry = $currentIndex !== false
+            ? $orderedLessonEntries->slice($currentIndex + 1)->first()
+            : null;
+        $currentProgress = $progressMap->get($currentEntry['lesson']->id);
+        $watchProgress = (int) round((float) ($currentProgress?->watch_progress ?? 0));
+        $isDone = (bool) ($currentProgress?->is_done ?? false);
+        $hasWorkbook = filled($currentEntry['lesson']->workbook ?? null);
+        $hasAssessment = filled($currentEntry['lesson']->assessment_id ?? null);
+
+        $sequenceRule = $isDone
+            ? [
+                'label' => $nextEntry
+                    ? 'Your next lesson in sequence is ready.'
+                    : 'You have reached the end of the current accessible sequence.',
+                'detail' => $nextEntry
+                    ? "You completed {$currentEntry['lesson']->title}. The next lesson in order is {$nextEntry['lesson']->title}."
+                    : "Every accessible lesson after {$currentEntry['lesson']->title} has already been reached in your current YogaFX path.",
+            ]
+            : [
+                'label' => $nextEntry
+                    ? "Finish {$currentEntry['lesson']->title} before moving forward in sequence."
+                    : "Complete {$currentEntry['lesson']->title} to close the current sequence cleanly.",
+                'detail' => $nextEntry
+                    ? "{$nextEntry['lesson']->title} is the next lesson in order, so Home keeps the sequence focused on the lesson you are in right now."
+                    : 'This lesson currently acts as the last accessible stop in your sequence.',
+            ];
+
+        $supportingRules = collect([
+            [
+                'label' => $hasWorkbook
+                    ? 'Workbook is attached to this lesson.'
+                    : 'No workbook is attached to this lesson.',
+                'detail' => $hasWorkbook
+                    ? 'The workbook is available on the lesson page. Workbook gating is not active yet, so Home only surfaces this as guidance.'
+                    : 'There is no workbook dependency to surface for this lesson right now.',
+            ],
+            [
+                'label' => $hasAssessment
+                    ? 'Assessment relation is attached to this lesson.'
+                    : 'No assessment relation is attached to this lesson.',
+                'detail' => $hasAssessment
+                    ? ($watchProgress >= 95
+                        ? 'The 95% watch target has been reached. Assessment player flow is still not active on student side, so Home keeps this as readiness guidance only.'
+                        : "The future readiness target remains 95% watch progress. Current progress is {$watchProgress}%, and assessment player flow is still not active on student side.")
+                    : 'There is no assessment dependency to surface for this lesson right now.',
+            ],
+        ])->values();
+
+        return [
+            'state' => $isDone ? ($nextEntry ? 'ready' : 'complete') : 'in_progress',
+            'eyebrow' => 'Learning Sequence',
+            'title' => $isDone
+                ? ($nextEntry
+                    ? 'Your next lesson in sequence is already visible'
+                    : 'You have completed the current accessible lesson sequence')
+                : 'Stay with the intended lesson order before moving ahead',
+            'description' => $isDone
+                ? ($nextEntry
+                    ? "Home now points to {$nextEntry['lesson']->title} as the clean next step in the YogaFX sequence."
+                    : 'The current accessible path is complete, so Home can now shift back toward review and discovery.')
+                : "Home is tracking {$currentEntry['lesson']->title} as the lesson that should be finished before the sequence moves forward.",
+            'status' => $isDone
+                ? ($nextEntry ? 'Next lesson ready' : 'Sequence completed')
+                : ($watchProgress > 0 ? "{$watchProgress}% watched" : 'Current lesson still in sequence'),
+            'current_lesson' => [
+                'id' => $currentEntry['lesson']->id,
+                'title' => $currentEntry['lesson']->title,
+                'sort_order' => $currentEntry['lesson']->sort_order,
+                'url' => route('lessons.show', $currentEntry['lesson']),
+                'module_title' => $currentEntry['module']->title,
+                'module_url' => route('modules.show', $currentEntry['module']->url_slug),
+                'watch_progress' => $watchProgress,
+                'is_done' => $isDone,
+            ],
+            'next_lesson' => $nextEntry ? [
+                'id' => $nextEntry['lesson']->id,
+                'title' => $nextEntry['lesson']->title,
+                'sort_order' => $nextEntry['lesson']->sort_order,
+                'url' => route('lessons.show', $nextEntry['lesson']),
+                'module_title' => $nextEntry['module']->title,
+                'module_url' => route('modules.show', $nextEntry['module']->url_slug),
+            ] : null,
+            'sequence_rule' => $sequenceRule,
+            'supporting_rules' => $supportingRules,
         ];
     }
 
