@@ -1,9 +1,8 @@
 flowchart TD
-    A[Student opens dashboard] --> B[Load student summary data]
-    B --> C[Show progress and available actions]
-    C --> D{Choose action}
-    D -->|Continue Learning| E[Go to last active lesson]
-    D -->|Modules| F[Open Modules]
-    D -->|Assignment| G[Open Assignment Page]
-    D -->|Certificates| H[Open Certificate Page]
-    D -->|Resources| I[Open Ebooks or Courses]
+    A[Student opens dashboard] --> B[Show signed in user summary]
+    B --> C{Choose action}
+    C -->|Modules| D[Open Modules]
+    C -->|Ebooks| E[Open Ebooks]
+    C -->|Courses| F[Open Courses]
+    C -->|Profile| G[Open Profile]
+    H[Dashboard is still a foundation page, not the final premium experience] --> A

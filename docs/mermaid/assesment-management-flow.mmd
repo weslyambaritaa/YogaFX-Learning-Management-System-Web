@@ -1,17 +1,3 @@
 flowchart TD
-    A[Admin opens content management area] --> B[View list of records]
-    B --> C{Action?}
-    C -->|Create| D[Open create form]
-    C -->|Edit| E[Open edit form]
-    C -->|Delete| F[Request delete confirmation]
-    D --> G[Submit form]
-    E --> G
-    G --> H[Validate data]
-    H --> I{Valid?}
-    I -->|No| J[Show validation errors]
-    I -->|Yes| K[Save record]
-    F --> L{Confirmed and allowed?}
-    L -->|No| J
-    L -->|Yes| M[Delete record]
-    K --> N[Refresh list]
-    M --> N
+    A[Assessment management flow] --> B[Planned future scope]
+    B --> C[Assessment CRUD and builder are not implemented yet]

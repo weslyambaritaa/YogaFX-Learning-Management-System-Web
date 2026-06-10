@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\EmailTemplateMediaUploadRequest;
 use App\Http\Requests\Admin\EmailTemplateSendTestRequest;
 use App\Http\Requests\Admin\EmailTemplateUpdateRequest;
 use App\Services\EmailNotificationService;
 use App\Support\EmailNotificationTypeRegistry;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -70,5 +74,46 @@ class EmailNotificationController extends Controller
         return redirect()
             ->route('admin.email-notifications.show', $notificationType)
             ->with('status', 'email-template-test-sent');
+    }
+
+    public function uploadMedia(EmailTemplateMediaUploadRequest $request, string $notificationType): JsonResponse
+    {
+        abort_unless(EmailNotificationTypeRegistry::isValid($notificationType), 404);
+
+        $media = $request->file('media');
+        abort_unless($media !== null, 422);
+
+        $path = $media->store('email-notifications/media', 'public');
+        $relativeUrl = Storage::disk('public')->url($path);
+        $publicUrl = url($relativeUrl);
+        $fileName = $media->getClientOriginalName() ?: basename($path);
+        $safeLabel = Str::of(pathinfo($fileName, PATHINFO_FILENAME))
+            ->replace(['_', '-'], ' ')
+            ->squish()
+            ->limit(120, '')
+            ->value();
+        $label = $safeLabel !== '' ? $safeLabel : 'Download file';
+        $isImage = str_starts_with((string) $media->getMimeType(), 'image/');
+
+        return response()->json([
+            'path' => $path,
+            'url' => $publicUrl,
+            'public_url' => $publicUrl,
+            'file_url' => $publicUrl,
+            'original_url' => $publicUrl,
+            'file_name' => $fileName,
+            'kind' => $isImage ? 'image' : 'file',
+            'html' => $isImage
+                ? sprintf(
+                    '<p><img src="%s" alt="%s"></p>',
+                    e($publicUrl),
+                    e($label),
+                )
+                : sprintf(
+                    '<p><a href="%s" target="_blank" rel="noopener noreferrer">%s</a></p>',
+                    e($publicUrl),
+                    e($fileName),
+                ),
+        ]);
     }
 }

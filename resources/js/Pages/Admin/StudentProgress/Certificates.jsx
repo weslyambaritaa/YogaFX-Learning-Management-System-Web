@@ -1,3 +1,4 @@
+import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import { Button } from '@/Components/ui/button';
 import StudentProgressStudentLayout from '@/Components/admin/student-progress/StudentProgressStudentLayout';
 import { router, useForm, usePage } from '@inertiajs/react';
@@ -30,16 +31,15 @@ export default function Certificates({
         );
     };
 
-    const deleteCertificate = (certificateId) => {
-        if (!window.confirm('Delete this certificate?')) {
-            return;
-        }
-
+    const deleteCertificate = (certificateId, onFinish) => {
         router.delete(
             route('admin.student-progress.certificates.destroy', {
                 student: student.id,
                 certificate: certificateId,
             }),
+            {
+                onFinish,
+            },
         );
     };
 
@@ -196,16 +196,26 @@ export default function Certificates({
                                                         Download Certificate
                                                     </a>
                                                 </Button>
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="destructive"
-                                                    onClick={() =>
-                                                        deleteCertificate(certificate.id)
+                                                <DeleteConfirmationDialog
+                                                    title="Delete certificate?"
+                                                    description={`This will permanently delete ${certificate.type_label} version ${certificate.version}.`}
+                                                    trigger={
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="destructive"
+                                                        >
+                                                            Delete Certificate
+                                                        </Button>
                                                     }
-                                                >
-                                                    Delete Certificate
-                                                </Button>
+                                                    onConfirm={({ onFinish }) =>
+                                                        deleteCertificate(
+                                                            certificate.id,
+                                                            onFinish,
+                                                        )
+                                                    }
+                                                    confirmLabel="Delete Certificate"
+                                                />
                                             </div>
                                         </td>
                                     </tr>

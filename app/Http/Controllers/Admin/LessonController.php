@@ -2,19 +2,23 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
+use App\Support\UploadConstraints;
 use App\Models\AccessTier;
 use App\Models\Assessment;
 use App\Models\Lesson;
 use App\Models\Module;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class LessonController extends Controller
 {
+    use BuildsProtectedMediaUrls;
     use HandlesLocalUploads;
 
     public function index(): Response
@@ -32,6 +36,13 @@ class LessonController extends Controller
                     'access_tiers' => $lesson->accessTiers->pluck('name')->all(),
                     'sort_order' => $lesson->sort_order,
                     'scoreboard' => $lesson->assessment?->title,
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'lesson',
+                        $lesson->id,
+                        'thumbnail',
+                        $lesson->thumbnail,
+                        versionSeed: $lesson->updated_at,
+                    ),
                     'has_workbook' => $lesson->workbook !== null,
                     'has_video' => $lesson->video !== null,
                     'has_audio' => $lesson->audio !== null,
@@ -46,6 +57,7 @@ class LessonController extends Controller
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),
             'scoreboards' => $this->scoreboardOptions(),
+            'uploadConstraints' => $this->uploadConstraints(),
         ]);
     }
 
@@ -66,24 +78,57 @@ class LessonController extends Controller
 
     public function edit(Lesson $lesson): Response
     {
+        [$workbookPreviewSupported, $workbookMimeType] = $lesson->workbook
+            ? $this->previewMetadata($lesson->workbook)
+            : [false, null];
+
         return Inertia::render('Admin/Lessons/Edit', [
-            'lesson' => [
-                'id' => $lesson->id,
-                'module_id' => $lesson->module_id,
+                'lesson' => [
+                    'id' => $lesson->id,
+                    'module_id' => $lesson->module_id,
                 'access_tier_ids' => $lesson->accessTiers()->pluck('access_tiers.id')->all(),
                 'assessment_id' => $lesson->assessment_id,
                 'title' => $lesson->title,
                 'video' => $lesson->video,
                 'audio' => $lesson->audio,
                 'content' => $lesson->content,
-                'thumbnail_url' => route('media.show', ['entity' => 'lesson', 'id' => $lesson->id, 'field' => 'thumbnail']),
-                'workbook_url' => $lesson->workbook
-                    ? route('media.show', ['entity' => 'lesson', 'id' => $lesson->id, 'field' => 'workbook'])
-                    : null,
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'thumbnail',
+                    $lesson->thumbnail,
+                    versionSeed: $lesson->updated_at,
+                ),
+                'workbook_preview' => $lesson->workbook ? [
+                    'title' => "{$lesson->title} Workbook",
+                    'file_name' => basename((string) $lesson->workbook),
+                    'mime_type' => $workbookMimeType,
+                    'preview_supported' => $workbookPreviewSupported,
+                    'preview_message' => $workbookPreviewSupported
+                        ? null
+                        : 'This workbook file cannot be previewed in the browser yet. You can still download it.',
+                    'preview_url' => $this->protectedMediaUrl(
+                        'lesson',
+                        $lesson->id,
+                        'workbook',
+                        $lesson->workbook,
+                        versionSeed: $lesson->updated_at,
+                        extraParameters: ['inline' => 1],
+                    ),
+                    'download_url' => $this->protectedMediaUrl(
+                        'lesson',
+                        $lesson->id,
+                        'workbook',
+                        $lesson->workbook,
+                        download: true,
+                        versionSeed: $lesson->updated_at,
+                    ),
+                ] : null,
             ],
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),
             'scoreboards' => $this->scoreboardOptions(),
+            'uploadConstraints' => $this->uploadConstraints(),
             'status' => session('status'),
         ]);
     }
@@ -162,5 +207,23 @@ class LessonController extends Controller
                 'is_active' => $assessment->is_active,
             ])
             ->all();
+    private function uploadConstraints(): array
+    {
+        return [
+            'max_size_bytes' => UploadConstraints::MAX_FILE_SIZE_KB * 1024,
+            'max_size_label' => UploadConstraints::MAX_FILE_SIZE_MB.' MB',
+        ];
+    }
+
+    /**
+     * @return array{0: bool, 1: string|null}
+     */
+    private function previewMetadata(string $path): array
+    {
+        $mimeType = Storage::disk('local')->mimeType($path);
+        $isPdf = str($path)->lower()->endsWith('.pdf')
+            || $mimeType === 'application/pdf';
+
+        return [$isPdf, $mimeType];
     }
 }

@@ -1,20 +1,3 @@
 flowchart TD
-    A[Student opens assessment intro] --> B[Click Start Assessment]
-    B --> C[Create new assessment attempt]
-    C --> D[Set started_at, expires_at, status]
-    D --> E[Load first page]
-    E --> F[Student answers questions]
-    F --> G[Autosave answers]
-    G --> H[Update progress]
-    H --> I{More pages?}
-    I -->|Yes| J[Move to next or previous page]
-    J --> F
-    I -->|No| K{Submit manually?}
-    K -->|Yes| L[Submit assessment]
-    K -->|No| M{Time expired?}
-    M -->|Yes| N[Auto submit assessment]
-    M -->|No| F
-    L --> O[Calculate score]
-    N --> O
-    O --> P[Update assessment progress]
-    P --> Q[Show result screen]
+    A[Assessment player flow] --> B[Planned future scope]
+    B --> C[Assessment domain is not implemented yet]

@@ -7,8 +7,8 @@ export default function AccessTiersIndex({ accessTiers, status }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between gap-4">
-                    <div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                         <h2 className="text-xl font-semibold leading-tight text-gray-800">
                             Access Tiers
                         </h2>
@@ -20,7 +20,7 @@ export default function AccessTiersIndex({ accessTiers, status }) {
 
                     <Link
                         href={route('admin.access-tiers.create')}
-                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                        className="w-full rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700 sm:w-auto"
                     >
                         Create Access Tier
                     </Link>
@@ -30,7 +30,7 @@ export default function AccessTiersIndex({ accessTiers, status }) {
             <Head title="Access Tiers" />
 
             <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {status === 'access-tier-created' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Access tier has been created.

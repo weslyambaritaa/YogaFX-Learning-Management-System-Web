@@ -1,3 +1,4 @@
+import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 
@@ -7,8 +8,8 @@ export default function ModulesIndex({ modules, status }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between gap-4">
-                    <div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                         <h2 className="text-xl font-semibold leading-tight text-gray-800">
                             Modules
                         </h2>
@@ -18,7 +19,7 @@ export default function ModulesIndex({ modules, status }) {
                     </div>
                     <Link
                         href={route('admin.modules.create')}
-                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                        className="w-full rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700 sm:w-auto"
                     >
                         Create Module
                     </Link>
@@ -28,7 +29,7 @@ export default function ModulesIndex({ modules, status }) {
             <Head title="Modules" />
 
             <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {status === 'module-created' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Module has been created.
@@ -108,14 +109,11 @@ export default function ModulesIndex({ modules, status }) {
                                                     >
                                                         Edit
                                                     </Link>
-                                                    <Link
+                                                    <DeleteConfirmationDialog
                                                         href={route('admin.modules.destroy', module.id)}
-                                                        method="delete"
-                                                        as="button"
-                                                        className="text-sm font-medium text-rose-600 hover:text-rose-800"
-                                                    >
-                                                        Delete
-                                                    </Link>
+                                                        title="Delete module?"
+                                                        description={`This will permanently delete "${module.title}". This action cannot be undone.`}
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>

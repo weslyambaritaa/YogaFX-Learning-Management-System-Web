@@ -1,17 +1,29 @@
 flowchart TD
-    A[Admin opens content management area] --> B[View list of records]
-    B --> C{Action?}
-    C -->|Create| D[Open create form]
-    C -->|Edit| E[Open edit form]
-    C -->|Delete| F[Request delete confirmation]
-    D --> G[Submit form]
+    A[Admin opens one content list page] --> B{Choose area}
+    B -->|Module| C[Module CRUD]
+    B -->|Lesson| D[Lesson CRUD]
+    B -->|E-Book| E[Ebook CRUD]
+    B -->|Video Lecture| F[Course CRUD]
+
+    C --> G[Open create or edit form]
+    D --> G
     E --> G
-    G --> H[Validate data]
+    F --> G
+
+    G --> H[Validate form data]
     H --> I{Valid?}
     I -->|No| J[Show validation errors]
     I -->|Yes| K[Save record]
-    F --> L{Confirmed and allowed?}
-    L -->|No| J
-    L -->|Yes| M[Delete record]
-    K --> N[Refresh list]
-    M --> N
+    K --> L[Redirect back to list with flash success]
+
+    M[Delete action] --> N[Show confirmation dialog]
+    N --> O{Confirmed?}
+    O -->|No| P[Cancel delete]
+    O -->|Yes| Q[Check dependency rules]
+    Q --> R{Allowed?}
+    R -->|No| S[Show error]
+    R -->|Yes| T[Delete record and return to list]
+
+    U[Upload constraints] --> V[File size max 10 MB]
+    U --> W[Module Lesson and Ebook use multi-tier access]
+    U --> X[Lesson tiers must be subset of parent module tiers]

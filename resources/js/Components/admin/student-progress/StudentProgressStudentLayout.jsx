@@ -86,6 +86,7 @@ export default function StudentProgressStudentLayout({
                                 key={section.key}
                                 asChild
                                 variant={activeSection === section.key ? 'default' : 'outline'}
+                                className="w-full sm:w-auto"
                             >
                                 <Link href={route(section.routeName, student.id)}>
                                     {section.label}
@@ -99,7 +100,7 @@ export default function StudentProgressStudentLayout({
             <Head title={pageTitle} />
 
             <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {children}
                 </div>
             </div>

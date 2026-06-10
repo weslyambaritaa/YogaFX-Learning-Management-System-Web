@@ -3,264 +3,187 @@
 
 ## Purpose
 
-Dokumen ini menjadi source of truth flow untuk fitur **Student Progress** pada sisi Admin, khususnya untuk 3 area utama:
+Dokumen ini menjadi source of truth untuk fitur **Student Progress** pada sisi admin sesuai implementasi yang aktif saat ini.
 
-1. Completed Lesson
-2. Assignment
-3. Certificate
-
-Dokumen ini dibuat berdasarkan PRD YogaFX LMS, terutama bagian Student Progress, serta keputusan sistem yang sudah disepakati sebelumnya.
+Fitur ini sekarang menjadi pusat monitoring student. Menu `Students` terpisah tidak lagi menjadi entry utama di sidebar.
 
 ---
 
-# 1. Scope
+## 1. Entry Point
 
-Fitur Student Progress pada halaman detail siswa memiliki 3 kelompok aksi utama:
+Admin membuka menu:
+- `Student Progress`
 
-## 1.1 Completed Lesson
-Admin dapat:
-- melihat daftar lesson yang sudah diselesaikan student
-- melakukan reset progress jika diperlukan
-
-## 1.2 Assignment
-Admin dapat:
-- melihat daftar assignment / graduation video
-- melihat status assignment
-- melihat feedback jika status rejected
-- melakukan aksi:
-  - Save
-  - Send Email
-  - Delete Video
-
-## 1.3 Certificate
-Admin dapat:
-- generate certificate
-- send graduation email
-- memilih 2 jenis certificate:
-  - Bikram Yoga Certificate
-  - Yoga Alliance Certification
-- melakukan aksi pada certificate:
-  - Recreate Certificate
-  - Download Certificate
-  - Delete Certificate
+Halaman utama Student Progress langsung menampilkan directory student, bukan child menu sidebar.
 
 ---
 
-# 2. Completed Lesson Flow
+## 2. Directory Flow
 
-## Purpose
-Memungkinkan admin melihat lesson yang telah diselesaikan student dan melakukan reset progress bila dibutuhkan.
+### 2.1 Tier Sections
+Directory dibagi menjadi 3 tabel berurutan:
+1. Masterclass
+2. Online
+3. Starter Kit
 
-## Trigger
-- Admin membuka halaman detail progress student
-- Admin menekan tombol **Completed Lesson**
+### 2.2 Table Columns
+Setiap tabel menampilkan:
+- No
+- Photo
+- Name
+- Progress
+- Registration Date
+- Assignment
+- Action
 
-## Preconditions
-- Admin sudah login
-- Student tersedia dan valid
-- Data lesson progress student tersedia
+### 2.3 Data Rules
 
-## Main Flow
-1. Admin membuka detail student.
-2. Admin memilih tab atau tombol **Completed Lesson**.
-3. Sistem menampilkan daftar lesson yang statusnya completed untuk student tersebut.
-4. Admin meninjau daftar completed lesson.
-5. Jika diperlukan, admin menekan tombol **Reset Progress** pada lesson tertentu atau sesuai scope reset yang disediakan sistem.
-6. Sistem meminta konfirmasi reset.
-7. Admin mengonfirmasi reset.
-8. Sistem menghapus atau mengubah status progress lesson terkait.
-9. Sistem memperbarui tampilan daftar completed lesson.
+#### Photo
+- menggunakan `profile_photo` dari user jika ada
+- jika kosong, tampil placeholder inisial nama
 
-## Alternative Flow
-- Jika student belum menyelesaikan lesson apa pun, sistem menampilkan empty state.
-- Jika reset berlaku per lesson, admin hanya mengubah 1 lesson.
-- Jika reset berlaku lebih luas, sistem dapat meminta konfirmasi tambahan.
+#### Progress
+- dihitung dalam persentase `0-100%`
+- basisnya adalah jumlah module yang selesai terhadap seluruh module yang relevan untuk tier student
 
-## Failure Flow
-- Student tidak ditemukan.
-- Data progress gagal dimuat.
-- Reset gagal dilakukan.
-- Admin membatalkan konfirmasi reset.
+#### Assignment
+- hanya memakai dua status tampilan:
+  - `Submitted`
+  - `Not Submitted`
+- `Submitted` berarti student sudah punya pengumpulan standing dan floor, atau legacy `graduation_video`
 
-## Success Outcome
-- Admin dapat melihat daftar lesson selesai.
-- Reset progress berhasil diterapkan bila dikonfirmasi.
-- Data progress student ter-update.
+#### Registration Date
+- diambil dari `created_at`
 
----
+### 2.4 Action Pattern
+Kolom `Action` memakai toggle titik tiga.
 
-# 3. Assignment Flow
-
-## Purpose
-Memungkinkan admin memantau assignment / graduation video student dan menjalankan aksi operasional yang tersedia.
-
-## Trigger
-- Admin membuka halaman detail progress student
-- Admin menekan tombol **Assignment**
-
-## Preconditions
-- Admin sudah login
-- Student valid
-- Data assignment student tersedia atau sistem siap menampilkan empty state
-
-## Main Flow
-1. Admin membuka detail student.
-2. Admin memilih tab atau tombol **Assignment**.
-3. Sistem menampilkan tabel assignment dengan kolom:
-   - Title
-   - Video
-   - Status
-   - Feedback (khusus jika rejected)
-4. Admin memilih assignment tertentu untuk ditinjau.
-5. Admin dapat melihat video assignment.
-6. Admin dapat menjalankan aksi sesuai kebutuhan:
-   - Save
-   - Send Email
-   - Delete Video
-7. Jika admin memilih **Save**, sistem menyimpan perubahan data assignment yang relevan.
-8. Jika admin memilih **Send Email**, sistem memicu proses pengiriman email sesuai template assignment yang relevan.
-9. Jika admin memilih **Delete Video**, sistem meminta konfirmasi.
-10. Setelah konfirmasi, sistem menghapus video assignment terkait dan memperbarui status tampilan.
-
-## Alternative Flow
-- Jika assignment belum ada, sistem menampilkan empty state.
-- Jika assignment rejected, feedback tampil dan dapat menjadi dasar follow-up.
-- Jika email template tidak aktif, aksi send email dapat ditolak atau memberi peringatan.
-
-## Failure Flow
-- Student tidak ditemukan.
-- Assignment gagal dimuat.
-- Video gagal diputar.
-- Save gagal.
-- Send Email gagal.
-- Delete Video gagal atau dibatalkan.
-
-## Success Outcome
-- Admin dapat melihat status assignment student.
-- Admin dapat melakukan aksi operasional terhadap assignment.
-- Perubahan assignment tersimpan dengan benar.
-
----
-
-# 4. Certificate Flow
-
-## Purpose
-Memungkinkan admin mengelola certificate student sebagai hasil akhir proses pembelajaran.
-
-## Trigger
-- Admin membuka halaman detail progress student
-- Admin menekan tombol **Certificate**
-
-## Preconditions
-- Admin sudah login
-- Student valid
-- Student memenuhi syarat certificate sesuai rule bisnis yang berlaku
-- Sistem mendukung generate certificate dan graduation email
-
-## Main Flow
-1. Admin membuka detail student.
-2. Admin memilih tab atau tombol **Certificate**.
-3. Sistem menampilkan area certificate management.
-4. Admin memilih aksi **Generate Certificate**.
-5. Admin memilih jenis certificate:
-   - Bikram Yoga Certificate
-   - Yoga Alliance Certification
-6. Sistem membuat certificate.
-7. Setelah certificate berhasil dibuat, sistem menyimpan data certificate student.
-8. Admin dapat menjalankan aksi lanjutan:
-   - Recreate Certificate
-   - Download Certificate
-   - Delete Certificate
-9. Jika admin memilih **Send Graduation Email**, sistem memicu email certificate created / graduation email sesuai template yang aktif.
-10. Sistem memperbarui tampilan daftar/status certificate.
-
-## Alternative Flow
-- Student dapat memiliki lebih dari satu jenis certificate jika rule bisnis mengizinkan.
-- Recreate menghasilkan versi certificate baru.
-- Download hanya tersedia jika file certificate sudah ada.
-
-## Failure Flow
-- Student tidak ditemukan.
-- Student belum eligible.
-- Certificate gagal dibuat.
-- Download gagal.
-- Delete gagal.
-- Graduation email gagal dikirim.
-
-## Success Outcome
-- Certificate berhasil dibuat dan tersimpan.
-- Admin dapat mengelola certificate student.
-- Student siap menerima atau mengakses certificate sesuai flow sistem.
-
----
-
-# 5. Key Business Rules Referenced
-
-## Completed Lesson
-- Lesson completion berasal dari progress belajar student.
-- Lesson dapat dianggap selesai berdasarkan rule lesson yang berlaku.
-- Reset Progress adalah aksi admin-level dan harus melalui konfirmasi.
-
-## Assignment
-- Assignment merupakan graduation video.
-- Status assignment harus terlihat jelas.
-- Feedback hanya relevan terutama saat status rejected.
-- Send Email harus mengikuti template notifikasi yang aktif.
-
-## Certificate
-- Ada 2 jenis certificate:
-  - Bikram Yoga Certificate
-  - Yoga Alliance Certification
-- Certificate dibuat dari sisi admin.
-- Certificate dapat direcreate, didownload, atau dihapus.
-- Graduation email / certificate created email dipicu dari aksi admin.
-
----
-
-# 6. UI Notes
-
-## Student Progress Detail Page
-Halaman detail student progress minimal memiliki 3 entry point utama:
+Isi menu:
 - Completed Lesson
 - Assignment
 - Certificate
 
-## Completed Lesson UI
-- Tampilkan list completed lesson
-- Tampilkan tombol Reset Progress
-- Gunakan konfirmasi sebelum reset
-
-## Assignment UI
-- Gunakan tabel
-- Kolom minimal:
-  - Title
-  - Video
-  - Status
-  - Feedback
-- Tampilkan aksi:
-  - Save
-  - Send Email
-  - Delete Video
-
-## Certificate UI
-- Tampilkan area aksi utama:
-  - Generate Certificate
-  - Send Graduation Email
-- Tampilkan jenis certificate
-- Tampilkan aksi per certificate:
-  - Recreate
-  - Download
-  - Delete
+Catatan:
+- action tidak ditampilkan sebagai tiga tombol langsung
+- Student Progress tidak lagi memakai hamburger child menu di sidebar
 
 ---
 
-# 7. Final Notes
+## 3. Completed Lesson Flow
 
-Flow ini hanya mencakup area Student Progress di sisi Admin, bukan seluruh student learning flow.
+### Main Flow
+1. Admin memilih `Completed Lesson` dari menu titik tiga pada student tertentu.
+2. Sistem membuka halaman completed lessons untuk student tersebut.
+3. Sistem menampilkan daftar `lesson_progress` yang `is_done = true`.
+4. Admin dapat reset satu lesson progress.
+5. Sebelum reset, sistem menampilkan konfirmasi.
+6. Jika dikonfirmasi, nilai progress direset:
+   - `watch_progress = 0`
+   - `is_workbook_downloaded = false`
+   - timestamp terkait di-null-kan
+   - `is_done = false`
+   - `completed_at = null`
 
-Dokumen ini akan dipakai sebagai source of truth implementasi untuk:
-- halaman detail student progress
-- aksi completed lesson
-- aksi assignment
-- aksi certificate
-- integrasi notifikasi terkait
+### Empty State
+Jika tidak ada completed lesson, tampilkan empty state.
+
+---
+
+## 4. Assignment Flow
+
+### Main Flow
+1. Admin memilih `Assignment` dari menu titik tiga.
+2. Sistem membuka halaman assignment student-specific.
+3. Sistem menampilkan tabel assignment dengan kolom:
+   - Title
+   - Video
+   - Status
+   - Feedback
+4. Admin dapat:
+   - Save
+   - Send Email
+   - Delete Video
+
+### Save
+- menyimpan perubahan `assignment_status`
+- menyimpan `assignment_feedback`
+- jika status menjadi approved atau rejected, `graded_at` diperbarui
+- jika approved, event `assignment_approved` dipicu
+- jika rejected, event `assignment_rejected` dipicu
+
+### Send Email
+- mengirim email manual sederhana ke student
+- tidak mengganti template utama Email Notification
+
+### Delete Video
+- mengosongkan field `assignment_video`
+- aksi harus melalui konfirmasi
+
+---
+
+## 5. Certificate Flow
+
+### Main Flow
+1. Admin memilih `Certificate` dari menu titik tiga.
+2. Sistem membuka halaman certificate student-specific.
+3. Sistem memeriksa eligibility certificate.
+4. Admin dapat:
+   - Generate Certificate
+   - Send Graduation Email
+   - Recreate Certificate
+   - Download Certificate
+   - Delete Certificate
+
+### Certificate Types
+Jenis yang aktif:
+- Bikram Yoga Certificate
+- Yoga Alliance Certification
+
+### Eligibility Rule
+Implementasi saat ini:
+- student dengan tier `starter_kit` tidak eligible
+- student dengan tier lain eligible selama punya `access_tier_id`
+
+### Generate
+- sistem membuat file HTML certificate di local storage
+- sistem membuat record `certificates`
+- sistem memicu event `certificate_created`
+
+### Recreate
+- membuat versi certificate baru dengan increment `version`
+
+### Download
+- file di-download dari local storage jika tersedia
+
+### Delete
+- file dihapus dari storage jika ada
+- record certificate di-soft-delete
+
+---
+
+## 6. Student Profile Edit Route
+
+Route edit profile student tetap ada di area Student Progress:
+- admin dapat membuka detail/edit profile student
+- ini bukan primary action dari kolom action directory
+- fitur ini dipakai sebagai supporting route, bukan pusat flow utama Student Progress
+
+---
+
+## 7. Important Current Notes
+
+- Student Progress adalah pengganti menu student monitoring lama
+- directory sekarang menjadi halaman utama Student Progress
+- sidebar tidak boleh auto-open section Student Progress atau Email tanpa aksi user
+- detail progress dibuka sebagai halaman terpisah per area
+
+---
+
+## 8. Out of Scope
+
+Belum termasuk dalam flow ini:
+- student-side progress page
+- progress automation dari watch progress
+- assignment submission oleh student
+- certificate access page di student side
+- assessment progress monitoring yang penuh

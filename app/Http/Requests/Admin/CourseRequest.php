@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Course;
+use App\Support\UploadConstraints;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -45,8 +46,15 @@ class CourseRequest extends FormRequest
             ],
             'access_tier_id' => ['required', Rule::exists('access_tiers', 'id')],
             'description' => ['required', 'string', 'max:5000'],
-            'thumbnail' => [...$thumbnailRule, 'image', 'max:2048'],
+            'thumbnail' => [...$thumbnailRule, 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
             'video' => ['required', 'string', 'max:2048'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'thumbnail.max' => 'The thumbnail must not be larger than 10 MB.',
         ];
     }
 }
