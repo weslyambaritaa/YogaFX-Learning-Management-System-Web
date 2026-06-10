@@ -207,6 +207,8 @@ class LessonController extends Controller
                 'is_active' => $assessment->is_active,
             ])
             ->all();
+    }
+
     private function uploadConstraints(): array
     {
         return [
