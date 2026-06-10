@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
+use App\Models\AccessTier;
+use App\Models\AssignmentSubmission;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use Illuminate\Http\RedirectResponse;
@@ -32,9 +34,10 @@ class HomeController extends Controller
         $nextStep = $this->buildNextStep($request, $availableModules, $continueLearning);
         $sequentialAwareness = $this->buildSequentialAwareness($request, $availableModules, $continueLearning);
         $availableModulesSection = $this->buildAvailableModulesSection($request, $availableModules);
+        $assignmentMilestone = $this->buildAssignmentMilestone($request, $continueLearning);
 
         return Inertia::render('Student/Home', [
-            'homeStage' => 7,
+            'homeStage' => 8,
             'studentContext' => [
                 'display_name' => $displayName !== '' ? $displayName : 'Student',
                 'full_name' => $user?->name ?: $displayName,
@@ -52,6 +55,7 @@ class HomeController extends Controller
             'nextStep' => $nextStep,
             'sequentialAwareness' => $sequentialAwareness,
             'availableModulesSection' => $availableModulesSection,
+            'assignmentMilestone' => $assignmentMilestone,
         ]);
     }
 
@@ -706,6 +710,189 @@ class HomeController extends Controller
             'sequence_rule' => $sequenceRule,
             'supporting_rules' => $supportingRules,
         ];
+    }
+
+    protected function buildAssignmentMilestone(Request $request, array $continueLearning): array
+    {
+        $user = $request->user();
+        $tier = $user?->accessTier;
+        $learningCta = [
+            'label' => (($continueLearning['state'] ?? null) === 'resume')
+                ? 'Continue Learning'
+                : 'Browse Modules',
+            'url' => $continueLearning['cta_url'] ?? route('modules.index'),
+        ];
+
+        if (! $user || ! $tier) {
+            return [
+                'state' => 'empty',
+                'eyebrow' => 'Assignment Milestone',
+                'title' => 'Assignment milestone will appear here.',
+                'description' => 'Home needs an active student access tier before it can explain whether assignment belongs to this YogaFX journey.',
+                'status' => 'Awaiting access tier',
+                'eligibility_label' => 'Tier eligibility unknown',
+                'cta_label' => 'Open Profile',
+                'cta_url' => route('profile.edit'),
+                'checklist' => [],
+                'latest_feedback' => null,
+                'latest_submission_at' => null,
+                'support_note' => 'Student-side assignment submission is still not active, so this milestone stays informational until the submission flow is introduced.',
+            ];
+        }
+
+        if ($tier->slug !== AccessTier::SLUG_ONLINE) {
+            return [
+                'state' => 'not_available',
+                'eyebrow' => 'Assignment Milestone',
+                'title' => 'Assignment is not included in your current tier.',
+                'description' => $tier->slug === AccessTier::SLUG_MASTER_CLASS
+                    ? 'Your current YogaFX path emphasizes premium lesson access and certificate journey without the assignment milestone.'
+                    : 'Starter Kit keeps the journey lighter, so assignment milestone is intentionally not part of this tier.',
+                'status' => 'Not available for your tier',
+                'eligibility_label' => 'Unavailable in '.($tier->name ?? 'current tier'),
+                'cta_label' => 'Browse Modules',
+                'cta_url' => route('modules.index'),
+                'checklist' => [],
+                'latest_feedback' => null,
+                'latest_submission_at' => null,
+                'support_note' => 'Home still keeps this milestone visible so students understand what is and is not included in the current membership path.',
+            ];
+        }
+
+        $submissions = AssignmentSubmission::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $submittedEntries = $submissions
+            ->filter(fn (AssignmentSubmission $submission) => filled($submission->assignment_video))
+            ->values();
+
+        $latestFeedback = $submissions
+            ->first(fn (AssignmentSubmission $submission) => filled($submission->assignment_feedback));
+
+        $standingSubmission = $submittedEntries
+            ->first(fn (AssignmentSubmission $submission) => str($submission->assignment_type)->lower()->contains('standing'));
+        $floorSubmission = $submittedEntries
+            ->first(fn (AssignmentSubmission $submission) => str($submission->assignment_type)->lower()->contains('floor'));
+        $legacySubmission = $submittedEntries
+            ->first(fn (AssignmentSubmission $submission) => str($submission->assignment_type)->lower()->value() === 'graduation_video');
+
+        $hasStanding = (bool) $standingSubmission;
+        $hasFloor = (bool) $floorSubmission;
+        $hasLegacy = (bool) $legacySubmission;
+        $hasCompletePackage = $hasLegacy || ($hasStanding && $hasFloor);
+
+        $relevantSubmissions = $hasLegacy
+            ? collect([$legacySubmission])->filter()
+            : collect([$standingSubmission, $floorSubmission])->filter();
+
+        $hasRejected = $relevantSubmissions
+            ->contains(fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_REJECTED);
+        $hasPendingReview = $relevantSubmissions
+            ->contains(fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_PENDING_REVIEW);
+        $hasApproved = $relevantSubmissions->isNotEmpty()
+            && $relevantSubmissions->every(
+                fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_APPROVED
+            );
+        $hasDraftSubmission = $relevantSubmissions
+            ->contains(fn (AssignmentSubmission $submission) => blank($submission->submitted_at));
+        $latestSubmittedAt = $relevantSubmissions
+            ->sortByDesc(fn (AssignmentSubmission $submission) => sprintf(
+                '%010d-%010d',
+                $submission->submitted_at?->getTimestamp() ?? 0,
+                $submission->id,
+            ))
+            ->first()?->submitted_at;
+
+        if ($submittedEntries->isEmpty()) {
+            $state = 'not_started';
+        } elseif ($hasRejected) {
+            $state = 'rejected';
+        } elseif ($hasApproved && $hasCompletePackage) {
+            $state = 'approved';
+        } elseif ($hasCompletePackage && $hasPendingReview && ! $hasDraftSubmission) {
+            $state = 'under_review';
+        } else {
+            $state = 'submitted';
+        }
+
+        $checklist = collect([
+            [
+                'label' => 'Full Standing Dialog',
+                'status' => $hasStanding ? 'Submitted' : 'Pending',
+                'detail' => $hasStanding
+                    ? 'Standing dialog submission is already recorded for this student.'
+                    : 'Standing dialog submission has not been recorded yet.',
+            ],
+            [
+                'label' => 'Full Floor Dialog',
+                'status' => $hasFloor ? 'Submitted' : 'Pending',
+                'detail' => $hasFloor
+                    ? 'Floor dialog submission is already recorded for this student.'
+                    : 'Floor dialog submission has not been recorded yet.',
+            ],
+            [
+                'label' => 'Legacy graduation video',
+                'status' => $hasLegacy ? 'On record' : 'Not used',
+                'detail' => $hasLegacy
+                    ? 'A legacy graduation video exists, so Home treats the assignment package as already submitted.'
+                    : 'No legacy graduation video is attached to this student record.',
+            ],
+        ])->values();
+
+        $payload = [
+            'state' => $state,
+            'eyebrow' => 'Assignment Milestone',
+            'title' => 'Assignment milestone is active for your YogaFX path.',
+            'description' => 'Home tracks assignment as a major milestone for Online students, while keeping the experience honest about which student-side flows are already live.',
+            'status' => 'Assignment tracked',
+            'eligibility_label' => 'Included in Online tier',
+            'cta_label' => $learningCta['label'],
+            'cta_url' => $learningCta['url'],
+            'checklist' => $checklist,
+            'latest_feedback' => $latestFeedback ? [
+                'message' => $latestFeedback->assignment_feedback,
+                'status' => str($latestFeedback->assignment_status)->replace('_', ' ')->title()->value(),
+            ] : null,
+            'latest_submission_at' => optional($latestSubmittedAt)->format('Y-m-d H:i'),
+            'support_note' => 'Student-side assignment submission page is still not active, so this milestone currently reflects assignment data that already exists in YogaFX and keeps CTA on safe learning routes.',
+        ];
+
+        return match ($state) {
+            'not_started' => array_merge($payload, [
+                'title' => 'Assignment milestone is waiting for your first submission.',
+                'description' => 'You are in the Online tier, so assignment belongs to your journey. Home can already show the milestone, even though the dedicated student submission page is not active yet.',
+                'status' => 'Not started',
+                'cta_label' => $learningCta['label'],
+            ]),
+            'submitted' => array_merge($payload, [
+                'title' => 'Your assignment journey has started.',
+                'description' => $hasCompletePackage
+                    ? 'Home found assignment material on record, but the full review state is not final yet.'
+                    : 'At least one assignment submission is already on record, but the full package is not complete yet.',
+                'status' => $hasCompletePackage ? 'Submitted' : 'Partially submitted',
+            ]),
+            'under_review' => array_merge($payload, [
+                'title' => 'Your assignment is currently under review.',
+                'description' => 'Home found a complete assignment package with pending review status, so the best next move is to keep learning while YogaFX reviews it.',
+                'status' => 'Under review',
+            ]),
+            'approved' => array_merge($payload, [
+                'title' => 'Your assignment milestone has been approved.',
+                'description' => 'The current assignment package has already cleared review, so this milestone is complete in your Home journey.',
+                'status' => 'Approved',
+            ]),
+            'rejected' => array_merge($payload, [
+                'title' => 'Your assignment needs another pass.',
+                'description' => 'Home found a rejected assignment review, so the milestone stays visible together with the latest feedback that already exists in the system.',
+                'status' => 'Rejected',
+                'cta_label' => 'Review Modules Again',
+                'cta_url' => route('modules.index'),
+            ]),
+            default => $payload,
+        };
     }
 
     protected function lessonProgressMap(?int $userId, iterable $lessonIds): Collection

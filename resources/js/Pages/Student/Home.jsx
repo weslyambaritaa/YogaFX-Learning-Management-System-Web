@@ -11,6 +11,7 @@ export default function StudentHome({
     nextStep,
     sequentialAwareness,
     availableModulesSection,
+    assignmentMilestone,
 }) {
     const studentName = studentContext?.display_name ?? 'Student';
     const fullName = studentContext?.full_name ?? studentName;
@@ -167,7 +168,7 @@ export default function StudentHome({
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
-                            Phase 7 active
+                            Phase 8 active
                         </span>
                     </div>
 
@@ -559,12 +560,12 @@ export default function StudentHome({
 
                                 <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
                                     <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                        Stage 7 scope
+                                        Stage 8 scope
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        Sequence awareness is now connected. Assignment,
-                                        certificate, and resource sections still stay for the next
-                                        phases.
+                                        Sequence awareness and assignment milestone are now
+                                        connected. Certificate and resource sections still stay for
+                                        the next phases.
                                     </p>
                                 </div>
                             </div>
@@ -871,6 +872,151 @@ export default function StudentHome({
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                {assignmentMilestone?.eyebrow ?? 'Assignment Milestone'}
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                {assignmentMilestone?.title ??
+                                    'Assignment milestone will appear here'}
+                            </h2>
+                        </div>
+                        <span className="hidden text-sm text-white/45 md:inline">
+                            Milestone visibility first
+                        </span>
+                    </div>
+
+                    <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                            <div className="flex h-full flex-col gap-6 rounded-[22px] border border-white/8 bg-[linear-gradient(145deg,rgba(214,90,52,0.16),rgba(255,255,255,0.03))] p-5">
+                                <div className="space-y-4">
+                                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
+                                        <span
+                                            className={[
+                                                'rounded-full border px-3 py-1',
+                                                assignmentMilestone?.state === 'approved'
+                                                    ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-200'
+                                                    : assignmentMilestone?.state === 'rejected'
+                                                      ? 'border-rose-400/30 bg-rose-400/15 text-rose-200'
+                                                      : assignmentMilestone?.state === 'under_review'
+                                                        ? 'border-amber-300/30 bg-amber-300/15 text-amber-100'
+                                                        : assignmentMilestone?.state === 'not_available'
+                                                          ? 'border-white/15 bg-black/25 text-white/65'
+                                                          : 'border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]',
+                                            ].join(' ')}
+                                        >
+                                            {assignmentMilestone?.status ?? 'Assignment tracked'}
+                                        </span>
+                                        <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
+                                            {assignmentMilestone?.eligibility_label ??
+                                                'Tier eligibility pending'}
+                                        </span>
+                                    </div>
+
+                                    <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
+                                        {assignmentMilestone?.description ??
+                                            'Home will explain the assignment milestone here.'}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-3">
+                                    {(assignmentMilestone?.checklist ?? []).map((item) => (
+                                        <div
+                                            key={item.label}
+                                            className="rounded-[24px] border border-white/10 bg-black/20 p-5"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <p className="text-sm font-medium text-white">
+                                                    {item.label}
+                                                </p>
+                                                <span className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
+                                                    {item.status}
+                                                </span>
+                                            </div>
+                                            <p className="mt-3 text-sm leading-6 text-white/58">
+                                                {item.detail}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Button
+                                        asChild
+                                        className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                    >
+                                        <Link href={assignmentMilestone?.cta_url ?? route('modules.index')}>
+                                            <ChevronRight className="mr-2 size-4" />
+                                            {assignmentMilestone?.cta_label ?? 'Browse Modules'}
+                                        </Link>
+                                    </Button>
+
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                    >
+                                        <Link href={route('modules.index')}>Open Learning Catalog</Link>
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                            <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+                                            Assignment context
+                                        </p>
+                                        <h3 className="text-xl font-semibold text-white">
+                                            Home keeps the milestone visible without inventing a dead
+                                            end
+                                        </h3>
+                                    </div>
+
+                                    <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                                        <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                            Latest submission
+                                        </p>
+                                        <p className="mt-3 text-sm leading-6 text-white/60">
+                                            {assignmentMilestone?.latest_submission_at
+                                                ? assignmentMilestone.latest_submission_at
+                                                : 'No recorded submission timestamp yet.'}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                                        <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                            Latest feedback
+                                        </p>
+                                        <p className="mt-3 text-sm font-medium text-white">
+                                            {assignmentMilestone?.latest_feedback?.status ??
+                                                'No feedback yet'}
+                                        </p>
+                                        <p className="mt-2 text-sm leading-6 text-white/60">
+                                            {assignmentMilestone?.latest_feedback?.message ??
+                                                'Feedback from assignment review will appear here when it exists.'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                        Current boundary
+                                    </p>
+                                    <p className="mt-3 text-sm leading-6 text-white/60">
+                                        {assignmentMilestone?.support_note ??
+                                            'Home keeps assignment visible as a milestone, but it does not open a student submission flow that is not active yet.'}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
