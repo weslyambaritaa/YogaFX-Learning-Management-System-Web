@@ -27,7 +27,11 @@ class LessonRequest extends FormRequest
             'module_id' => ['required', Rule::exists('modules', 'id')],
             'access_tier_ids' => ['required', 'array', 'min:1'],
             'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],
-            'assessment_id' => ['nullable', 'integer', 'min:1'],
+            'assessment_id' => [
+                'nullable',
+                Rule::exists('assessments', 'id'),
+                Rule::unique('lessons', 'assessment_id')->ignore($lesson?->id),
+            ],
             'title' => ['required', 'string', 'max:255'],
             'thumbnail' => [...$thumbnailRule, 'image', 'max:2048'],
             'workbook' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],

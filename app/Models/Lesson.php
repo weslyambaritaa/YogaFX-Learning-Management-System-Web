@@ -54,4 +54,9 @@ class Lesson extends Model
     {
         return $this->belongsToMany(AccessTier::class, 'access_tier_lesson')->withTimestamps();
     }
+
+    public function assessment(): BelongsTo
+    {
+        return $this->belongsTo(Assessment::class);
+    }
 }

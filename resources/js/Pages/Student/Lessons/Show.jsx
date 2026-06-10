@@ -65,10 +65,38 @@ export default function StudentLessonShow({ lesson }) {
                                 />
                             )}
 
-                            {lesson.assessment_id && (
-                                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                                    Assessment relation is prepared for this lesson and
-                                    will be activated in a later phase.
+                            {lesson.assessment && (
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
+                                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                        <div>
+                                            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                                Assessment
+                                            </div>
+                                            <div className="mt-1 text-base font-semibold text-slate-900">
+                                                {lesson.assessment.title}
+                                            </div>
+                                            <p className="mt-1 text-sm text-slate-600">
+                                                {lesson.assessment.is_unlocked
+                                                    ? 'This assessment is ready to start.'
+                                                    : 'Assessment unlocks after your lesson watch progress reaches 95%.'}
+                                            </p>
+                                        </div>
+
+                                        {lesson.assessment.is_unlocked ? (
+                                            <Link
+                                                href={route('assessments.intro', lesson.id)}
+                                                className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+                                            >
+                                                {lesson.assessment.current_attempt_id
+                                                    ? 'Resume Assessment'
+                                                    : 'Open Assessment'}
+                                            </Link>
+                                        ) : (
+                                            <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                                                Locked
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 

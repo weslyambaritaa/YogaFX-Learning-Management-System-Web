@@ -95,6 +95,16 @@ class User extends Authenticatable
         return $this->hasMany(AssignmentSubmission::class);
     }
 
+    public function assessmentAttempts(): HasMany
+    {
+        return $this->hasMany(AssessmentAttempt::class);
+    }
+
+    public function assessmentProgressRecords(): HasMany
+    {
+        return $this->hasMany(AssessmentProgress::class);
+    }
+
     public function certificates(): HasMany
     {
         return $this->hasMany(Certificate::class);
