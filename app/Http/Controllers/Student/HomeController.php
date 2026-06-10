@@ -40,9 +40,17 @@ class HomeController extends Controller
         $assignmentMilestone = $this->buildAssignmentMilestone($request, $continueLearning);
         $certificateMilestone = $this->buildCertificateMilestone($request, $progressSummary, $continueLearning);
         $ebookResourcesSection = $this->buildEbookResourcesSection($request);
+        $homeExperience = $this->buildHomeExperience(
+            $request,
+            $continueLearning,
+            $progressSummary,
+            $availableModulesSection,
+            $certificateMilestone,
+            $ebookResourcesSection,
+        );
 
         return Inertia::render('Student/Home', [
-            'homeStage' => 10,
+            'homeStage' => 11,
             'studentContext' => [
                 'display_name' => $displayName !== '' ? $displayName : 'Student',
                 'full_name' => $user?->name ?: $displayName,
@@ -63,6 +71,7 @@ class HomeController extends Controller
             'assignmentMilestone' => $assignmentMilestone,
             'certificateMilestone' => $certificateMilestone,
             'ebookResourcesSection' => $ebookResourcesSection,
+            'homeExperience' => $homeExperience,
         ]);
     }
 
@@ -1088,9 +1097,9 @@ class HomeController extends Controller
 
             return [
                 'id' => $ebook->id,
-                'title' => $ebook->title,
+                'title' => $ebook->title ?: 'Untitled Resource',
                 'sort_order' => $ebook->sort_order,
-                'file_name' => $fileName,
+                'file_name' => $fileName !== '' ? $fileName : 'resource-file',
                 'format_label' => $formatLabel,
                 'preview_url' => route('ebooks.preview', $ebook),
                 'download_url' => $this->protectedMediaUrl(
@@ -1120,6 +1129,133 @@ class HomeController extends Controller
             ],
             'support_note' => 'Preview stays primary, download stays explicit, and the whole section remains tier-aware.',
         ];
+    }
+
+    protected function buildHomeExperience(
+        Request $request,
+        array $continueLearning,
+        array $progressSummary,
+        array $availableModulesSection,
+        array $certificateMilestone,
+        array $ebookResourcesSection,
+    ): array {
+        $user = $request->user();
+        $tier = $user?->accessTier;
+        $lessonsCompleted = (int) ($progressSummary['lessons_completed'] ?? 0);
+        $lessonsTotal = (int) ($progressSummary['lessons_total'] ?? 0);
+        $overallProgress = (int) ($progressSummary['overall_progress_percentage'] ?? 0);
+        $hasModules = ! empty($availableModulesSection['items']);
+        $hasResources = ! empty($ebookResourcesSection['items']);
+        $isNewStudent = ($continueLearning['state'] ?? null) === 'start' && $lessonsCompleted === 0;
+        $isJourneyComplete = $lessonsTotal > 0 && $overallProgress === 100;
+
+        $defaultState = [
+            'state' => 'active',
+            'hero_title' => 'Your premium YogaFX learning home is now ready to carry your student identity.',
+            'hero_description' => 'Your Home experience is anchored to the current access tier and now has the core student context needed for every learning-focused section below.',
+            'primary_cta_label' => 'Continue the Course',
+            'primary_cta_url' => route('modules.index'),
+            'primary_cta_kind' => 'link',
+            'secondary_cta_label' => 'Explore Modules',
+            'secondary_cta_url' => route('modules.index'),
+            'hero_badges' => [
+                $tier?->name ?? 'Tier assignment pending',
+                'Learning momentum is active',
+            ],
+            'highlight_label' => 'Learning home',
+            'highlight_value' => $lessonsTotal > 0 ? "{$overallProgress}%" : 'Ready',
+            'highlight_caption' => $lessonsTotal > 0
+                ? 'Current accessible path'
+                : 'Home is waiting for the first lesson signal',
+        ];
+
+        if (! $user || ! $tier) {
+            return [
+                'state' => 'needs_access_tier',
+                'hero_title' => 'Complete your YogaFX access setup before the learning journey begins.',
+                'hero_description' => 'Home is already safe to open, but it still needs a completed profile and an active access tier before it can guide lessons, milestones, and resources correctly.',
+                'primary_cta_label' => 'Open Profile',
+                'primary_cta_url' => route('profile.edit'),
+                'primary_cta_kind' => 'link',
+                'secondary_cta_label' => 'Browse Modules',
+                'secondary_cta_url' => route('modules.index'),
+                'hero_badges' => [
+                    'Profile and tier setup pending',
+                    'Home is in safe fallback mode',
+                ],
+                'highlight_label' => 'Next step',
+                'highlight_value' => 'Profile',
+                'highlight_caption' => 'Finish setup so learning data can unlock',
+            ];
+        }
+
+        if ($isNewStudent) {
+            return [
+                'state' => 'new_student',
+                'hero_title' => 'Your first YogaFX lesson is ready whenever you are.',
+                'hero_description' => 'This Home is now prepared for a first-time student experience: clear starting point, calm guidance, and enough context to begin without guesswork.',
+                'primary_cta_label' => $continueLearning['cta_label'] ?? 'Start First Lesson',
+                'primary_cta_url' => $continueLearning['cta_url'] ?? route('modules.index'),
+                'primary_cta_kind' => 'link',
+                'secondary_cta_label' => 'Explore Modules',
+                'secondary_cta_url' => route('modules.index'),
+                'hero_badges' => [
+                    $tier->name,
+                    'First lesson ready to start',
+                ],
+                'highlight_label' => 'Starting point',
+                'highlight_value' => 'Lesson 1',
+                'highlight_caption' => 'Home found a safe first lesson for this journey',
+            ];
+        }
+
+        if (! $hasModules) {
+            return [
+                'state' => 'catalog_empty',
+                'hero_title' => 'Your YogaFX Home is ready, but this tier still has no module to open.',
+                'hero_description' => 'The page remains stable and premium even when content is not attached yet. As soon as accessible modules exist, Home will start guiding the learning journey automatically.',
+                'primary_cta_label' => 'Browse Modules',
+                'primary_cta_url' => route('modules.index'),
+                'primary_cta_kind' => 'link',
+                'secondary_cta_label' => 'Open Profile',
+                'secondary_cta_url' => route('profile.edit'),
+                'hero_badges' => [
+                    $tier->name,
+                    'Catalog not available yet',
+                ],
+                'highlight_label' => 'Catalog state',
+                'highlight_value' => 'Waiting',
+                'highlight_caption' => 'No accessible modules found for this tier yet',
+            ];
+        }
+
+        if ($isJourneyComplete) {
+            $primaryCtaLabel = $certificateMilestone['cta_label'] ?? 'Review Modules';
+            $primaryCtaUrl = $certificateMilestone['cta_url'] ?? route('modules.index');
+            $primaryCtaKind = $certificateMilestone['cta_kind'] ?? 'link';
+            $secondaryCtaLabel = $hasResources ? 'Open Ebooks' : 'Review Modules';
+            $secondaryCtaUrl = $hasResources ? route('ebooks.index') : route('modules.index');
+
+            return [
+                'state' => 'journey_complete',
+                'hero_title' => 'Your current YogaFX learning path is complete.',
+                'hero_description' => 'Home shifts from momentum into celebration and next-possibility mode: certificate if available, supporting resources if present, and room to revisit the path without confusion.',
+                'primary_cta_label' => $primaryCtaLabel,
+                'primary_cta_url' => $primaryCtaUrl,
+                'primary_cta_kind' => $primaryCtaKind,
+                'secondary_cta_label' => $secondaryCtaLabel,
+                'secondary_cta_url' => $secondaryCtaUrl,
+                'hero_badges' => [
+                    $tier->name,
+                    'Current path completed',
+                ],
+                'highlight_label' => 'Completion',
+                'highlight_value' => '100%',
+                'highlight_caption' => 'The accessible lesson journey is complete',
+            ];
+        }
+
+        return $defaultState;
     }
 
     protected function lessonProgressMap(?int $userId, iterable $lessonIds): Collection

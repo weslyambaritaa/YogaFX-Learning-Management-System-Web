@@ -14,6 +14,7 @@ export default function StudentHome({
     assignmentMilestone,
     certificateMilestone,
     ebookResourcesSection,
+    homeExperience,
 }) {
     const studentName = studentContext?.display_name ?? 'Student';
     const fullName = studentContext?.full_name ?? studentName;
@@ -40,6 +41,19 @@ export default function StudentHome({
             ? 'Ready next'
             : 'Waiting in sequence'
         : 'No next lesson';
+    const heroBadges = homeExperience?.hero_badges ?? [
+        tierLabel,
+        'Learning momentum is active',
+    ];
+    const heroPrimaryKind = homeExperience?.primary_cta_kind ?? 'link';
+    const heroSecondaryKind = 'link';
+    const continueEngineLabel = homeExperience?.state === 'journey_complete'
+        ? 'Next: certificate and resources'
+        : homeExperience?.state === 'new_student'
+          ? 'Next: keep the first lesson simple'
+          : homeExperience?.state === 'catalog_empty'
+            ? 'Next: waiting for catalog access'
+            : 'Next: assignment milestone';
 
     return (
         <AuthenticatedLayout
@@ -69,50 +83,81 @@ export default function StudentHome({
                                         Hi {studentName}, welcome back
                                     </p>
                                     <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl xl:text-6xl">
-                                        Your premium YogaFX learning home is now ready to carry
-                                        your student identity.
+                                        {homeExperience?.hero_title ??
+                                            'Your premium YogaFX learning home is now ready to carry your student identity.'}
                                     </h1>
                                 </div>
 
                                 <p className="max-w-2xl text-sm leading-7 text-white/72 sm:text-base">
-                                    You are signed in as {fullName}. Your Home experience is
-                                    anchored to {tierLabel.toLowerCase()} access and now has the
-                                    core student context needed for the next learning-focused
-                                    sections.
+                                    You are signed in as {fullName}.{' '}
+                                    {homeExperience?.hero_description ??
+                                        `Your Home experience is anchored to ${tierLabel.toLowerCase()} access and now has the core student context needed for the next learning-focused sections.`}
                                 </p>
 
                                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                                    <Button
-                                        asChild
-                                        size="lg"
-                                        className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
-                                    >
-                                        <Link href={route('modules.index')}>
-                                            <Play className="mr-2 size-4 fill-current" />
-                                            Continue the Course
-                                        </Link>
-                                    </Button>
+                                    {heroPrimaryKind === 'download' ? (
+                                        <Button
+                                            asChild
+                                            size="lg"
+                                            className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
+                                        >
+                                            <a href={homeExperience?.primary_cta_url ?? '#'}>
+                                                <Play className="mr-2 size-4 fill-current" />
+                                                {homeExperience?.primary_cta_label ??
+                                                    'Continue the Course'}
+                                            </a>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            asChild
+                                            size="lg"
+                                            className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
+                                        >
+                                            <Link href={homeExperience?.primary_cta_url ?? route('modules.index')}>
+                                                <Play className="mr-2 size-4 fill-current" />
+                                                {homeExperience?.primary_cta_label ??
+                                                    'Continue the Course'}
+                                            </Link>
+                                        </Button>
+                                    )}
 
-                                    <Button
-                                        asChild
-                                        size="lg"
-                                        variant="outline"
-                                        className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
-                                    >
-                                        <Link href={route('modules.index')}>
-                                            Explore Modules
-                                        </Link>
-                                    </Button>
+                                    {heroSecondaryKind === 'download' ? (
+                                        <Button
+                                            asChild
+                                            size="lg"
+                                            variant="outline"
+                                            className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
+                                        >
+                                            <a href={homeExperience?.secondary_cta_url ?? '#'}>
+                                                {homeExperience?.secondary_cta_label ??
+                                                    'Explore Modules'}
+                                            </a>
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            asChild
+                                            size="lg"
+                                            variant="outline"
+                                            className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
+                                        >
+                                            <Link href={homeExperience?.secondary_cta_url ?? route('modules.index')}>
+                                                {homeExperience?.secondary_cta_label ??
+                                                    'Explore Modules'}
+                                            </Link>
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
-                                <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur">
-                                    {tierLabel}
-                                </div>
-                                <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur">
-                                    Sequence awareness is now live
-                                </div>
+                                {heroBadges.map((badge) => (
+                                    <div
+                                        key={badge}
+                                        className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur"
+                                    >
+                                        {badge}
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
@@ -121,13 +166,13 @@ export default function StudentHome({
                                 <div className="space-y-6">
                                     <div className="space-y-2">
                                         <p className="text-xs uppercase tracking-[0.24em] text-white/55">
-                                            Running Total
+                                            {homeExperience?.highlight_label ?? 'Running Total'}
                                         </p>
                                         <div className="text-3xl font-semibold tracking-[0.08em] text-white">
-                                            132:65:06
+                                            {homeExperience?.highlight_value ?? '132:65:06'}
                                         </div>
                                         <p className="text-sm text-white/58">
-                                            Login Time
+                                            {homeExperience?.highlight_caption ?? 'Login Time'}
                                         </p>
                                     </div>
 
@@ -170,7 +215,7 @@ export default function StudentHome({
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
-                            Phase 10 active
+                            Phase 11 active
                         </span>
                     </div>
 
@@ -189,6 +234,16 @@ export default function StudentHome({
                                     <div className="absolute left-4 top-4 rounded-full border border-white/12 bg-black/35 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/70 backdrop-blur">
                                         {continueLearning?.status ?? 'Ready'}
                                     </div>
+                                    {!continueLearning?.thumbnail_url && (
+                                        <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 backdrop-blur">
+                                            <p className="text-xs uppercase tracking-[0.2em] text-white/50">
+                                                Visual placeholder
+                                            </p>
+                                            <p className="mt-2 text-sm font-medium text-white">
+                                                YogaFX lesson artwork is not attached yet.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <h3 className="text-lg font-medium text-white">
@@ -272,7 +327,7 @@ export default function StudentHome({
                                     disabled
                                     className="justify-between rounded-full border border-white/12 bg-white/5 px-5 py-6 text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
                                 >
-                                    Next: assignment milestone
+                                    {continueEngineLabel}
                                     <ChevronRight className="size-4" />
                                 </Button>
                             </div>
@@ -562,13 +617,12 @@ export default function StudentHome({
 
                                 <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
                                     <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                        Stage 10 scope
+                                        Stage 11 scope
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        Sequence awareness, assignment milestone, and certificate
-                                        milestone are now connected. Supporting resources are now
-                                        visible, while final empty-state polish still stays for the
-                                        next phase.
+                                        Empty states and edge cases are now being handled more
+                                        deliberately, so Home stays clear for first-time students,
+                                        completed journeys, and incomplete supporting data.
                                     </p>
                                 </div>
                             </div>
@@ -686,9 +740,11 @@ export default function StudentHome({
                                         Current boundary
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        Assessment, assignment, and certificate recommendations are
-                                        still deferred until their student-side flows are active,
-                                        so this card avoids sending students into dead ends.
+                                        Assessment recommendation still stays deferred until its
+                                        student-side flow becomes active. Assignment and
+                                        certificate milestones now appear below as visibility
+                                        layers, while this card keeps the main next step focused
+                                        on safe learning routes.
                                     </p>
                                 </div>
                             </div>
@@ -770,6 +826,18 @@ export default function StudentHome({
                                                             alt={module.title}
                                                             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                                                         />
+                                                    )}
+                                                    {!module.thumbnail_url && (
+                                                        <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+                                                            <div>
+                                                                <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                                                    Artwork pending
+                                                                </p>
+                                                                <p className="mt-3 text-lg font-medium text-white/80">
+                                                                    YogaFX module cover will appear here.
+                                                                </p>
+                                                            </div>
+                                                        </div>
                                                     )}
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
                                                     <div className="absolute left-4 top-4 flex flex-wrap gap-2">
