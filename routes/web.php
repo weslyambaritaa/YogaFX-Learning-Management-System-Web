@@ -53,6 +53,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/modules', [ModuleCatalogController::class, 'index'])->name('modules.index');
         Route::get('/modules/{module:url_slug}', [ModuleCatalogController::class, 'show'])->name('modules.show');
         Route::get('/lessons/{lesson}', [LessonCatalogController::class, 'show'])->name('lessons.show');
+        Route::get('/certificates/{certificate}/download', [HomeController::class, 'downloadCertificate'])->name('student.certificates.download');
         Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
