@@ -12,6 +12,7 @@ use App\Http\Controllers\ContentFileController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\CourseCatalogController;
 use App\Http\Controllers\Student\EbookCatalogController;
+use App\Http\Controllers\Student\HomeController;
 use App\Http\Controllers\Student\LessonCatalogController;
 use App\Http\Controllers\Student\ModuleCatalogController;
 use Illuminate\Foundation\Application;
@@ -42,15 +43,9 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Admin/Dashboard');
     })->middleware('role:admin')->name('admin.dashboard');
 
-    Route::get('/student/dashboard', function () {
-        $user = request()->user();
-
-        if ($user && ! $user->hasCompletedStudentProfile()) {
-            return redirect()->route('profile.edit');
-        }
-
-        return Inertia::render('Student/Dashboard');
-    })->middleware('role:student')->name('student.dashboard');
+    Route::get('/student/dashboard', [HomeController::class, 'index'])
+        ->middleware('role:student')
+        ->name('student.dashboard');
 
     Route::middleware('role:student')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

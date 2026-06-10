@@ -27,6 +27,8 @@ class EbookCatalogController extends Controller
                 ->map(fn (Ebook $ebook) => [
                     'id' => $ebook->id,
                     'title' => $ebook->title,
+                    'sort_order' => $ebook->sort_order,
+                    'file_name' => basename((string) $ebook->file),
                     'preview_url' => route('ebooks.preview', $ebook),
                 ]),
         ]);

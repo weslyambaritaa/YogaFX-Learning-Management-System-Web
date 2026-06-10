@@ -30,6 +30,7 @@ import {
     Mail,
     Menu,
     PlaySquare,
+    Search,
     UserRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -179,11 +180,11 @@ const adminUtilityItems = [
 ];
 
 const studentNavigationItems = [
-    { label: 'Dashboard', route: 'student.dashboard' },
-    { label: 'Modules', route: 'modules.index' },
-    { label: 'Ebooks', route: 'ebooks.index' },
-    { label: 'Courses', route: 'courses.index' },
-    { label: 'Profile', route: 'profile.edit' },
+    { label: 'Home', route: 'student.dashboard', match: ['student.dashboard'] },
+    { label: 'Modules', route: 'modules.index', match: ['modules.index', 'modules.show', 'lessons.show'] },
+    { label: 'Ebooks', route: 'ebooks.index', match: ['ebooks.index', 'ebooks.preview'] },
+    { label: 'Courses', route: 'courses.index', match: ['courses.index'] },
+    { label: 'Profile', route: 'profile.edit', match: ['profile.edit'] },
 ];
 
 const adminPageTitles = {
@@ -253,7 +254,9 @@ function UserMenu({ user }) {
 }
 
 function isItemActive(item) {
-    const routeMatches = item.match?.some((pattern) => route().current(pattern)) ?? false;
+    const routeMatches = item.match
+        ? item.match.some((pattern) => route().current(pattern))
+        : (item.route ? route().current(item.route) : false);
 
     if (! routeMatches) {
         return false;
@@ -504,9 +507,16 @@ function AdminMobileSidebar({
     );
 }
 
-function StudentTopNavigation({ user, header, children }) {
+function StudentTopNavigation({
+    user,
+    header,
+    children,
+    variant = 'default',
+    contentClassName = '',
+}) {
     const [mobileOpen, setMobileOpen] = useState(false);
     const currentRouteName = route().current();
+    const isImmersive = variant === 'immersive';
 
     useEffect(() => {
         const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
@@ -529,19 +539,56 @@ function StudentTopNavigation({ user, header, children }) {
     }, [currentRouteName]);
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <nav className="border-b border-border bg-background">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div
+            className={[
+                'min-h-screen',
+                isImmersive
+                    ? 'bg-[radial-gradient(circle_at_top,_rgba(173,76,38,0.28),_transparent_32%),linear-gradient(180deg,_#120f0e_0%,_#0a0908_38%,_#080808_100%)] text-white'
+                    : 'bg-slate-50',
+            ].join(' ')}
+        >
+            <nav
+                className={[
+                    isImmersive
+                        ? 'sticky top-0 z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl'
+                        : 'border-b border-border bg-background',
+                ].join(' ')}
+            >
+                <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
                     <div className="flex min-w-0 items-center gap-3">
                         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                             <SheetTrigger asChild>
-                                <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+                                <Button
+                                    variant={isImmersive ? 'ghost' : 'outline'}
+                                    size="icon"
+                                    className={[
+                                        'shrink-0 md:hidden',
+                                        isImmersive
+                                            ? 'border border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white'
+                                            : '',
+                                    ].join(' ')}
+                                >
                                     <Menu className="size-4" />
                                     <span className="sr-only">Open navigation</span>
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="left" className="w-[85vw] max-w-72 p-0">
-                                <SheetHeader className="border-b border-border">
+                            <SheetContent
+                                side="left"
+                                className={[
+                                    'w-[85vw] max-w-72 p-0',
+                                    isImmersive
+                                        ? 'border-white/10 bg-[#0d0b0a] text-white'
+                                        : '',
+                                ].join(' ')}
+                            >
+                                <SheetHeader
+                                    className={[
+                                        'border-b',
+                                        isImmersive
+                                            ? 'border-white/10'
+                                            : 'border-border',
+                                    ].join(' ')}
+                                >
                                     <SheetTitle>YogaFX LMS</SheetTitle>
                                     <SheetDescription>Student navigation</SheetDescription>
                                 </SheetHeader>
@@ -550,12 +597,13 @@ function StudentTopNavigation({ user, header, children }) {
                                         <Button
                                             key={item.route}
                                             asChild
-                                            variant={
-                                                route().current(item.route)
-                                                    ? 'secondary'
-                                                    : 'ghost'
-                                            }
-                                            className="h-11 w-full justify-start rounded-xl px-3"
+                                            variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                            className={[
+                                                'h-11 w-full justify-start rounded-xl px-3',
+                                                isImmersive && !isItemActive(item)
+                                                    ? 'text-white/78 hover:bg-white/10 hover:text-white'
+                                                    : '',
+                                            ].join(' ')}
                                         >
                                             <Link
                                                 href={route(item.route)}
@@ -570,10 +618,22 @@ function StudentTopNavigation({ user, header, children }) {
                         </Sheet>
 
                         <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-foreground">
+                            <div
+                                className={[
+                                    'truncate text-sm font-semibold',
+                                    isImmersive ? 'text-white' : 'text-foreground',
+                                ].join(' ')}
+                            >
                                 YogaFX LMS
                             </div>
-                            <div className="truncate text-xs text-muted-foreground">
+                            <div
+                                className={[
+                                    'truncate text-xs',
+                                    isImmersive
+                                        ? 'text-white/60'
+                                        : 'text-muted-foreground',
+                                ].join(' ')}
+                            >
                                 Student Area
                             </div>
                         </div>
@@ -584,31 +644,102 @@ function StudentTopNavigation({ user, header, children }) {
                             <Button
                                 key={item.route}
                                 asChild
-                                variant={route().current(item.route) ? 'secondary' : 'ghost'}
+                                variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                className={
+                                    isImmersive && !isItemActive(item)
+                                        ? 'text-white/78 hover:bg-white/10 hover:text-white'
+                                        : ''
+                                }
                             >
                                 <Link href={route(item.route)}>{item.label}</Link>
                             </Button>
                         ))}
+
+                        {isImmersive && (
+                            <>
+                                <div className="mx-2 hidden h-6 w-px bg-white/10 xl:block" />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled
+                                    className="hidden rounded-full border border-white/12 bg-white/5 px-4 text-xs uppercase tracking-[0.18em] text-white/80 opacity-100 hover:bg-white/10 hover:text-white xl:inline-flex"
+                                >
+                                    Instant Access
+                                </Button>
+                            </>
+                        )}
                     </div>
 
-                    <UserMenu user={user} />
+                    <div className="flex items-center gap-2">
+                        {isImmersive && (
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled
+                                    size="icon"
+                                    className="hidden rounded-full border border-white/12 bg-white/5 text-white/80 opacity-100 hover:bg-white/10 hover:text-white lg:inline-flex"
+                                >
+                                    <Search className="size-4" />
+                                    <span className="sr-only">Search</span>
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled
+                                    className="hidden rounded-full border border-white/12 bg-white/5 px-4 text-xs font-medium text-white/80 opacity-100 hover:bg-white/10 hover:text-white lg:inline-flex"
+                                >
+                                    Full Standing Dialog
+                                    <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-white/55">
+                                        View in Browser
+                                    </span>
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    disabled
+                                    className="hidden rounded-full border border-white/12 bg-white/5 px-4 text-xs font-medium text-white/80 opacity-100 hover:bg-white/10 hover:text-white xl:inline-flex"
+                                >
+                                    Full Floor Dialog
+                                    <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-white/55">
+                                        View in Browser
+                                    </span>
+                                </Button>
+                            </>
+                        )}
+
+                        <div className={isImmersive ? '[&_button]:border-white/15 [&_button]:bg-white/5 [&_button]:text-white [&_button]:hover:bg-white/10 [&_button]:hover:text-white' : ''}>
+                            <UserMenu user={user} />
+                        </div>
+                    </div>
                 </div>
             </nav>
 
             {header && (
-                <header className="border-b border-border bg-background/90">
-                    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+                <header
+                    className={[
+                        isImmersive
+                            ? 'border-b border-white/10 bg-black/10'
+                            : 'border-b border-border bg-background/90',
+                    ].join(' ')}
+                >
+                    <div className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 lg:px-10">
                         {header}
                     </div>
                 </header>
             )}
 
-            <main>{children}</main>
+            <main className={contentClassName}>{children}</main>
         </div>
     );
 }
 
-export default function AuthenticatedLayout({ header, children }) {
+export default function AuthenticatedLayout({
+    header,
+    children,
+    studentVariant = 'default',
+    studentContentClassName = '',
+}) {
     const user = usePage().props.auth.user;
     const currentRouteName = route().current();
     const isAdmin = user?.role === 'admin';
@@ -682,7 +813,12 @@ export default function AuthenticatedLayout({ header, children }) {
 
     if (!isAdmin) {
         return (
-            <StudentTopNavigation user={user} header={header}>
+            <StudentTopNavigation
+                user={user}
+                header={header}
+                variant={studentVariant}
+                contentClassName={studentContentClassName}
+            >
                 {children}
             </StudentTopNavigation>
         );

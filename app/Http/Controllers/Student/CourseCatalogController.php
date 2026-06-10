@@ -22,12 +22,15 @@ class CourseCatalogController extends Controller
                 ->where('access_tier_id', $user?->access_tier_id)
                 ->orderBy('title')
                 ->get()
-                ->map(fn (Course $course) => [
+                ->values()
+                ->map(fn (Course $course, int $index) => [
                     'id' => $course->id,
                     'title' => $course->title,
                     'url_slug' => $course->url_slug,
                     'description' => $course->description,
                     'video' => $course->video,
+                    'index' => $index + 1,
+                    'status' => 'ready',
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'course',
                         $course->id,
