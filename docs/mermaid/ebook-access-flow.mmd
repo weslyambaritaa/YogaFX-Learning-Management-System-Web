@@ -1,8 +1,9 @@
 flowchart TD
-    A[Student opens ebooks page] --> B[System filters ebooks by tier]
-    B --> C[Show available ebook list]
-    C --> D[Student selects ebook]
-    D --> E{Tier access valid?}
-    E -->|No| F[Show access denied]
-    E -->|Yes| G[Open or download ebook]
-    G --> H[Student uses ebook resource]
+    A[Student opens Ebooks] --> B[System filters ebooks by tier]
+    B --> C[Student selects ebook]
+    C --> D[Open preview page]
+    D --> E{Preview supported?}
+    E -->|Yes| F[Render ebook inline]
+    E -->|No| G[Show fallback preview message]
+    F --> H[Optional explicit download]
+    G --> H

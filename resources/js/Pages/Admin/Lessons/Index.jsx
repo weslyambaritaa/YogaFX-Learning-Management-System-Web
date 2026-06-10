@@ -1,3 +1,4 @@
+import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 
@@ -7,8 +8,8 @@ export default function LessonsIndex({ lessons, status }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between gap-4">
-                    <div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                         <h2 className="text-xl font-semibold leading-tight text-gray-800">
                             Lessons
                         </h2>
@@ -18,7 +19,7 @@ export default function LessonsIndex({ lessons, status }) {
                     </div>
                     <Link
                         href={route('admin.lessons.create')}
-                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                        className="w-full rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700 sm:w-auto"
                     >
                         Create Lesson
                     </Link>
@@ -27,7 +28,7 @@ export default function LessonsIndex({ lessons, status }) {
         >
             <Head title="Lessons" />
             <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {status === 'lesson-created' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Lesson has been created.
@@ -65,8 +66,23 @@ export default function LessonsIndex({ lessons, status }) {
                                 <tbody className="divide-y divide-gray-100 bg-white">
                                     {lessons.map((lesson) => (
                                         <tr key={lesson.id}>
-                                            <td className="px-4 py-3 font-medium text-gray-900">
-                                                {lesson.title}
+                                            <td className="px-4 py-3">
+                                                <div className="flex items-center gap-4">
+                                                    {lesson.thumbnail_url ? (
+                                                        <img
+                                                            src={lesson.thumbnail_url}
+                                                            alt={lesson.title}
+                                                            className="h-14 w-20 rounded-md object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-14 w-20 items-center justify-center rounded-md bg-gray-100 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                                                            No image
+                                                        </div>
+                                                    )}
+                                                    <div className="font-medium text-gray-900">
+                                                        {lesson.title}
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">{lesson.module}</td>
                                             <td className="px-4 py-3 text-gray-700">
@@ -93,14 +109,11 @@ export default function LessonsIndex({ lessons, status }) {
                                                     >
                                                         Edit
                                                     </Link>
-                                                    <Link
+                                                    <DeleteConfirmationDialog
                                                         href={route('admin.lessons.destroy', lesson.id)}
-                                                        method="delete"
-                                                        as="button"
-                                                        className="text-sm font-medium text-rose-600 hover:text-rose-800"
-                                                    >
-                                                        Delete
-                                                    </Link>
+                                                        title="Delete lesson?"
+                                                        description={`This will permanently delete "${lesson.title}". This action cannot be undone.`}
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>

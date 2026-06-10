@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\CourseCatalogController;
 use App\Http\Controllers\Student\EbookCatalogController;
 use App\Http\Controllers\Student\AssessmentController;
+use App\Http\Controllers\Student\HomeController;
 use App\Http\Controllers\Student\LessonCatalogController;
 use App\Http\Controllers\Student\ModuleCatalogController;
 use App\Http\Controllers\Admin\ScoreboardBuilderController;
@@ -45,15 +46,9 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Admin/Dashboard');
     })->middleware('role:admin')->name('admin.dashboard');
 
-    Route::get('/student/dashboard', function () {
-        $user = request()->user();
-
-        if ($user && ! $user->hasCompletedStudentProfile()) {
-            return redirect()->route('profile.edit');
-        }
-
-        return Inertia::render('Student/Dashboard');
-    })->middleware('role:student')->name('student.dashboard');
+    Route::get('/student/dashboard', [HomeController::class, 'index'])
+        ->middleware('role:student')
+        ->name('student.dashboard');
 
     Route::middleware('role:student')->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -67,7 +62,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/lessons/{lesson}/assessment/attempts/{attempt}/answer', [AssessmentController::class, 'storeAnswer'])->name('assessments.answer');
         Route::post('/lessons/{lesson}/assessment/attempts/{attempt}/back', [AssessmentController::class, 'back'])->name('assessments.back');
         Route::get('/lessons/{lesson}/assessment/attempts/{attempt}/result', [AssessmentController::class, 'result'])->name('assessments.result');
+        Route::get('/certificates/{certificate}/download', [HomeController::class, 'downloadCertificate'])->name('student.certificates.download');
         Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
+        Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
     });
 
@@ -114,6 +111,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/ebooks', [EbookController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/create', [EbookController::class, 'create'])->name('ebooks.create');
         Route::post('/ebooks', [EbookController::class, 'store'])->name('ebooks.store');
+        Route::get('/ebooks/{ebook}/preview', [EbookController::class, 'preview'])->name('ebooks.preview');
         Route::get('/ebooks/{ebook}/edit', [EbookController::class, 'edit'])->name('ebooks.edit');
         Route::patch('/ebooks/{ebook}', [EbookController::class, 'update'])->name('ebooks.update');
         Route::delete('/ebooks/{ebook}', [EbookController::class, 'destroy'])->name('ebooks.destroy');
@@ -128,6 +126,7 @@ Route::middleware('auth')->group(function () {
         Route::redirect('/email-notifications', '/admin/email-notifications/module_completion')->name('email-notifications.index');
         Route::get('/email-notifications/{notificationType}', [EmailNotificationController::class, 'show'])->name('email-notifications.show');
         Route::patch('/email-notifications/{notificationType}', [EmailNotificationController::class, 'update'])->name('email-notifications.update');
+        Route::post('/email-notifications/{notificationType}/media', [EmailNotificationController::class, 'uploadMedia'])->name('email-notifications.media');
         Route::post('/email-notifications/{notificationType}/send-test', [EmailNotificationController::class, 'sendTest'])->name('email-notifications.send-test');
 
         Route::get('/student-progress', [StudentController::class, 'index'])->name('student-progress.index');

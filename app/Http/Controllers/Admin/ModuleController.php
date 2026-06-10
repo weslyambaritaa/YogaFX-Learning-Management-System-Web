@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ModuleRequest;
@@ -13,6 +14,7 @@ use Inertia\Response;
 
 class ModuleController extends Controller
 {
+    use BuildsProtectedMediaUrls;
     use HandlesLocalUploads;
 
     public function index(): Response
@@ -29,7 +31,13 @@ class ModuleController extends Controller
                     'title' => $module->title,
                     'url_slug' => $module->url_slug,
                     'sort_order' => $module->sort_order,
-                    'thumbnail_url' => route('media.show', ['entity' => 'module', 'id' => $module->id, 'field' => 'thumbnail']),
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'module',
+                        $module->id,
+                        'thumbnail',
+                        $module->thumbnail,
+                        versionSeed: $module->updated_at,
+                    ),
                     'access_tiers' => $module->accessTiers->pluck('name')->all(),
                     'lessons_count' => $module->lessons_count,
                 ]),
@@ -66,7 +74,13 @@ class ModuleController extends Controller
                 'title' => $module->title,
                 'url_slug' => $module->url_slug,
                 'access_tier_ids' => $module->accessTiers()->pluck('access_tiers.id')->all(),
-                'thumbnail_url' => route('media.show', ['entity' => 'module', 'id' => $module->id, 'field' => 'thumbnail']),
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'module',
+                    $module->id,
+                    'thumbnail',
+                    $module->thumbnail,
+                    versionSeed: $module->updated_at,
+                ),
             ],
             'accessTiers' => $this->accessTierOptions(),
             'status' => session('status'),

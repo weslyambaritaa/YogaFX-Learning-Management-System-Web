@@ -184,7 +184,7 @@ export default function StudentProgressDirectory({ tierSections, status }) {
     return (
         <AuthenticatedLayout
             header={
-                <div>
+                <div className="min-w-0">
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
                         Student Progress
                     </h2>
@@ -199,7 +199,7 @@ export default function StudentProgressDirectory({ tierSections, status }) {
             <Head title="Student Progress" />
 
             <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {status === 'student-profile-updated' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Student profile has been updated.

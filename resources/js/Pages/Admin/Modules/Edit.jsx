@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function EditModule({ module, accessTiers, status }) {
-    const { data, setData, patch, processing, errors } = useForm({
+    const { data, setData, patch, processing, errors, setError, clearErrors } = useForm({
         title: module.title ?? '',
         url_slug: module.url_slug ?? '',
         thumbnail: null,
@@ -48,6 +48,8 @@ export default function EditModule({ module, accessTiers, status }) {
                         <ModuleForm
                             data={data}
                             setData={setData}
+                            setError={setError}
+                            clearErrors={clearErrors}
                             errors={errors}
                             processing={processing}
                             accessTiers={accessTiers}

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Module;
+use App\Support\UploadConstraints;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -43,9 +44,16 @@ class ModuleRequest extends FormRequest
                 'regex:/^[a-z0-9-]+$/',
                 Rule::unique(Module::class, 'url_slug')->ignore($module?->id),
             ],
-            'thumbnail' => [...$thumbnailRule, 'image', 'max:2048'],
+            'thumbnail' => [...$thumbnailRule, 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
             'access_tier_ids' => ['required', 'array', 'min:1'],
             'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'thumbnail.max' => 'The thumbnail must not be larger than 10 MB.',
         ];
     }
 }

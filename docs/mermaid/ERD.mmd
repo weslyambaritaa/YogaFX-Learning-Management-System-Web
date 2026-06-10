@@ -1,19 +1,20 @@
 erDiagram
-
     USERS {
         bigint id PK
         bigint access_tier_id FK
+        string name
+        string role
+        string email
+        string password
         string first_name
         string last_name
-        string email
         string whatsapp
         string preferred_certificate_picture
+        string profile_photo
         string instagram
         string country
         date birth_date
         string gender
-        datetime last_visit_at
-        int total_access_duration_seconds
         string practicing_yoga_for
         string yoga_sequence_experience
         int hours_per_week
@@ -22,28 +23,14 @@ erDiagram
         text motivation
         text why_yogafx
         text how_did_you_find_us
-        datetime created_at
-        datetime updated_at
-    }
-
-    USER_SESSIONS {
-        bigint id PK
-        bigint user_id FK
-        datetime login_at
-        datetime logout_at
-        datetime last_activity_at
-        int session_duration_seconds
-        boolean is_active
-        datetime created_at
-        datetime updated_at
     }
 
     ACCESS_TIERS {
         bigint id PK
         string name
+        string slug
         text description
-        datetime created_at
-        datetime updated_at
+        boolean is_active
     }
 
     MODULES {
@@ -51,17 +38,13 @@ erDiagram
         string title
         string url_slug
         string thumbnail
-        bigint access_tier_id FK
         int sort_order
-        datetime created_at
-        datetime updated_at
     }
 
     LESSONS {
         bigint id PK
         bigint module_id FK
-        bigint access_tier_id FK
-        bigint assessment_id FK
+        bigint assessment_id
         string title
         string thumbnail
         string workbook
@@ -69,8 +52,41 @@ erDiagram
         string audio
         text content
         int sort_order
-        datetime created_at
-        datetime updated_at
+    }
+
+    ACCESS_TIER_MODULE {
+        bigint id PK
+        bigint access_tier_id FK
+        bigint module_id FK
+    }
+
+    ACCESS_TIER_LESSON {
+        bigint id PK
+        bigint access_tier_id FK
+        bigint lesson_id FK
+    }
+
+    EBOOKS {
+        bigint id PK
+        string title
+        string file
+        int sort_order
+    }
+
+    ACCESS_TIER_EBOOK {
+        bigint id PK
+        bigint access_tier_id FK
+        bigint ebook_id FK
+    }
+
+    COURSES {
+        bigint id PK
+        bigint access_tier_id FK
+        string title
+        string url_slug
+        text description
+        string thumbnail
+        string video
     }
 
     LESSON_PROGRESS {
@@ -83,88 +99,6 @@ erDiagram
         datetime video_completed_at
         boolean is_done
         datetime completed_at
-        datetime created_at
-        datetime updated_at
-    }
-
-    ASSESSMENTS {
-        bigint id PK
-        string title
-        text description
-        int duration_minutes
-        datetime created_at
-        datetime updated_at
-    }
-
-    ASSESSMENT_PAGES {
-        bigint id PK
-        bigint assessment_id FK
-        string title
-        int sort_order
-        datetime created_at
-        datetime updated_at
-    }
-
-    QUESTIONS {
-        bigint id PK
-        bigint assessment_page_id FK
-        text question_text
-        string type
-        int sort_order
-        datetime created_at
-        datetime updated_at
-    }
-
-    QUESTION_OPTIONS {
-        bigint id PK
-        bigint question_id FK
-        text text_option
-        boolean is_true
-        int sort_order
-        datetime created_at
-        datetime updated_at
-    }
-
-    ASSESSMENT_PROGRESS {
-        bigint id PK
-        bigint user_id FK
-        bigint assessment_id FK
-        decimal latest_score
-        decimal highest_score
-        int total_attempts
-        boolean is_done
-        datetime completed_at
-        datetime created_at
-        datetime updated_at
-    }
-
-    ASSESSMENT_ATTEMPTS {
-        bigint id PK
-        bigint user_id FK
-        bigint assessment_id FK
-        int attempt_number
-        string status
-        decimal score
-        boolean is_passed
-        datetime started_at
-        datetime expires_at
-        datetime submitted_at
-        datetime completed_at
-        datetime created_at
-        datetime updated_at
-    }
-
-    ASSESSMENT_ANSWERS {
-        bigint id PK
-        bigint assessment_attempt_id FK
-        bigint question_id FK
-        bigint question_option_id FK
-        text answer_text
-        boolean is_correct
-        boolean is_final
-        datetime answered_at
-        datetime created_at
-        datetime updated_at
     }
 
     ASSIGNMENT_SUBMISSIONS {
@@ -176,8 +110,6 @@ erDiagram
         text assignment_feedback
         datetime submitted_at
         datetime graded_at
-        datetime created_at
-        datetime updated_at
     }
 
     CERTIFICATES {
@@ -190,17 +122,6 @@ erDiagram
         int version
         datetime generated_at
         datetime deleted_at
-        datetime created_at
-        datetime updated_at
-    }
-
-    EBOOKS {
-        bigint id PK
-        string title
-        string file
-        bigint access_tier_id FK
-        datetime created_at
-        datetime updated_at
     }
 
     EMAIL_TEMPLATES {
@@ -213,8 +134,6 @@ erDiagram
         text body_user
         string subject_admin
         text body_admin
-        datetime created_at
-        datetime updated_at
     }
 
     EMAIL_LOGS {
@@ -230,63 +149,24 @@ erDiagram
         string status
         text error_message
         datetime sent_at
-        datetime created_at
-        datetime updated_at
     }
 
-    USER_ACTIVITY_LOGS {
-        bigint id PK
-        bigint user_id FK
-        string activity_type
-        string reference_type
-        bigint reference_id
-        text description
-        int duration_seconds
-        datetime created_at
-        datetime updated_at
-    }
-
-    COURSES {
-        bigint id PK
-        string title
-        string url_slug
-        bigint access_tier_id FK
-        text description
-        string thumbnail
-        string video
-        datetime created_at
-        datetime updated_at
-    }
-
-    ACCESS_TIERS ||--o{ USERS : has
-    ACCESS_TIERS ||--o{ MODULES : controls
-    ACCESS_TIERS ||--o{ LESSONS : controls
-    ACCESS_TIERS ||--o{ EBOOKS : controls
+    ACCESS_TIERS ||--o{ USERS : assigns
     ACCESS_TIERS ||--o{ COURSES : controls
+    ACCESS_TIERS ||--o{ ACCESS_TIER_MODULE : maps
+    ACCESS_TIERS ||--o{ ACCESS_TIER_LESSON : maps
+    ACCESS_TIERS ||--o{ ACCESS_TIER_EBOOK : maps
 
-    USERS ||--o{ USER_SESSIONS : has
+    MODULES ||--o{ LESSONS : contains
+    MODULES ||--o{ ACCESS_TIER_MODULE : scoped_by
+    LESSONS ||--o{ ACCESS_TIER_LESSON : scoped_by
+    EBOOKS ||--o{ ACCESS_TIER_EBOOK : scoped_by
+
     USERS ||--o{ LESSON_PROGRESS : has
-    USERS ||--o{ ASSESSMENT_PROGRESS : has
-    USERS ||--o{ ASSESSMENT_ATTEMPTS : makes
+    LESSONS ||--o{ LESSON_PROGRESS : tracked_by
+
     USERS ||--o{ ASSIGNMENT_SUBMISSIONS : submits
     USERS ||--o{ CERTIFICATES : owns
     USERS ||--o{ CERTIFICATES : generates
-    USERS ||--o{ USER_ACTIVITY_LOGS : creates
-
-    MODULES ||--o{ LESSONS : contains
-    ASSESSMENTS ||--o| LESSONS : attached_to
-
-    LESSONS ||--o{ LESSON_PROGRESS : tracked_in
-
-    ASSESSMENTS ||--o{ ASSESSMENT_PAGES : has
-    ASSESSMENT_PAGES ||--o{ QUESTIONS : contains
-    QUESTIONS ||--o{ QUESTION_OPTIONS : has
-
-    ASSESSMENTS ||--o{ ASSESSMENT_PROGRESS : tracked_in
-    ASSESSMENTS ||--o{ ASSESSMENT_ATTEMPTS : attempted_in
-
-    ASSESSMENT_ATTEMPTS ||--o{ ASSESSMENT_ANSWERS : contains
-    QUESTIONS ||--o{ ASSESSMENT_ANSWERS : answered_in
-    QUESTION_OPTIONS ||--o{ ASSESSMENT_ANSWERS : selected_in
 
     EMAIL_TEMPLATES ||--o{ EMAIL_LOGS : produces

@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function CreateEbook({ accessTiers }) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         title: '',
         file: null,
         access_tier_ids: [],
@@ -37,6 +37,8 @@ export default function CreateEbook({ accessTiers }) {
                         <EbookForm
                             data={data}
                             setData={setData}
+                            setError={setError}
+                            clearErrors={clearErrors}
                             errors={errors}
                             processing={processing}
                             accessTiers={accessTiers}

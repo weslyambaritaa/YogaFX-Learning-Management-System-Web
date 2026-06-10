@@ -1,11 +1,10 @@
 flowchart TD
-    A[Student logs in] --> B[System checks profile completeness]
+    A[Student logs in] --> B[System checks required profile fields]
     B --> C{Profile complete?}
-    C -->|Yes| D[Redirect to Student Dashboard]
-    C -->|No| E[Redirect to Profile Completion]
-    E --> F[Student fills profile form]
-    F --> G[Validate profile data]
-    G --> H{Valid?}
-    H -->|No| I[Show validation errors]
-    H -->|Yes| J[Save profile]
-    J --> D
+    C -->|Yes| D[Go to Student Dashboard]
+    C -->|No| E[Redirect to Profile Edit]
+    E --> F[Student fills required fields]
+    F --> G{Valid?}
+    G -->|No| H[Show validation errors]
+    G -->|Yes| I[Save profile]
+    I --> D

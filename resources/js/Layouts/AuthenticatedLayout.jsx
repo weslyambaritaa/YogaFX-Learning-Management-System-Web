@@ -24,8 +24,6 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
     ClipboardList,
     FileSpreadsheet,
     LayoutDashboard,
@@ -38,6 +36,8 @@ import { useEffect, useState } from 'react';
 
 const ADMIN_SIDEBAR_STORAGE_KEY = 'yogafx-admin-sidebar-collapsed';
 const ADMIN_EMAIL_GROUP_STORAGE_KEY = 'yogafx-admin-email-group-open';
+const ADMIN_DESKTOP_BREAKPOINT = '(min-width: 1024px)';
+const STUDENT_DESKTOP_BREAKPOINT = '(min-width: 768px)';
 
 const adminNavigationItems = [
     {
@@ -180,11 +180,13 @@ const adminUtilityItems = [
 ];
 
 const studentNavigationItems = [
-    { label: 'Dashboard', route: 'student.dashboard' },
-    { label: 'Modules', route: 'modules.index' },
-    { label: 'Ebooks', route: 'ebooks.index' },
-    { label: 'Courses', route: 'courses.index' },
-    { label: 'Profile', route: 'profile.edit' },
+    { label: 'Home', route: 'student.dashboard', match: ['student.dashboard'] },
+    { label: 'Modules', route: 'modules.index', match: ['modules.index', 'modules.show', 'lessons.show'] },
+];
+
+const studentInstantAccessItems = [
+    { label: 'Full Standing Dialog' },
+    { label: 'Full Floor Dialog' },
 ];
 
 const adminPageTitles = {
@@ -205,6 +207,7 @@ const adminPageTitles = {
     'admin.ebooks.index': 'E-Book',
     'admin.ebooks.create': 'Create E-Book',
     'admin.ebooks.edit': 'Edit E-Book',
+    'admin.ebooks.preview': 'E-Book Preview',
     'admin.student-progress.index': 'Student Progress',
     'admin.student-progress.completed-lessons.index': 'Completed Lesson',
     'admin.student-progress.assignments.index': 'Assignment',
@@ -220,17 +223,54 @@ const adminPageTitles = {
     'admin.access-tiers.edit': 'Edit Access Tier',
 };
 
-function UserMenu({ user }) {
+function getUserInitials(user) {
+    const baseName = [user?.first_name, user?.last_name]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || user?.name || 'Student';
+
+    return baseName
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('');
+}
+
+function UserMenu({ user, isImmersive = false }) {
     const handleLogout = () => {
         router.post(route('logout'));
     };
 
+    const isStudent = user?.role === 'student';
+    const displayName = user?.first_name || user?.name || 'Student';
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                    <UserRound className="size-4" />
-                    <span className="hidden md:inline">{user.name}</span>
+                <Button
+                    variant="outline"
+                    className={[
+                        'gap-2 rounded-full',
+                        isImmersive
+                            ? 'border-white/15 bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white'
+                            : '',
+                    ].join(' ')}
+                >
+                    <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current">
+                        {user?.profile_photo ? (
+                            <img
+                                src={user.profile_photo}
+                                alt={displayName}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            getUserInitials(user) || <UserRound className="size-4" />
+                        )}
+                    </span>
+                    <span className="hidden max-w-32 truncate md:inline">
+                        {displayName}
+                    </span>
+                    <ChevronDown className="size-4 opacity-70" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -243,6 +283,11 @@ function UserMenu({ user }) {
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isStudent && (
+                    <DropdownMenuItem asChild>
+                        <Link href={route('profile.edit')}>Profile</Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                     onSelect={(event) => {
                         event.preventDefault();
@@ -257,7 +302,9 @@ function UserMenu({ user }) {
 }
 
 function isItemActive(item) {
-    const routeMatches = item.match?.some((pattern) => route().current(pattern)) ?? false;
+    const routeMatches = item.match
+        ? item.match.some((pattern) => route().current(pattern))
+        : (item.route ? route().current(item.route) : false);
 
     if (! routeMatches) {
         return false;
@@ -376,7 +423,6 @@ function SidebarGroup({
 
 function AdminSidebar({
     collapsed,
-    setCollapsed,
     emailOpen,
     setEmailOpen,
     onNavigate,
@@ -388,7 +434,7 @@ function AdminSidebar({
                 collapsed ? 'lg:w-24' : 'lg:w-72',
             ].join(' ')}
         >
-            <div className="flex h-16 items-center justify-between px-4">
+            <div className="flex h-16 items-center px-4">
                 {!collapsed && (
                     <div>
                         <div className="text-sm font-semibold text-foreground">
@@ -397,18 +443,6 @@ function AdminSidebar({
                         <div className="text-xs text-muted-foreground">Admin Console</div>
                     </div>
                 )}
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setCollapsed((current) => !current)}
-                >
-                    {collapsed ? (
-                        <ChevronsRight className="size-4" />
-                    ) : (
-                        <ChevronsLeft className="size-4" />
-                    )}
-                </Button>
             </div>
 
             <Separator />
@@ -472,7 +506,7 @@ function AdminMobileSidebar({
                     <span className="sr-only">Open sidebar</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0" showCloseButton={false}>
+            <SheetContent side="left" className="w-[85vw] max-w-80 p-0" showCloseButton={false}>
                 <SheetHeader className="border-b border-border">
                     <SheetTitle>YogaFX LMS</SheetTitle>
                     <SheetDescription>Admin navigation</SheetDescription>
@@ -521,23 +555,88 @@ function AdminMobileSidebar({
     );
 }
 
-function StudentTopNavigation({ user, header, children }) {
+function StudentTopNavigation({
+    user,
+    header,
+    children,
+    variant = 'default',
+    contentClassName = '',
+}) {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const currentRouteName = route().current();
+    const isImmersive = variant === 'immersive';
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
+        const handleBreakpointChange = (event) => {
+            if (event.matches) {
+                setMobileOpen(false);
+            }
+        };
+
+        handleBreakpointChange(mediaQuery);
+        mediaQuery.addEventListener('change', handleBreakpointChange);
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleBreakpointChange);
+        };
+    }, []);
+
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [currentRouteName]);
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <nav className="border-b border-border bg-background">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-3">
+        <div
+            className={[
+                'min-h-screen',
+                isImmersive
+                    ? 'bg-[radial-gradient(circle_at_top,_rgba(173,76,38,0.28),_transparent_32%),linear-gradient(180deg,_#120f0e_0%,_#0a0908_38%,_#080808_100%)] text-white'
+                    : 'bg-slate-50',
+            ].join(' ')}
+        >
+            <nav
+                className={[
+                    isImmersive
+                        ? 'sticky top-0 z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl'
+                        : 'border-b border-border bg-background',
+                ].join(' ')}
+            >
+                <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
+                    <div className="flex min-w-0 items-center gap-3">
                         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                             <SheetTrigger asChild>
-                                <Button variant="outline" size="icon" className="md:hidden">
+                                <Button
+                                    variant={isImmersive ? 'ghost' : 'outline'}
+                                    size="icon"
+                                    className={[
+                                        'shrink-0 md:hidden',
+                                        isImmersive
+                                            ? 'border border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white'
+                                            : '',
+                                    ].join(' ')}
+                                >
                                     <Menu className="size-4" />
                                     <span className="sr-only">Open navigation</span>
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="left" className="w-72 p-0">
-                                <SheetHeader className="border-b border-border">
+                            <SheetContent
+                                side="left"
+                                className={[
+                                    'w-[85vw] max-w-72 p-0',
+                                    isImmersive
+                                        ? 'border-white/10 bg-[#0d0b0a] text-white'
+                                        : '',
+                                ].join(' ')}
+                            >
+                                <SheetHeader
+                                    className={[
+                                        'border-b',
+                                        isImmersive
+                                            ? 'border-white/10'
+                                            : 'border-border',
+                                    ].join(' ')}
+                                >
                                     <SheetTitle>YogaFX LMS</SheetTitle>
                                     <SheetDescription>Student navigation</SheetDescription>
                                 </SheetHeader>
@@ -546,12 +645,13 @@ function StudentTopNavigation({ user, header, children }) {
                                         <Button
                                             key={item.route}
                                             asChild
-                                            variant={
-                                                route().current(item.route)
-                                                    ? 'secondary'
-                                                    : 'ghost'
-                                            }
-                                            className="h-11 w-full justify-start rounded-xl px-3"
+                                            variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                            className={[
+                                                'h-11 w-full justify-start rounded-xl px-3',
+                                                isImmersive && !isItemActive(item)
+                                                    ? 'text-white/78 hover:bg-white/10 hover:text-white'
+                                                    : '',
+                                            ].join(' ')}
                                         >
                                             <Link
                                                 href={route(item.route)}
@@ -561,50 +661,134 @@ function StudentTopNavigation({ user, header, children }) {
                                             </Link>
                                         </Button>
                                     ))}
+
+                                    <div
+                                        className={[
+                                            'px-3 pt-3 text-[11px] font-semibold uppercase tracking-[0.28em]',
+                                            isImmersive
+                                                ? 'text-white/35'
+                                                : 'text-muted-foreground',
+                                        ].join(' ')}
+                                    >
+                                        INSTANT ACCESS
+                                    </div>
+
+                                    {studentInstantAccessItems.map((item) => (
+                                        <Button
+                                            key={item.label}
+                                            type="button"
+                                            variant="ghost"
+                                            disabled
+                                            className={[
+                                                'h-11 w-full justify-start rounded-xl px-3 opacity-100',
+                                                isImmersive
+                                                    ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
+                                                    : '',
+                                            ].join(' ')}
+                                        >
+                                            {item.label}
+                                        </Button>
+                                    ))}
                                 </div>
                             </SheetContent>
                         </Sheet>
 
-                        <div>
-                            <div className="text-sm font-semibold text-foreground">
+                        <div className="min-w-0">
+                            <div
+                                className={[
+                                    'truncate text-sm font-semibold',
+                                    isImmersive ? 'text-white' : 'text-foreground',
+                                ].join(' ')}
+                            >
                                 YogaFX LMS
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div
+                                className={[
+                                    'truncate text-xs',
+                                    isImmersive
+                                        ? 'text-white/60'
+                                        : 'text-muted-foreground',
+                                ].join(' ')}
+                            >
                                 Student Area
                             </div>
                         </div>
                     </div>
 
-                    <div className="hidden items-center gap-2 md:flex">
+                    <div className="hidden items-center gap-2 overflow-x-auto md:flex">
                         {studentNavigationItems.map((item) => (
                             <Button
                                 key={item.route}
                                 asChild
-                                variant={route().current(item.route) ? 'secondary' : 'ghost'}
+                                variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                className={
+                                    isImmersive && !isItemActive(item)
+                                        ? 'text-white/78 hover:bg-white/10 hover:text-white'
+                                        : ''
+                                }
                             >
                                 <Link href={route(item.route)}>{item.label}</Link>
                             </Button>
                         ))}
+
+                        <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
+                        <div
+                            className={[
+                                'hidden text-[11px] font-semibold uppercase tracking-[0.28em] lg:block',
+                                isImmersive ? 'text-white/35' : 'text-muted-foreground',
+                            ].join(' ')}
+                        >
+                            INSTANT ACCESS
+                        </div>
+                        {studentInstantAccessItems.map((item) => (
+                            <Button
+                                key={item.label}
+                                type="button"
+                                variant="ghost"
+                                disabled
+                                className={[
+                                    'rounded-full px-4 text-xs font-medium opacity-100',
+                                    isImmersive
+                                        ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
+                                        : '',
+                                ].join(' ')}
+                            >
+                                {item.label}
+                            </Button>
+                        ))}
                     </div>
 
-                    <UserMenu user={user} />
+                    <div className="flex items-center gap-2">
+                        <UserMenu user={user} isImmersive={isImmersive} />
+                    </div>
                 </div>
             </nav>
 
             {header && (
-                <header className="border-b border-border bg-background/90">
-                    <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+                <header
+                    className={[
+                        isImmersive
+                            ? 'border-b border-white/10 bg-black/10'
+                            : 'border-b border-border bg-background/90',
+                    ].join(' ')}
+                >
+                    <div className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 lg:px-10">
                         {header}
                     </div>
                 </header>
             )}
 
-            <main>{children}</main>
+            <main className={contentClassName}>{children}</main>
         </div>
     );
 }
 
-export default function AuthenticatedLayout({ header, children }) {
+export default function AuthenticatedLayout({
+    header,
+    children,
+    studentVariant = 'default',
+    studentContentClassName = '',
+}) {
     const user = usePage().props.auth.user;
     const currentRouteName = route().current();
     const isAdmin = user?.role === 'admin';
@@ -648,9 +832,42 @@ export default function AuthenticatedLayout({ header, children }) {
         );
     }, [emailOpen, isAdmin]);
 
+    useEffect(() => {
+        if (!isAdmin) {
+            return;
+        }
+
+        const mediaQuery = window.matchMedia(ADMIN_DESKTOP_BREAKPOINT);
+        const handleBreakpointChange = (event) => {
+            if (event.matches) {
+                setMobileSidebarOpen(false);
+            }
+        };
+
+        handleBreakpointChange(mediaQuery);
+        mediaQuery.addEventListener('change', handleBreakpointChange);
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleBreakpointChange);
+        };
+    }, [isAdmin]);
+
+    useEffect(() => {
+        if (!isAdmin) {
+            return;
+        }
+
+        setMobileSidebarOpen(false);
+    }, [currentRouteName, isAdmin]);
+
     if (!isAdmin) {
         return (
-            <StudentTopNavigation user={user} header={header}>
+            <StudentTopNavigation
+                user={user}
+                header={header}
+                variant={studentVariant}
+                contentClassName={studentContentClassName}
+            >
                 {children}
             </StudentTopNavigation>
         );
@@ -661,15 +878,14 @@ export default function AuthenticatedLayout({ header, children }) {
             <div className="flex min-h-screen">
                 <AdminSidebar
                     collapsed={collapsed}
-                    setCollapsed={setCollapsed}
                     emailOpen={emailOpen}
                     setEmailOpen={setEmailOpen}
                 />
 
                 <div className="flex min-h-screen min-w-0 flex-1 flex-col">
                     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-                        <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                            <div className="flex items-center gap-3">
+                        <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                            <div className="flex min-w-0 items-center gap-3">
                                 <AdminMobileSidebar
                                     open={mobileSidebarOpen}
                                     setOpen={setMobileSidebarOpen}
@@ -692,11 +908,11 @@ export default function AuthenticatedLayout({ header, children }) {
                                     <span className="sr-only">Toggle sidebar</span>
                                 </Button>
 
-                                <div>
-                                    <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <div className="min-w-0">
+                                    <div className="truncate text-xs uppercase tracking-[0.18em] text-muted-foreground">
                                         Admin
                                     </div>
-                                    <h1 className="text-lg font-semibold text-foreground">
+                                    <h1 className="truncate text-lg font-semibold text-foreground">
                                         {pageTitle}
                                     </h1>
                                 </div>

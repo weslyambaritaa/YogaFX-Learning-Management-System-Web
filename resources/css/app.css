@@ -1,3 +1,71 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.ckeditor-field .ck-editor__top .ck-sticky-panel .ck-toolbar {
+    border-color: rgb(226 232 240);
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+}
+
+.ckeditor-field .ck-editor__main > .ck-editor__editable {
+    min-height: 16rem;
+    border-color: rgb(226 232 240);
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+    background-color: rgb(255 255 255);
+    color: rgb(15 23 42);
+}
+
+.ckeditor-field .ck-editor__main > .ck-editor__editable.ck-focused {
+    border-color: rgb(100 116 139);
+    box-shadow: 0 0 0 1px rgb(100 116 139 / 0.15);
+}
+
+.ckeditor-field .ck.ck-content {
+    font-family: inherit;
+    line-height: 1.7;
+}
+
+.ckeditor-field .ck.ck-content img,
+.email-template-preview img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+}
+
+.ckeditor-field .ck.ck-content a,
+.email-template-preview a {
+    color: rgb(37 99 235);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    word-break: break-word;
+}
+
+.email-template-preview > :first-child {
+    margin-top: 0;
+}
+
+.email-template-preview > :last-child {
+    margin-bottom: 0;
+}
+
+.email-template-preview p,
+.email-template-preview ul,
+.email-template-preview ol,
+.email-template-preview blockquote,
+.email-template-preview table {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.email-template-preview ul,
+.email-template-preview ol {
+    padding-left: 1.25rem;
+}
+
+.ckeditor-field-invalid .ck-editor__top .ck-sticky-panel .ck-toolbar,
+.ckeditor-field-invalid .ck-editor__main > .ck-editor__editable {
+    border-color: rgb(220 38 38);
+}
