@@ -35,7 +35,7 @@ import {
     SquareCheckBig,
     Target,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const statusMessages = {
     'scoreboard-question-created': 'Question created.',
@@ -108,6 +108,10 @@ function questionTypeSupportsMultipleCorrectSelection(
 
 function fieldError(errors, keys) {
     return keys.map((key) => errors[key]).find(Boolean);
+}
+
+function serializeDraft(data) {
+    return JSON.stringify(data);
 }
 
 function formatQuestionType(type) {
@@ -640,42 +644,23 @@ function CenterAnswerRow({
     option,
     draft,
     setOptionValue,
+    saveOption,
     toggleCorrectOption,
     allowMultipleCorrect,
+    processing = false,
 }) {
-    const { data, setData, patch, processing, errors } = useForm(draft);
-
-    useEffect(() => {
-        setData(draft);
-    }, [draft, option.id]);
+    const data = draft;
 
     const updateField = (field, value) => {
-        setData(field, value);
         setOptionValue(option.id, field, value);
-    };
-
-    const submit = (event) => {
-        event.preventDefault();
-
-        patch(
-            route('admin.scoreboards.options.update', {
-                assessment: scoreboardId,
-                question: question.id,
-                option: option.id,
-            }),
-            { preserveScroll: true, forceFormData: true },
-        );
     };
 
     const labelValue = data.label;
 
     return (
-        <form
-            onSubmit={submit}
-            className="rounded-[22px] border border-slate-200 bg-white/88 px-4 py-4 shadow-sm"
-        >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="rounded-[22px] border border-slate-200 bg-white/88 px-4 py-4 shadow-sm">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-[#eef2ec] text-xs font-semibold text-[#35513e]">
                         {data.sort_order}
                     </div>
@@ -696,7 +681,7 @@ function CenterAnswerRow({
 
                     <div className="min-w-0 flex-1">
                         {option.is_fixed_option ? (
-                            <div className="h-11 rounded-2xl border border-slate-200 bg-[#faf8f3] px-4 py-3 text-sm font-medium text-slate-900">
+                            <div className="min-h-11 rounded-2xl border border-slate-200 bg-[#faf8f3] px-4 py-3 text-sm font-medium text-slate-900">
                                 {labelValue}
                             </div>
                         ) : (
@@ -706,13 +691,13 @@ function CenterAnswerRow({
                                     updateField('label', event.target.value)
                                 }
                                 placeholder="Answer label"
-                                className="h-11 rounded-2xl border-slate-200 bg-white"
+                                className="min-h-11 rounded-2xl border-slate-200 bg-white"
                             />
                         )}
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                     <CenterCorrectControl
                         checked={data.is_correct}
                         multiple={allowMultipleCorrect}
@@ -740,19 +725,18 @@ function CenterAnswerRow({
                     ) : null}
 
                     {!option.is_virtual ? (
-                        <Button type="submit" size="sm" disabled={processing}>
+                        <Button
+                            type="button"
+                            size="sm"
+                            disabled={processing}
+                            onClick={() => saveOption(option.id)}
+                        >
                             Save
                         </Button>
                     ) : null}
                 </div>
             </div>
-
-            {fieldError(errors, ['label', 'is_correct']) ? (
-                <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                    {fieldError(errors, ['label', 'is_correct'])}
-                </div>
-            ) : null}
-        </form>
+        </div>
     );
 }
 
@@ -762,10 +746,14 @@ function BuilderCanvas({
     values,
     visibleOptions,
     setValue,
+    saveQuestion,
+    questionProcessing,
     error,
     design,
     optionDrafts,
     setOptionValue,
+    saveOption,
+    optionProcessingMap,
     toggleCorrectOption,
 }) {
     const sectionBackground =
@@ -822,26 +810,38 @@ function BuilderCanvas({
                             }}
                         >
                             <div className="space-y-8">
-                                <div className="flex items-center justify-between gap-3 rounded-[22px] border border-white/60 bg-white/55 px-4 py-3">
+                                <div className="flex flex-col gap-3 rounded-[22px] border border-white/60 bg-white/55 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="text-sm text-slate-500">
                                         Edit the active screen directly on canvas.
                                     </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="rounded-full"
-                                        onClick={() =>
-                                            router.post(
-                                                route('admin.scoreboards.questions.store', scoreboard.id),
-                                                {},
-                                                { preserveScroll: true },
-                                            )
-                                        }
-                                    >
-                                        <Plus className="size-4" />
-                                        Add Question
-                                    </Button>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-full"
+                                            onClick={saveQuestion}
+                                            disabled={questionProcessing}
+                                        >
+                                            Save Screen
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-full"
+                                            onClick={() =>
+                                                router.post(
+                                                    route('admin.scoreboards.questions.store', scoreboard.id),
+                                                    {},
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            <Plus className="size-4" />
+                                            Add Question
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 <InlineTextBlock
@@ -927,9 +927,13 @@ function BuilderCanvas({
                                                             buildOptionDraft(option)
                                                         }
                                                         setOptionValue={setOptionValue}
+                                                        saveOption={saveOption}
                                                         toggleCorrectOption={toggleCorrectOption}
                                                         allowMultipleCorrect={
                                                             supportsMultipleCorrectAnswers
+                                                        }
+                                                        processing={
+                                                            Boolean(optionProcessingMap[option.id])
                                                         }
                                                     />
                                                 ),
@@ -1229,10 +1233,17 @@ function useQuestionConfigPanel({
     questionTargets,
     questionTypeOptions,
 }) {
+    const QUESTION_AUTOSAVE_DELAY = 1500;
+    const OPTION_AUTOSAVE_DELAY = 1500;
     const questionForm = useForm(buildQuestionFormData(question));
     const [activeTab, setActiveTab] = useState('question');
     const [questionDrafts, setQuestionDrafts] = useState({});
     const [optionDrafts, setOptionDrafts] = useState({});
+    const [optionProcessingMap, setOptionProcessingMap] = useState({});
+    const questionAutosaveTimerRef = useRef(null);
+    const optionAutosaveTimersRef = useRef({});
+    const lastSavedQuestionSnapshotRef = useRef('');
+    const lastSavedOptionSnapshotsRef = useRef({});
 
     useEffect(() => {
         const nextData = question?.id
@@ -1240,6 +1251,7 @@ function useQuestionConfigPanel({
             : buildQuestionFormData(question);
 
         questionForm.setData(nextData);
+        lastSavedQuestionSnapshotRef.current = serializeDraft(nextData);
 
         if (question?.options?.length) {
             setOptionDrafts((current) => {
@@ -1253,6 +1265,16 @@ function useQuestionConfigPanel({
 
                 return nextDrafts;
             });
+
+            lastSavedOptionSnapshotsRef.current = question.options.reduce(
+                (snapshots, option) => ({
+                    ...snapshots,
+                    [option.id]: serializeDraft(buildOptionDraft(option)),
+                }),
+                {},
+            );
+        } else {
+            lastSavedOptionSnapshotsRef.current = {};
         }
 
         setActiveTab('question');
@@ -1283,6 +1305,90 @@ function useQuestionConfigPanel({
                 [field]: value,
             },
             }));
+    };
+
+    const buildOptionPayload = (targetOption, overrides = {}) => {
+        const sourceOption =
+            question?.options?.find((item) => item.id === targetOption.id) ??
+            targetOption;
+        const draft = optionDrafts[targetOption.id] ?? buildOptionDraft(sourceOption);
+        const nextDraft = {
+            ...draft,
+            ...overrides,
+        };
+
+        return {
+            label: nextDraft.label ?? '',
+            internal_value:
+                nextDraft.internal_value ??
+                sourceOption.internal_value ??
+                '',
+            sort_order: Number(nextDraft.sort_order ?? sourceOption.sort_order ?? 1),
+            is_correct: Boolean(nextDraft.is_correct),
+            scoring_enabled: Boolean(nextDraft.scoring_enabled),
+            score_value: nextDraft.scoring_enabled
+                ? nextDraft.score_value === ''
+                    ? null
+                    : nextDraft.score_value
+                : null,
+            jump_enabled: Boolean(nextDraft.jump_enabled),
+            jump_to_question_id: nextDraft.jump_enabled
+                ? nextDraft.jump_to_question_id || null
+                : null,
+            is_other_option: Boolean(
+                nextDraft.is_other_option ?? sourceOption.is_other_option,
+            ),
+            image: nextDraft.image ?? null,
+        };
+    };
+
+    const saveOption = (optionId, overrides = {}) => {
+        if (!question) {
+            return;
+        }
+
+        const targetOption =
+            question.options?.find((item) => item.id === optionId) ?? null;
+
+        if (!targetOption || targetOption.is_virtual) {
+            return;
+        }
+
+        const payload = buildOptionPayload(targetOption, overrides);
+        const snapshot = serializeDraft({
+            ...(optionDrafts[optionId] ?? buildOptionDraft(targetOption)),
+            ...overrides,
+        });
+
+        setOptionProcessingMap((current) => ({
+            ...current,
+            [optionId]: true,
+        }));
+
+        router.patch(
+            route('admin.scoreboards.options.update', {
+                assessment: scoreboard.id,
+                question: question.id,
+                option: optionId,
+            }),
+            payload,
+            {
+                preserveScroll: true,
+                forceFormData: true,
+                onSuccess: () => {
+                    lastSavedOptionSnapshotsRef.current = {
+                        ...lastSavedOptionSnapshotsRef.current,
+                        [optionId]: snapshot,
+                    };
+                },
+                onFinish: () => {
+                    setOptionProcessingMap((current) => ({
+                        ...current,
+                        [optionId]: false,
+                    }));
+                },
+            },
+        );
     };
 
     const toggleCorrectOption = (targetOption) => {
@@ -1326,9 +1432,7 @@ function useQuestionConfigPanel({
         });
     };
 
-    const submitQuestion = (event) => {
-        event.preventDefault();
-
+    const saveQuestion = () => {
         if (!question) {
             return;
         }
@@ -1341,6 +1445,9 @@ function useQuestionConfigPanel({
             {
                 preserveScroll: true,
                 onSuccess: () => {
+                    lastSavedQuestionSnapshotRef.current = serializeDraft(
+                        questionForm.data,
+                    );
                     setQuestionDrafts((current) => {
                         if (!question?.id) {
                             return current;
@@ -1353,6 +1460,11 @@ function useQuestionConfigPanel({
                 },
             },
         );
+    };
+
+    const submitQuestion = (event) => {
+        event.preventDefault();
+        saveQuestion();
     };
 
     const sharedPreviewValues = questionForm.data;
@@ -1424,6 +1536,78 @@ function useQuestionConfigPanel({
               'image_button',
           ].includes(question.question_type)
         : false;
+
+    useEffect(() => {
+        if (!question) {
+            return undefined;
+        }
+
+        const serializedQuestion = serializeDraft(questionForm.data);
+
+        if (serializedQuestion === lastSavedQuestionSnapshotRef.current) {
+            return undefined;
+        }
+
+        if (questionForm.processing) {
+            return undefined;
+        }
+
+        if (questionAutosaveTimerRef.current) {
+            clearTimeout(questionAutosaveTimerRef.current);
+        }
+
+        questionAutosaveTimerRef.current = setTimeout(() => {
+            saveQuestion();
+        }, QUESTION_AUTOSAVE_DELAY);
+
+        return () => {
+            if (questionAutosaveTimerRef.current) {
+                clearTimeout(questionAutosaveTimerRef.current);
+            }
+        };
+    }, [question?.id, questionForm.data, questionForm.processing]);
+
+    useEffect(() => {
+        if (!question?.options?.length) {
+            return undefined;
+        }
+
+        const activeOptionIds = new Set(question.options.map((option) => option.id));
+
+        Object.keys(optionAutosaveTimersRef.current).forEach((optionId) => {
+            if (!activeOptionIds.has(Number(optionId))) {
+                clearTimeout(optionAutosaveTimersRef.current[optionId]);
+                delete optionAutosaveTimersRef.current[optionId];
+            }
+        });
+
+        question.options.forEach((option) => {
+            const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
+            const serializedDraft = serializeDraft(currentDraft);
+
+            if (serializedDraft === lastSavedOptionSnapshotsRef.current[option.id]) {
+                return;
+            }
+
+             if (optionProcessingMap[option.id]) {
+                return;
+            }
+
+            if (optionAutosaveTimersRef.current[option.id]) {
+                clearTimeout(optionAutosaveTimersRef.current[option.id]);
+            }
+
+            optionAutosaveTimersRef.current[option.id] = setTimeout(() => {
+                saveOption(option.id);
+            }, OPTION_AUTOSAVE_DELAY);
+        });
+
+        return () => {
+            Object.values(optionAutosaveTimersRef.current).forEach((timer) =>
+                clearTimeout(timer),
+            );
+        };
+    }, [question?.id, optionDrafts, optionProcessingMap]);
 
     const questionTabContent = question ? (
         <form onSubmit={submitQuestion} className="space-y-4">
@@ -2023,8 +2207,12 @@ function useQuestionConfigPanel({
         values: sharedPreviewValues,
         visibleOptions,
         setValue,
+        saveQuestion,
+        questionProcessing: questionForm.processing,
         optionDrafts,
         setOptionValue,
+        saveOption,
+        optionProcessingMap,
         toggleCorrectOption,
         error: canvasError,
     };
@@ -2388,8 +2576,12 @@ export default function ScoreboardBuilder({
         values,
         visibleOptions,
         setValue,
+        saveQuestion,
+        questionProcessing,
         optionDrafts,
         setOptionValue,
+        saveOption,
+        optionProcessingMap,
         toggleCorrectOption,
         error,
     } = useQuestionConfigPanel({
@@ -2457,10 +2649,14 @@ export default function ScoreboardBuilder({
                                     values={values}
                                     visibleOptions={visibleOptions}
                                     setValue={setValue}
+                                    saveQuestion={saveQuestion}
+                                    questionProcessing={questionProcessing}
                                     error={error}
                                     design={design}
                                     optionDrafts={optionDrafts}
                                     setOptionValue={setOptionValue}
+                                    saveOption={saveOption}
+                                    optionProcessingMap={optionProcessingMap}
                                     toggleCorrectOption={toggleCorrectOption}
                                 />
 
@@ -2481,10 +2677,14 @@ export default function ScoreboardBuilder({
                                 values={values}
                                 visibleOptions={visibleOptions}
                                 setValue={setValue}
+                                saveQuestion={saveQuestion}
+                                questionProcessing={questionProcessing}
                                 error={error}
                                 design={design}
                                 optionDrafts={optionDrafts}
                                 setOptionValue={setOptionValue}
+                                saveOption={saveOption}
+                                optionProcessingMap={optionProcessingMap}
                                 toggleCorrectOption={toggleCorrectOption}
                             />
                         </div>

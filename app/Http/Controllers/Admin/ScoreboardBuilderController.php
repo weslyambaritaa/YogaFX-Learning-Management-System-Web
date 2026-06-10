@@ -251,6 +251,11 @@ class ScoreboardBuilderController extends Controller
 
             $validatedQuestion = $question->refresh();
 
+            if ($validated['is_correct']) {
+                $this->syncCorrectAnswerSelection($validatedQuestion, $option);
+                $validatedQuestion = $question->refresh();
+            }
+
             $this->validateMultiSelectJumpTargets($validatedQuestion);
             $this->validateCorrectAnswerSelections($validatedQuestion);
         });
@@ -532,6 +537,17 @@ class ScoreboardBuilderController extends Controller
                 'is_correct' => 'This question type only allows one correct answer.',
             ]);
         }
+    }
+
+    private function syncCorrectAnswerSelection(Question $question, QuestionOption $selectedOption): void
+    {
+        if ($this->questionAllowsMultipleCorrectAnswers($question)) {
+            return;
+        }
+
+        $question->options()
+            ->whereKeyNot($selectedOption->id)
+            ->update(['is_correct' => false]);
     }
 
     private function questionAllowsMultipleCorrectAnswers(Question $question): bool
