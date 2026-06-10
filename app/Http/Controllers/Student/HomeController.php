@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AccessTier;
 use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
+use App\Models\Ebook;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use Illuminate\Http\RedirectResponse;
@@ -38,9 +39,10 @@ class HomeController extends Controller
         $availableModulesSection = $this->buildAvailableModulesSection($request, $availableModules);
         $assignmentMilestone = $this->buildAssignmentMilestone($request, $continueLearning);
         $certificateMilestone = $this->buildCertificateMilestone($request, $progressSummary, $continueLearning);
+        $ebookResourcesSection = $this->buildEbookResourcesSection($request);
 
         return Inertia::render('Student/Home', [
-            'homeStage' => 9,
+            'homeStage' => 10,
             'studentContext' => [
                 'display_name' => $displayName !== '' ? $displayName : 'Student',
                 'full_name' => $user?->name ?: $displayName,
@@ -60,6 +62,7 @@ class HomeController extends Controller
             'availableModulesSection' => $availableModulesSection,
             'assignmentMilestone' => $assignmentMilestone,
             'certificateMilestone' => $certificateMilestone,
+            'ebookResourcesSection' => $ebookResourcesSection,
         ]);
     }
 
@@ -1035,6 +1038,88 @@ class HomeController extends Controller
             ]),
             default => $payload,
         };
+    }
+
+    protected function buildEbookResourcesSection(Request $request): array
+    {
+        $user = $request->user();
+        $tier = $user?->accessTier;
+
+        if (! $user || ! $user->access_tier_id || ! $tier) {
+            return [
+                'state' => 'empty',
+                'eyebrow' => 'Ebooks & Resources',
+                'title' => 'Your supporting resources will appear here.',
+                'description' => 'Home needs an active access tier before it can reveal the ebooks and supporting resources that belong to this YogaFX path.',
+                'items' => [],
+                'summary' => [
+                    'total' => 0,
+                    'tier_name' => null,
+                ],
+                'support_note' => 'Ebook preview remains the primary access pattern, with download staying as a separate explicit action.',
+            ];
+        }
+
+        $ebooks = Ebook::query()
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user->access_tier_id))
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get();
+
+        if ($ebooks->isEmpty()) {
+            return [
+                'state' => 'empty',
+                'eyebrow' => 'Ebooks & Resources',
+                'title' => 'No supporting ebook is available in this tier yet.',
+                'description' => 'Home keeps this section light when no ebook is available, so supporting resources never overpower the learning flow.',
+                'items' => [],
+                'summary' => [
+                    'total' => 0,
+                    'tier_name' => $tier->name,
+                ],
+                'support_note' => 'When an ebook is attached to this tier later, Home can surface it here without changing the rest of the student journey.',
+            ];
+        }
+
+        $items = $ebooks->map(function (Ebook $ebook, int $index) {
+            $extension = strtoupper((string) pathinfo((string) $ebook->file, PATHINFO_EXTENSION));
+            $formatLabel = $extension !== '' ? $extension : 'FILE';
+            $fileName = basename((string) $ebook->file);
+
+            return [
+                'id' => $ebook->id,
+                'title' => $ebook->title,
+                'sort_order' => $ebook->sort_order,
+                'file_name' => $fileName,
+                'format_label' => $formatLabel,
+                'preview_url' => route('ebooks.preview', $ebook),
+                'download_url' => $this->protectedMediaUrl(
+                    'ebook',
+                    $ebook->id,
+                    'file',
+                    $ebook->file,
+                    download: true,
+                    versionSeed: $ebook->updated_at,
+                ),
+                'eyebrow' => $index === 0 ? 'Featured Resource' : 'Supporting Resource',
+                'description' => $formatLabel === 'PDF'
+                    ? 'Preview this ebook in the browser first, then download it explicitly if you want an offline copy.'
+                    : 'Open the ebook preview page first. If preview is limited, YogaFX will still keep download available there.',
+            ];
+        })->values();
+
+        return [
+            'state' => 'ready',
+            'eyebrow' => 'Ebooks & Resources',
+            'title' => 'Supporting resources for your YogaFX practice',
+            'description' => 'These ebooks sit behind the main learning flow, giving students extra material without distracting from the next lesson or milestone.',
+            'items' => $items,
+            'summary' => [
+                'total' => $items->count(),
+                'tier_name' => $tier->name,
+            ],
+            'support_note' => 'Preview stays primary, download stays explicit, and the whole section remains tier-aware.',
+        ];
     }
 
     protected function lessonProgressMap(?int $userId, iterable $lessonIds): Collection

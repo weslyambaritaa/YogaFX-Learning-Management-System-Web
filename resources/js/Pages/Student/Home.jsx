@@ -13,6 +13,7 @@ export default function StudentHome({
     availableModulesSection,
     assignmentMilestone,
     certificateMilestone,
+    ebookResourcesSection,
 }) {
     const studentName = studentContext?.display_name ?? 'Student';
     const fullName = studentContext?.full_name ?? studentName;
@@ -169,7 +170,7 @@ export default function StudentHome({
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
-                            Phase 9 active
+                            Phase 10 active
                         </span>
                     </div>
 
@@ -561,12 +562,13 @@ export default function StudentHome({
 
                                 <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
                                     <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                        Stage 9 scope
+                                        Stage 10 scope
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
                                         Sequence awareness, assignment milestone, and certificate
-                                        milestone are now connected. Resource sections still stay
-                                        for the next phases.
+                                        milestone are now connected. Supporting resources are now
+                                        visible, while final empty-state polish still stays for the
+                                        next phase.
                                     </p>
                                 </div>
                             </div>
@@ -1164,6 +1166,139 @@ export default function StudentHome({
                                     </p>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                {ebookResourcesSection?.eyebrow ?? 'Ebooks & Resources'}
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                {ebookResourcesSection?.title ??
+                                    'Your supporting resources will appear here'}
+                            </h2>
+                        </div>
+                        <Button
+                            asChild
+                            variant="outline"
+                            className="hidden rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white md:inline-flex"
+                        >
+                            <Link href={route('ebooks.index')}>See All Ebooks</Link>
+                        </Button>
+                    </div>
+
+                    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                        <div className="flex flex-col gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                                <div className="max-w-3xl space-y-2">
+                                    <p className="text-sm leading-7 text-white/60">
+                                        {ebookResourcesSection?.description ??
+                                            'Home will show your supporting ebook resources here.'}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-4">
+                                        <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                            Resources
+                                        </p>
+                                        <div className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
+                                            {ebookResourcesSection?.summary?.total ?? 0}
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-4">
+                                        <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                            Tier access
+                                        </p>
+                                        <div className="mt-3 text-lg font-semibold tracking-[-0.03em] text-white">
+                                            {ebookResourcesSection?.summary?.tier_name ??
+                                                'Tier pending'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {ebookResourcesSection?.items?.length ? (
+                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                    {ebookResourcesSection.items.map((ebook, index) => (
+                                        <div
+                                            key={ebook.id}
+                                            className="group rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15"
+                                        >
+                                            <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
+                                                <div className="relative aspect-[4/5] overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.45),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
+                                                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02))]" />
+                                                    <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-3">
+                                                        <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+                                                            {ebook.eyebrow}
+                                                        </span>
+                                                        <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+                                                            {ebook.format_label}
+                                                        </span>
+                                                    </div>
+                                                    <div className="absolute bottom-4 left-4 right-4">
+                                                        <p className="text-xs uppercase tracking-[0.2em] text-white/50">
+                                                            Resource #{index + 1}
+                                                        </p>
+                                                        <h3 className="mt-3 text-2xl font-semibold leading-tight text-white">
+                                                            {ebook.title}
+                                                        </h3>
+                                                        <p className="mt-3 text-sm leading-6 text-white/58">
+                                                            {ebook.file_name}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <p className="text-sm leading-6 text-white/58">
+                                                        {ebook.description}
+                                                    </p>
+
+                                                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                                                        <Button
+                                                            asChild
+                                                            className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                                        >
+                                                            <Link href={ebook.preview_url}>Open Preview</Link>
+                                                        </Button>
+
+                                                        <Button
+                                                            asChild
+                                                            variant="outline"
+                                                            className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                        >
+                                                            <a href={ebook.download_url}>Download</a>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rounded-[24px] border border-dashed border-white/12 bg-black/20 px-5 py-8">
+                                    <p className="text-sm leading-7 text-white/60">
+                                        {ebookResourcesSection?.description ??
+                                            'No supporting ebook is available for this student tier yet.'}
+                                    </p>
+                                    <p className="mt-3 text-sm leading-6 text-white/50">
+                                        {ebookResourcesSection?.support_note ??
+                                            'Supporting resources stay optional so Home remains focused on the core learning journey.'}
+                                    </p>
+                                    <div className="mt-4">
+                                        <Button
+                                            asChild
+                                            className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                        >
+                                            <Link href={route('ebooks.index')}>Open Ebooks</Link>
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </section>
