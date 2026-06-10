@@ -15,7 +15,7 @@ export default function StudentDashboard() {
             <Head title="Student Dashboard" />
 
             <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="space-y-2 p-6 text-gray-900">
                             <p>Authentication foundation is active.</p>

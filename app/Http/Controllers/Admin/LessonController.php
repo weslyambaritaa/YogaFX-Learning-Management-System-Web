@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
+use App\Support\UploadConstraints;
 use App\Models\AccessTier;
 use App\Models\Lesson;
 use App\Models\Module;
@@ -53,6 +54,7 @@ class LessonController extends Controller
         return Inertia::render('Admin/Lessons/Create', [
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),
+            'uploadConstraints' => $this->uploadConstraints(),
         ]);
     }
 
@@ -122,6 +124,7 @@ class LessonController extends Controller
             ],
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),
+            'uploadConstraints' => $this->uploadConstraints(),
             'status' => session('status'),
         ]);
     }
@@ -185,6 +188,14 @@ class LessonController extends Controller
                 'title' => $module->title,
             ])
             ->all();
+    }
+
+    private function uploadConstraints(): array
+    {
+        return [
+            'max_size_bytes' => UploadConstraints::MAX_FILE_SIZE_KB * 1024,
+            'max_size_label' => UploadConstraints::MAX_FILE_SIZE_MB.' MB',
+        ];
     }
 
     /**

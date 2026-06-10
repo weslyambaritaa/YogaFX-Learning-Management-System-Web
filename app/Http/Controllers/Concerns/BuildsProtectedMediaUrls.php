@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Concerns;
 
+use Illuminate\Support\Facades\Storage;
+
 trait BuildsProtectedMediaUrls
 {
     protected function protectedMediaUrl(
@@ -26,6 +28,9 @@ trait BuildsProtectedMediaUrls
                 $id,
                 $field,
                 (string) $path,
+                Storage::disk('local')->exists($path)
+                    ? (string) Storage::disk('local')->lastModified($path)
+                    : '',
                 (string) $versionSeed,
                 json_encode($extraParameters),
             ])),

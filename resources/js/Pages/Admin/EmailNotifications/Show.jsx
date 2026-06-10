@@ -49,7 +49,7 @@ export default function EmailNotificationShow({
     return (
         <AuthenticatedLayout
             header={
-                <div>
+                <div className="min-w-0">
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
                         {notificationLabel}
                     </h2>
@@ -62,7 +62,7 @@ export default function EmailNotificationShow({
             <Head title={notificationLabel} />
 
             <div className="py-12">
-                <div className="mx-auto max-w-6xl space-y-6 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {statusMessages[status] && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             {statusMessages[status]}

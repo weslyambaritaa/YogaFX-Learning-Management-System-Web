@@ -11,7 +11,7 @@ use Inertia\Response;
 
 class LessonCatalogController extends Controller
 {
-    use BuildsProtectedMediaUrls;
+    use BuildsProtectedMediaUrls;w
 
     public function show(Request $request, Lesson $lesson): Response
     {

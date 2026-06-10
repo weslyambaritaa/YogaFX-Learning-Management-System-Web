@@ -2,7 +2,7 @@ import LessonForm from '@/Components/LessonForm';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function CreateLesson({ accessTiers, modules }) {
+export default function CreateLesson({ accessTiers, modules, uploadConstraints }) {
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         module_id: '',
         access_tier_ids: [],
@@ -49,6 +49,7 @@ export default function CreateLesson({ accessTiers, modules }) {
                             processing={processing}
                             modules={modules}
                             accessTiers={accessTiers}
+                            uploadConstraints={uploadConstraints}
                             onSubmit={submit}
                             submitLabel="Create Lesson"
                         />

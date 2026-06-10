@@ -172,6 +172,35 @@ class LearningContentTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_create_lesson_with_svg_thumbnail(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $response = $this->actingAs($admin)->post(route('admin.lessons.store'), [
+            'module_id' => $module->id,
+            'access_tier_ids' => [$tier->id],
+            'assessment_id' => null,
+            'title' => 'SVG Thumbnail Lesson',
+            'thumbnail' => $this->svgUpload('lesson-thumbnail.svg'),
+            'workbook' => null,
+            'video' => 'https://example.com/video',
+            'audio' => null,
+            'content' => '<p>Lesson content</p>',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+
+        $lesson = Lesson::query()->where('title', 'SVG Thumbnail Lesson')->first();
+
+        $this->assertNotNull($lesson);
+        Storage::disk('local')->assertExists($lesson->thumbnail);
+    }
+
     public function test_admin_lesson_index_includes_thumbnail_url_for_uploaded_thumbnail(): void
     {
         Storage::fake('local');
@@ -278,6 +307,45 @@ class LearningContentTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_update_lesson_with_svg_thumbnail(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'thumbnail' => UploadedFile::fake()->image('existing-thumbnail.jpg')
+                ->store('lessons/thumbnails', 'local'),
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
+        $oldThumbnail = $lesson->thumbnail;
+
+        $response = $this->actingAs($admin)->patch(route('admin.lessons.update', $lesson), [
+            'module_id' => $module->id,
+            'access_tier_ids' => [$tier->id],
+            'assessment_id' => null,
+            'title' => $lesson->title,
+            'thumbnail' => $this->svgUpload('updated-thumbnail.svg'),
+            'workbook' => null,
+            'video' => 'https://example.com/video',
+            'audio' => null,
+            'content' => '<p>Updated content</p>',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+
+        $lesson->refresh();
+
+        $this->assertNotSame($oldThumbnail, $lesson->thumbnail);
+        Storage::disk('local')->assertMissing($oldThumbnail);
+        Storage::disk('local')->assertExists($lesson->thumbnail);
+    }
+
     public function test_admin_cannot_create_lesson_with_file_larger_than_10mb(): void
     {
         Storage::fake('local');
@@ -301,6 +369,34 @@ class LearningContentTest extends TestCase
 
         $response->assertSessionHasErrors(['thumbnail', 'workbook']);
         $this->assertDatabaseMissing('lessons', ['title' => 'Oversized Lesson']);
+    }
+
+    public function test_admin_cannot_create_lesson_with_invalid_thumbnail_file(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $response = $this->actingAs($admin)->post(route('admin.lessons.store'), [
+            'module_id' => $module->id,
+            'access_tier_ids' => [$tier->id],
+            'assessment_id' => null,
+            'title' => 'Invalid Thumbnail Lesson',
+            'thumbnail' => UploadedFile::fake()->create('not-an-image.txt', 10, 'text/plain'),
+            'workbook' => null,
+            'video' => 'https://example.com/video',
+            'audio' => null,
+            'content' => '<p>Lesson content</p>',
+        ]);
+
+        $response->assertSessionHasErrors('thumbnail');
+        $response->assertSessionHasErrors([
+            'thumbnail' => 'The thumbnail must be a valid image file in a supported format, such as JPG, PNG, GIF, BMP, WebP, SVG, AVIF, HEIC, or HEIF.',
+        ]);
+        $this->assertDatabaseMissing('lessons', ['title' => 'Invalid Thumbnail Lesson']);
     }
 
     public function test_admin_can_create_ebook_with_auto_sort_order_and_multiple_tiers(): void
@@ -422,6 +518,37 @@ class LearningContentTest extends TestCase
                 ->component('Admin/Lessons/Edit')
                 ->where('lesson.workbook_preview.preview_supported', false)
                 ->where('lesson.workbook_preview.preview_message', 'This workbook file cannot be previewed in the browser yet. You can still download it.'));
+    }
+
+    public function test_lesson_create_and_edit_pages_share_fixed_10mb_upload_constraints(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
+        $expectedConstraints = [
+            'max_size_bytes' => 10 * 1024 * 1024,
+            'max_size_label' => '10 MB',
+        ];
+
+        $this->actingAs($admin)
+            ->get(route('admin.lessons.create'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Lessons/Create')
+                ->where('uploadConstraints', $expectedConstraints));
+
+        $this->actingAs($admin)
+            ->get(route('admin.lessons.edit', $lesson))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Lessons/Edit')
+                ->where('uploadConstraints', $expectedConstraints));
     }
 
     public function test_admin_cannot_create_course_with_thumbnail_larger_than_10mb(): void
@@ -611,6 +738,9 @@ class LearningContentTest extends TestCase
                 $id,
                 $field,
                 $path,
+                Storage::disk('local')->exists($path)
+                    ? (string) Storage::disk('local')->lastModified($path)
+                    : '',
                 (string) $versionSeed,
                 json_encode($extraParameters),
             ])),
@@ -621,5 +751,26 @@ class LearningContentTest extends TestCase
         }
 
         return route('media.show', array_merge($parameters, $extraParameters));
+    }
+
+    private function svgUpload(string $filename): UploadedFile
+    {
+        $svg = <<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" viewBox="0 0 120 80">
+    <rect width="120" height="80" fill="#eef2ff" />
+    <text x="60" y="44" text-anchor="middle" font-size="18" fill="#4338ca">YogaFX</text>
+</svg>
+SVG;
+
+        $path = tempnam(sys_get_temp_dir(), 'svg-thumbnail-');
+        file_put_contents($path, $svg);
+
+        return new UploadedFile(
+            $path,
+            $filename,
+            'image/svg+xml',
+            null,
+            true,
+        );
     }
 }

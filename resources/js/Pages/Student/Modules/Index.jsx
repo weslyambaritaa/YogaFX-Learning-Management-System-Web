@@ -12,7 +12,7 @@ export default function StudentModulesIndex({ modules }) {
         >
             <Head title="Modules" />
             <div className="py-12">
-                <div className="mx-auto grid max-w-7xl gap-6 sm:px-6 lg:px-8 md:grid-cols-2 xl:grid-cols-3">
+                <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:px-8 md:grid-cols-2 xl:grid-cols-3">
                     {modules.map((module) => (
                         <Link
                             key={module.id}

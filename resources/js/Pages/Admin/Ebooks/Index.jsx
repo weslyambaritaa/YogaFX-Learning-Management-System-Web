@@ -6,8 +6,8 @@ export default function EbooksIndex({ ebooks, status }) {
     return (
         <AuthenticatedLayout
             header={
-                <div className="flex items-center justify-between gap-4">
-                    <div>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
                         <h2 className="text-xl font-semibold leading-tight text-gray-800">
                             Ebooks
                         </h2>
@@ -17,7 +17,7 @@ export default function EbooksIndex({ ebooks, status }) {
                     </div>
                     <Link
                         href={route('admin.ebooks.create')}
-                        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                        className="w-full rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700 sm:w-auto"
                     >
                         Create Ebook
                     </Link>
@@ -26,7 +26,7 @@ export default function EbooksIndex({ ebooks, status }) {
         >
             <Head title="Ebooks" />
             <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {status === 'ebook-created' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Ebook has been created.

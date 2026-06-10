@@ -23,14 +23,23 @@ export default function LessonForm({
     processing,
     modules,
     accessTiers,
+    uploadConstraints = null,
     onSubmit,
     submitLabel = 'Save Lesson',
     currentThumbnailUrl = null,
     currentWorkbookPreview = null,
 }) {
+    const maxUploadSizeBytes =
+        uploadConstraints?.max_size_bytes ?? MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+    const maxUploadSizeLabel =
+        uploadConstraints?.max_size_label ?? `${MAX_UPLOAD_SIZE_MB} MB`;
+
     const handleFileChange = (field, label) => (event) => {
         const file = event.target.files?.[0] ?? null;
-        const errorMessage = validateUploadSize(file, label);
+        const errorMessage = validateUploadSize(file, label, {
+            maxUploadSizeBytes,
+            maxUploadSizeLabel,
+        });
 
         if (errorMessage) {
             setError?.(field, errorMessage);
@@ -145,12 +154,12 @@ export default function LessonForm({
                     <input
                         id="thumbnail"
                         type="file"
-                        accept="image/*"
+                        accept="image/*,.svg,.svgz,.webp,.avif,.heic,.heif"
                         onChange={handleFileChange('thumbnail', 'thumbnail')}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                     />
                     <p className="mt-2 text-xs text-gray-500">
-                        Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.
+                        Maximum file size: {maxUploadSizeLabel}.
                     </p>
                     <InputError className="mt-2" message={errors.thumbnail} />
                     {currentThumbnailUrl && (
@@ -172,7 +181,7 @@ export default function LessonForm({
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                     />
                     <p className="mt-2 text-xs text-gray-500">
-                        Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.
+                        Maximum file size: {maxUploadSizeLabel}.
                     </p>
                     <InputError className="mt-2" message={errors.workbook} />
                     {currentWorkbookPreview && (

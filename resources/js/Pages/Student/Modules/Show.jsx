@@ -12,12 +12,12 @@ export default function StudentModuleShow({ module }) {
         >
             <Head title={module.title} />
             <div className="py-12">
-                <div className="mx-auto max-w-5xl space-y-6 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
                     <div className="overflow-hidden rounded-xl bg-white shadow-sm">
                         <img
                             src={module.thumbnail_url}
                             alt={module.title}
-                            className="h-72 w-full object-cover"
+                            className="h-56 w-full object-cover sm:h-72"
                         />
                         <div className="p-6">
                             <div className="text-sm uppercase tracking-wide text-indigo-500">
@@ -36,7 +36,7 @@ export default function StudentModuleShow({ module }) {
                                 href={route('lessons.show', lesson.id)}
                                 className="block rounded-xl bg-white p-6 shadow-sm transition hover:shadow-md"
                             >
-                                <div className="flex items-start justify-between gap-4">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div>
                                         <div className="text-xs uppercase tracking-wide text-indigo-500">
                                             Lesson {lesson.sort_order}

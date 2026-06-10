@@ -24,8 +24,6 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
     ClipboardList,
     FileSpreadsheet,
     LayoutDashboard,
@@ -38,6 +36,8 @@ import { useEffect, useState } from 'react';
 
 const ADMIN_SIDEBAR_STORAGE_KEY = 'yogafx-admin-sidebar-collapsed';
 const ADMIN_EMAIL_GROUP_STORAGE_KEY = 'yogafx-admin-email-group-open';
+const ADMIN_DESKTOP_BREAKPOINT = '(min-width: 1024px)';
+const STUDENT_DESKTOP_BREAKPOINT = '(min-width: 768px)';
 
 const adminNavigationItems = [
     {
@@ -372,7 +372,6 @@ function SidebarGroup({
 
 function AdminSidebar({
     collapsed,
-    setCollapsed,
     emailOpen,
     setEmailOpen,
     onNavigate,
@@ -384,7 +383,7 @@ function AdminSidebar({
                 collapsed ? 'lg:w-24' : 'lg:w-72',
             ].join(' ')}
         >
-            <div className="flex h-16 items-center justify-between px-4">
+            <div className="flex h-16 items-center px-4">
                 {!collapsed && (
                     <div>
                         <div className="text-sm font-semibold text-foreground">
@@ -393,18 +392,6 @@ function AdminSidebar({
                         <div className="text-xs text-muted-foreground">Admin Console</div>
                     </div>
                 )}
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setCollapsed((current) => !current)}
-                >
-                    {collapsed ? (
-                        <ChevronsRight className="size-4" />
-                    ) : (
-                        <ChevronsLeft className="size-4" />
-                    )}
-                </Button>
             </div>
 
             <Separator />
@@ -468,7 +455,7 @@ function AdminMobileSidebar({
                     <span className="sr-only">Open sidebar</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0" showCloseButton={false}>
+            <SheetContent side="left" className="w-[85vw] max-w-80 p-0" showCloseButton={false}>
                 <SheetHeader className="border-b border-border">
                     <SheetTitle>YogaFX LMS</SheetTitle>
                     <SheetDescription>Admin navigation</SheetDescription>
@@ -519,20 +506,41 @@ function AdminMobileSidebar({
 
 function StudentTopNavigation({ user, header, children }) {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const currentRouteName = route().current();
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
+        const handleBreakpointChange = (event) => {
+            if (event.matches) {
+                setMobileOpen(false);
+            }
+        };
+
+        handleBreakpointChange(mediaQuery);
+        mediaQuery.addEventListener('change', handleBreakpointChange);
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleBreakpointChange);
+        };
+    }, []);
+
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [currentRouteName]);
 
     return (
         <div className="min-h-screen bg-slate-50">
             <nav className="border-b border-border bg-background">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-3">
+                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                    <div className="flex min-w-0 items-center gap-3">
                         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                             <SheetTrigger asChild>
-                                <Button variant="outline" size="icon" className="md:hidden">
+                                <Button variant="outline" size="icon" className="shrink-0 md:hidden">
                                     <Menu className="size-4" />
                                     <span className="sr-only">Open navigation</span>
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="left" className="w-72 p-0">
+                            <SheetContent side="left" className="w-[85vw] max-w-72 p-0">
                                 <SheetHeader className="border-b border-border">
                                     <SheetTitle>YogaFX LMS</SheetTitle>
                                     <SheetDescription>Student navigation</SheetDescription>
@@ -561,17 +569,17 @@ function StudentTopNavigation({ user, header, children }) {
                             </SheetContent>
                         </Sheet>
 
-                        <div>
-                            <div className="text-sm font-semibold text-foreground">
+                        <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-foreground">
                                 YogaFX LMS
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="truncate text-xs text-muted-foreground">
                                 Student Area
                             </div>
                         </div>
                     </div>
 
-                    <div className="hidden items-center gap-2 md:flex">
+                    <div className="hidden items-center gap-2 overflow-x-auto md:flex">
                         {studentNavigationItems.map((item) => (
                             <Button
                                 key={item.route}
@@ -644,6 +652,34 @@ export default function AuthenticatedLayout({ header, children }) {
         );
     }, [emailOpen, isAdmin]);
 
+    useEffect(() => {
+        if (!isAdmin) {
+            return;
+        }
+
+        const mediaQuery = window.matchMedia(ADMIN_DESKTOP_BREAKPOINT);
+        const handleBreakpointChange = (event) => {
+            if (event.matches) {
+                setMobileSidebarOpen(false);
+            }
+        };
+
+        handleBreakpointChange(mediaQuery);
+        mediaQuery.addEventListener('change', handleBreakpointChange);
+
+        return () => {
+            mediaQuery.removeEventListener('change', handleBreakpointChange);
+        };
+    }, [isAdmin]);
+
+    useEffect(() => {
+        if (!isAdmin) {
+            return;
+        }
+
+        setMobileSidebarOpen(false);
+    }, [currentRouteName, isAdmin]);
+
     if (!isAdmin) {
         return (
             <StudentTopNavigation user={user} header={header}>
@@ -657,15 +693,14 @@ export default function AuthenticatedLayout({ header, children }) {
             <div className="flex min-h-screen">
                 <AdminSidebar
                     collapsed={collapsed}
-                    setCollapsed={setCollapsed}
                     emailOpen={emailOpen}
                     setEmailOpen={setEmailOpen}
                 />
 
                 <div className="flex min-h-screen min-w-0 flex-1 flex-col">
                     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-                        <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-                            <div className="flex items-center gap-3">
+                        <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+                            <div className="flex min-w-0 items-center gap-3">
                                 <AdminMobileSidebar
                                     open={mobileSidebarOpen}
                                     setOpen={setMobileSidebarOpen}
@@ -688,11 +723,11 @@ export default function AuthenticatedLayout({ header, children }) {
                                     <span className="sr-only">Toggle sidebar</span>
                                 </Button>
 
-                                <div>
-                                    <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                                <div className="min-w-0">
+                                    <div className="truncate text-xs uppercase tracking-[0.18em] text-muted-foreground">
                                         Admin
                                     </div>
-                                    <h1 className="text-lg font-semibold text-foreground">
+                                    <h1 className="truncate text-lg font-semibold text-foreground">
                                         {pageTitle}
                                     </h1>
                                 </div>

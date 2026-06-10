@@ -13,11 +13,13 @@ trait HandlesLocalUploads
             return $currentPath;
         }
 
+        $newPath = $file->store($directory, 'local');
+
         if ($currentPath) {
             Storage::disk('local')->delete($currentPath);
         }
 
-        return $file->store($directory, 'local');
+        return $newPath;
     }
 
     protected function deleteUploadedFile(?string $path): void

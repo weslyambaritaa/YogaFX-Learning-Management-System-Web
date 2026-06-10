@@ -5,6 +5,7 @@ namespace App\Http\Requests\Admin;
 use App\Models\AccessTier;
 use App\Models\Module;
 use App\Support\UploadConstraints;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -12,6 +13,20 @@ use Illuminate\Validation\Validator;
 
 class LessonRequest extends FormRequest
 {
+    private const SUPPORTED_THUMBNAIL_MIME_TYPES = [
+        'image/jpeg',
+        'image/pjpeg',
+        'image/png',
+        'image/gif',
+        'image/bmp',
+        'image/x-ms-bmp',
+        'image/webp',
+        'image/svg+xml',
+        'image/avif',
+        'image/heic',
+        'image/heif',
+    ];
+
     public function authorize(): bool
     {
         return (bool) $this->user()?->isAdmin();
@@ -33,7 +48,30 @@ class LessonRequest extends FormRequest
             'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],
             'assessment_id' => ['nullable', 'integer', 'min:1'],
             'title' => ['required', 'string', 'max:255'],
-            'thumbnail' => [...$thumbnailRule, 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
+            'thumbnail' => [
+                ...$thumbnailRule,
+                'file',
+                'max:'.UploadConstraints::MAX_FILE_SIZE_KB,
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! $value instanceof UploadedFile) {
+                        return;
+                    }
+
+                    $detectedMimeType = $value->getMimeType();
+                    $clientMimeType = $value->getClientMimeType();
+                    $mimeType = $detectedMimeType ?: $clientMimeType;
+
+                    if ($mimeType && in_array($mimeType, self::SUPPORTED_THUMBNAIL_MIME_TYPES, true)) {
+                        return;
+                    }
+
+                    if ($mimeType && str_starts_with($mimeType, 'image/')) {
+                        return;
+                    }
+
+                    $fail('The thumbnail must be a valid image file in a supported format, such as JPG, PNG, GIF, BMP, WebP, SVG, AVIF, HEIC, or HEIF.');
+                },
+            ],
             'workbook' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
             'video' => ['nullable', 'string', 'max:2048'],
             'audio' => ['nullable', 'string', 'max:2048'],
@@ -44,7 +82,10 @@ class LessonRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'thumbnail.file' => 'The thumbnail upload is invalid.',
+            'thumbnail.uploaded' => 'The thumbnail could not be uploaded. Please make sure the file is not larger than 10 MB and try again.',
             'thumbnail.max' => 'The thumbnail must not be larger than 10 MB.',
+            'workbook.uploaded' => 'The workbook file could not be uploaded. Please make sure the file is not larger than 10 MB and try again.',
             'workbook.max' => 'The workbook file must not be larger than 10 MB.',
         ];
     }
