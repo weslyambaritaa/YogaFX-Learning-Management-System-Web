@@ -15,8 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'title',
     'thumbnail',
     'workbook',
-    'video',
-    'audio',
+    'lesson_video_id',
+    'audio_url',
     'content',
     'sort_order',
 ])]

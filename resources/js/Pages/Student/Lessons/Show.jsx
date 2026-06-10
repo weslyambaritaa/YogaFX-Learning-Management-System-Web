@@ -1,4 +1,5 @@
 import { Button } from '@/Components/ui/button';
+import VideoJsPlayer from '@/Components/VideoJsPlayer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import {
@@ -7,7 +8,6 @@ import {
     FileText,
     Lock,
     PlayCircle,
-    Video,
     Volume2,
 } from 'lucide-react';
 
@@ -34,27 +34,20 @@ const navigationStatusConfig = {
     },
 };
 
+function buildHlsUrl(cdnBaseUrl, videoId) {
+    if (!cdnBaseUrl || !videoId) {
+        return null;
+    }
+
+    return `${cdnBaseUrl.replace(/\/$/, '')}/${encodeURIComponent(videoId)}/playlist.m3u8`;
+}
+
 export default function StudentLessonShow({ lesson }) {
+    const lessonVideoUrl = buildHlsUrl(lesson.stream_cdn_base_url, lesson.lesson_video_id);
     const contentActions = [
-        lesson.video
-            ? {
-                  label: 'Open Video Reference',
-                  href: lesson.video,
-                  icon: Video,
-                  external: true,
-              }
-            : null,
-        lesson.audio
-            ? {
-                  label: 'Open Audio Reference',
-                  href: lesson.audio,
-                  icon: Volume2,
-                  external: true,
-              }
-            : null,
         lesson.workbook_url
             ? {
-                  label: 'Download Workbook',
+                  label: 'Open Workbook',
                   href: lesson.workbook_url,
                   icon: FileText,
                   external: true,
@@ -80,23 +73,33 @@ export default function StudentLessonShow({ lesson }) {
                         </h1>
                         <p className="max-w-3xl text-sm leading-7 text-white/65 sm:text-base">
                             Stay focused on the lesson experience. Your content, workbook,
-                            media references, and progression all live here in one premium
-                            learning view.
+                            media, and progression all live here in one premium learning
+                            view.
                         </p>
                     </div>
 
                     <div className="overflow-hidden rounded-[32px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                         <div className="relative">
-                            {lesson.thumbnail_url ? (
-                                <img
-                                    src={lesson.thumbnail_url}
-                                    alt={lesson.title}
-                                    className="aspect-[16/8] h-full w-full object-cover opacity-70"
-                                />
+                            {lessonVideoUrl ? (
+                                <div className="border-b border-white/10 bg-black/20 p-4 sm:p-6">
+                                    <VideoJsPlayer
+                                        src={lessonVideoUrl}
+                                        poster={lesson.thumbnail_url}
+                                        className="overflow-hidden rounded-[24px]"
+                                    />
+                                </div>
+                            ) : lesson.thumbnail_url ? (
+                                <>
+                                    <img
+                                        src={lesson.thumbnail_url}
+                                        alt={lesson.title}
+                                        className="aspect-[16/8] h-full w-full object-cover opacity-70"
+                                    />
+                                    <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(0,0,0,0.16)_0%,_rgba(0,0,0,0.58)_100%)]" />
+                                </>
                             ) : (
                                 <div className="aspect-[16/8] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                             )}
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(0,0,0,0.16)_0%,_rgba(0,0,0,0.58)_100%)]" />
                             <div className="absolute left-5 top-5 rounded-full border border-white/12 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/72 backdrop-blur">
                                 {lesson.progress?.is_done
                                     ? 'Lesson completed'
@@ -113,12 +116,8 @@ export default function StudentLessonShow({ lesson }) {
                                         <Button
                                             key={action.label}
                                             asChild
-                                            variant={action.label === 'Download Workbook' ? 'outline' : 'default'}
-                                            className={
-                                                action.label === 'Download Workbook'
-                                                    ? 'rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white'
-                                                    : 'rounded-full bg-[#f15b3a] text-white hover:bg-[#ff6a49]'
-                                            }
+                                            variant="outline"
+                                            className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                                         >
                                             <a
                                                 href={action.href}
@@ -132,6 +131,18 @@ export default function StudentLessonShow({ lesson }) {
                                     );
                                 })}
                             </div>
+
+                            {lesson.audio_url && (
+                                <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
+                                        <Volume2 className="size-4 text-[#f15b3a]" />
+                                        Audio Companion
+                                    </div>
+                                    <audio controls src={lesson.audio_url} className="w-full">
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                </div>
+                            )}
 
                             {lesson.content ? (
                                 <div
@@ -199,7 +210,7 @@ export default function StudentLessonShow({ lesson }) {
                             Progress
                         </p>
                         <h2 className="mt-3 text-2xl font-semibold text-white">
-                            You’ve completed {lesson.module?.completed_lessons ?? 0} of{' '}
+                            You've completed {lesson.module?.completed_lessons ?? 0} of{' '}
                             {lesson.module?.lesson_count ?? 0} lessons
                         </h2>
                         <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
@@ -228,7 +239,9 @@ export default function StudentLessonShow({ lesson }) {
 
                         <div className="mt-5 space-y-3">
                             {lesson.navigation?.map((item) => {
-                                const status = navigationStatusConfig[item.status] ?? navigationStatusConfig.available;
+                                const status =
+                                    navigationStatusConfig[item.status] ??
+                                    navigationStatusConfig.available;
                                 const StatusIcon = status.icon;
 
                                 return (
@@ -246,7 +259,9 @@ export default function StudentLessonShow({ lesson }) {
                                                     {item.title}
                                                 </h3>
                                             </div>
-                                            <span className={`inline-flex items-center gap-2 text-xs font-medium ${status.className}`}>
+                                            <span
+                                                className={`inline-flex items-center gap-2 text-xs font-medium ${status.className}`}
+                                            >
                                                 <StatusIcon className="size-4" />
                                                 {status.label}
                                             </span>

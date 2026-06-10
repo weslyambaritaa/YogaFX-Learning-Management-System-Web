@@ -47,14 +47,21 @@ class LessonCatalogController extends Controller
             'lesson' => [
                 'id' => $lesson->id,
                 'title' => $lesson->title,
-                'video' => $lesson->video,
-                'audio' => $lesson->audio,
+                'lesson_video_id' => $lesson->lesson_video_id,
+                'stream_cdn_base_url' => config('bunny.stream.cdn_base_url'),
+                'audio_url' => $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'audio_url',
+                    $lesson->audio_url,
+                    versionSeed: $lesson->updated_at,
+                ),
                 'content' => $lesson->content,
                 'assessment_id' => $lesson->assessment_id,
                 'assessment' => $lesson->assessment && $lesson->assessment->status === 'live' && $lesson->assessment->is_active ? [
                     'id' => $lesson->assessment->id,
                     'title' => $lesson->assessment->title,
-                    'is_unlocked' => $lesson->video === null
+                    'is_unlocked' => $lesson->lesson_video_id === null
                         || (float) LessonProgress::query()
                             ->where('lesson_id', $lesson->id)
                             ->where('user_id', $user->id)

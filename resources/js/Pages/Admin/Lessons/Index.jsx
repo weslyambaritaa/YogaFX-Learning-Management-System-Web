@@ -95,7 +95,7 @@ export default function LessonsIndex({ lessons, status }) {
                                             <td className="px-4 py-3 text-gray-700">
                                                 {[
                                                     lesson.has_workbook ? 'Workbook' : null,
-                                                    lesson.has_video ? 'Video' : null,
+                                                    lesson.has_lesson_video ? 'Lesson Video' : null,
                                                     lesson.has_audio ? 'Audio' : null,
                                                 ]
                                                     .filter(Boolean)

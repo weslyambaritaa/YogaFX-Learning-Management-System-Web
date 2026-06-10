@@ -121,8 +121,8 @@ class ModuleCatalogController extends Controller
                         'title' => $lesson->title,
                         'sort_order' => $lesson->sort_order,
                         'has_workbook' => $lesson->workbook !== null,
-                        'has_video' => $lesson->video !== null,
-                        'has_audio' => $lesson->audio !== null,
+                        'has_video' => $lesson->lesson_video_id !== null,
+                        'has_audio' => $lesson->audio_url !== null,
                         'has_content' => $lesson->content !== null,
                         'status' => (bool) optional($lessonProgressMap->get($lesson->id))->is_done
                             ? 'completed'

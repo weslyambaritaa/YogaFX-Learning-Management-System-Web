@@ -53,7 +53,7 @@ class AssessmentController extends Controller
             'eligibility' => [
                 'is_unlocked' => $this->isAssessmentUnlocked($lesson, $progress),
                 'watch_progress' => $progress?->watch_progress,
-                'requires_watch_progress' => $lesson->video !== null,
+                'requires_watch_progress' => $lesson->lesson_video_id !== null,
             ],
             'attempt' => $attempt ? [
                 'id' => $attempt->id,
@@ -305,7 +305,7 @@ class AssessmentController extends Controller
 
     private function isAssessmentUnlocked(Lesson $lesson, ?LessonProgress $progress): bool
     {
-        if ($lesson->video === null) {
+        if ($lesson->lesson_video_id === null) {
             return true;
         }
 

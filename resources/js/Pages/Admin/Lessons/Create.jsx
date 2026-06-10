@@ -2,9 +2,12 @@ import LessonForm from '@/Components/LessonForm';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function CreateLesson({ accessTiers, modules, scoreboards }) {
-    const { data, setData, post, processing, errors } = useForm({
-export default function CreateLesson({ accessTiers, modules, uploadConstraints }) {
+export default function CreateLesson({
+    accessTiers,
+    modules,
+    scoreboards,
+    uploadConstraints,
+}) {
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         module_id: '',
         access_tier_ids: [],
@@ -12,8 +15,8 @@ export default function CreateLesson({ accessTiers, modules, uploadConstraints }
         title: '',
         thumbnail: null,
         workbook: null,
-        video: '',
-        audio: '',
+        audio: null,
+        lesson_video_id: '',
         content: '',
     });
 
