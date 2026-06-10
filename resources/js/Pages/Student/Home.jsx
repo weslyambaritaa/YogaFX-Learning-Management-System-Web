@@ -3,7 +3,14 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { ChevronRight, Play, Search } from 'lucide-react';
 
-export default function StudentHome({ homeStage, studentContext, continueLearning }) {
+export default function StudentHome({
+    homeStage,
+    studentContext,
+    continueLearning,
+    progressSummary,
+    nextStep,
+    availableModulesSection,
+}) {
     const studentName = studentContext?.display_name ?? 'Student';
     const fullName = studentContext?.full_name ?? studentName;
     const accessTier = studentContext?.access_tier ?? null;
@@ -14,6 +21,7 @@ export default function StudentHome({ homeStage, studentContext, continueLearnin
             : 'Inactive access tier'
         : 'No access tier assigned yet';
     const continueProgress = continueLearning?.progress_percentage ?? 0;
+    const overallProgress = progressSummary?.overall_progress_percentage ?? 0;
 
     return (
         <AuthenticatedLayout
@@ -73,8 +81,8 @@ export default function StudentHome({ homeStage, studentContext, continueLearnin
                                         variant="outline"
                                         className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
                                     >
-                                        <Link href={route('profile.edit')}>
-                                            More Information
+                                        <Link href={route('modules.index')}>
+                                            Explore Modules
                                         </Link>
                                     </Button>
                                 </div>
@@ -85,7 +93,7 @@ export default function StudentHome({ homeStage, studentContext, continueLearnin
                                     {tierLabel}
                                 </div>
                                 <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur">
-                                    Continue Learning comes next
+                                    Module catalog is now live
                                 </div>
                             </div>
                         </div>
@@ -144,7 +152,7 @@ export default function StudentHome({ homeStage, studentContext, continueLearnin
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
-                            Phase 3 active
+                            Phase 6 active
                         </span>
                     </div>
 
@@ -246,7 +254,7 @@ export default function StudentHome({ homeStage, studentContext, continueLearnin
                                     disabled
                                     className="justify-between rounded-full border border-white/12 bg-white/5 px-5 py-6 text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
                                 >
-                                    Next: progress summary
+                                    Next: sequential lesson awareness
                                     <ChevronRight className="size-4" />
                                 </Button>
                             </div>
@@ -255,58 +263,414 @@ export default function StudentHome({ homeStage, studentContext, continueLearnin
                 </section>
 
                 <section className="space-y-4">
-                    <div>
-                        <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                            Module
-                        </p>
-                        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                            Large visual cards will live here
-                        </h2>
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                {progressSummary?.eyebrow ?? 'Learning Progress'}
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                {progressSummary?.title ?? 'Your progress summary will appear here'}
+                            </h2>
+                        </div>
+                        <span className="hidden text-sm text-white/45 md:inline">
+                            Lightweight, not admin-style
+                        </span>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        {[
-                            {
-                                label: tierLabel,
-                                eyebrow: 'Access tier',
-                            },
-                            {
-                                label: fullName,
-                                eyebrow: 'Student',
-                            },
-                            {
-                                label: 'Phase 3',
-                                eyebrow: 'Next build target',
-                            },
-                        ].map((item, index) => (
-                            <div
-                                key={item.label}
-                                className="group relative overflow-hidden rounded-[28px] border border-white/10 bg-[#171311] p-5"
-                            >
-                                <div
-                                    className={[
-                                        'absolute inset-0 opacity-90 transition duration-300 group-hover:scale-[1.02]',
-                                        index === 0
-                                            ? 'bg-[radial-gradient(circle_at_20%_18%,_rgba(211,101,52,0.45),_transparent_30%),linear-gradient(160deg,_#2f1d16_0%,_#120f0e_100%)]'
-                                            : index === 1
-                                              ? 'bg-[radial-gradient(circle_at_78%_16%,_rgba(255,255,255,0.12),_transparent_26%),linear-gradient(160deg,_#251a15_0%,_#100d0c_100%)]'
-                                              : 'bg-[radial-gradient(circle_at_50%_12%,_rgba(197,96,46,0.35),_transparent_24%),linear-gradient(160deg,_#221712_0%,_#0f0d0c_100%)]',
-                                    ].join(' ')}
-                                />
-                                <div className="relative flex aspect-[1.35/1] items-end rounded-[22px] border border-white/8 p-6">
-                                    <div>
-                                        <p className="text-xs uppercase tracking-[0.22em] text-white/50">
-                                            {item.eyebrow}
-                                        </p>
-                                        <h3 className="mt-2 text-4xl font-semibold tracking-[-0.03em] text-white">
-                                            {item.label}
-                                        </h3>
+                    <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                            <div className="grid gap-4 md:grid-cols-[1.1fr_repeat(2,minmax(0,1fr))]">
+                                <div className="rounded-[24px] border border-white/8 bg-[linear-gradient(145deg,rgba(214,90,52,0.18),rgba(255,255,255,0.03))] p-5">
+                                    <p className="text-xs uppercase tracking-[0.22em] text-[#f2d9c8]">
+                                        Overall progress
+                                    </p>
+                                    <div className="mt-6 flex items-end gap-3">
+                                        <span className="text-5xl font-semibold tracking-[-0.04em] text-white">
+                                            {overallProgress}%
+                                        </span>
+                                        <span className="pb-2 text-sm text-white/55">
+                                            completed
+                                        </span>
                                     </div>
+                                    <div className="mt-5 h-2 overflow-hidden rounded-full bg-black/30">
+                                        <div
+                                            className="h-full rounded-full bg-[#d5462f] transition-all"
+                                            style={{ width: `${overallProgress}%` }}
+                                        />
+                                    </div>
+                                    <p className="mt-4 text-sm leading-6 text-white/60">
+                                        {progressSummary?.status ??
+                                            'Progress will update as completed lessons grow.'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-[24px] border border-white/8 bg-black/15 p-5">
+                                    <p className="text-xs uppercase tracking-[0.22em] text-white/48">
+                                        Modules finished
+                                    </p>
+                                    <div className="mt-8 text-4xl font-semibold tracking-[-0.04em] text-white">
+                                        {progressSummary?.modules_completed ?? 0}
+                                        <span className="ml-2 text-base font-medium text-white/40">
+                                            / {progressSummary?.modules_total ?? 0}
+                                        </span>
+                                    </div>
+                                    <p className="mt-4 text-sm leading-6 text-white/58">
+                                        Completed modules reflect accessible lessons that have all
+                                        been marked done.
+                                    </p>
+                                </div>
+
+                                <div className="rounded-[24px] border border-white/8 bg-black/15 p-5">
+                                    <p className="text-xs uppercase tracking-[0.22em] text-white/48">
+                                        Lessons finished
+                                    </p>
+                                    <div className="mt-8 text-4xl font-semibold tracking-[-0.04em] text-white">
+                                        {progressSummary?.lessons_completed ?? 0}
+                                        <span className="ml-2 text-base font-medium text-white/40">
+                                            / {progressSummary?.lessons_total ?? 0}
+                                        </span>
+                                    </div>
+                                    <p className="mt-4 text-sm leading-6 text-white/58">
+                                        Lesson completion is the main source for the Home progress
+                                        summary in this phase.
+                                    </p>
                                 </div>
                             </div>
-                        ))}
+                        </div>
+
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                            <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                                <div className="space-y-2">
+                                    <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+                                        Momentum summary
+                                    </p>
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {progressSummary?.state === 'ready'
+                                            ? 'Your completed lessons now shape the Home overview'
+                                            : 'Home is ready to show progress as soon as learning begins'}
+                                    </h3>
+                                    <p className="text-sm leading-6 text-white/60">
+                                        {progressSummary?.description ??
+                                            'This area keeps the summary human and calm, so Home stays focused on motivation instead of reporting.'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                        Stage 6 scope
+                                    </p>
+                                    <p className="mt-3 text-sm leading-6 text-white/60">
+                                        Progress summary is now connected. Assignment, certificate,
+                                        and resource sections still stay for the next phases.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    </section>
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                {nextStep?.eyebrow ?? 'Recommended Next Step'}
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                {nextStep?.title ?? 'Your next step will appear here'}
+                            </h2>
+                        </div>
+                        <span className="hidden text-sm text-white/45 md:inline">
+                            One clear learning direction
+                        </span>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                            <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-[linear-gradient(145deg,rgba(214,90,52,0.18),rgba(255,255,255,0.03))] p-5">
+                                <div className="space-y-4">
+                                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
+                                        <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
+                                            {nextStep?.status ?? 'Ready now'}
+                                        </span>
+                                        <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
+                                            {nextStep?.kind
+                                                ? nextStep.kind.replace(/_/g, ' ')
+                                                : 'recommended step'}
+                                        </span>
+                                    </div>
+
+                                    <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
+                                        {nextStep?.description ??
+                                            'Home will highlight the strongest next learning action here.'}
+                                    </p>
+
+                                    {(nextStep?.module || nextStep?.lesson) && (
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs uppercase tracking-[0.2em] text-white/45">
+                                            {nextStep?.module?.title && (
+                                                <span>{nextStep.module.title}</span>
+                                            )}
+                                            {nextStep?.module?.title && nextStep?.lesson?.sort_order && (
+                                                <span className="h-1 w-1 rounded-full bg-white/25" />
+                                            )}
+                                            {nextStep?.lesson?.sort_order && (
+                                                <span>Lesson {nextStep.lesson.sort_order}</span>
+                                            )}
+                                            {nextStep?.lesson?.title && (
+                                                <>
+                                                    <span className="h-1 w-1 rounded-full bg-white/25" />
+                                                    <span>{nextStep.lesson.title}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Button
+                                        asChild
+                                        className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                    >
+                                        <Link href={nextStep?.cta_url ?? route('modules.index')}>
+                                            <ChevronRight className="mr-2 size-4" />
+                                            {nextStep?.cta_label ?? 'Browse Modules'}
+                                        </Link>
+                                    </Button>
+
+                                    {nextStep?.module?.url && (
+                                        <Button
+                                            asChild
+                                            variant="outline"
+                                            className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                        >
+                                            <Link href={nextStep.module.url}>Open Module</Link>
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                            <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                                <div className="space-y-2">
+                                    <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+                                        Recommendation engine
+                                    </p>
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {nextStep?.kind === 'continue_lesson'
+                                            ? 'Home keeps the student on the current learning track'
+                                            : nextStep?.kind === 'next_lesson'
+                                              ? 'Home can now point directly to the next unfinished lesson'
+                                              : nextStep?.kind === 'start_lesson'
+                                                ? 'Home gives new students a safe first step'
+                                                : nextStep?.kind === 'explore_modules'
+                                                  ? 'Home falls back to discovery when no active lesson is available'
+                                                  : 'Home is ready to guide the next action'}
+                                    </h3>
+                                    <p className="text-sm leading-6 text-white/60">
+                                        The current recommendation logic prioritizes paths that
+                                        already have safe student-side entry points today:
+                                        continue lesson, start lesson, next available lesson, or
+                                        browse modules.
+                                    </p>
+                                </div>
+
+                                <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
+                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                        Current boundary
+                                    </p>
+                                    <p className="mt-3 text-sm leading-6 text-white/60">
+                                        Assessment, assignment, and certificate recommendations are
+                                        still deferred until their student-side flows are active,
+                                        so this card avoids sending students into dead ends.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                {availableModulesSection?.eyebrow ?? 'Available Modules'}
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                {availableModulesSection?.title ?? 'Your module catalog will appear here'}
+                            </h2>
+                        </div>
+                        <Button
+                            asChild
+                            variant="outline"
+                            className="hidden rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white md:inline-flex"
+                        >
+                            <Link href={route('modules.index')}>See All Modules</Link>
+                        </Button>
+                    </div>
+
+                    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+                        <div className="flex flex-col gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                                <div className="max-w-3xl space-y-2">
+                                    <p className="text-sm leading-7 text-white/60">
+                                        {availableModulesSection?.description ??
+                                            'Home will show the modules available in the current student tier here.'}
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    {[
+                                        {
+                                            label: availableModulesSection?.summary?.total ?? 0,
+                                            eyebrow: 'Modules',
+                                        },
+                                        {
+                                            label: availableModulesSection?.summary?.active ?? 0,
+                                            eyebrow: 'In progress',
+                                        },
+                                        {
+                                            label: availableModulesSection?.summary?.completed ?? 0,
+                                            eyebrow: 'Completed',
+                                        },
+                                    ].map((item) => (
+                                        <div
+                                            key={item.eyebrow}
+                                            className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-4"
+                                        >
+                                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                                {item.eyebrow}
+                                            </p>
+                                            <div className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
+                                                {item.label}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {availableModulesSection?.items?.length ? (
+                                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                    {availableModulesSection.items.map((module, index) => (
+                                        <div
+                                            key={module.id}
+                                            className="group rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15"
+                                        >
+                                            <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
+                                                <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.4),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
+                                                    {module.thumbnail_url && (
+                                                        <img
+                                                            src={module.thumbnail_url}
+                                                            alt={module.title}
+                                                            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                                                        />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                                                    <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                                                        <span
+                                                            className={[
+                                                                'rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.22em] backdrop-blur',
+                                                                module.status === 'completed'
+                                                                    ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-200'
+                                                                    : module.status === 'active'
+                                                                      ? 'border-[#d5462f]/35 bg-[#d5462f]/20 text-[#ffd7cf]'
+                                                                      : 'border-white/15 bg-black/30 text-white/70',
+                                                            ].join(' ')}
+                                                        >
+                                                            {module.status_label}
+                                                        </span>
+                                                        <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+                                                            Module {module.sort_order}
+                                                        </span>
+                                                    </div>
+                                                    <div className="absolute bottom-4 left-4 right-4">
+                                                        <p className="text-xs uppercase tracking-[0.2em] text-white/50">
+                                                            {module.lesson_count} lessons
+                                                        </p>
+                                                        <h3 className="mt-2 text-xl font-semibold leading-tight text-white">
+                                                            {module.title}
+                                                        </h3>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between gap-3 text-sm text-white/55">
+                                                        <span>
+                                                            {module.completed_lessons} of {module.lesson_count} lessons completed
+                                                        </span>
+                                                        <span>{module.progress_percentage}%</span>
+                                                    </div>
+
+                                                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                        <div
+                                                            className={[
+                                                                'h-full rounded-full transition-all',
+                                                                module.status === 'completed'
+                                                                    ? 'bg-emerald-400'
+                                                                    : 'bg-[#d5462f]',
+                                                            ].join(' ')}
+                                                            style={{
+                                                                width: `${module.progress_percentage}%`,
+                                                            }}
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <p className="text-sm leading-6 text-white/58">
+                                                            {module.status === 'completed'
+                                                                ? 'This module is complete and ready to review anytime.'
+                                                                : module.status === 'active'
+                                                                  ? 'This is your current learning track and is ready to continue.'
+                                                                  : 'This module is unlocked in your tier and ready to explore.'}
+                                                        </p>
+                                                        <span className="hidden text-[11px] uppercase tracking-[0.22em] text-white/30 xl:inline">
+                                                            #{index + 1}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-wrap items-center gap-3 pt-1">
+                                                    <Button
+                                                        asChild
+                                                        className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                                    >
+                                                        <Link href={module.cta_url}>
+                                                            {module.cta_label}
+                                                        </Link>
+                                                    </Button>
+
+                                                    <Button
+                                                        asChild
+                                                        variant="outline"
+                                                        className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                    >
+                                                        <Link href={route('modules.index')}>
+                                                            Browse Catalog
+                                                        </Link>
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="rounded-[24px] border border-dashed border-white/12 bg-black/20 px-5 py-8">
+                                    <p className="text-sm leading-7 text-white/60">
+                                        {availableModulesSection?.description ??
+                                            'No module is available yet for this student tier.'}
+                                    </p>
+                                    <div className="mt-4">
+                                        <Button
+                                            asChild
+                                            className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                        >
+                                            <Link href={route('modules.index')}>Open Modules</Link>
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </section>
             </div>
         </AuthenticatedLayout>
     );

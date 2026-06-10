@@ -28,9 +28,12 @@ class HomeController extends Controller
         $tier = $user?->accessTier;
         $availableModules = $this->availableModulesForStudent($user?->access_tier_id);
         $continueLearning = $this->buildContinueLearning($request, $availableModules);
+        $progressSummary = $this->buildProgressSummary($request, $availableModules);
+        $nextStep = $this->buildNextStep($request, $availableModules, $continueLearning);
+        $availableModulesSection = $this->buildAvailableModulesSection($request, $availableModules);
 
         return Inertia::render('Student/Home', [
-            'homeStage' => 3,
+            'homeStage' => 6,
             'studentContext' => [
                 'display_name' => $displayName !== '' ? $displayName : 'Student',
                 'full_name' => $user?->name ?: $displayName,
@@ -44,6 +47,9 @@ class HomeController extends Controller
                 ] : null,
             ],
             'continueLearning' => $continueLearning,
+            'progressSummary' => $progressSummary,
+            'nextStep' => $nextStep,
+            'availableModulesSection' => $availableModulesSection,
         ]);
     }
 
@@ -198,5 +204,379 @@ class HomeController extends Controller
             'thumbnail_url' => null,
             'status' => 'No accessible lesson yet',
         ];
+    }
+
+    protected function buildProgressSummary(Request $request, Collection $availableModules): array
+    {
+        $user = $request->user();
+        $lessonCollection = $availableModules
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->flatMap(fn (Module $module) => $module->lessons)
+            ->values();
+
+        $moduleCollection = $availableModules
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->values();
+
+        if (! $user || ! $user->access_tier_id || $lessonCollection->isEmpty()) {
+            return [
+                'state' => 'empty',
+                'eyebrow' => 'Learning Progress',
+                'title' => 'Your progress summary will appear here.',
+                'description' => 'Once your YogaFX lesson access is ready, Home will highlight how many lessons and modules you have completed.',
+                'overall_progress_percentage' => 0,
+                'modules_completed' => 0,
+                'modules_total' => $moduleCollection->count(),
+                'lessons_completed' => 0,
+                'lessons_total' => $lessonCollection->count(),
+                'status' => 'Progress not available yet',
+            ];
+        }
+
+        $completedLessonIds = LessonProgress::query()
+            ->where('user_id', $user->id)
+            ->whereIn('lesson_id', $lessonCollection->pluck('id'))
+            ->where('is_done', true)
+            ->pluck('lesson_id')
+            ->map(fn ($lessonId) => (int) $lessonId)
+            ->unique()
+            ->values();
+
+        $completedLessonLookup = $completedLessonIds->flip();
+        $lessonsTotal = $lessonCollection->count();
+        $lessonsCompleted = $completedLessonIds->count();
+        $modulesTotal = $moduleCollection->count();
+        $modulesCompleted = $moduleCollection
+            ->filter(fn (Module $module) => $module->lessons->every(
+                fn ($lesson) => $completedLessonLookup->has((int) $lesson->id)
+            ))
+            ->count();
+
+        $overallProgress = $lessonsTotal > 0
+            ? (int) round(($lessonsCompleted / $lessonsTotal) * 100)
+            : 0;
+
+        $description = $lessonsCompleted === 0
+            ? 'You are at the beginning of your YogaFX journey. Start your first lesson to turn this space into a visible learning streak.'
+            : ($overallProgress === 100
+                ? 'Every accessible lesson in your current tier is complete. Your learning journey has reached a major milestone.'
+                : "You have completed {$lessonsCompleted} of {$lessonsTotal} accessible lessons and {$modulesCompleted} of {$modulesTotal} modules so far.");
+
+        return [
+            'state' => $lessonsCompleted === 0 ? 'empty' : 'ready',
+            'eyebrow' => 'Learning Progress',
+            'title' => $overallProgress === 100
+                ? 'You have completed your current YogaFX learning path'
+                : 'Your learning momentum is building',
+            'description' => $description,
+            'overall_progress_percentage' => $overallProgress,
+            'modules_completed' => $modulesCompleted,
+            'modules_total' => $modulesTotal,
+            'lessons_completed' => $lessonsCompleted,
+            'lessons_total' => $lessonsTotal,
+            'status' => $overallProgress === 100
+                ? 'Current tier completed'
+                : ($lessonsCompleted === 0 ? 'No completed lesson yet' : 'Progress updated from completed lessons'),
+        ];
+    }
+
+    protected function buildNextStep(Request $request, Collection $availableModules, array $continueLearning): array
+    {
+        $user = $request->user();
+        $accessTierId = $user?->access_tier_id;
+
+        if (! $user || ! $accessTierId) {
+            return [
+                'state' => 'empty',
+                'kind' => 'profile',
+                'eyebrow' => 'Recommended Next Step',
+                'title' => 'Complete your student setup first',
+                'description' => 'Your Home is ready, but YogaFX still needs an active access tier before it can recommend the right learning action.',
+                'status' => 'Awaiting access tier',
+                'cta_label' => 'Open Profile',
+                'cta_url' => route('profile.edit'),
+                'module' => null,
+                'lesson' => null,
+            ];
+        }
+
+        if (($continueLearning['state'] ?? null) === 'resume'
+            && ($continueLearning['progress_percentage'] ?? 0) < 100
+            && filled($continueLearning['lesson']['id'] ?? null)) {
+            return [
+                'state' => 'ready',
+                'kind' => 'continue_lesson',
+                'eyebrow' => 'Recommended Next Step',
+                'title' => 'Continue your current lesson',
+                'description' => 'The strongest next move is to return to the lesson you already started and keep the momentum going without switching tracks.',
+                'status' => $continueLearning['status'] ?? 'In progress',
+                'cta_label' => 'Continue Lesson',
+                'cta_url' => $continueLearning['cta_url'] ?? route('modules.index'),
+                'module' => $continueLearning['module'] ?? null,
+                'lesson' => $continueLearning['lesson'] ?? null,
+            ];
+        }
+
+        if (($continueLearning['state'] ?? null) === 'start'
+            && filled($continueLearning['lesson']['id'] ?? null)) {
+            return [
+                'state' => 'ready',
+                'kind' => 'start_lesson',
+                'eyebrow' => 'Recommended Next Step',
+                'title' => 'Start your first lesson now',
+                'description' => 'You already have a safe starting point. Begin with the first accessible YogaFX lesson and let Home build your learning rhythm from there.',
+                'status' => $continueLearning['status'] ?? 'Ready to start',
+                'cta_label' => $continueLearning['cta_label'] ?? 'Start First Lesson',
+                'cta_url' => $continueLearning['cta_url'] ?? route('modules.index'),
+                'module' => $continueLearning['module'] ?? null,
+                'lesson' => $continueLearning['lesson'] ?? null,
+            ];
+        }
+
+        $orderedLessonEntries = $availableModules
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->flatMap(fn (Module $module) => $module->lessons->map(fn ($lesson) => [
+                'module' => $module,
+                'lesson' => $lesson,
+            ]))
+            ->values();
+
+        if ($orderedLessonEntries->isEmpty()) {
+            return [
+                'state' => 'empty',
+                'kind' => 'explore_modules',
+                'eyebrow' => 'Recommended Next Step',
+                'title' => 'Explore your available modules',
+                'description' => 'No accessible lesson is ready yet, so the safest next step is to open your YogaFX catalog and check what is already available in your tier.',
+                'status' => 'No accessible lesson yet',
+                'cta_label' => 'Browse Modules',
+                'cta_url' => route('modules.index'),
+                'module' => null,
+                'lesson' => null,
+            ];
+        }
+
+        $lessonIds = $orderedLessonEntries->pluck('lesson.id');
+        $progressMap = LessonProgress::query()
+            ->where('user_id', $user->id)
+            ->whereIn('lesson_id', $lessonIds)
+            ->get()
+            ->keyBy('lesson_id');
+
+        $latestCompletedProgress = LessonProgress::query()
+            ->where('user_id', $user->id)
+            ->whereIn('lesson_id', $lessonIds)
+            ->where('is_done', true)
+            ->latest('updated_at')
+            ->latest('id')
+            ->first();
+
+        if ($latestCompletedProgress) {
+            $completedIndex = $orderedLessonEntries->search(
+                fn (array $entry) => (int) $entry['lesson']->id === (int) $latestCompletedProgress->lesson_id
+            );
+
+            if ($completedIndex !== false) {
+                $nextEntry = $orderedLessonEntries
+                    ->slice($completedIndex + 1)
+                    ->first(fn (array $entry) => ! (bool) optional($progressMap->get($entry['lesson']->id))->is_done);
+
+                if ($nextEntry) {
+                    return [
+                        'state' => 'ready',
+                        'kind' => 'next_lesson',
+                        'eyebrow' => 'Recommended Next Step',
+                        'title' => 'Move into the next available lesson',
+                        'description' => "You finished the previous lesson, so the cleanest next step is {$nextEntry['lesson']->title} from {$nextEntry['module']->title}.",
+                        'status' => 'Ready now',
+                        'cta_label' => 'Open Next Lesson',
+                        'cta_url' => route('lessons.show', $nextEntry['lesson']),
+                        'module' => [
+                            'title' => $nextEntry['module']->title,
+                            'url_slug' => $nextEntry['module']->url_slug,
+                            'url' => route('modules.show', $nextEntry['module']->url_slug),
+                        ],
+                        'lesson' => [
+                            'id' => $nextEntry['lesson']->id,
+                            'title' => $nextEntry['lesson']->title,
+                            'sort_order' => $nextEntry['lesson']->sort_order,
+                        ],
+                    ];
+                }
+            }
+        }
+
+        $firstIncompleteEntry = $orderedLessonEntries
+            ->first(fn (array $entry) => ! (bool) optional($progressMap->get($entry['lesson']->id))->is_done);
+
+        if ($firstIncompleteEntry) {
+            return [
+                'state' => 'ready',
+                'kind' => 'available_lesson',
+                'eyebrow' => 'Recommended Next Step',
+                'title' => 'Return to the next available lesson',
+                'description' => "Home found {$firstIncompleteEntry['lesson']->title} as the next unfinished lesson available in your current YogaFX path.",
+                'status' => 'Available now',
+                'cta_label' => 'Open Lesson',
+                'cta_url' => route('lessons.show', $firstIncompleteEntry['lesson']),
+                'module' => [
+                    'title' => $firstIncompleteEntry['module']->title,
+                    'url_slug' => $firstIncompleteEntry['module']->url_slug,
+                    'url' => route('modules.show', $firstIncompleteEntry['module']->url_slug),
+                ],
+                'lesson' => [
+                    'id' => $firstIncompleteEntry['lesson']->id,
+                    'title' => $firstIncompleteEntry['lesson']->title,
+                    'sort_order' => $firstIncompleteEntry['lesson']->sort_order,
+                ],
+            ];
+        }
+
+        return [
+            'state' => 'complete',
+            'kind' => 'explore_modules',
+            'eyebrow' => 'Recommended Next Step',
+            'title' => 'You have finished every accessible lesson for now',
+            'description' => 'Your current learning path is complete. Revisit your module catalog to review, refresh, and stay connected to the YogaFX journey.',
+            'status' => 'Current path completed',
+            'cta_label' => 'Browse Modules',
+            'cta_url' => route('modules.index'),
+            'module' => null,
+            'lesson' => null,
+        ];
+    }
+
+    protected function buildAvailableModulesSection(Request $request, Collection $availableModules): array
+    {
+        $user = $request->user();
+        $moduleCollection = $availableModules
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->values();
+
+        if (! $user || ! $user->access_tier_id) {
+            return [
+                'state' => 'empty',
+                'eyebrow' => 'Available Modules',
+                'title' => 'Your module catalog will appear here.',
+                'description' => 'Assign an access tier first so Home can safely reveal the modules that belong to this student journey.',
+                'items' => [],
+                'summary' => [
+                    'total' => 0,
+                    'completed' => 0,
+                    'active' => 0,
+                    'available' => 0,
+                ],
+            ];
+        }
+
+        if ($moduleCollection->isEmpty()) {
+            return [
+                'state' => 'empty',
+                'eyebrow' => 'Available Modules',
+                'title' => 'No module is available in this tier yet.',
+                'description' => 'Home is ready to show a premium module catalog, but there are no accessible modules with lessons for the current student tier yet.',
+                'items' => [],
+                'summary' => [
+                    'total' => 0,
+                    'completed' => 0,
+                    'active' => 0,
+                    'available' => 0,
+                ],
+            ];
+        }
+
+        $lessonProgressMap = $this->lessonProgressMap(
+            $user->id,
+            $moduleCollection->flatMap(fn (Module $module) => $module->lessons->pluck('id')),
+        );
+        $activeLessonId = $this->latestProgressLessonId($user->id, $lessonProgressMap);
+
+        $items = $moduleCollection->map(function (Module $module) use ($activeLessonId, $lessonProgressMap) {
+            $totalLessons = $module->lessons->count();
+            $completedLessons = $module->lessons
+                ->filter(fn ($lesson) => (bool) optional($lessonProgressMap->get($lesson->id))->is_done)
+                ->count();
+            $isActive = $module->lessons->contains(fn ($lesson) => $lesson->id === $activeLessonId);
+            $status = $totalLessons > 0 && $completedLessons === $totalLessons
+                ? 'completed'
+                : ($isActive ? 'active' : 'available');
+            $statusLabel = match ($status) {
+                'completed' => 'Completed',
+                'active' => 'Continue',
+                default => 'Available',
+            };
+
+            return [
+                'id' => $module->id,
+                'title' => $module->title,
+                'url_slug' => $module->url_slug,
+                'sort_order' => $module->sort_order,
+                'lesson_count' => $totalLessons,
+                'completed_lessons' => $completedLessons,
+                'progress_percentage' => $totalLessons > 0
+                    ? (int) round(($completedLessons / $totalLessons) * 100)
+                    : 0,
+                'status' => $status,
+                'status_label' => $statusLabel,
+                'cta_label' => match ($status) {
+                    'completed' => 'Review Module',
+                    'active' => 'Continue Module',
+                    default => 'Open Module',
+                },
+                'cta_url' => route('modules.show', $module->url_slug),
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'module',
+                    $module->id,
+                    'thumbnail',
+                    $module->thumbnail,
+                    versionSeed: $module->updated_at,
+                ),
+            ];
+        })->values();
+
+        return [
+            'state' => 'ready',
+            'eyebrow' => 'Available Modules',
+            'title' => 'Browse the modules available in your YogaFX path',
+            'description' => 'This section only shows content unlocked by the current tier, so the catalog stays relevant and calm instead of overwhelming.',
+            'items' => $items,
+            'summary' => [
+                'total' => $items->count(),
+                'completed' => $items->where('status', 'completed')->count(),
+                'active' => $items->where('status', 'active')->count(),
+                'available' => $items->where('status', 'available')->count(),
+            ],
+        ];
+    }
+
+    protected function lessonProgressMap(?int $userId, iterable $lessonIds): Collection
+    {
+        $lessonIds = collect($lessonIds)->filter()->values();
+
+        if (! $userId || $lessonIds->isEmpty()) {
+            return collect();
+        }
+
+        return LessonProgress::query()
+            ->where('user_id', $userId)
+            ->whereIn('lesson_id', $lessonIds)
+            ->get()
+            ->keyBy('lesson_id');
+    }
+
+    protected function latestProgressLessonId(?int $userId, Collection $lessonProgressMap): ?int
+    {
+        if (! $userId || $lessonProgressMap->isEmpty()) {
+            return null;
+        }
+
+        return $lessonProgressMap
+            ->sortByDesc(fn (LessonProgress $progress) => sprintf(
+                '%010d-%010d',
+                $progress->updated_at?->getTimestamp() ?? 0,
+                $progress->id,
+            ))
+            ->keys()
+            ->first();
     }
 }

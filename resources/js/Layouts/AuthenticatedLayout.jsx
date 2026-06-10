@@ -30,7 +30,6 @@ import {
     Mail,
     Menu,
     PlaySquare,
-    Search,
     UserRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -182,9 +181,11 @@ const adminUtilityItems = [
 const studentNavigationItems = [
     { label: 'Home', route: 'student.dashboard', match: ['student.dashboard'] },
     { label: 'Modules', route: 'modules.index', match: ['modules.index', 'modules.show', 'lessons.show'] },
-    { label: 'Ebooks', route: 'ebooks.index', match: ['ebooks.index', 'ebooks.preview'] },
-    { label: 'Courses', route: 'courses.index', match: ['courses.index'] },
-    { label: 'Profile', route: 'profile.edit', match: ['profile.edit'] },
+];
+
+const studentInstantAccessItems = [
+    { label: 'Full Standing Dialog' },
+    { label: 'Full Floor Dialog' },
 ];
 
 const adminPageTitles = {
@@ -217,17 +218,54 @@ const adminPageTitles = {
     'admin.access-tiers.edit': 'Edit Access Tier',
 };
 
-function UserMenu({ user }) {
+function getUserInitials(user) {
+    const baseName = [user?.first_name, user?.last_name]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || user?.name || 'Student';
+
+    return baseName
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('');
+}
+
+function UserMenu({ user, isImmersive = false }) {
     const handleLogout = () => {
         router.post(route('logout'));
     };
 
+    const isStudent = user?.role === 'student';
+    const displayName = user?.first_name || user?.name || 'Student';
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                    <UserRound className="size-4" />
-                    <span className="hidden md:inline">{user.name}</span>
+                <Button
+                    variant="outline"
+                    className={[
+                        'gap-2 rounded-full',
+                        isImmersive
+                            ? 'border-white/15 bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white'
+                            : '',
+                    ].join(' ')}
+                >
+                    <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current">
+                        {user?.profile_photo ? (
+                            <img
+                                src={user.profile_photo}
+                                alt={displayName}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            getUserInitials(user) || <UserRound className="size-4" />
+                        )}
+                    </span>
+                    <span className="hidden max-w-32 truncate md:inline">
+                        {displayName}
+                    </span>
+                    <ChevronDown className="size-4 opacity-70" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -240,6 +278,11 @@ function UserMenu({ user }) {
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isStudent && (
+                    <DropdownMenuItem asChild>
+                        <Link href={route('profile.edit')}>Profile</Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                     onSelect={(event) => {
                         event.preventDefault();
@@ -613,6 +656,34 @@ function StudentTopNavigation({
                                             </Link>
                                         </Button>
                                     ))}
+
+                                    <div
+                                        className={[
+                                            'px-3 pt-3 text-[11px] font-semibold uppercase tracking-[0.28em]',
+                                            isImmersive
+                                                ? 'text-white/35'
+                                                : 'text-muted-foreground',
+                                        ].join(' ')}
+                                    >
+                                        INSTANT ACCESS
+                                    </div>
+
+                                    {studentInstantAccessItems.map((item) => (
+                                        <Button
+                                            key={item.label}
+                                            type="button"
+                                            variant="ghost"
+                                            disabled
+                                            className={[
+                                                'h-11 w-full justify-start rounded-xl px-3 opacity-100',
+                                                isImmersive
+                                                    ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
+                                                    : '',
+                                            ].join(' ')}
+                                        >
+                                            {item.label}
+                                        </Button>
+                                    ))}
                                 </div>
                             </SheetContent>
                         </Sheet>
@@ -655,62 +726,35 @@ function StudentTopNavigation({
                             </Button>
                         ))}
 
-                        {isImmersive && (
-                            <>
-                                <div className="mx-2 hidden h-6 w-px bg-white/10 xl:block" />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled
-                                    className="hidden rounded-full border border-white/12 bg-white/5 px-4 text-xs uppercase tracking-[0.18em] text-white/80 opacity-100 hover:bg-white/10 hover:text-white xl:inline-flex"
-                                >
-                                    Instant Access
-                                </Button>
-                            </>
-                        )}
+                        <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
+                        <div
+                            className={[
+                                'hidden text-[11px] font-semibold uppercase tracking-[0.28em] lg:block',
+                                isImmersive ? 'text-white/35' : 'text-muted-foreground',
+                            ].join(' ')}
+                        >
+                            INSTANT ACCESS
+                        </div>
+                        {studentInstantAccessItems.map((item) => (
+                            <Button
+                                key={item.label}
+                                type="button"
+                                variant="ghost"
+                                disabled
+                                className={[
+                                    'rounded-full px-4 text-xs font-medium opacity-100',
+                                    isImmersive
+                                        ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
+                                        : '',
+                                ].join(' ')}
+                            >
+                                {item.label}
+                            </Button>
+                        ))}
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {isImmersive && (
-                            <>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled
-                                    size="icon"
-                                    className="hidden rounded-full border border-white/12 bg-white/5 text-white/80 opacity-100 hover:bg-white/10 hover:text-white lg:inline-flex"
-                                >
-                                    <Search className="size-4" />
-                                    <span className="sr-only">Search</span>
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled
-                                    className="hidden rounded-full border border-white/12 bg-white/5 px-4 text-xs font-medium text-white/80 opacity-100 hover:bg-white/10 hover:text-white lg:inline-flex"
-                                >
-                                    Full Standing Dialog
-                                    <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-white/55">
-                                        View in Browser
-                                    </span>
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled
-                                    className="hidden rounded-full border border-white/12 bg-white/5 px-4 text-xs font-medium text-white/80 opacity-100 hover:bg-white/10 hover:text-white xl:inline-flex"
-                                >
-                                    Full Floor Dialog
-                                    <span className="ml-2 text-[10px] uppercase tracking-[0.18em] text-white/55">
-                                        View in Browser
-                                    </span>
-                                </Button>
-                            </>
-                        )}
-
-                        <div className={isImmersive ? '[&_button]:border-white/15 [&_button]:bg-white/5 [&_button]:text-white [&_button]:hover:bg-white/10 [&_button]:hover:text-white' : ''}>
-                            <UserMenu user={user} />
-                        </div>
+                        <UserMenu user={user} isImmersive={isImmersive} />
                     </div>
                 </div>
             </nav>
