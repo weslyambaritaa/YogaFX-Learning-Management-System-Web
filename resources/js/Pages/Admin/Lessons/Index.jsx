@@ -58,6 +58,7 @@ export default function LessonsIndex({ lessons, status }) {
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Module</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Tiers</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Order</th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Scoreboard</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Assets</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Action</th>
                                     </tr>
@@ -88,6 +89,9 @@ export default function LessonsIndex({ lessons, status }) {
                                                 {lesson.access_tiers.join(', ')}
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">{lesson.sort_order}</td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {lesson.scoreboard ?? 'None'}
+                                            </td>
                                             <td className="px-4 py-3 text-gray-700">
                                                 {[
                                                     lesson.has_workbook ? 'Workbook' : null,

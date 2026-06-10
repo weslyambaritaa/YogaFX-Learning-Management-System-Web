@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
+use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use Illuminate\Http\Request;
@@ -50,6 +51,21 @@ class LessonCatalogController extends Controller
                 'audio' => $lesson->audio,
                 'content' => $lesson->content,
                 'assessment_id' => $lesson->assessment_id,
+                'assessment' => $lesson->assessment && $lesson->assessment->status === 'live' && $lesson->assessment->is_active ? [
+                    'id' => $lesson->assessment->id,
+                    'title' => $lesson->assessment->title,
+                    'is_unlocked' => $lesson->video === null
+                        || (float) LessonProgress::query()
+                            ->where('lesson_id', $lesson->id)
+                            ->where('user_id', $user->id)
+                            ->value('watch_progress') >= 95,
+                    'current_attempt_id' => AssessmentAttempt::query()
+                        ->where('assessment_id', $lesson->assessment_id)
+                        ->where('user_id', $user->id)
+                        ->where('status', AssessmentAttempt::STATUS_IN_PROGRESS)
+                        ->latest('id')
+                        ->value('id'),
+                ] : null,
                 'module' => $lesson->module ? [
                     'id' => $lesson->module->id,
                     'title' => $lesson->module->title,

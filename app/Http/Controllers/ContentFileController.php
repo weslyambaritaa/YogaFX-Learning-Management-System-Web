@@ -1,9 +1,12 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Models\Assessment;
+use App\Models\AssessmentDesign;
 use App\Models\Course;
 use App\Models\Ebook;
 use App\Models\Lesson;
+use App\Models\QuestionOption;
 use App\Models\Module;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -66,6 +69,24 @@ class ContentFileController extends Controller
                     'thumbnail' => ['download' => false],
                 ],
             ],
+            'assessment' => [
+                'model' => Assessment::class,
+                'fields' => [
+                    'thumbnail' => ['download' => false],
+                ],
+            ],
+            'assessment-design' => [
+                'model' => AssessmentDesign::class,
+                'fields' => [
+                    'logo' => ['download' => false],
+                ],
+            ],
+            'question-option' => [
+                'model' => QuestionOption::class,
+                'fields' => [
+                    'image' => ['download' => false],
+                ],
+            ],
             default => abort(404),
         };
     }
@@ -84,6 +105,35 @@ class ContentFileController extends Controller
 
         if ($record instanceof Course) {
             abort_unless($record->access_tier_id === $user->access_tier_id, 403);
+
+            return;
+        }
+
+        if ($record instanceof Assessment) {
+            $lesson = $record->lesson;
+
+            abort_unless(
+                $lesson
+                && $lesson->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists()
+                && $lesson->module?->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists(),
+                403,
+            );
+
+            return;
+        }
+
+        if ($record instanceof AssessmentDesign) {
+            $assessment = $record->assessment;
+            abort_unless($assessment, 403);
+            $this->authorizeAccess($request, $assessment);
+
+            return;
+        }
+
+        if ($record instanceof QuestionOption) {
+            $assessment = $record->question?->assessment;
+            abort_unless($assessment, 403);
+            $this->authorizeAccess($request, $assessment);
 
             return;
         }

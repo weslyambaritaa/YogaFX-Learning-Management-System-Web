@@ -59,9 +59,10 @@ const adminNavigationItems = [
         match: ['admin.lessons.*'],
     },
     {
-        label: 'Assessment',
+        label: 'Scoreboards',
+        route: 'admin.scoreboards.index',
         icon: ClipboardList,
-        disabled: true,
+        match: ['admin.scoreboards.*'],
     },
     {
         label: 'Student Progress',
@@ -196,6 +197,10 @@ const adminPageTitles = {
     'admin.lessons.index': 'Lessons',
     'admin.lessons.create': 'Create Lesson',
     'admin.lessons.edit': 'Edit Lesson',
+    'admin.scoreboards.index': 'Scoreboards',
+    'admin.scoreboards.create': 'Create Scoreboard',
+    'admin.scoreboards.edit': 'Edit Scoreboard',
+    'admin.scoreboards.builder': 'Scoreboard Builder',
     'admin.courses.index': 'Video Lecture',
     'admin.courses.create': 'Create Video Lecture',
     'admin.courses.edit': 'Edit Video Lecture',

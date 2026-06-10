@@ -2,6 +2,8 @@ import LessonForm from '@/Components/LessonForm';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
+export default function EditLesson({ lesson, accessTiers, modules, scoreboards, status }) {
+    const { data, setData, patch, processing, errors } = useForm({
 export default function EditLesson({ lesson, accessTiers, modules, uploadConstraints, status }) {
     const { data, setData, patch, processing, errors, setError, clearErrors } = useForm({
         module_id: lesson.module_id ?? '',
@@ -59,6 +61,7 @@ export default function EditLesson({ lesson, accessTiers, modules, uploadConstra
                             processing={processing}
                             modules={modules}
                             accessTiers={accessTiers}
+                            scoreboards={scoreboards}
                             uploadConstraints={uploadConstraints}
                             onSubmit={submit}
                             submitLabel="Save Lesson"

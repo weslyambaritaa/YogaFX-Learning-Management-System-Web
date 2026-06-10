@@ -23,6 +23,7 @@ export default function LessonForm({
     processing,
     modules,
     accessTiers,
+    scoreboards,
     uploadConstraints = null,
     onSubmit,
     submitLabel = 'Save Lesson',
@@ -90,18 +91,22 @@ export default function LessonForm({
             </div>
 
             <div>
-                <InputLabel
-                    htmlFor="assessment_id"
-                    value="Assessment ID (Optional)"
-                />
-                <TextInput
+                <InputLabel htmlFor="assessment_id" value="Linked Scoreboard (Optional)" />
+                <select
                     id="assessment_id"
-                    type="number"
-                    min="1"
-                    className="mt-1 block w-full md:max-w-sm"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 md:max-w-md"
                     value={data.assessment_id}
-                    onChange={(event) => setData('assessment_id', event.target.value)}
-                />
+                    onChange={(event) =>
+                        setData('assessment_id', event.target.value ? Number(event.target.value) : '')
+                    }
+                >
+                    <option value="">No scoreboard linked</option>
+                    {scoreboards.map((scoreboard) => (
+                        <option key={scoreboard.id} value={scoreboard.id}>
+                            {scoreboard.title} ({scoreboard.status}{scoreboard.is_active ? ', active' : ', inactive'})
+                        </option>
+                    ))}
+                </select>
                 <InputError className="mt-2" message={errors.assessment_id} />
             </div>
 

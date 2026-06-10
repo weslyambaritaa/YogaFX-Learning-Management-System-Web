@@ -1,0 +1,104 @@
+flowchart TD
+
+    %% =========================
+    %% ADMIN FLOW
+    %% =========================
+    A1[Admin opens Scoreboards page] --> A2[System shows all scoreboards]
+    A2 --> A3{Admin action}
+
+    A3 -->|Create new scoreboard| A4[Create scoreboard]
+    A3 -->|Open existing scoreboard| A5[Open scoreboard builder]
+
+    A4 --> A5
+
+    A5 --> A6[Builder loads]
+    A6 --> A7[Left panel: question list]
+    A6 --> A8[Center panel: question preview/editor]
+    A6 --> A9[Right panel: Question tab + Answers tab]
+
+    A7 --> A10{Admin clicks Add Question?}
+    A10 -->|Yes| A11[Create new question]
+    A11 --> A12[New question becomes next screen]
+    A12 --> A8
+
+    A8 --> A13[Admin edits question text directly]
+    A9 --> A14[Admin configures question settings]
+    A9 --> A15[Admin configures answers/options]
+
+    A14 --> A16{Question settings include}
+    A16 --> A17[Show instruction]
+    A16 --> A18[Required]
+    A16 --> A19[Randomize answers order]
+    A16 --> A20[Question-level jump]
+    A16 --> A21[Type-specific config]
+
+    A15 --> A22{Answer settings include}
+    A22 --> A23[Answer label/value]
+    A22 --> A24[Scoring toggle]
+    A22 --> A25[If scoring ON show score input]
+    A22 --> A26[Jump toggle]
+    A22 --> A27[If jump ON show target question dropdown]
+
+    A5 --> A28[Admin edits scoreboard design]
+    A28 --> A29{Design settings}
+    A29 --> A30[Logo]
+    A29 --> A31[Logo max width]
+    A29 --> A32[Logo alignment]
+    A29 --> A33[Logo link]
+    A29 --> A34[Header position]
+    A29 --> A35[Section background]
+    A29 --> A36[Top margin]
+    A29 --> A37[Bottom margin]
+    A29 --> A38[Footer content]
+
+    A5 --> A39[Admin saves scoreboard]
+
+    %% =========================
+    %% STUDENT FLOW
+    %% =========================
+    S1[Student opens available scoreboard] --> S2[Create attempt]
+    S2 --> S3[Load first question]
+    S3 --> S4{Question type}
+
+    S4 -->|info_screen| S5[Show information only]
+    S5 --> S6[No answer stored]
+    S6 --> S7[Move to next question or jump target]
+
+    S4 -->|yes_no_maybe| S8[Student selects Yes / No / Maybe]
+    S4 -->|multiple choice| S9[Student selects one or many options]
+    S4 -->|radio buttons| S10[Student selects one option]
+    S4 -->|sliding or linear or divided scale| S11[Student selects scale value]
+    S4 -->|numeric| S12[Student enters numeric value]
+    S4 -->|open_text| S13[Student enters text]
+    S4 -->|image_button| S14[Student selects image option]
+
+    S8 --> S15[Store answer]
+    S9 --> S15
+    S10 --> S15
+    S11 --> S15
+    S12 --> S15
+    S13 --> S15
+    S14 --> S15
+
+    S15 --> S16[Calculate score contribution if applicable]
+
+    S16 --> S17{Answer-level jump exists?}
+    S17 -->|Yes| S18[Jump to target question]
+    S17 -->|No| S19{Question-level jump exists?}
+    S19 -->|Yes| S20[Jump to target question]
+    S19 -->|No| S21[Go to next question in order]
+
+    S18 --> S22[Skip intervening questions]
+    S20 --> S22
+    S22 --> S23[Continue flow from jump target]
+
+    S21 --> S23
+    S23 --> S24{More questions?}
+    S24 -->|Yes| S3
+    S24 -->|No| S25[Submit attempt]
+
+    S25 --> S26[Calculate total score]
+    S26 --> S27[Resolve result range]
+    S27 --> S28[Store result in attempt]
+    S28 --> S29[Update assessment progress]
+    S29 --> S30[Show final result]

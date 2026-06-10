@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
 use App\Support\UploadConstraints;
 use App\Models\AccessTier;
+use App\Models\Assessment;
 use App\Models\Lesson;
 use App\Models\Module;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,7 @@ class LessonController extends Controller
     {
         return Inertia::render('Admin/Lessons/Index', [
             'lessons' => Lesson::query()
-                ->with(['module', 'accessTiers'])
+                ->with(['module', 'accessTiers', 'assessment'])
                 ->orderBy('sort_order')
                 ->orderBy('title')
                 ->get()
@@ -34,6 +35,7 @@ class LessonController extends Controller
                     'module' => $lesson->module?->title,
                     'access_tiers' => $lesson->accessTiers->pluck('name')->all(),
                     'sort_order' => $lesson->sort_order,
+                    'scoreboard' => $lesson->assessment?->title,
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'lesson',
                         $lesson->id,
@@ -54,6 +56,7 @@ class LessonController extends Controller
         return Inertia::render('Admin/Lessons/Create', [
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),
+            'scoreboards' => $this->scoreboardOptions(),
             'uploadConstraints' => $this->uploadConstraints(),
         ]);
     }
@@ -124,6 +127,7 @@ class LessonController extends Controller
             ],
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),
+            'scoreboards' => $this->scoreboardOptions(),
             'uploadConstraints' => $this->uploadConstraints(),
             'status' => session('status'),
         ]);
@@ -190,6 +194,19 @@ class LessonController extends Controller
             ->all();
     }
 
+    private function scoreboardOptions(): array
+    {
+        return Assessment::query()
+            ->orderByDesc('updated_at')
+            ->orderBy('title')
+            ->get()
+            ->map(fn (Assessment $assessment) => [
+                'id' => $assessment->id,
+                'title' => $assessment->title,
+                'status' => $assessment->status,
+                'is_active' => $assessment->is_active,
+            ])
+            ->all();
     private function uploadConstraints(): array
     {
         return [
