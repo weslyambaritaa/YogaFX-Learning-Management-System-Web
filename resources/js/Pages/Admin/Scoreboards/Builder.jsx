@@ -62,8 +62,13 @@ const optionBasedTypes = [
 
 const scaleTypes = ['sliding_scale', 'linear_scale', 'divided_scale'];
 const numericTypes = [...scaleTypes, 'numeric'];
-const scoringCategoryOptions = [
-    { value: 'overall_only', label: 'Overall Only' },
+const answerTabScoringCategoryTypes = [
+    'sliding_scale',
+    'linear_scale',
+    'divided_scale',
+    'numeric',
+    'open_text',
+    'info_screen',
 ];
 
 function questionTypeSupportsAnswerJump(type) {
@@ -82,6 +87,10 @@ function questionTypeSupportsCustomAnswerRows(type) {
         'radio_buttons',
         'image_button',
     ].includes(type);
+}
+
+function questionTypeUsesAnswerTabScoringCategory(type) {
+    return answerTabScoringCategoryTypes.includes(type);
 }
 
 function questionTypeSupportsSingleCorrectSelection(type, allowMultiSelect = false) {
@@ -1194,11 +1203,27 @@ function AnswerRow({
     onDragEnd,
 }) {
     const [expanded, setExpanded] = useState(false);
+    const imageInputRef = useRef(null);
+    const [localImagePreviewUrl, setLocalImagePreviewUrl] = useState(null);
     const { data, setData, patch, processing, errors } = useForm(draft);
 
     useEffect(() => {
         setData(draft);
     }, [draft, option.id]);
+
+    useEffect(() => {
+        if (!(data.image instanceof File)) {
+            setLocalImagePreviewUrl(null);
+            return undefined;
+        }
+
+        const nextPreviewUrl = URL.createObjectURL(data.image);
+        setLocalImagePreviewUrl(nextPreviewUrl);
+
+        return () => {
+            URL.revokeObjectURL(nextPreviewUrl);
+        };
+    }, [data.image]);
 
     const updateField = (field, value) => {
         setData(field, value);
@@ -1219,6 +1244,7 @@ function AnswerRow({
 
     const supportsJump = questionTypeSupportsAnswerJump(question.question_type);
     const supportsImage = question.question_type === 'image_button';
+    const imagePreviewUrl = localImagePreviewUrl || option.image_url || null;
 
     return (
         <form
@@ -1292,6 +1318,56 @@ function AnswerRow({
             </div>
 
             <div className="mt-4 space-y-3">
+                {supportsImage ? (
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            Image
+                        </label>
+                        <input
+                            ref={imageInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={(event) =>
+                                updateField(
+                                    'image',
+                                    event.target.files?.[0] ?? null,
+                                )
+                            }
+                            className="hidden"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => imageInputRef.current?.click()}
+                            className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-[#faf8f3] px-3 py-3 text-left transition hover:border-[#cfd9cf] hover:bg-white"
+                        >
+                            <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                {imagePreviewUrl ? (
+                                    <img
+                                        src={imagePreviewUrl}
+                                        alt={data.label || option.label}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <ImageIcon className="size-4 text-slate-400" />
+                                )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-slate-900">
+                                    {imagePreviewUrl ? 'Change image' : 'Select image'}
+                                </div>
+                                <div className="mt-1 text-xs leading-5 text-slate-500">
+                                    Click this area to open the file picker.
+                                </div>
+                                {data.image instanceof File ? (
+                                    <div className="mt-1 truncate text-xs text-slate-500">
+                                        {data.image.name}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </button>
+                    </div>
+                ) : null}
+
                 <ToggleField
                     checked={data.scoring_enabled}
                     onChange={(checked) =>
@@ -1310,37 +1386,8 @@ function AnswerRow({
                 ) : null}
             </div>
 
-            {expanded || data.scoring_enabled || (supportsJump && data.jump_enabled) || (supportsImage && option.image_url) ? (
+            {expanded || data.scoring_enabled || (supportsJump && data.jump_enabled) ? (
                 <div className="mt-5 space-y-4 border-t border-slate-200 pt-4">
-                    {supportsImage ? (
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                Image
-                            </label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(event) =>
-                                    updateField(
-                                        'image',
-                                        event.target.files?.[0] ?? null,
-                                    )
-                                }
-                                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                            />
-                            <div className="text-xs text-slate-500">
-                                Image is required
-                            </div>
-                            {option.image_url ? (
-                                <img
-                                    src={option.image_url}
-                                    alt={option.label}
-                                    className="h-16 w-16 rounded-lg object-cover"
-                                />
-                            ) : null}
-                        </div>
-                    ) : null}
-
                     {data.scoring_enabled ? (
                         <div className="space-y-2">
                             <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -1438,6 +1485,8 @@ function useQuestionConfigPanel({
     const [activeTab, setActiveTab] = useState('question');
     const [optionDrafts, setOptionDrafts] = useState({});
     const [optionProcessingMap, setOptionProcessingMap] = useState({});
+    const [scoringCategoryPanelVisibility, setScoringCategoryPanelVisibility] =
+        useState({});
     const [draggedQuestionId, setDraggedQuestionId] = useState(null);
     const [dropTargetQuestionId, setDropTargetQuestionId] = useState(null);
     const [draggedOptionId, setDraggedOptionId] = useState(null);
@@ -1493,6 +1542,23 @@ function useQuestionConfigPanel({
         setDraggedOptionId(null);
         setDropTargetOptionId(null);
     }, [question?.id]);
+
+    useEffect(() => {
+        if (!question?.id || !questionTypeUsesAnswerTabScoringCategory(question.question_type)) {
+            return;
+        }
+
+        setScoringCategoryPanelVisibility((current) => {
+            if (current[question.id] !== undefined) {
+                return current;
+            }
+
+            return {
+                ...current,
+                [question.id]: Boolean(question.scoring_category),
+            };
+        });
+    }, [question?.id, question?.question_type, question?.scoring_category]);
 
     useEffect(() => {
         if (!question?.id) {
@@ -1810,6 +1876,12 @@ function useQuestionConfigPanel({
               'radio_buttons',
               'image_button',
           ].includes(question.question_type)
+        : false;
+    const supportsAnswerTabScoringCategory = question
+        ? questionTypeUsesAnswerTabScoringCategory(question.question_type)
+        : false;
+    const scoringCategoryPanelEnabled = question?.id
+        ? scoringCategoryPanelVisibility[question.id] ?? Boolean(questionForm.data.scoring_category)
         : false;
 
     const hasUnsavedQuestionChanges = questions.some((currentQuestion) => {
@@ -2527,26 +2599,41 @@ function useQuestionConfigPanel({
                 )}
             </div>
         ) : (
-            <div className="space-y-4 rounded-xl border border-slate-200 bg-[#fbfaf6] px-4 py-5">
-                <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                        Scoring Category
-                    </label>
-                    <select
-                        value={questionForm.data.scoring_category}
-                        onChange={(event) =>
-                            setValue('scoring_category', event.target.value)
+            supportsAnswerTabScoringCategory ? (
+                <div className="space-y-4 rounded-xl border border-slate-200 bg-[#fbfaf6] px-4 py-5">
+                    <ToggleField
+                        checked={scoringCategoryPanelEnabled}
+                        onChange={(checked) =>
+                            setScoringCategoryPanelVisibility((current) => ({
+                                ...current,
+                                [question.id]: checked,
+                            }))
                         }
-                        className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
-                    >
-                        {scoringCategoryOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
+                        label="Scoring Category"
+                        description="Turn on to reveal the scoring category input for this question type."
+                    />
+
+                    {scoringCategoryPanelEnabled ? (
+                        <div className="space-y-2">
+                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                Scoring Category
+                            </label>
+                            <Input
+                                value={questionForm.data.scoring_category}
+                                onChange={(event) =>
+                                    setValue('scoring_category', event.target.value)
+                                }
+                                className="rounded-xl border-slate-200 bg-white"
+                                placeholder="Type a scoring category"
+                            />
+                        </div>
+                    ) : null}
                 </div>
-            </div>
+            ) : (
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+                    This question type does not need answer-specific settings.
+                </div>
+            )
         )
     ) : (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
