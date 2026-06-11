@@ -14,6 +14,7 @@ export default function EmailNotificationShow({
     notificationDescription,
     notificationTrigger,
     template,
+    modules,
     availableMergeTags,
     statusMessage,
     statusTone,
@@ -41,6 +42,7 @@ export default function EmailNotificationShow({
     const testForm = useForm({
         notification_type: notificationType,
         send_to: '',
+        module_id: '',
     });
 
     const submitTemplate = (event) => {
@@ -498,6 +500,31 @@ export default function EmailNotificationShow({
                                 </p>
 
                                 <form onSubmit={submitTest} className="mt-4 space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-slate-700">
+                                            Module
+                                        </label>
+                                        <select
+                                            value={testForm.data.module_id}
+                                            onChange={(event) =>
+                                                testForm.setData('module_id', event.target.value)
+                                            }
+                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        >
+                                            <option value="">Use sample module</option>
+                                            {modules.map((module) => (
+                                                <option key={module.id} value={module.id}>
+                                                    {module.title}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-slate-500">
+                                            When selected, placeholders like
+                                            {' '}`module_title` use this module&apos;s real title.
+                                        </p>
+                                        <InputError message={errors.module_id} />
+                                    </div>
+
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-slate-700">
                                             Send To

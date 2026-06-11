@@ -6,9 +6,21 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class BunnyStreamService
 {
+    public function hasManagementConfig(): bool
+    {
+        return filled(config('bunny.stream.library_id'))
+            && filled(config('bunny.stream.access_key'));
+    }
+
+    public function hasPlaybackConfig(): bool
+    {
+        return filled(config('bunny.stream.cdn_base_url'));
+    }
+
     public function createAndUpload(UploadedFile $file, ?string $title = null): string
     {
         $videoId = $this->createVideo($title ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) ?: 'Lecturer Video');
@@ -63,13 +75,103 @@ class BunnyStreamService
             return null;
         }
 
-        $cdnBaseUrl = (string) config('bunny.stream.cdn_base_url');
-
-        if ($cdnBaseUrl === '') {
+        if (! $this->hasPlaybackConfig()) {
             throw new RuntimeException('Bunny Stream CDN base URL is not configured.');
         }
 
-        return $cdnBaseUrl.'/'.rawurlencode((string) $videoId).'/playlist.m3u8';
+        return rtrim((string) config('bunny.stream.cdn_base_url'), '/')
+            .'/'.rawurlencode((string) $videoId).'/playlist.m3u8';
+    }
+
+    /**
+     * @return array{
+     *     video_id: string|null,
+     *     is_verified: bool,
+     *     is_found: bool,
+     *     title: string|null,
+     *     error_code: 'empty'|'invalid_format'|'missing_management_config'|'request_failed'|null
+     * }
+     */
+    public function inspectVideoId(?string $videoId): array
+    {
+        $normalizedVideoId = is_string($videoId)
+            ? trim($videoId)
+            : null;
+
+        if (! filled($normalizedVideoId)) {
+            return [
+                'video_id' => null,
+                'is_verified' => false,
+                'is_found' => false,
+                'title' => null,
+                'error_code' => 'empty',
+            ];
+        }
+
+        if (! Str::isUuid($normalizedVideoId)) {
+            return [
+                'video_id' => $normalizedVideoId,
+                'is_verified' => false,
+                'is_found' => false,
+                'title' => null,
+                'error_code' => 'invalid_format',
+            ];
+        }
+
+        if (! $this->hasManagementConfig()) {
+            return [
+                'video_id' => $normalizedVideoId,
+                'is_verified' => false,
+                'is_found' => false,
+                'title' => null,
+                'error_code' => 'missing_management_config',
+            ];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'AccessKey' => (string) config('bunny.stream.access_key'),
+                'Accept' => 'application/json',
+            ])->timeout(20)->get($this->libraryUrl('/videos/'.$normalizedVideoId));
+
+            if ($response->status() === 404) {
+                return [
+                    'video_id' => $normalizedVideoId,
+                    'is_verified' => true,
+                    'is_found' => false,
+                    'title' => null,
+                    'error_code' => null,
+                ];
+            }
+
+            if (! $response->successful()) {
+                return [
+                    'video_id' => $normalizedVideoId,
+                    'is_verified' => false,
+                    'is_found' => false,
+                    'title' => null,
+                    'error_code' => 'request_failed',
+                ];
+            }
+
+            $title = $response->json('title');
+
+            return [
+                'video_id' => $normalizedVideoId,
+                'is_verified' => true,
+                'is_found' => true,
+                'title' => is_string($title) && $title !== '' ? $title : null,
+                'error_code' => null,
+            ];
+        } catch (Throwable) {
+            return [
+                'video_id' => $normalizedVideoId,
+                'is_verified' => false,
+                'is_found' => false,
+                'title' => null,
+                'error_code' => 'request_failed',
+            ];
+        }
     }
 
     private function libraryUrl(string $suffix): string
@@ -81,8 +183,7 @@ class BunnyStreamService
 
     private function ensureConfigured(): void
     {
-        if (! filled(config('bunny.stream.library_id'))
-            || ! filled(config('bunny.stream.access_key'))) {
+        if (! $this->hasManagementConfig()) {
             throw new RuntimeException('Bunny Stream is not configured.');
         }
     }

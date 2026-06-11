@@ -2,6 +2,7 @@ import { Button } from '@/Components/ui/button';
 import VideoJsPlayer from '@/Components/VideoJsPlayer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     CheckCircle2,
     ChevronRight,
@@ -34,16 +35,13 @@ const navigationStatusConfig = {
     },
 };
 
-function buildHlsUrl(cdnBaseUrl, videoId) {
-    if (!cdnBaseUrl || !videoId) {
-        return null;
-    }
-
-    return `${cdnBaseUrl.replace(/\/$/, '')}/${encodeURIComponent(videoId)}/playlist.m3u8`;
-}
-
 export default function StudentLessonShow({ lesson }) {
-    const lessonVideoUrl = buildHlsUrl(lesson.stream_cdn_base_url, lesson.lesson_video_id);
+    const [playerWarning, setPlayerWarning] = useState(null);
+    const lessonVideoUrl = lesson.video?.hls_url ?? null;
+    const lessonVideoWarning = lesson.video?.warning_message ?? null;
+    const playbackWarning =
+        playerWarning &&
+        `${playerWarning} Confirm that the lesson video ID matches an accessible Bunny Stream video in the library used by this environment.`;
     const contentActions = [
         lesson.workbook_url
             ? {
@@ -86,6 +84,7 @@ export default function StudentLessonShow({ lesson }) {
                                         src={lessonVideoUrl}
                                         poster={lesson.thumbnail_url}
                                         className="overflow-hidden rounded-[24px]"
+                                        onPlaybackError={setPlayerWarning}
                                     />
                                 </div>
                             ) : lesson.thumbnail_url ? (
@@ -108,6 +107,17 @@ export default function StudentLessonShow({ lesson }) {
                         </div>
 
                         <div className="space-y-6 p-6 sm:p-8">
+                            {lessonVideoWarning && (
+                                <div className="rounded-[24px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-100">
+                                    {lessonVideoWarning}
+                                </div>
+                            )}
+                            {playbackWarning && (
+                                <div className="rounded-[24px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-100">
+                                    {playbackWarning}
+                                </div>
+                            )}
+
                             <div className="flex flex-wrap gap-3">
                                 {contentActions.map((action) => {
                                     const Icon = action.icon;

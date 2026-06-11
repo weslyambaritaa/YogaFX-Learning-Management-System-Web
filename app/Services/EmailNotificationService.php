@@ -7,6 +7,7 @@ use App\Events\EmailNotifications\ResetPasswordRequested;
 use App\Mail\TemplatedNotificationMail;
 use App\Models\EmailLog;
 use App\Models\EmailTemplate;
+use App\Models\Module;
 use App\Models\User;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Support\Facades\Mail;
@@ -15,6 +16,8 @@ use RuntimeException;
 
 class EmailNotificationService
 {
+    private const EMAIL_PLACEHOLDER_PATTERN = '/{{\s*([\w_]+)\s*}}|(?<!{){\s*([\w_]+)\s*}(?!})/';
+
     public function findOrCreateTemplate(string $notificationType): EmailTemplate
     {
         return EmailTemplate::query()->firstOrCreate(
@@ -36,10 +39,10 @@ class EmailNotificationService
     /**
      * @return array{status: string, tone: string, message: string}
      */
-    public function sendTest(string $notificationType, string $sendTo): array
+    public function sendTest(string $notificationType, string $sendTo, ?int $moduleId = null): array
     {
         $template = $this->findOrCreateTemplate($notificationType);
-        $payload = $this->samplePayloadFor($notificationType, $sendTo);
+        $payload = $this->samplePayloadFor($notificationType, $sendTo, $moduleId);
         $delivery = [
             'recipient_type' => 'test',
             'recipient_email' => $sendTo,
@@ -256,8 +259,8 @@ class EmailNotificationService
 
     public function render(string $content, array $payload): string
     {
-        return preg_replace_callback('/{{\s*([\w_]+)\s*}}/', function (array $matches) use ($payload) {
-            $key = $matches[1] ?? '';
+        return preg_replace_callback(self::EMAIL_PLACEHOLDER_PATTERN, function (array $matches) use ($payload) {
+            $key = $matches[1] !== '' ? $matches[1] : ($matches[2] ?? '');
 
             return (string) ($payload[$key] ?? '');
         }, $content) ?? $content;
@@ -409,10 +412,7 @@ class EmailNotificationService
      */
     private function missingMergeTags(string $content, array $payload): array
     {
-        preg_match_all('/{{\s*([\w_]+)\s*}}/', $content, $matches);
-
-        return collect($matches[1] ?? [])
-            ->filter(fn (mixed $key) => is_string($key) && $key !== '')
+        return collect($this->extractPlaceholderKeys($content))
             ->unique()
             ->filter(function (string $key) use ($payload): bool {
                 if (! array_key_exists($key, $payload)) {
@@ -423,6 +423,24 @@ class EmailNotificationService
 
                 return $value === null || $value === '';
             })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extractPlaceholderKeys(string $content): array
+    {
+        preg_match_all(self::EMAIL_PLACEHOLDER_PATTERN, $content, $matches, PREG_SET_ORDER);
+
+        return collect($matches)
+            ->map(function (array $match): ?string {
+                $key = $match[1] !== '' ? $match[1] : ($match[2] ?? '');
+
+                return is_string($key) && $key !== '' ? $key : null;
+            })
+            ->filter()
             ->values()
             ->all();
     }
@@ -506,8 +524,12 @@ class EmailNotificationService
         ]);
     }
 
-    private function samplePayloadFor(string $notificationType, string $sendTo): array
+    private function samplePayloadFor(string $notificationType, string $sendTo, ?int $moduleId = null): array
     {
+        $selectedModule = $moduleId !== null
+            ? Module::query()->find($moduleId, ['id', 'title'])
+            : null;
+
         $base = [
             'notification_type' => $notificationType,
             'app_name' => config('app.name', 'YogaFX LMS'),
@@ -517,7 +539,7 @@ class EmailNotificationService
             'assignment_type' => 'Standing & Floor',
             'feedback' => 'Please improve lighting and camera angle on the re-upload.',
             'lesson_title' => 'Sample Lesson',
-            'module_title' => 'Sample Module',
+            'module_title' => $selectedModule?->title ?? 'Sample Module',
             'completion_date' => now()->format('Y-m-d H:i'),
             'module_progress' => '100%',
             'course_progress' => '67%',

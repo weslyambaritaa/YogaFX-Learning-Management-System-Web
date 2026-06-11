@@ -4,11 +4,13 @@ namespace App\Http\Requests\Admin;
 
 use App\Models\AccessTier;
 use App\Models\Module;
+use App\Services\BunnyStreamService;
 use App\Support\UploadConstraints;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -39,6 +41,21 @@ class LessonRequest extends FormRequest
     public function authorize(): bool
     {
         return (bool) $this->user()?->isAdmin();
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $lessonVideoId = $this->input('lesson_video_id');
+
+        if (! is_string($lessonVideoId)) {
+            return;
+        }
+
+        $normalizedVideoId = trim($lessonVideoId);
+
+        $this->merge([
+            'lesson_video_id' => $normalizedVideoId === '' ? null : $normalizedVideoId,
+        ]);
     }
 
     /**
@@ -124,7 +141,28 @@ class LessonRequest extends FormRequest
                     $fail('The audio file must be a valid MP3 upload.');
                 },
             ],
-            'lesson_video_id' => ['nullable', 'string', 'max:255'],
+            'lesson_video_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_string($value) || trim($value) === '') {
+                        return;
+                    }
+
+                    $normalizedValue = trim($value);
+
+                    if (filter_var($normalizedValue, FILTER_VALIDATE_URL)) {
+                        $fail('Lesson Video ID must use the Bunny Stream video ID only, not a full URL.');
+
+                        return;
+                    }
+
+                    if (! Str::isUuid($normalizedValue)) {
+                        $fail('Lesson Video ID must be a valid Bunny Stream video ID in UUID format.');
+                    }
+                },
+            ],
             'content' => ['nullable', 'string'],
         ];
     }
@@ -158,6 +196,10 @@ class LessonRequest extends FormRequest
 
             if ($validator->errors()->has('module_id') || $validator->errors()->has('access_tier_ids')) {
                 return;
+            }
+
+            if (! $validator->errors()->has('lesson_video_id')) {
+                $this->validateLessonVideoIdAgainstBunny($validator);
             }
 
             $moduleId = $this->integer('module_id');
@@ -210,6 +252,26 @@ class LessonRequest extends FormRequest
                 ),
             );
         });
+    }
+
+    private function validateLessonVideoIdAgainstBunny(Validator $validator): void
+    {
+        $lessonVideoId = $this->input('lesson_video_id');
+
+        if (! is_string($lessonVideoId) || trim($lessonVideoId) === '') {
+            return;
+        }
+
+        /** @var BunnyStreamService $bunnyStream */
+        $bunnyStream = app(BunnyStreamService::class);
+        $inspection = $bunnyStream->inspectVideoId($lessonVideoId);
+
+        if ($inspection['is_verified'] && ! $inspection['is_found']) {
+            $validator->errors()->add(
+                'lesson_video_id',
+                'Lesson Video ID was not found in the configured Bunny Stream library. Paste the Bunny Stream video GUID from the same library used by this environment.',
+            );
+        }
     }
 
     private function logAudioUploadIssues(Validator $validator): void

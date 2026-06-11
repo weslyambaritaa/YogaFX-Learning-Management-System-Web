@@ -22,6 +22,7 @@ class EmailTemplateSendTestRequest extends FormRequest
                 }
             }],
             'send_to' => ['required', 'email:rfc'],
+            'module_id' => ['nullable', 'integer', 'exists:modules,id'],
         ];
     }
 }

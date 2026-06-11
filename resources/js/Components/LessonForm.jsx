@@ -143,8 +143,9 @@ export default function LessonForm({
                         onChange={(event) => setData('lesson_video_id', event.target.value)}
                     />
                     <p className="mt-2 text-xs text-gray-500">
-                        Use the Bunny Stream `video_id` for the lesson video. This field is
-                        reference-only and can be edited manually.
+                        Paste only the Bunny Stream video GUID from the same Bunny library
+                        used by this environment. Full video URLs, playlist URLs, and non-Bunny
+                        links are rejected.
                     </p>
                     <InputError className="mt-2" message={errors.lesson_video_id} />
                 </div>

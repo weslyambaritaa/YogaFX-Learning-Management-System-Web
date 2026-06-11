@@ -20,7 +20,7 @@ class BunnyStorageService
         $objectKey = null;
 
         try {
-            $this->ensureConfigured();
+            $this->ensureWriteConfigured();
 
             $fileContents = file_get_contents($file->getRealPath());
 
@@ -95,21 +95,23 @@ class BunnyStorageService
             return;
         }
 
+        if (BunnyAssetPath::isBunnyPath($path)) {
+            $this->ensureWriteConfigured();
+
+            Http::withHeaders([
+                'AccessKey' => (string) config('bunny.storage.access_key'),
+            ])->timeout(60)->delete($this->uploadUrl(BunnyAssetPath::objectKey($path)));
+
+            return;
+        }
+
         if (filter_var($path, FILTER_VALIDATE_URL)) {
             return;
         }
 
         if (! BunnyAssetPath::isBunnyPath($path)) {
             Storage::disk('local')->delete($path);
-
-            return;
         }
-
-        $this->ensureConfigured();
-
-        Http::withHeaders([
-            'AccessKey' => (string) config('bunny.storage.access_key'),
-        ])->timeout(60)->delete($this->uploadUrl(BunnyAssetPath::objectKey($path)));
     }
 
     public function url(?string $path): ?string
@@ -118,7 +120,9 @@ class BunnyStorageService
             return null;
         }
 
-        $this->ensureConfigured();
+        if (! $this->hasPublicUrlConfig()) {
+            return null;
+        }
 
         return $this->publicUrlForObjectKey(BunnyAssetPath::objectKey($path));
     }
@@ -146,13 +150,18 @@ class BunnyStorageService
         return $baseUrl.'/'.$zoneName.'/'.$encodedPath;
     }
 
-    private function ensureConfigured(): void
+    private function ensureWriteConfigured(): void
     {
         if (! filled(config('bunny.storage.access_key'))
             || ! filled(config('bunny.storage.zone_name'))
-            || ! filled(config('bunny.storage.public_base_url'))) {
+            || ! filled(config('bunny.storage.api_base_url'))) {
             throw new RuntimeException('Bunny Storage is not configured.');
         }
+    }
+
+    private function hasPublicUrlConfig(): bool
+    {
+        return filled(config('bunny.storage.public_base_url'));
     }
 
     private function uploadFailureMessage(int $status, string $responseBody): string

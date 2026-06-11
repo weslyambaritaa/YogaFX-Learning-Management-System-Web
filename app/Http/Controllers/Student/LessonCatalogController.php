@@ -7,13 +7,19 @@ use App\Http\Controllers\Controller;
 use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
+use App\Services\BunnyStreamService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class LessonCatalogController extends Controller
 {
     use BuildsProtectedMediaUrls;
+
+    public function __construct(private readonly BunnyStreamService $bunnyStreamService)
+    {
+    }
 
     public function show(Request $request, Lesson $lesson): Response
     {
@@ -42,13 +48,14 @@ class LessonCatalogController extends Controller
 
         $completedLessons = $lessonNavigation->filter(fn (Lesson $item) => (bool) optional($progressMap->get($item->id))->is_done)->count();
         $currentProgress = $progressMap->get($lesson->id);
+        $videoState = $this->videoStateForLesson($lesson);
 
         return Inertia::render('Student/Lessons/Show', [
             'lesson' => [
                 'id' => $lesson->id,
                 'title' => $lesson->title,
                 'lesson_video_id' => $lesson->lesson_video_id,
-                'stream_cdn_base_url' => config('bunny.stream.cdn_base_url'),
+                'video' => $videoState,
                 'audio_url' => $this->protectedMediaUrl(
                     'lesson',
                     $lesson->id,
@@ -113,5 +120,83 @@ class LessonCatalogController extends Controller
                 ]),
             ],
         ]);
+    }
+
+    /**
+     * @return array{
+     *     video_id: string|null,
+     *     hls_url: string|null,
+     *     is_ready: bool,
+     *     is_configured: bool,
+     *     is_valid_id: bool,
+     *     is_found_in_library: bool|null,
+     *     warning_message: string|null
+     * }
+     */
+    private function videoStateForLesson(Lesson $lesson): array
+    {
+        $videoId = is_string($lesson->lesson_video_id)
+            ? trim($lesson->lesson_video_id)
+            : null;
+
+        if (! filled($videoId)) {
+            return [
+                'video_id' => null,
+                'hls_url' => null,
+                'is_ready' => false,
+                'is_configured' => $this->bunnyStreamService->hasPlaybackConfig(),
+                'is_valid_id' => false,
+                'is_found_in_library' => null,
+                'warning_message' => null,
+            ];
+        }
+
+        if (! Str::isUuid($videoId)) {
+            return [
+                'video_id' => $videoId,
+                'hls_url' => null,
+                'is_ready' => false,
+                'is_configured' => $this->bunnyStreamService->hasPlaybackConfig(),
+                'is_valid_id' => false,
+                'is_found_in_library' => null,
+                'warning_message' => 'This lesson video is not using a valid Bunny Stream video ID yet. Please update it from admin before playback can start.',
+            ];
+        }
+
+        if (! $this->bunnyStreamService->hasPlaybackConfig()) {
+            return [
+                'video_id' => $videoId,
+                'hls_url' => null,
+                'is_ready' => false,
+                'is_configured' => false,
+                'is_valid_id' => true,
+                'is_found_in_library' => null,
+                'warning_message' => 'This lesson already has a Bunny Stream video ID, but Bunny Stream CDN is not configured yet in the current environment.',
+            ];
+        }
+
+        $videoInspection = $this->bunnyStreamService->inspectVideoId($videoId);
+
+        if ($videoInspection['is_verified'] && ! $videoInspection['is_found']) {
+            return [
+                'video_id' => $videoId,
+                'hls_url' => null,
+                'is_ready' => false,
+                'is_configured' => true,
+                'is_valid_id' => true,
+                'is_found_in_library' => false,
+                'warning_message' => 'This lesson video ID is valid in format, but it was not found in the configured Bunny Stream library. Please update the lesson with the correct Bunny Stream video GUID from admin.',
+            ];
+        }
+
+        return [
+            'video_id' => $videoId,
+            'hls_url' => $this->bunnyStreamService->hlsUrl($videoId),
+            'is_ready' => true,
+            'is_configured' => true,
+            'is_valid_id' => true,
+            'is_found_in_library' => $videoInspection['is_verified'] ? true : null,
+            'warning_message' => null,
+        ];
     }
 }

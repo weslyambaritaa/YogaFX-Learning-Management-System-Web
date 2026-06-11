@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\EmailTemplateMediaUploadRequest;
 use App\Http\Requests\Admin\EmailTemplateSendTestRequest;
 use App\Http\Requests\Admin\EmailTemplateUpdateRequest;
+use App\Models\Module;
 use App\Services\EmailNotificationService;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +27,10 @@ class EmailNotificationController extends Controller
         abort_unless(EmailNotificationTypeRegistry::isValid($notificationType), 404);
 
         $template = $this->emailNotificationService->findOrCreateTemplate($notificationType);
+        $modules = Module::query()
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get(['id', 'title']);
 
         return Inertia::render('Admin/EmailNotifications/Show', [
             'notificationType' => $notificationType,
@@ -43,6 +48,10 @@ class EmailNotificationController extends Controller
                 'subject_user' => $template->subject_user ?? '',
                 'body_user' => $template->body_user ?? '',
             ],
+            'modules' => $modules->map(fn (Module $module) => [
+                'id' => $module->id,
+                'title' => $module->title,
+            ])->values(),
             'availableMergeTags' => EmailNotificationTypeRegistry::mergeTagsFor($notificationType),
             'statusMessage' => session('status_message'),
             'statusTone' => session('status_tone'),
@@ -74,6 +83,7 @@ class EmailNotificationController extends Controller
         $result = $this->emailNotificationService->sendTest(
             $notificationType,
             $request->validated()['send_to'],
+            $request->integer('module_id') ?: null,
         );
 
         return redirect()
