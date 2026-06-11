@@ -42,14 +42,15 @@ export default function CoursesIndex({ courses, status }) {
                             Course has been deleted.
                         </div>
                     )}
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                        <div className="overflow-hidden rounded-xl border border-gray-200">
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200 text-sm">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full text-sm">
+                                <thead className="bg-gray-900">
                                     <tr>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Course</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Tier</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Action</th>
+                                        <th className="px-4 py-3 text-left font-medium text-white">Course</th>
+                                        <th className="px-4 py-3 text-left font-medium text-white">Tier</th>
+                                        <th className="px-4 py-3 text-left font-medium text-white">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
@@ -90,8 +91,16 @@ export default function CoursesIndex({ courses, status }) {
                                             </td>
                                         </tr>
                                     ))}
+                                    {courses.length === 0 && (
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-6 text-center text-gray-500">
+                                                No courses yet.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
+                        </div>
                         </div>
                     </div>
                 </div>
