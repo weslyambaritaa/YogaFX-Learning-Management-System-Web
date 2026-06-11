@@ -48,16 +48,6 @@ function StudentActionMenu({ student }) {
                 <DropdownMenuItem asChild>
                     <Link
                         href={route(
-                            'admin.student-progress.students.edit',
-                            student.id,
-                        )}
-                    >
-                        Student Detail
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link
-                        href={route(
                             'admin.student-progress.completed-lessons.show',
                             student.id,
                         )}
@@ -117,12 +107,6 @@ function TierTable({ section }) {
                                 Name
                             </th>
                             <th className="px-4 py-3 text-left font-medium text-slate-700">
-                                Access Tier
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-slate-700">
-                                Status
-                            </th>
-                            <th className="px-4 py-3 text-left font-medium text-slate-700">
                                 Progress
                             </th>
                             <th className="px-4 py-3 text-left font-medium text-slate-700">
@@ -140,7 +124,7 @@ function TierTable({ section }) {
                         {section.students.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={9}
+                                    colSpan={7}
                                     className="px-4 py-10 text-center text-sm text-slate-500"
                                 >
                                     No students found in this tier yet.
@@ -159,25 +143,6 @@ function TierTable({ section }) {
                                         <div className="font-medium text-slate-900">
                                             {student.name || 'Unnamed student'}
                                         </div>
-                                        <div className="mt-1 text-xs text-slate-500">
-                                            {student.email}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4 text-slate-700">
-                                        {student.access_tier_name}
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <Badge
-                                            variant={
-                                                student.is_active
-                                                    ? 'secondary'
-                                                    : 'outline'
-                                            }
-                                        >
-                                            {student.is_active
-                                                ? 'Active'
-                                                : 'Inactive'}
-                                        </Badge>
                                     </td>
                                     <td className="px-4 py-4">
                                         <div className="flex min-w-32 items-center gap-3">
@@ -238,11 +203,6 @@ export default function StudentProgressDirectory({ tierSections, status }) {
                     {status === 'student-profile-updated' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Student profile has been updated.
-                        </div>
-                    )}
-                    {status === 'student-account-deleted' && (
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                            Student account has been deleted.
                         </div>
                     )}
 

@@ -124,6 +124,67 @@ function serializeDraft(data) {
     return JSON.stringify(data);
 }
 
+function builderDraftStorageKey(scoreboardId) {
+    return `scoreboard-builder-drafts:${scoreboardId}`;
+}
+
+function sanitizeDraftValue(value) {
+    if (value instanceof File) {
+        return null;
+    }
+
+    if (Array.isArray(value)) {
+        return value.map((item) => sanitizeDraftValue(item));
+    }
+
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value).map(([key, item]) => [key, sanitizeDraftValue(item)]),
+        );
+    }
+
+    return value;
+}
+
+function readBuilderDraftCache(scoreboardId) {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+
+    const raw = window.localStorage.getItem(builderDraftStorageKey(scoreboardId));
+
+    if (!raw) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(raw);
+    } catch (error) {
+        window.localStorage.removeItem(builderDraftStorageKey(scoreboardId));
+
+        return null;
+    }
+}
+
+function writeBuilderDraftCache(scoreboardId, payload) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.localStorage.setItem(
+        builderDraftStorageKey(scoreboardId),
+        JSON.stringify(sanitizeDraftValue(payload)),
+    );
+}
+
+function clearBuilderDraftCache(scoreboardId) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.localStorage.removeItem(builderDraftStorageKey(scoreboardId));
+}
+
 function formatQuestionType(type) {
     return type
         .split('_')
@@ -143,7 +204,7 @@ function buildQuestionFormData(question) {
         randomize_answers_order: Boolean(question?.randomize_answers_order),
         jump_enabled: Boolean(question?.jump_enabled),
         jump_to_question_id: question?.jump_to_question_id ?? '',
-        show_maybe_answer: Boolean(question?.show_maybe_answer ?? true),
+        show_maybe_answer: false,
         allow_multi_select: Boolean(question?.allow_multi_select),
         min_count: question?.min_count ?? '',
         max_count: question?.max_count ?? '',
@@ -154,17 +215,83 @@ function buildQuestionFormData(question) {
         starting_score: question?.starting_score ?? '',
         section_count: question?.section_count ?? '',
         allow_decimals: Boolean(question?.allow_decimals),
-        input_type: question?.input_type ?? '',
+        input_type:
+            question?.input_type === 'textarea' || question?.input_type === 'multi_line'
+                ? 'multi_line'
+                : 'single_line',
         character_limit: question?.character_limit ?? '',
         show_score_tooltip: Boolean(question?.show_score_tooltip),
         score_tooltip_format: question?.score_tooltip_format ?? '',
-        answer_image_fit: question?.answer_image_fit ?? '',
-        answers_per_row: question?.answers_per_row ?? '',
+        answer_image_fit: question?.answer_image_fit ?? 'cover',
+        answers_per_row: Number(question?.answers_per_row) === 4 ? 4 : 2,
         scoring_category: question?.scoring_category ?? 'overall_only',
         left_label: question?.left_label ?? '',
         center_label: question?.center_label ?? '',
         right_label: question?.right_label ?? '',
     };
+}
+
+function shouldUseMultilineInput(inputType, characterLimit) {
+    return inputType === 'multi_line' || Number(characterLimit || 0) > 140;
+}
+
+function getScaleBounds(values) {
+    const min = Number.isFinite(Number(values.score_range_min))
+        ? Number(values.score_range_min)
+        : 1;
+    const max = Number.isFinite(Number(values.score_range_max))
+        ? Number(values.score_range_max)
+        : Math.max(min, 5);
+
+    return {
+        min: Math.trunc(min),
+        max: Math.max(Math.trunc(max), Math.trunc(min)),
+    };
+}
+
+function getIntegerScaleValues(values) {
+    const { min, max } = getScaleBounds(values);
+
+    return Array.from({ length: max - min + 1 }, (_, index) => min + index);
+}
+
+function groupScaleValues(scaleValues, sectionCount) {
+    const totalSections = Math.max(1, Number(sectionCount || 1));
+    const groups = [];
+    const valuesPerGroup = Math.ceil(scaleValues.length / totalSections);
+
+    for (let index = 0; index < scaleValues.length; index += valuesPerGroup) {
+        groups.push(scaleValues.slice(index, index + valuesPerGroup));
+    }
+
+    return groups;
+}
+
+function getImageFitClass(answerImageFit) {
+    return answerImageFit === 'contain' ? 'object-contain' : 'object-cover';
+}
+
+function buildVirtualYesNoOptions() {
+    return [
+        {
+            id: 'virtual-yes-option',
+            label: 'Yes',
+            internal_value: 'yes',
+            sort_order: 1,
+            is_correct: false,
+            is_virtual: true,
+            image_url: null,
+        },
+        {
+            id: 'virtual-no-option',
+            label: 'No',
+            internal_value: 'no',
+            sort_order: 2,
+            is_correct: false,
+            is_virtual: true,
+            image_url: null,
+        },
+    ];
 }
 
 function buildOptionDraft(option) {
@@ -576,17 +703,55 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
 
     if (!optionBasedTypes.includes(values.question_type)) {
         if (scaleTypes.includes(values.question_type)) {
+            const scaleValues = getIntegerScaleValues(values);
+            const isLinearScale = values.question_type === 'linear_scale';
+            const isDividedScale = values.question_type === 'divided_scale';
+            const groupedScaleValues = isDividedScale
+                ? groupScaleValues(scaleValues, values.section_count)
+                : [scaleValues];
+
             return (
                 <div className="space-y-5 rounded-3xl border border-white/70 bg-white/85 p-5">
-                    <input
-                        type="range"
-                        min={values.score_range_min || 0}
-                        max={values.score_range_max || 10}
-                        step={values.allow_decimals ? '0.01' : '1'}
-                        value={values.starting_score || 0}
-                        readOnly
-                        className="w-full accent-[#203529]"
-                    />
+                    <div className={isLinearScale ? 'overflow-x-auto' : 'space-y-4'}>
+                        {groupedScaleValues.map((group, groupIndex) => (
+                            <div
+                                key={`scale-group-${groupIndex}`}
+                                className={[
+                                    'rounded-2xl border border-slate-200 bg-[#f8f6f0] p-4',
+                                    isLinearScale
+                                        ? 'inline-flex min-w-full items-center gap-2 whitespace-nowrap'
+                                        : '',
+                                    isDividedScale ? 'space-y-3' : '',
+                                ].join(' ')}
+                            >
+                                {isDividedScale && (
+                                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                        Section {groupIndex + 1}
+                                    </div>
+                                )}
+                                <div
+                                    className={
+                                        isLinearScale
+                                            ? 'flex items-center gap-2'
+                                            : 'grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6'
+                                    }
+                                >
+                                    {group.map((scaleValue) => (
+                                        <div
+                                            key={scaleValue}
+                                            className={
+                                                isLinearScale
+                                                    ? 'flex size-9 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-semibold text-slate-700'
+                                                    : 'rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-medium text-slate-700'
+                                            }
+                                        >
+                                            {scaleValue}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                     <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
                         <span>{values.left_label || 'Low'}</span>
                         <span>{values.center_label || 'Balanced'}</span>
@@ -620,7 +785,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
             <div className="rounded-3xl border border-white/70 bg-white/85 p-5">
                 <div className="text-sm font-medium text-slate-700">Student Answer</div>
                 <div className="mt-3 rounded-2xl border border-slate-200 bg-[#fbfaf7] px-4 py-4 text-sm text-slate-400">
-                    {values.input_type === 'textarea' || Number(values.character_limit || 0) > 140
+                    {shouldUseMultilineInput(values.input_type, values.character_limit)
                         ? 'Long text answer field'
                         : 'Single-line text answer field'}
                 </div>
@@ -634,8 +799,16 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
     }
 
     const visibleOptions =
-        values.question_type === 'yes_no_maybe' && !values.show_maybe_answer
-            ? options.filter((option) => option.internal_value !== 'maybe')
+        values.question_type === 'yes_no_maybe'
+            ? (() => {
+                const fixedOptions = options.filter((option) =>
+                    ['yes', 'no'].includes(option.internal_value),
+                );
+
+                return fixedOptions.length > 0
+                    ? fixedOptions
+                    : buildVirtualYesNoOptions();
+            })()
             : options;
 
     return (
@@ -666,7 +839,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                                         <img
                                             src={option.image_url}
                                             alt={option.label}
-                                            className="h-full w-full object-cover"
+                                            className={`h-full w-full ${getImageFitClass(values.answer_image_fit)}`}
                                         />
                                     ) : (
                                         <div className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
@@ -1466,7 +1639,10 @@ function useQuestionConfigPanel({
     questionTargets,
     questionTypeOptions,
 }) {
-    const [questionDrafts, setQuestionDrafts] = useState({});
+    const cachedDrafts = readBuilderDraftCache(scoreboard.id);
+    const [questionDrafts, setQuestionDrafts] = useState(
+        () => cachedDrafts?.questionDrafts ?? {},
+    );
     const orderedQuestions = questions
         .map((currentQuestion) => ({
             ...currentQuestion,
@@ -1483,7 +1659,9 @@ function useQuestionConfigPanel({
         null;
     const questionForm = useForm(buildQuestionFormData(question));
     const [activeTab, setActiveTab] = useState('question');
-    const [optionDrafts, setOptionDrafts] = useState({});
+    const [optionDrafts, setOptionDrafts] = useState(
+        () => cachedDrafts?.optionDrafts ?? {},
+    );
     const [optionProcessingMap, setOptionProcessingMap] = useState({});
     const [scoringCategoryPanelVisibility, setScoringCategoryPanelVisibility] =
         useState({});
@@ -1494,6 +1672,10 @@ function useQuestionConfigPanel({
     const lastSavedQuestionSnapshotsRef = useRef({});
     const lastSavedOptionSnapshotsRef = useRef({});
     const [saveState, setSaveState] = useState('saved');
+    const [saveError, setSaveError] = useState(null);
+    const [restoredDraftNotice, setRestoredDraftNotice] = useState(
+        () => Boolean(cachedDrafts),
+    );
 
     useEffect(() => {
         lastSavedQuestionSnapshotsRef.current = questions.reduce(
@@ -1503,6 +1685,18 @@ function useQuestionConfigPanel({
             }),
             {},
         );
+    }, [questions]);
+
+    useEffect(() => {
+        const optionSnapshots = {};
+
+        questions.forEach((currentQuestion) => {
+            (currentQuestion.options ?? []).forEach((option) => {
+                optionSnapshots[option.id] = serializeDraft(buildOptionDraft(option));
+            });
+        });
+
+        lastSavedOptionSnapshotsRef.current = optionSnapshots;
     }, [questions]);
 
     useEffect(() => {
@@ -1524,16 +1718,6 @@ function useQuestionConfigPanel({
 
                 return nextDrafts;
             });
-
-            lastSavedOptionSnapshotsRef.current = question.options.reduce(
-                (snapshots, option) => ({
-                    ...snapshots,
-                    [option.id]: serializeDraft(buildOptionDraft(option)),
-                }),
-                {},
-            );
-        } else {
-            lastSavedOptionSnapshotsRef.current = {};
         }
 
         setActiveTab('question');
@@ -1542,6 +1726,13 @@ function useQuestionConfigPanel({
         setDraggedOptionId(null);
         setDropTargetOptionId(null);
     }, [question?.id]);
+
+    useEffect(() => {
+        writeBuilderDraftCache(scoreboard.id, {
+            questionDrafts,
+            optionDrafts,
+        });
+    }, [optionDrafts, questionDrafts, scoreboard.id]);
 
     useEffect(() => {
         if (!question?.id || !questionTypeUsesAnswerTabScoringCategory(question.question_type)) {
@@ -1555,7 +1746,9 @@ function useQuestionConfigPanel({
 
             return {
                 ...current,
-                [question.id]: Boolean(question.scoring_category),
+                [question.id]:
+                    Boolean(question.scoring_category)
+                    && question.scoring_category !== 'overall_only',
             };
         });
     }, [question?.id, question?.question_type, question?.scoring_category]);
@@ -1576,6 +1769,7 @@ function useQuestionConfigPanel({
     }, [question?.id, questionDrafts, questionForm]);
 
     const setValue = (field, value) => {
+        setSaveError(null);
         questionForm.setData(field, value);
 
         if (question?.id) {
@@ -1590,6 +1784,7 @@ function useQuestionConfigPanel({
     };
 
     const setOptionValue = (optionId, field, value) => {
+        setSaveError(null);
         const currentOption =
             question?.options?.find((item) => item.id === optionId) ?? null;
 
@@ -1661,13 +1856,29 @@ function useQuestionConfigPanel({
         };
     };
 
+    const findPersistedOptionMeta = (optionId) => {
+        for (const currentQuestion of questions) {
+            const option = currentQuestion.options?.find((item) => item.id === optionId);
+
+            if (option) {
+                return {
+                    question: currentQuestion,
+                    option,
+                };
+            }
+        }
+
+        return null;
+    };
+
     const saveOption = (optionId, overrides = {}) => {
-        if (!question) {
+        const optionMeta = findPersistedOptionMeta(optionId);
+
+        if (!optionMeta) {
             return Promise.resolve();
         }
 
-        const targetOption =
-            question.options?.find((item) => item.id === optionId) ?? null;
+        const { question: sourceQuestion, option: targetOption } = optionMeta;
 
         if (!targetOption || targetOption.is_virtual) {
             return Promise.resolve();
@@ -1688,7 +1899,7 @@ function useQuestionConfigPanel({
             router.patch(
                 route('admin.scoreboards.options.update', {
                     assessment: scoreboard.id,
-                    question: question.id,
+                    question: sourceQuestion.id,
                     option: optionId,
                 }),
                 payload,
@@ -1700,6 +1911,7 @@ function useQuestionConfigPanel({
                             ...lastSavedOptionSnapshotsRef.current,
                             [optionId]: snapshot,
                         };
+                        setSaveError(null);
                         resolve(true);
                     },
                     onError: (errors) => reject(errors),
@@ -1780,6 +1992,7 @@ function useQuestionConfigPanel({
                             ...lastSavedQuestionSnapshotsRef.current,
                             [questionId]: serializeDraft(payload),
                         };
+                        setSaveError(null);
                         resolve(true);
                     },
                     onError: (errors) => reject(errors),
@@ -1820,10 +2033,13 @@ function useQuestionConfigPanel({
         }
 
         if (
-            question.question_type === 'yes_no_maybe' &&
-            !questionForm.data.show_maybe_answer
+            question.question_type === 'yes_no_maybe'
         ) {
-            options = options.filter((option) => option.internal_value !== 'maybe');
+            options = options.filter((option) => ['yes', 'no'].includes(option.internal_value));
+
+            if (options.length === 0) {
+                options = buildVirtualYesNoOptions();
+            }
         }
 
         if (
@@ -1881,7 +2097,9 @@ function useQuestionConfigPanel({
         ? questionTypeUsesAnswerTabScoringCategory(question.question_type)
         : false;
     const scoringCategoryPanelEnabled = question?.id
-        ? scoringCategoryPanelVisibility[question.id] ?? Boolean(questionForm.data.scoring_category)
+        ? scoringCategoryPanelVisibility[question.id]
+            ?? (Boolean(questionForm.data.scoring_category)
+                && questionForm.data.scoring_category !== 'overall_only')
         : false;
 
     const hasUnsavedQuestionChanges = questions.some((currentQuestion) => {
@@ -1896,15 +2114,14 @@ function useQuestionConfigPanel({
             lastSavedQuestionSnapshotsRef.current[currentQuestion.id]
         );
     });
-    const hasUnsavedOptionChanges = question
-        ? (question.options ?? []).some((option) => {
-              const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
-              return (
-                  serializeDraft(currentDraft) !==
-                  lastSavedOptionSnapshotsRef.current[option.id]
-              );
-          })
-        : false;
+    const persistedOptions = questions.flatMap((currentQuestion) => currentQuestion.options ?? []);
+    const hasUnsavedOptionChanges = persistedOptions.some((option) => {
+        const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
+        return (
+            serializeDraft(currentDraft) !==
+            lastSavedOptionSnapshotsRef.current[option.id]
+        );
+    });
     const hasUnsavedChanges = hasUnsavedQuestionChanges || hasUnsavedOptionChanges;
 
     useEffect(() => {
@@ -1921,6 +2138,7 @@ function useQuestionConfigPanel({
         }
 
         setSaveState('saving');
+        setSaveError(null);
 
         try {
             const changedQuestions = orderedQuestions.filter((currentQuestion) => {
@@ -1940,7 +2158,7 @@ function useQuestionConfigPanel({
                 await saveQuestion(currentQuestion.id);
             }
 
-            const changedOptions = (question?.options ?? []).filter((option) => {
+            const changedOptions = persistedOptions.filter((option) => {
                 const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
                 return (
                     serializeDraft(currentDraft) !==
@@ -1953,8 +2171,20 @@ function useQuestionConfigPanel({
             }
 
             setSaveState('saved');
+            setRestoredDraftNotice(false);
+            clearBuilderDraftCache(scoreboard.id);
         } catch (error) {
             setSaveState('unsaved');
+            const firstMessage =
+                error && typeof error === 'object'
+                    ? Object.values(error)[0]
+                    : null;
+
+            setSaveError(
+                typeof firstMessage === 'string'
+                    ? firstMessage
+                    : 'The builder could not save yet. Fix the highlighted validation issue, then try again.',
+            );
         }
     };
 
@@ -2218,13 +2448,9 @@ function useQuestionConfigPanel({
                 description="Only the settings that matter for the active question type should live here."
             >
                 {questionForm.data.question_type === 'yes_no_maybe' ? (
-                    <ToggleField
-                        checked={questionForm.data.show_maybe_answer}
-                        onChange={(checked) =>
-                            setValue('show_maybe_answer', checked)
-                        }
-                        label="Show Maybe Answer"
-                    />
+                    <div className="rounded-2xl border border-slate-200 bg-[#fbfaf6] px-4 py-4 text-sm text-slate-600">
+                        This question type is treated as <span className="font-semibold text-slate-900">Yes / No only</span>. Maybe is hidden from both builder and student flow.
+                    </div>
                 ) : null}
 
                 {optionBasedTypes.includes(questionForm.data.question_type) &&
@@ -2267,7 +2493,7 @@ function useQuestionConfigPanel({
                                         <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                                             Answer Image Fit
                                         </label>
-                                        <Input
+                                        <select
                                             value={questionForm.data.answer_image_fit}
                                             onChange={(event) =>
                                                 setValue(
@@ -2275,16 +2501,17 @@ function useQuestionConfigPanel({
                                                     event.target.value,
                                                 )
                                             }
-                                        />
+                                            className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                                        >
+                                            <option value="cover">Cover</option>
+                                            <option value="contain">Contain</option>
+                                        </select>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                                             Answers Per Row
                                         </label>
-                                        <Input
-                                            type="number"
-                                            min="1"
-                                            max="6"
+                                        <select
                                             value={questionForm.data.answers_per_row}
                                             onChange={(event) =>
                                                 setValue(
@@ -2292,7 +2519,11 @@ function useQuestionConfigPanel({
                                                     event.target.value,
                                                 )
                                             }
-                                        />
+                                            className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                                        >
+                                            <option value="2">2</option>
+                                            <option value="4">4</option>
+                                        </select>
                                     </div>
                                 </div>
                             </>
@@ -2300,32 +2531,47 @@ function useQuestionConfigPanel({
 
                         {questionForm.data.question_type ===
                         'multiple_choice_checkboxes' ? (
-                            <div className="grid gap-3 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                        Min Count
-                                    </label>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        value={questionForm.data.min_count}
-                                        onChange={(event) =>
-                                            setValue('min_count', event.target.value)
-                                        }
-                                    />
+                            <div className="space-y-3">
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                            Min Count
+                                        </label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            value={questionForm.data.min_count}
+                                            onChange={(event) =>
+                                                setValue('min_count', event.target.value)
+                                            }
+                                        />
+                                        {fieldError(questionForm.errors, ['min_count']) ? (
+                                            <div className="text-xs text-rose-600">
+                                                {fieldError(questionForm.errors, ['min_count'])}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                            Max Count
+                                        </label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            value={questionForm.data.max_count}
+                                            onChange={(event) =>
+                                                setValue('max_count', event.target.value)
+                                            }
+                                        />
+                                        {fieldError(questionForm.errors, ['max_count']) ? (
+                                            <div className="text-xs text-rose-600">
+                                                {fieldError(questionForm.errors, ['max_count'])}
+                                            </div>
+                                        ) : null}
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                        Max Count
-                                    </label>
-                                    <Input
-                                        type="number"
-                                        min="0"
-                                        value={questionForm.data.max_count}
-                                        onChange={(event) =>
-                                            setValue('max_count', event.target.value)
-                                        }
-                                    />
+                                <div className="rounded-2xl border border-slate-200 bg-[#fbfaf6] px-4 py-3 text-xs leading-6 text-slate-600">
+                                    Students must select at least the minimum count and cannot exceed the maximum count.
                                 </div>
                             </div>
                         ) : null}
@@ -2341,7 +2587,11 @@ function useQuestionConfigPanel({
                                 </label>
                                 <Input
                                     type="number"
-                                    step="0.01"
+                                    step={
+                                        questionForm.data.question_type === 'sliding_scale'
+                                            ? '0.01'
+                                            : '1'
+                                    }
                                     value={questionForm.data.score_range_min}
                                     onChange={(event) =>
                                         setValue('score_range_min', event.target.value)
@@ -2354,7 +2604,11 @@ function useQuestionConfigPanel({
                                 </label>
                                 <Input
                                     type="number"
-                                    step="0.01"
+                                    step={
+                                        questionForm.data.question_type === 'sliding_scale'
+                                            ? '0.01'
+                                            : '1'
+                                    }
                                     value={questionForm.data.score_range_max}
                                     onChange={(event) =>
                                         setValue('score_range_max', event.target.value)
@@ -2364,20 +2618,22 @@ function useQuestionConfigPanel({
                         </div>
 
                         <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                    Starting Score
-                                </label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    value={questionForm.data.starting_score}
-                                    onChange={(event) =>
-                                        setValue('starting_score', event.target.value)
-                                    }
+                            {questionForm.data.question_type === 'sliding_scale' ? (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                        Starting Score
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={questionForm.data.starting_score}
+                                        onChange={(event) =>
+                                            setValue('starting_score', event.target.value)
+                                        }
                                     />
                                 </div>
-                                {questionForm.data.question_type === 'divided_scale' ? (
+                            ) : null}
+                            {questionForm.data.question_type === 'divided_scale' ? (
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                                         Section Count
@@ -2391,11 +2647,12 @@ function useQuestionConfigPanel({
                                         }
                                     />
                                 </div>
-                                ) : null}
+                            ) : null}
                         </div>
 
                         {(questionForm.data.question_type === 'sliding_scale' ||
-                            questionForm.data.question_type === 'linear_scale') ? (
+                            questionForm.data.question_type === 'linear_scale' ||
+                            questionForm.data.question_type === 'divided_scale') ? (
                             <div className="grid gap-3 md:grid-cols-3">
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -2508,13 +2765,16 @@ function useQuestionConfigPanel({
                             <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                                 Input Type
                             </label>
-                            <Input
+                            <select
                                 value={questionForm.data.input_type}
                                 onChange={(event) =>
                                     setValue('input_type', event.target.value)
                                 }
-                                placeholder="text, email, textarea"
-                            />
+                                className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                            >
+                                <option value="single_line">Single line</option>
+                                <option value="multi_line">Multi line</option>
+                            </select>
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -2573,9 +2833,11 @@ function useQuestionConfigPanel({
                             key={option.id}
                             className="rounded-[22px] border border-dashed border-slate-300 bg-[#fbfaf6] px-4 py-4 text-sm text-slate-600"
                         >
-                            <div className="font-medium text-slate-900">Other</div>
+                            <div className="font-medium text-slate-900">{option.label}</div>
                             <div className="mt-1 leading-6">
-                                Save the question first to create the special Other answer row, then continue configuring it here.
+                                {question.question_type === 'yes_no_maybe'
+                                    ? 'Save the question once to persist the fixed Yes / No answers automatically.'
+                                    : 'Save the question first to create the special answer row, then continue configuring it here.'}
                             </div>
                         </div>
                     ) : (
@@ -2603,12 +2865,16 @@ function useQuestionConfigPanel({
                 <div className="space-y-4 rounded-xl border border-slate-200 bg-[#fbfaf6] px-4 py-5">
                     <ToggleField
                         checked={scoringCategoryPanelEnabled}
-                        onChange={(checked) =>
+                        onChange={(checked) => {
                             setScoringCategoryPanelVisibility((current) => ({
                                 ...current,
                                 [question.id]: checked,
-                            }))
-                        }
+                            }));
+
+                            if (!checked) {
+                                setValue('scoring_category', 'overall_only');
+                            }
+                        }}
                         label="Scoring Category"
                         description="Turn on to reveal the scoring category input for this question type."
                     />
@@ -2732,6 +2998,8 @@ function useQuestionConfigPanel({
         saveState,
         hasUnsavedChanges,
         error: canvasError,
+        saveError,
+        restoredDraftNotice,
     };
 }
 
@@ -3141,6 +3409,8 @@ export default function ScoreboardBuilder({
         saveState,
         hasUnsavedChanges,
         error,
+        saveError,
+        restoredDraftNotice,
     } = useQuestionConfigPanel({
         scoreboard,
         questions,
@@ -3175,6 +3445,18 @@ export default function ScoreboardBuilder({
                     {statusMessages[status] ? (
                         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             {statusMessages[status]}
+                        </div>
+                    ) : null}
+
+                    {restoredDraftNotice ? (
+                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            Unsaved builder draft was restored in this browser. Save the builder again to persist it to the database.
+                        </div>
+                    ) : null}
+
+                    {saveError ? (
+                        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                            {saveError}
                         </div>
                     ) : null}
 

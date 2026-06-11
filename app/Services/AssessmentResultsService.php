@@ -8,6 +8,7 @@ use App\Models\AssessmentProgress;
 use App\Models\AssessmentResultRange;
 use App\Models\Question;
 use App\Models\QuestionOption;
+use App\Support\BunnyAssetPath;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
@@ -245,7 +246,7 @@ class AssessmentResultsService
                     'is_selected' => $selectedOptionIds->contains((int) $option->id),
                     'is_correct' => (bool) $option->is_correct,
                     'image_url' => $option->image
-                        ? route('media.show', ['entity' => 'question-option', 'id' => $option->id, 'field' => 'image'])
+                        ? $this->questionOptionImageUrl($option)
                         : null,
                 ])
                 ->values()
@@ -389,7 +390,7 @@ class AssessmentResultsService
     {
         $options = $question->options->sortBy('sort_order')->values();
 
-        if ($question->question_type === Question::TYPE_YES_NO_MAYBE && ! $question->show_maybe_answer) {
+        if ($question->question_type === Question::TYPE_YES_NO_MAYBE) {
             $options = $options
                 ->reject(fn (QuestionOption $option) => $option->internal_value === 'maybe')
                 ->values();
@@ -566,5 +567,18 @@ class AssessmentResultsService
                 'seconds' => str_pad((string) $seconds, 2, '0', STR_PAD_LEFT),
             ],
         ];
+    }
+
+    private function questionOptionImageUrl(QuestionOption $option): ?string
+    {
+        if (! filled($option->image)) {
+            return null;
+        }
+
+        if (BunnyAssetPath::isBunnyPath($option->image)) {
+            return app(BunnyStorageService::class)->url($option->image);
+        }
+
+        return route('media.show', ['entity' => 'question-option', 'id' => $option->id, 'field' => 'image']);
     }
 }

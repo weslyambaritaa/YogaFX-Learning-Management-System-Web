@@ -31,6 +31,7 @@ function buildNumericInitial(question) {
     }
 
     if (
+        question.question_type === 'sliding_scale' &&
         question.starting_score !== null
         && question.starting_score !== undefined
         && question.starting_score !== ''
@@ -39,6 +40,73 @@ function buildNumericInitial(question) {
     }
 
     return '';
+}
+
+function shouldUseMultilineInput(question) {
+    return question.input_type === 'multi_line' || (question.character_limit || 0) > 140;
+}
+
+function getImageFitClass(question) {
+    return question.answer_image_fit === 'contain' ? 'object-contain' : 'object-cover';
+}
+
+function getScaleBounds(question) {
+    const min = Number.isFinite(Number(question.score_range_min))
+        ? Math.trunc(Number(question.score_range_min))
+        : 1;
+    const max = Number.isFinite(Number(question.score_range_max))
+        ? Math.trunc(Number(question.score_range_max))
+        : Math.max(min, 5);
+
+    return {
+        min,
+        max: Math.max(max, min),
+    };
+}
+
+function getIntegerScaleValues(question) {
+    const { min, max } = getScaleBounds(question);
+
+    return Array.from({ length: max - min + 1 }, (_, index) => min + index);
+}
+
+function groupScaleValues(question) {
+    const scaleValues = getIntegerScaleValues(question);
+    const sectionCount =
+        question.question_type === 'divided_scale'
+            ? Math.max(1, Number(question.section_count || 1))
+            : 1;
+    const valuesPerGroup = Math.ceil(scaleValues.length / sectionCount);
+    const groups = [];
+
+    for (let index = 0; index < scaleValues.length; index += valuesPerGroup) {
+        groups.push(scaleValues.slice(index, index + valuesPerGroup));
+    }
+
+    return groups;
+}
+
+function checkboxSelectionLimitMessage(question) {
+    if (question.question_type !== 'multiple_choice_checkboxes') {
+        return null;
+    }
+
+    const min = Number(question.min_count || 0);
+    const max = Number(question.max_count || 0);
+
+    if (min > 0 && max > 0) {
+        return `Choose between ${min} and ${max} answers.`;
+    }
+
+    if (min > 0) {
+        return `Choose at least ${min} answer${min === 1 ? '' : 's'}.`;
+    }
+
+    if (max > 0) {
+        return `Choose no more than ${max} answers.`;
+    }
+
+    return null;
 }
 
 function optionSelectionIds(question, data) {
@@ -141,6 +209,7 @@ export default function AssessmentShow({
         answer_text: question.saved.answer_text ?? '',
         answer_number: buildNumericInitial(question),
     });
+    const [selectionFeedback, setSelectionFeedback] = useState(null);
 
     useEffect(() => {
         setData({
@@ -149,6 +218,7 @@ export default function AssessmentShow({
             answer_text: question.saved.answer_text ?? '',
             answer_number: buildNumericInitial(question),
         });
+        setSelectionFeedback(null);
     }, [question.id]);
 
     useEffect(() => {
@@ -178,21 +248,41 @@ export default function AssessmentShow({
         () => evaluateOptionFeedback(question, data),
         [data, question],
     );
-    const hasOptionSelection = optionSelectionIds(question, data).length > 0;
+    const selectedOptionCount = optionSelectionIds(question, data).length;
+    const hasOptionSelection = selectedOptionCount > 0;
+    const satisfiesMinSelection = question.min_count
+        ? selectedOptionCount >= Number(question.min_count)
+        : true;
+    const satisfiesMaxSelection = question.max_count
+        ? selectedOptionCount <= Number(question.max_count)
+        : true;
     const canSubmitOptionQuestion = question.has_correctness_gate
         ? optionFeedback.isGateComplete
-        : question.required
-          ? hasOptionSelection
-          : true;
+        : (question.required
+            ? hasOptionSelection
+            : true)
+            && satisfiesMinSelection
+            && satisfiesMaxSelection;
 
     const toggleOption = (optionId) => {
-        const next = data.option_ids.includes(optionId)
+        const isSelected = data.option_ids.includes(optionId);
+        const next = isSelected
             ? data.option_ids.filter((value) => value !== optionId)
             : [...data.option_ids, optionId];
+        const maxCount = Number(question.max_count || 0);
+
+        if (!isSelected && maxCount > 0 && next.length > maxCount) {
+            setSelectionFeedback(`You can select up to ${maxCount} answers for this question.`);
+
+            return;
+        }
+
+        setSelectionFeedback(null);
         setData('option_ids', next);
     };
 
     const selectSingleOption = (optionId) => {
+        setSelectionFeedback(null);
         setData('option_id', optionId);
         setData('option_ids', [optionId]);
     };
@@ -378,7 +468,7 @@ export default function AssessmentShow({
                                                         <img
                                                             src={option.image_url}
                                                             alt={option.label}
-                                                            className="h-44 w-full rounded-2xl object-cover"
+                                                            className={`h-44 w-full rounded-2xl ${getImageFitClass(question)}`}
                                                         />
                                                     )}
                                                     {question.show_labels && (
@@ -431,8 +521,11 @@ export default function AssessmentShow({
                                                 }
                                                 className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
                                             />
+                                            <div className="text-xs text-white/48">
+                                                Allowed range: {question.score_range_min ?? 0} to {question.score_range_max ?? 0}
+                                            </div>
                                         </div>
-                                    ) : (
+                                    ) : question.question_type === 'sliding_scale' ? (
                                         <div className="space-y-4">
                                             <input
                                                 type="range"
@@ -469,6 +562,69 @@ export default function AssessmentShow({
                                                 </div>
                                             )}
                                         </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {groupScaleValues(question).map((group, groupIndex) => (
+                                                <div
+                                                    key={`scale-group-${groupIndex}`}
+                                                    className={[
+                                                        'rounded-2xl border border-white/10 bg-white/5 p-4',
+                                                        question.question_type === 'linear_scale'
+                                                            ? 'overflow-x-auto'
+                                                            : '',
+                                                    ].join(' ')}
+                                                >
+                                                    {question.question_type === 'divided_scale' && (
+                                                        <div className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-white/45">
+                                                            Section {groupIndex + 1}
+                                                        </div>
+                                                    )}
+                                                    <div
+                                                        className={
+                                                            question.question_type === 'linear_scale'
+                                                                ? 'flex items-center gap-2 whitespace-nowrap'
+                                                                : 'grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6'
+                                                        }
+                                                    >
+                                                        {group.map((scaleValue) => {
+                                                            const isSelected =
+                                                                String(data.answer_number)
+                                                                === String(scaleValue);
+
+                                                            return (
+                                                                <button
+                                                                    key={scaleValue}
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setData(
+                                                                            'answer_number',
+                                                                            String(scaleValue),
+                                                                        )
+                                                                    }
+                                                                    className={[
+                                                                        question.question_type === 'linear_scale'
+                                                                            ? 'flex size-9 items-center justify-center rounded-full border text-xs font-semibold transition'
+                                                                            : 'rounded-2xl border px-4 py-4 text-center text-sm font-medium transition',
+                                                                        isSelected
+                                                                            ? 'border-red-300/50 bg-red-500/18 text-white shadow-[0_12px_32px_rgba(226,72,72,0.18)]'
+                                                                            : 'border-white/10 bg-white/5 text-white/84 hover:border-white/24 hover:bg-white/8',
+                                                                    ].join(' ')}
+                                                                >
+                                                                    {scaleValue}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div className="flex items-center justify-between text-sm text-white/48">
+                                                <span>{question.left_label || 'Low'}</span>
+                                                <span>
+                                                    {question.center_label || 'Balanced'}
+                                                </span>
+                                                <span>{question.right_label || 'High'}</span>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             ) : (
@@ -476,8 +632,7 @@ export default function AssessmentShow({
                                     <label className="text-sm font-medium text-white/80">
                                         Your Answer
                                     </label>
-                                    {question.input_type === 'textarea'
-                                    || (question.character_limit || 0) > 140 ? (
+                                    {shouldUseMultilineInput(question) ? (
                                         <Textarea
                                             value={data.answer_text}
                                             onChange={(event) =>
@@ -490,7 +645,7 @@ export default function AssessmentShow({
                                         />
                                     ) : (
                                         <Input
-                                            type={question.input_type || 'text'}
+                                            type="text"
                                             value={data.answer_text}
                                             onChange={(event) =>
                                                 setData(
@@ -520,6 +675,18 @@ export default function AssessmentShow({
                                     ].join(' ')}
                                 >
                                     {optionFeedback.message}
+                                </div>
+                            )}
+
+                            {checkboxSelectionLimitMessage(question) && (
+                                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/68">
+                                    {checkboxSelectionLimitMessage(question)}
+                                </div>
+                            )}
+
+                            {selectionFeedback && (
+                                <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                                    {selectionFeedback}
                                 </div>
                             )}
 

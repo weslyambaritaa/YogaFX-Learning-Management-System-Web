@@ -5,11 +5,6 @@ import { Head, Link } from '@inertiajs/react';
 
 const sectionLinks = [
     {
-        key: 'detail',
-        label: 'Student Detail',
-        routeName: 'admin.student-progress.students.edit',
-    },
-    {
         key: 'completed-lessons',
         label: 'Completed Lesson',
         routeName: 'admin.student-progress.completed-lessons.show',

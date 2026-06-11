@@ -20,10 +20,13 @@ export default function VideoJsPlayer({
     const [loadFailed, setLoadFailed] = useState(false);
 
     useEffect(() => {
-        latestSourceRef.current = src;
-        latestPosterRef.current = poster;
         latestPlaybackErrorHandlerRef.current = onPlaybackError;
         latestProgressHandlerRef.current = onProgressUpdate;
+    }, [onPlaybackError, onProgressUpdate]);
+
+    useEffect(() => {
+        latestSourceRef.current = src;
+        latestPosterRef.current = poster;
 
         if (!playerRef.current) {
             return;
@@ -45,7 +48,7 @@ export default function VideoJsPlayer({
 
         playerRef.current.pause();
         playerRef.current.src([]);
-    }, [onPlaybackError, onProgressUpdate, poster, src]);
+    }, [poster, src]);
 
     useEffect(() => {
         if (!containerRef.current) {

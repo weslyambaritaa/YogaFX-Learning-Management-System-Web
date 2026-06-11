@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Assessment;
 use App\Models\AssessmentAnswer;
@@ -21,6 +22,8 @@ use Inertia\Response;
 
 class AssessmentController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+
     public function intro(Request $request, Lesson $lesson): Response
     {
         $user = $request->user();
@@ -145,6 +148,8 @@ class AssessmentController extends Controller
 
         abort_unless($question, 404);
 
+        $history = $this->ensureAttemptHistory($request, $assessment, $attempt, $question);
+
         $savedAnswers = $attempt->answers()
             ->where('question_id', $question->id)
             ->get();
@@ -164,7 +169,13 @@ class AssessmentController extends Controller
                 'show_progress_bar' => $assessment->show_progress_bar,
                 'design' => [
                     'logo_url' => $assessment->design?->logo
-                        ? route('media.show', ['entity' => 'assessment-design', 'id' => $assessment->design->id, 'field' => 'logo'])
+                        ? $this->protectedMediaUrl(
+                            'assessment-design',
+                            $assessment->design->id,
+                            'logo',
+                            $assessment->design->logo,
+                            versionSeed: $assessment->design->updated_at?->timestamp,
+                        )
                         : null,
                     'logo_max_width' => $assessment->design?->logo_max_width,
                     'logo_alignment' => $assessment->design?->logo_alignment,
@@ -189,7 +200,7 @@ class AssessmentController extends Controller
                 'expires_at' => $attempt->expires_at?->toIso8601String(),
             ],
             'question' => $this->serializePlayerQuestion($question, $savedAnswers),
-            'canGoBack' => $assessment->allow_back_navigation && $currentIndex !== false && $currentIndex > 0,
+            'canGoBack' => $assessment->allow_back_navigation && ! empty($history),
             'isLastQuestion' => $currentIndex !== false && $currentIndex === $orderedQuestions->count() - 1,
         ]);
     }
@@ -220,8 +231,12 @@ class AssessmentController extends Controller
         $nextQuestion = $this->persistQuestionAnswer($request, $attempt, $question, $assessment->questions);
 
         if (! $nextQuestion) {
+            $this->clearAttemptHistory($request, $attempt);
+
             return $this->completeAttempt($lesson, $attempt, AssessmentAttempt::FINISHED_REASON_MANUAL_SUBMIT);
         }
+
+        $this->pushAttemptHistory($request, $attempt, $question->id);
 
         $attempt->update([
             'current_question_id' => $nextQuestion->id,
@@ -250,17 +265,15 @@ class AssessmentController extends Controller
         $currentQuestion = $attempt->currentQuestion ?? $assessment->questions->sortBy('sort_order')->first();
         abort_unless($currentQuestion, 404);
 
-        $previousQuestion = $assessment->questions
-            ->sortBy('sort_order')
-            ->values()
-            ->first(fn (Question $question) => $question->sort_order === $currentQuestion->sort_order - 1)
-            ?? $assessment->questions
-                ->sortBy('sort_order')
-                ->values()
-                ->filter(fn (Question $question) => $question->sort_order < $currentQuestion->sort_order)
-                ->last();
+        $history = collect($this->ensureAttemptHistory($request, $assessment, $attempt, $currentQuestion));
+        $previousQuestionId = $history->pop();
+        $previousQuestion = $previousQuestionId
+            ? $assessment->questions->firstWhere('id', (int) $previousQuestionId)
+            : null;
 
         if ($previousQuestion) {
+            $this->putAttemptHistory($request, $attempt, $history->all());
+
             $attempt->update([
                 'current_question_id' => $previousQuestion->id,
             ]);
@@ -609,7 +622,7 @@ class AssessmentController extends Controller
     {
         $options = $question->options->sortBy('sort_order')->values();
 
-        if ($question->question_type === Question::TYPE_YES_NO_MAYBE && ! $question->show_maybe_answer) {
+        if ($question->question_type === Question::TYPE_YES_NO_MAYBE) {
             $options = $options->reject(fn (QuestionOption $option) => $option->internal_value === 'maybe')->values();
         }
 
@@ -662,7 +675,13 @@ class AssessmentController extends Controller
                     'is_correct' => (bool) $option->is_correct,
                     'is_other_option' => $option->is_other_option,
                     'image_url' => $option->image
-                        ? route('media.show', ['entity' => 'question-option', 'id' => $option->id, 'field' => 'image'])
+                        ? $this->protectedMediaUrl(
+                            'question-option',
+                            $option->id,
+                            'image',
+                            $option->image,
+                            versionSeed: $option->updated_at?->timestamp,
+                        )
                         : null,
                 ])
                 ->values()
@@ -772,5 +791,116 @@ class AssessmentController extends Controller
         return $selectedIds->isNotEmpty()
             && $selectedIds->count() === $correctIds->count()
             && $selectedIds->values()->all() === $correctIds->values()->all();
+    }
+
+    private function attemptHistoryKey(AssessmentAttempt $attempt): string
+    {
+        return 'student_assessment_history.'.$attempt->id;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function ensureAttemptHistory(
+        Request $request,
+        Assessment $assessment,
+        AssessmentAttempt $attempt,
+        Question $currentQuestion,
+    ): array {
+        $history = collect($request->session()->get($this->attemptHistoryKey($attempt), []))
+            ->map(fn ($value) => (int) $value)
+            ->filter()
+            ->values();
+
+        if ($history->isNotEmpty()) {
+            return $history->all();
+        }
+
+        $rebuiltHistory = $this->rebuildAttemptHistory($assessment, $attempt, $currentQuestion);
+        $this->putAttemptHistory($request, $attempt, $rebuiltHistory);
+
+        return $rebuiltHistory;
+    }
+
+    /**
+     * @param  array<int, int>  $history
+     */
+    private function putAttemptHistory(Request $request, AssessmentAttempt $attempt, array $history): void
+    {
+        $request->session()->put($this->attemptHistoryKey($attempt), array_values($history));
+    }
+
+    private function pushAttemptHistory(Request $request, AssessmentAttempt $attempt, int $questionId): void
+    {
+        $history = collect($request->session()->get($this->attemptHistoryKey($attempt), []))
+            ->map(fn ($value) => (int) $value)
+            ->filter()
+            ->values();
+
+        if ($history->last() !== $questionId) {
+            $history->push($questionId);
+        }
+
+        $this->putAttemptHistory($request, $attempt, $history->all());
+    }
+
+    private function clearAttemptHistory(Request $request, AssessmentAttempt $attempt): void
+    {
+        $request->session()->forget($this->attemptHistoryKey($attempt));
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function rebuildAttemptHistory(
+        Assessment $assessment,
+        AssessmentAttempt $attempt,
+        Question $currentQuestion,
+    ): array {
+        $questions = $assessment->questions->sortBy('sort_order')->values();
+        $firstQuestion = $questions->first();
+
+        if (! $firstQuestion || $firstQuestion->id === $currentQuestion->id) {
+            return [];
+        }
+
+        $answersByQuestion = $attempt->answers()
+            ->with('questionOption')
+            ->get()
+            ->groupBy('question_id');
+
+        $history = [];
+        $cursor = $firstQuestion;
+        $guard = 0;
+
+        while ($cursor && $cursor->id !== $currentQuestion->id && $guard < $questions->count()) {
+            $nextQuestion = $this->resolveNextQuestionFromSavedAnswers(
+                $cursor,
+                $questions,
+                $answersByQuestion->get($cursor->id, collect()),
+            );
+
+            if (! $nextQuestion) {
+                break;
+            }
+
+            $history[] = $cursor->id;
+            $cursor = $nextQuestion;
+            $guard++;
+        }
+
+        return $cursor && $cursor->id === $currentQuestion->id ? $history : [];
+    }
+
+    private function resolveNextQuestionFromSavedAnswers(
+        Question $question,
+        Collection $questions,
+        Collection $savedAnswers,
+    ): ?Question {
+        $selectedOptions = $question->options
+            ->whereIn('id', $savedAnswers->pluck('question_option_id')->filter()->map(fn ($value) => (int) $value))
+            ->values();
+
+        return $this->resolveNextQuestion($question, $selectedOptions, $questions);
     }
 }

@@ -98,11 +98,12 @@ export default function StudentModuleShow({ module }) {
                         {module.lessons.map((lesson) => {
                             const status = lessonStatusConfig[lesson.status] ?? lessonStatusConfig.available;
                             const StatusIcon = status.icon;
+                            const LessonCardTag = lesson.url ? Link : 'div';
 
                             return (
-                                <Link
+                                <LessonCardTag
                                     key={lesson.id}
-                                    href={route('lessons.show', lesson.id)}
+                                    {...(lesson.url ? { href: lesson.url } : {})}
                                     className="group block rounded-[30px] border border-white/10 bg-white/[0.04] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
                                 >
                                     <div className="grid gap-4 md:grid-cols-[280px_1fr]">
@@ -143,6 +144,11 @@ export default function StudentModuleShow({ module }) {
                                                             .filter(Boolean)
                                                             .join(' • ') || 'Learning content ready'}
                                                     </p>
+                                                    {lesson.is_locked && lesson.lock_reason ? (
+                                                        <p className="mt-3 text-sm leading-6 text-amber-200/80">
+                                                            {lesson.lock_reason}
+                                                        </p>
+                                                    ) : null}
                                                 </div>
                                             </div>
 
@@ -161,13 +167,13 @@ export default function StudentModuleShow({ module }) {
                                                 </div>
 
                                                 <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
-                                                    Open Lesson
+                                                    {lesson.is_locked ? 'Lesson Locked' : 'Open Lesson'}
                                                     <ArrowRight className="size-4 transition group-hover:translate-x-1" />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </Link>
+                                </LessonCardTag>
                             );
                         })}
                     </div>

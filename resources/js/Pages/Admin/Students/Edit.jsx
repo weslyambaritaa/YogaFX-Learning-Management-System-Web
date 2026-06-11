@@ -1,5 +1,5 @@
 import StudentProfileForm from '@/Components/StudentProfileForm';
-import StudentProgressStudentLayout from '@/Components/admin/student-progress/StudentProgressStudentLayout';
+import StudentManagementLayout from '@/Components/admin/students/StudentManagementLayout';
 import { router, useForm } from '@inertiajs/react';
 
 export default function EditStudent({ student, accessTiers, status }) {
@@ -10,7 +10,8 @@ export default function EditStudent({ student, accessTiers, status }) {
         last_name: student.last_name ?? '',
         email: student.email ?? '',
         whatsapp: student.whatsapp ?? '',
-        preferred_certificate_picture: student.preferred_certificate_picture ?? '',
+        preferred_certificate_picture:
+            student.preferred_certificate_picture ?? '',
         profile_photo: student.profile_photo ?? '',
         instagram: student.instagram ?? '',
         country: student.country ?? '',
@@ -28,14 +29,12 @@ export default function EditStudent({ student, accessTiers, status }) {
 
     const submit = (event) => {
         event.preventDefault();
-
-        patch(route('admin.student-progress.students.update', student.id));
+        patch(route('admin.students.update', student.id));
     };
 
     const submitStatus = (event) => {
         event.preventDefault();
-
-        router.patch(route('admin.student-progress.students.status', student.id), {
+        router.patch(route('admin.students.status', student.id), {
             is_active: data.is_active,
         });
     };
@@ -45,7 +44,18 @@ export default function EditStudent({ student, accessTiers, status }) {
             return;
         }
 
-        router.post(route('admin.student-progress.students.reset-progress', student.id));
+        router.post(route('admin.students.reset-progress', student.id));
+    };
+
+    const resetProgressScope = (scope, label) => {
+        if (!window.confirm(`Delete ${label.toLowerCase()} for this student?`)) {
+            return;
+        }
+
+        router.post(route('admin.students.reset-progress.scope', {
+            student: student.id,
+            scope,
+        }));
     };
 
     const deleteAccount = () => {
@@ -53,17 +63,52 @@ export default function EditStudent({ student, accessTiers, status }) {
             return;
         }
 
-        router.delete(route('admin.student-progress.students.destroy', student.id));
+        router.delete(route('admin.students.destroy', student.id));
     };
 
     return (
-        <StudentProgressStudentLayout
+        <StudentManagementLayout
             title="Student Detail"
-            description="Review and update student profile information inside the Student Progress domain."
+            description="Manage the student account, assigned access tier, account status, and destructive student actions from the dedicated Students domain."
             pageTitle="Student Detail"
             student={student}
-            activeSection="detail"
         >
+            {status === 'student-profile-updated' && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Student profile has been updated.
+                </div>
+            )}
+            {status === 'student-status-updated' && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Student status has been updated.
+                </div>
+            )}
+            {status === 'student-learning-progress-reset' && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Student learning progress has been deleted.
+                </div>
+            )}
+            {status === 'student-progress-reset-video' && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Student video progress has been deleted.
+                </div>
+            )}
+            {status === 'student-progress-reset-assessment' && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Student assessment progress has been deleted.
+                </div>
+            )}
+            {status === 'student-progress-reset-lesson' && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Student lesson progress has been deleted.
+                </div>
+            )}
+            {status === 'student-progress-reset-module' && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                    Student module progress has been deleted.
+                </div>
+            )}
+
             <div className="rounded-lg bg-white p-6 shadow-sm">
                 <div className="grid gap-6 lg:grid-cols-2">
                     <div>
@@ -72,7 +117,7 @@ export default function EditStudent({ student, accessTiers, status }) {
                                 Access Tier Assignment
                             </h3>
                             <p className="mt-1 text-sm text-gray-600">
-                                Assign one active learning tier to this student.
+                                Assign one learning tier to this student account.
                             </p>
                         </div>
 
@@ -118,7 +163,7 @@ export default function EditStudent({ student, accessTiers, status }) {
                                 Student Status
                             </h3>
                             <p className="mt-1 text-sm text-gray-600">
-                                Active students can access the LMS. Inactive students will be blocked after login.
+                                Active students can access the LMS. Inactive students are redirected into the blocked state after login.
                             </p>
                         </div>
 
@@ -157,22 +202,6 @@ export default function EditStudent({ student, accessTiers, status }) {
                 </div>
             </div>
 
-            {status === 'student-profile-updated' && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                    Student profile has been updated.
-                </div>
-            )}
-            {status === 'student-status-updated' && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                    Student status has been updated.
-                </div>
-            )}
-            {status === 'student-progress-reset' && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                    Student learning progress has been deleted.
-                </div>
-            )}
-
             <div className="rounded-lg bg-white p-6 shadow-sm">
                 <StudentProfileForm
                     data={data}
@@ -190,11 +219,39 @@ export default function EditStudent({ student, accessTiers, status }) {
                         Danger Zone
                     </h3>
                     <p className="text-sm text-rose-700">
-                        Reset progress removes lesson, assessment, assignment, and certificate records for this student. Delete account removes the student permanently.
+                        Reset progress removes learning progress only. Assignment submissions, certificates, and access-time data stay intact. Delete account removes the student and all related records permanently.
                     </p>
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-3">
+                    <button
+                        type="button"
+                        onClick={() => resetProgressScope('video', 'Video Progress')}
+                        className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
+                    >
+                        Reset Video Progress
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => resetProgressScope('assessment', 'Assessment Progress')}
+                        className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
+                    >
+                        Reset Assessment Progress
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => resetProgressScope('lesson', 'Lesson Progress')}
+                        className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
+                    >
+                        Reset Lesson Progress
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => resetProgressScope('module', 'Module Progress')}
+                        className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
+                    >
+                        Reset Module Progress
+                    </button>
                     <button
                         type="button"
                         onClick={resetProgress}
@@ -211,6 +268,6 @@ export default function EditStudent({ student, accessTiers, status }) {
                     </button>
                 </div>
             </div>
-        </StudentProgressStudentLayout>
+        </StudentManagementLayout>
     );
 }

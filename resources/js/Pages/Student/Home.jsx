@@ -263,9 +263,7 @@ export default function StudentHome({
                                             {`${runningAccessParts.hours}:${runningAccessParts.minutes}:${runningAccessParts.seconds}`}
                                         </div>
                                         <p className="text-sm text-white/58">
-                                            {accessTimeSummary?.currently_active
-                                                ? 'Running now'
-                                                : 'Saved total'}
+                                            Cumulative student access time
                                         </p>
                                     </div>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Assessment;
 use App\Models\Question;
@@ -16,6 +17,8 @@ use Inertia\Response;
 
 class AssessmentPreviewController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+
     public function __construct(
         private readonly AssessmentResultsService $resultsService,
     ) {}
@@ -322,7 +325,13 @@ class AssessmentPreviewController extends Controller
             'show_progress_bar' => $assessment->show_progress_bar,
             'design' => [
                 'logo_url' => $assessment->design?->logo
-                    ? route('media.show', ['entity' => 'assessment-design', 'id' => $assessment->design->id, 'field' => 'logo'])
+                    ? $this->protectedMediaUrl(
+                        'assessment-design',
+                        $assessment->design->id,
+                        'logo',
+                        $assessment->design->logo,
+                        versionSeed: $assessment->design->updated_at?->timestamp,
+                    )
                     : null,
                 'logo_max_width' => $assessment->design?->logo_max_width,
                 'logo_alignment' => $assessment->design?->logo_alignment,
@@ -392,7 +401,13 @@ class AssessmentPreviewController extends Controller
                     'is_correct' => (bool) $option->is_correct,
                     'is_other_option' => $option->is_other_option,
                     'image_url' => $option->image
-                        ? route('media.show', ['entity' => 'question-option', 'id' => $option->id, 'field' => 'image'])
+                        ? $this->protectedMediaUrl(
+                            'question-option',
+                            $option->id,
+                            'image',
+                            $option->image,
+                            versionSeed: $option->updated_at?->timestamp,
+                        )
                         : null,
                 ])
                 ->values()
@@ -407,7 +422,7 @@ class AssessmentPreviewController extends Controller
     {
         $options = $question->options->sortBy('sort_order')->values();
 
-        if ($question->question_type === Question::TYPE_YES_NO_MAYBE && ! $question->show_maybe_answer) {
+        if ($question->question_type === Question::TYPE_YES_NO_MAYBE) {
             $options = $options->reject(
                 fn (QuestionOption $option) => $option->internal_value === 'maybe',
             )->values();

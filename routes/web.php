@@ -143,15 +143,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/email-notifications/{notificationType}/media', [EmailNotificationController::class, 'uploadMedia'])->name('email-notifications.media');
         Route::post('/email-notifications/{notificationType}/send-test', [EmailNotificationController::class, 'sendTest'])->name('email-notifications.send-test');
 
-        Route::get('/student-progress', [StudentController::class, 'index'])->name('student-progress.index');
+        Route::get('/students', [StudentController::class, 'studentsIndex'])->name('students.index');
+        Route::get('/students/{student}', [StudentController::class, 'studentsEdit'])->name('students.edit');
+        Route::patch('/students/{student}', [StudentController::class, 'studentsUpdate'])->name('students.update');
+        Route::patch('/students/{student}/status', [StudentController::class, 'updateStatus'])->name('students.status');
+        Route::post('/students/{student}/reset-progress', [StudentController::class, 'resetProgress'])->name('students.reset-progress');
+        Route::post('/students/{student}/reset-progress/{scope}', [StudentController::class, 'resetProgressScope'])->name('students.reset-progress.scope');
+        Route::delete('/students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
+
+        Route::get('/student-progress', [StudentProgressController::class, 'index'])->name('student-progress.index');
         Route::get('/student-progress/completed-lessons', [StudentProgressController::class, 'completedLessonsIndex'])->name('student-progress.completed-lessons.index');
         Route::get('/student-progress/assignments', [StudentProgressController::class, 'assignmentsIndex'])->name('student-progress.assignments.index');
         Route::get('/student-progress/certificates', [StudentProgressController::class, 'certificatesIndex'])->name('student-progress.certificates.index');
-        Route::get('/student-progress/students/{student}', [StudentController::class, 'edit'])->name('student-progress.students.edit');
-        Route::patch('/student-progress/students/{student}', [StudentController::class, 'update'])->name('student-progress.students.update');
-        Route::patch('/student-progress/students/{student}/status', [StudentController::class, 'updateStatus'])->name('student-progress.students.status');
-        Route::post('/student-progress/students/{student}/reset-progress', [StudentController::class, 'resetProgress'])->name('student-progress.students.reset-progress');
-        Route::delete('/student-progress/students/{student}', [StudentController::class, 'destroy'])->name('student-progress.students.destroy');
         Route::get('/student-progress/students/{student}/completed-lessons', [StudentProgressController::class, 'showCompletedLessons'])->name('student-progress.completed-lessons.show');
         Route::post('/student-progress/students/{student}/completed-lessons/{lessonProgress}/reset', [StudentProgressController::class, 'resetLesson'])->name('student-progress.completed-lessons.reset');
         Route::get('/student-progress/students/{student}/assignments', [StudentProgressController::class, 'showAssignments'])->name('student-progress.assignments.show');

@@ -104,11 +104,12 @@ export default function StudentModulesIndex({ modules }) {
                         {modules.map((module) => {
                             const status = statusConfig[module.status] ?? statusConfig.available;
                             const StatusIcon = status.icon;
+                            const ModuleCardTag = module.url ? Link : 'div';
 
                             return (
-                                <Link
+                                <ModuleCardTag
                                     key={module.id}
-                                    href={route('modules.show', module.url_slug)}
+                                    {...(module.url ? { href: module.url } : {})}
                                     className="group relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
                                 >
                                     <div className="grid gap-4 md:grid-cols-[42%_1fr]">
@@ -163,13 +164,13 @@ export default function StudentModulesIndex({ modules }) {
                                                 </div>
 
                                                 <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
-                                                    Open Module
+                                                    {module.url ? 'Open Module' : 'Module Locked'}
                                                     <ArrowRight className="size-4 transition group-hover:translate-x-1" />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </Link>
+                                </ModuleCardTag>
                             );
                         })}
                     </div>

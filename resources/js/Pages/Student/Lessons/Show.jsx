@@ -57,20 +57,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
     );
-    const [activeSessionSeconds, setActiveSessionSeconds] = useState(() => {
-        if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
-            return 0;
-        }
-
-        return Math.max(
-            0,
-            Math.floor(
-                (Date.now()
-                    - new Date(accessTimeSummary.active_session_login_at).getTime())
-                    / 1000,
-            ),
-        );
-    });
     const progressRequestRef = useRef({
         inFlight: false,
         latestSent: Number(lesson.progress?.watch_progress ?? 0),
@@ -111,7 +97,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             setTotalAccessSeconds(
                 accessTimeSummary?.running_total_access_duration_seconds ?? 0,
             );
-            setActiveSessionSeconds(0);
 
             return undefined;
         }
@@ -122,7 +107,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             ).getTime();
             const elapsed = Math.max(0, Math.floor((Date.now() - loginAt) / 1000));
 
-            setActiveSessionSeconds(elapsed);
             setTotalAccessSeconds(
                 (accessTimeSummary.total_access_duration_seconds ?? 0) + elapsed,
             );
@@ -141,7 +125,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     ]);
 
     const totalAccessParts = formatDurationParts(totalAccessSeconds);
-    const activeSessionParts = formatDurationParts(activeSessionSeconds);
 
     const readXsrfToken = () => {
         const xsrfCookie = document.cookie
@@ -216,10 +199,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         }
 
         setWatchProgress(normalizedProgress);
-
-        if (normalizedProgress >= 95) {
-            setIsLessonDone(true);
-        }
 
         progressRequestRef.current.pending = Math.max(
             normalizedProgress,
@@ -460,11 +439,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     navigationStatusConfig[item.status] ??
                                     navigationStatusConfig.available;
                                 const StatusIcon = status.icon;
+                                const NavigationTag = item.url ? Link : 'div';
 
                                 return (
-                                    <Link
+                                    <NavigationTag
                                         key={item.id}
-                                        href={item.url}
+                                        {...(item.url ? { href: item.url } : {})}
                                         className="block rounded-[22px] border border-white/10 bg-black/18 p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
                                     >
                                         <div className="flex items-start justify-between gap-4">
@@ -475,6 +455,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 <h3 className="text-sm font-medium leading-6 text-white">
                                                     {item.title}
                                                 </h3>
+                                                {item.is_locked && item.lock_reason ? (
+                                                    <p className="text-xs leading-5 text-amber-200/80">
+                                                        {item.lock_reason}
+                                                    </p>
+                                                ) : null}
                                             </div>
                                             <span
                                                 className={`inline-flex items-center gap-2 text-xs font-medium ${status.className}`}
@@ -490,7 +475,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 style={{ width: `${item.progress_percentage}%` }}
                                             />
                                         </div>
-                                    </Link>
+                                    </NavigationTag>
                                 );
                             })}
                         </div>
@@ -506,23 +491,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
                                 </div>
                                 <p className="text-sm text-white/55">
-                                    {accessTimeSummary?.currently_active
-                                        ? 'Saved total + current session'
-                                        : 'Saved total'}
-                                </p>
-                            </div>
-
-                            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                                <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                    Running Total
-                                </p>
-                                <div className="mt-2 text-2xl font-semibold tracking-[0.08em] text-white">
-                                    {`${activeSessionParts.hours}:${activeSessionParts.minutes}:${activeSessionParts.seconds}`}
-                                </div>
-                                <p className="mt-1 text-sm text-white/55">
-                                    {accessTimeSummary?.currently_active
-                                        ? 'Current login session'
-                                        : 'No active session'}
+                                    Cumulative student access time
                                 </p>
                             </div>
                         </div>
