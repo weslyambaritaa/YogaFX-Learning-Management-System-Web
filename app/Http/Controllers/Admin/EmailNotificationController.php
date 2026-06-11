@@ -44,7 +44,8 @@ class EmailNotificationController extends Controller
                 'body_user' => $template->body_user ?? '',
             ],
             'availableMergeTags' => EmailNotificationTypeRegistry::mergeTagsFor($notificationType),
-            'status' => session('status'),
+            'statusMessage' => session('status_message'),
+            'statusTone' => session('status_tone'),
         ]);
     }
 
@@ -58,7 +59,11 @@ class EmailNotificationController extends Controller
 
         return redirect()
             ->route('admin.email-notifications.show', $notificationType)
-            ->with('status', 'email-template-saved');
+            ->with([
+                'status' => 'email-template-saved',
+                'status_message' => 'Email template has been saved.',
+                'status_tone' => 'success',
+            ]);
     }
 
     public function sendTest(EmailTemplateSendTestRequest $request, string $notificationType): RedirectResponse
@@ -66,14 +71,18 @@ class EmailNotificationController extends Controller
         abort_unless(EmailNotificationTypeRegistry::isValid($notificationType), 404);
         abort_unless($request->validated()['notification_type'] === $notificationType, 422);
 
-        $this->emailNotificationService->sendTest(
+        $result = $this->emailNotificationService->sendTest(
             $notificationType,
             $request->validated()['send_to'],
         );
 
         return redirect()
             ->route('admin.email-notifications.show', $notificationType)
-            ->with('status', 'email-template-test-sent');
+            ->with([
+                'status' => $result['status'],
+                'status_message' => $result['message'],
+                'status_tone' => $result['tone'],
+            ]);
     }
 
     public function uploadMedia(EmailTemplateMediaUploadRequest $request, string $notificationType): JsonResponse

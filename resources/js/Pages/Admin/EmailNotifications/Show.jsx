@@ -8,11 +8,6 @@ import InputError from '@/Components/InputError';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
 
-const statusMessages = {
-    'email-template-saved': 'Email template has been saved.',
-    'email-template-test-sent': 'Test email has been sent and logged.',
-};
-
 export default function EmailNotificationShow({
     notificationType,
     notificationLabel,
@@ -20,7 +15,8 @@ export default function EmailNotificationShow({
     notificationTrigger,
     template,
     availableMergeTags,
-    status,
+    statusMessage,
+    statusTone,
 }) {
     const errors = usePage().props.errors;
     const adminEditorRef = useRef(null);
@@ -256,9 +252,17 @@ export default function EmailNotificationShow({
 
             <div className="py-12">
                 <div className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8">
-                    {statusMessages[status] && (
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                            {statusMessages[status]}
+                    {statusMessage && (
+                        <div
+                            className={`rounded-lg px-4 py-3 text-sm ${
+                                statusTone === 'success'
+                                    ? 'border border-emerald-200 bg-emerald-50 text-emerald-900'
+                                    : statusTone === 'warning'
+                                      ? 'border border-amber-200 bg-amber-50 text-amber-900'
+                                      : 'border border-rose-200 bg-rose-50 text-rose-900'
+                            }`}
+                        >
+                            {statusMessage}
                         </div>
                     )}
 
@@ -489,8 +493,8 @@ export default function EmailNotificationShow({
                                     Send Test
                                 </h3>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    Send the current template to one email
-                                    address using sample data.
+                                    Send one real test email to the address below using
+                                    the active saved template and sample data.
                                 </p>
 
                                 <form onSubmit={submitTest} className="mt-4 space-y-4">
