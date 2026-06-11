@@ -11,6 +11,7 @@ use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
 use App\Models\LessonProgress;
 use App\Models\User;
+use App\Services\StudentSessionTrackingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -21,6 +22,10 @@ use Inertia\Response;
 
 class StudentProgressController extends Controller
 {
+    public function __construct(
+        private readonly StudentSessionTrackingService $sessionTrackingService,
+    ) {}
+
     public function completedLessonsIndex(): RedirectResponse
     {
         return to_route('admin.student-progress.index');
@@ -294,9 +299,18 @@ class StudentProgressController extends Controller
             'name' => $student->name,
             'email' => $student->email,
             'role' => $student->role,
-            'access_tier' => $student->accessTier?->name,
+            'is_active' => $student->isStudentAccountActive(),
+            'access_tier' => $student->accessTier ? [
+                'id' => $student->accessTier->id,
+                'name' => $student->accessTier->name,
+                'slug' => $student->accessTier->slug,
+                'is_active' => $student->accessTier->is_active,
+            ] : null,
             'access_tier_slug' => $student->accessTier?->slug,
             'profile_is_complete' => $student->hasCompletedStudentProfile(),
+            'access_time_summary' => $this->sessionTrackingService->summaryForUser(
+                $student,
+            ),
         ];
     }
 

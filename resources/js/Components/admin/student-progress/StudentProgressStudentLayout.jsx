@@ -64,9 +64,18 @@ export default function StudentProgressStudentLayout({
                         </div>
 
                         <div className="rounded-lg bg-white p-5 shadow-sm">
+                            <div className="text-sm text-gray-500">Student Status</div>
+                            <div className="mt-3">
+                                <Badge variant={student.is_active ? 'secondary' : 'outline'}>
+                                    {student.is_active ? 'Active' : 'Inactive'}
+                                </Badge>
+                            </div>
+                        </div>
+
+                        <div className="rounded-lg bg-white p-5 shadow-sm">
                             <div className="text-sm text-gray-500">Access Tier</div>
                             <div className="mt-1 text-lg font-semibold text-gray-900">
-                                {student.access_tier || 'Not assigned'}
+                                {student.access_tier?.name || 'Not assigned'}
                             </div>
                         </div>
 
@@ -75,6 +84,39 @@ export default function StudentProgressStudentLayout({
                             <div className="mt-3">
                                 <Badge variant={student.profile_is_complete ? 'secondary' : 'outline'}>
                                     {student.profile_is_complete ? 'Complete' : 'Incomplete'}
+                                </Badge>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <div className="rounded-lg bg-white p-5 shadow-sm">
+                            <div className="text-sm text-gray-500">Total Access Duration</div>
+                            <div className="mt-1 text-lg font-semibold text-gray-900">
+                                {student.access_time_summary?.formatted_total_access_duration || '00 hours 00 minutes 00 seconds'}
+                            </div>
+                        </div>
+
+                        <div className="rounded-lg bg-white p-5 shadow-sm">
+                            <div className="text-sm text-gray-500">Last Visit</div>
+                            <div className="mt-1 text-lg font-semibold text-gray-900">
+                                {student.access_time_summary?.last_visit_at || 'No visit yet'}
+                            </div>
+                        </div>
+
+                        <div className="rounded-lg bg-white p-5 shadow-sm">
+                            <div className="text-sm text-gray-500">Current Session</div>
+                            <div className="mt-3">
+                                <Badge
+                                    variant={
+                                        student.access_time_summary?.currently_active
+                                            ? 'secondary'
+                                            : 'outline'
+                                    }
+                                >
+                                    {student.access_time_summary?.currently_active
+                                        ? 'Active'
+                                        : 'Inactive'}
                                 </Badge>
                             </div>
                         </div>

@@ -2,7 +2,7 @@ import { Button } from '@/Components/ui/button';
 import VideoJsPlayer from '@/Components/VideoJsPlayer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
     CheckCircle2,
     ChevronRight,
@@ -35,13 +35,56 @@ const navigationStatusConfig = {
     },
 };
 
-export default function StudentLessonShow({ lesson }) {
+function formatDurationParts(totalSeconds) {
+    const safeSeconds = Math.max(0, Number(totalSeconds || 0));
+    const hours = Math.floor(safeSeconds / 3600)
+        .toString()
+        .padStart(2, '0');
+    const minutes = Math.floor((safeSeconds % 3600) / 60)
+        .toString()
+        .padStart(2, '0');
+    const seconds = Math.floor(safeSeconds % 60)
+        .toString()
+        .padStart(2, '0');
+
+    return { hours, minutes, seconds };
+}
+
+export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const [playerWarning, setPlayerWarning] = useState(null);
+    const [watchProgress, setWatchProgress] = useState(lesson.progress?.watch_progress ?? 0);
+    const [isLessonDone, setIsLessonDone] = useState(Boolean(lesson.progress?.is_done));
+    const [totalAccessSeconds, setTotalAccessSeconds] = useState(
+        accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+    );
+    const [activeSessionSeconds, setActiveSessionSeconds] = useState(() => {
+        if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
+            return 0;
+        }
+
+        return Math.max(
+            0,
+            Math.floor(
+                (Date.now()
+                    - new Date(accessTimeSummary.active_session_login_at).getTime())
+                    / 1000,
+            ),
+        );
+    });
+    const progressRequestRef = useRef({
+        inFlight: false,
+        latestSent: Number(lesson.progress?.watch_progress ?? 0),
+        pending: null,
+    });
     const lessonVideoUrl = lesson.video?.hls_url ?? null;
     const lessonVideoWarning = lesson.video?.warning_message ?? null;
+    const playbackErrorMessage =
+        typeof playerWarning === 'string'
+            ? playerWarning
+            : playerWarning?.message ?? null;
     const playbackWarning =
-        playerWarning &&
-        `${playerWarning} Confirm that the lesson video ID matches an accessible Bunny Stream video in the library used by this environment.`;
+        playbackErrorMessage &&
+        `${playbackErrorMessage} Confirm that the lesson video ID matches an accessible Bunny Stream video in the library used by this environment.`;
     const contentActions = [
         lesson.workbook_url
             ? {
@@ -52,6 +95,139 @@ export default function StudentLessonShow({ lesson }) {
               }
             : null,
     ].filter(Boolean);
+
+    useEffect(() => {
+        setWatchProgress(lesson.progress?.watch_progress ?? 0);
+        setIsLessonDone(Boolean(lesson.progress?.is_done));
+        progressRequestRef.current = {
+            inFlight: false,
+            latestSent: Number(lesson.progress?.watch_progress ?? 0),
+            pending: null,
+        };
+    }, [lesson.id, lesson.progress?.is_done, lesson.progress?.watch_progress]);
+
+    useEffect(() => {
+        if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
+            setTotalAccessSeconds(
+                accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+            );
+            setActiveSessionSeconds(0);
+
+            return undefined;
+        }
+
+        const updateTimer = () => {
+            const loginAt = new Date(
+                accessTimeSummary.active_session_login_at,
+            ).getTime();
+            const elapsed = Math.max(0, Math.floor((Date.now() - loginAt) / 1000));
+
+            setActiveSessionSeconds(elapsed);
+            setTotalAccessSeconds(
+                (accessTimeSummary.total_access_duration_seconds ?? 0) + elapsed,
+            );
+        };
+
+        updateTimer();
+
+        const interval = window.setInterval(updateTimer, 1000);
+
+        return () => window.clearInterval(interval);
+    }, [
+        accessTimeSummary?.active_session_login_at,
+        accessTimeSummary?.currently_active,
+        accessTimeSummary?.running_total_access_duration_seconds,
+        accessTimeSummary?.total_access_duration_seconds,
+    ]);
+
+    const totalAccessParts = formatDurationParts(totalAccessSeconds);
+    const activeSessionParts = formatDurationParts(activeSessionSeconds);
+
+    const readXsrfToken = () => {
+        const xsrfCookie = document.cookie
+            .split('; ')
+            .find((item) => item.startsWith('XSRF-TOKEN='));
+
+        return xsrfCookie ? decodeURIComponent(xsrfCookie.split('=').slice(1).join('=')) : '';
+    };
+
+    const flushProgressUpdate = async () => {
+        if (progressRequestRef.current.inFlight) {
+            return;
+        }
+
+        const pendingProgress = progressRequestRef.current.pending;
+
+        if (pendingProgress === null || pendingProgress <= progressRequestRef.current.latestSent) {
+            return;
+        }
+
+        progressRequestRef.current.inFlight = true;
+        progressRequestRef.current.pending = null;
+
+        try {
+            const response = await fetch(route('lessons.progress.update', lesson.id), {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': readXsrfToken(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    watch_progress: pendingProgress,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to persist lesson progress (${response.status}).`);
+            }
+
+            const result = await response.json();
+            const persistedProgress = Number(result?.watch_progress ?? pendingProgress);
+
+            progressRequestRef.current.latestSent = persistedProgress;
+            setWatchProgress(persistedProgress);
+            setIsLessonDone(Boolean(result?.is_done));
+        } catch (error) {
+            console.error('Failed to persist lesson watch progress.', error);
+            progressRequestRef.current.pending = Math.max(
+                pendingProgress,
+                progressRequestRef.current.pending ?? 0,
+            );
+        } finally {
+            progressRequestRef.current.inFlight = false;
+
+            if (
+                progressRequestRef.current.pending !== null &&
+                progressRequestRef.current.pending > progressRequestRef.current.latestSent
+            ) {
+                void flushProgressUpdate();
+            }
+        }
+    };
+
+    const handleProgressUpdate = (nextProgress) => {
+        const normalizedProgress = Math.max(0, Math.min(100, Math.round(Number(nextProgress) || 0)));
+
+        if (normalizedProgress <= watchProgress) {
+            return;
+        }
+
+        setWatchProgress(normalizedProgress);
+
+        if (normalizedProgress >= 95) {
+            setIsLessonDone(true);
+        }
+
+        progressRequestRef.current.pending = Math.max(
+            normalizedProgress,
+            progressRequestRef.current.pending ?? 0,
+        );
+
+        void flushProgressUpdate();
+    };
 
     return (
         <AuthenticatedLayout
@@ -85,6 +261,7 @@ export default function StudentLessonShow({ lesson }) {
                                         poster={lesson.thumbnail_url}
                                         className="overflow-hidden rounded-[24px]"
                                         onPlaybackError={setPlayerWarning}
+                                        onProgressUpdate={handleProgressUpdate}
                                     />
                                 </div>
                             ) : lesson.thumbnail_url ? (
@@ -100,9 +277,9 @@ export default function StudentLessonShow({ lesson }) {
                                 <div className="aspect-[16/8] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                             )}
                             <div className="absolute left-5 top-5 rounded-full border border-white/12 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/72 backdrop-blur">
-                                {lesson.progress?.is_done
+                                {isLessonDone
                                     ? 'Lesson completed'
-                                    : `${lesson.progress?.watch_progress ?? 0}% lesson progress`}
+                                    : `${watchProgress}% lesson progress`}
                             </div>
                         </div>
 
@@ -114,7 +291,37 @@ export default function StudentLessonShow({ lesson }) {
                             )}
                             {playbackWarning && (
                                 <div className="rounded-[24px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-100">
-                                    {playbackWarning}
+                                    <p>{playbackWarning}</p>
+                                    <div className="mt-3 space-y-1 text-xs leading-6 text-amber-50/90">
+                                        <p>
+                                            <span className="font-semibold">Requested HLS URL:</span>{' '}
+                                            {typeof playerWarning === 'object' && playerWarning?.src
+                                                ? playerWarning.src
+                                                : lessonVideoUrl ?? '-'}
+                                        </p>
+                                        <p>
+                                            <span className="font-semibold">Lesson Video ID:</span>{' '}
+                                            {lesson.lesson_video_id ?? '-'}
+                                        </p>
+                                        {typeof playerWarning === 'object' && playerWarning?.code !== null && (
+                                            <p>
+                                                <span className="font-semibold">Player Error Code:</span>{' '}
+                                                {playerWarning.code}
+                                            </p>
+                                        )}
+                                        {typeof playerWarning === 'object' && playerWarning?.networkState !== null && (
+                                            <p>
+                                                <span className="font-semibold">Network State:</span>{' '}
+                                                {playerWarning.networkState}
+                                            </p>
+                                        )}
+                                        {typeof playerWarning === 'object' && playerWarning?.readyState !== null && (
+                                            <p>
+                                                <span className="font-semibold">Ready State:</span>{' '}
+                                                {playerWarning.readyState}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -290,14 +497,34 @@ export default function StudentLessonShow({ lesson }) {
                     </div>
 
                     <div className="rounded-[28px] border border-white/10 bg-black/25 p-5 shadow-2xl backdrop-blur-md">
-                        <div className="space-y-2">
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                Running Total
-                            </p>
-                            <div className="text-3xl font-semibold tracking-[0.08em] text-white">
-                                132:65:06
+                        <div className="space-y-5">
+                            <div className="space-y-2">
+                                <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                    Total Access Time
+                                </p>
+                                <div className="text-3xl font-semibold tracking-[0.08em] text-white">
+                                    {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
+                                </div>
+                                <p className="text-sm text-white/55">
+                                    {accessTimeSummary?.currently_active
+                                        ? 'Saved total + current session'
+                                        : 'Saved total'}
+                                </p>
                             </div>
-                            <p className="text-sm text-white/55">Login Time</p>
+
+                            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                                <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                    Running Total
+                                </p>
+                                <div className="mt-2 text-2xl font-semibold tracking-[0.08em] text-white">
+                                    {`${activeSessionParts.hours}:${activeSessionParts.minutes}:${activeSessionParts.seconds}`}
+                                </div>
+                                <p className="mt-1 text-sm text-white/55">
+                                    {accessTimeSummary?.currently_active
+                                        ? 'Current login session'
+                                        : 'No active session'}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </aside>

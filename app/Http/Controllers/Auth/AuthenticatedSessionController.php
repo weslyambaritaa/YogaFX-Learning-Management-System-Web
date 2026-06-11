@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\StudentSessionTrackingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,10 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
+    public function __construct(
+        private readonly StudentSessionTrackingService $sessionTrackingService,
+    ) {}
+
     /**
      * Display the login view.
      */
@@ -45,6 +50,10 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
+        if (! ($user->isStudent() && ! $user->isStudentAccountActive())) {
+            $this->sessionTrackingService->startStudentSession($request, $user);
+        }
+
         return redirect()->intended(route($user->postLoginRouteName(), absolute: false));
     }
 
@@ -53,6 +62,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $this->sessionTrackingService->endStudentSession($request, $request->user());
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

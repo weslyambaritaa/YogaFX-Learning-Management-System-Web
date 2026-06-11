@@ -5,9 +5,18 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminStudentUpdateRequest;
 use App\Models\AccessTier;
+use App\Models\AssessmentAnswer;
+use App\Models\AssessmentAttempt;
+use App\Models\AssessmentProgress;
 use App\Models\AssignmentSubmission;
+use App\Models\Certificate;
+use App\Models\LessonProgress;
+use App\Models\UserSession;
 use App\Models\Module;
 use App\Models\User;
+use App\Services\StudentSessionTrackingService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +25,10 @@ use Inertia\Response;
 
 class StudentController extends Controller
 {
+    public function __construct(
+        private readonly StudentSessionTrackingService $sessionTrackingService,
+    ) {}
+
     public function index(): Response
     {
         $students = User::query()
@@ -27,7 +40,6 @@ class StudentController extends Controller
                 'assignmentSubmissions:id,user_id,assignment_type,assignment_video',
             ])
             ->where('role', User::ROLE_STUDENT)
-            ->whereNotNull('access_tier_id')
             ->orderByDesc('created_at')
             ->get([
                 'id',
@@ -35,6 +47,7 @@ class StudentController extends Controller
                 'first_name',
                 'last_name',
                 'email',
+                'is_active',
                 'country',
                 'access_tier_id',
                 'profile_photo',
@@ -83,6 +96,7 @@ class StudentController extends Controller
                 'id' => $student->id,
                 'name' => $student->name,
                 'role' => $student->role,
+                'is_active' => $student->isStudentAccountActive(),
                 'access_tier_id' => $student->access_tier_id,
                 'access_tier' => $student->accessTier ? [
                     'id' => $student->accessTier->id,
@@ -109,6 +123,9 @@ class StudentController extends Controller
                 'why_yogafx' => $student->why_yogafx,
                 'how_did_you_find_us' => $student->how_did_you_find_us,
                 'profile_is_complete' => $student->hasCompletedStudentProfile(),
+                'access_time_summary' => $this->sessionTrackingService->summaryForUser(
+                    $student,
+                ),
             ],
             'accessTiers' => AccessTier::query()
                 ->orderByDesc('is_active')
@@ -142,6 +159,104 @@ class StudentController extends Controller
             ->with('status', 'student-profile-updated');
     }
 
+    public function updateStatus(User $student): RedirectResponse
+    {
+        abort_unless($student->isStudent(), 404);
+
+        $validated = request()->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        $student->forceFill([
+            'is_active' => (bool) $validated['is_active'],
+        ])->save();
+
+        return redirect()
+            ->route('admin.student-progress.students.edit', $student)
+            ->with('status', 'student-status-updated');
+    }
+
+    public function resetProgress(User $student): RedirectResponse
+    {
+        abort_unless($student->isStudent(), 404);
+
+        $certificateFiles = Certificate::query()
+            ->where('user_id', $student->id)
+            ->pluck('file_path')
+            ->filter()
+            ->values();
+
+        DB::transaction(function () use ($student) {
+            $attemptIds = AssessmentAttempt::query()
+                ->where('user_id', $student->id)
+                ->pluck('id');
+
+            if ($attemptIds->isNotEmpty()) {
+                AssessmentAnswer::query()
+                    ->whereIn('assessment_attempt_id', $attemptIds)
+                    ->delete();
+            }
+
+            AssessmentAttempt::query()->where('user_id', $student->id)->delete();
+            AssessmentProgress::query()->where('user_id', $student->id)->delete();
+            LessonProgress::query()->where('user_id', $student->id)->delete();
+            AssignmentSubmission::query()->where('user_id', $student->id)->delete();
+            Certificate::query()->where('user_id', $student->id)->delete();
+        });
+
+        $certificateFiles->each(function (string $path) {
+            if (Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+        });
+
+        return redirect()
+            ->route('admin.student-progress.students.edit', $student)
+            ->with('status', 'student-progress-reset');
+    }
+
+    public function destroy(User $student): RedirectResponse
+    {
+        abort_unless($student->isStudent(), 404);
+
+        $certificateFiles = Certificate::withTrashed()
+            ->where('user_id', $student->id)
+            ->pluck('file_path')
+            ->filter()
+            ->values();
+
+        DB::transaction(function () use ($student) {
+            $attemptIds = AssessmentAttempt::query()
+                ->where('user_id', $student->id)
+                ->pluck('id');
+
+            if ($attemptIds->isNotEmpty()) {
+                AssessmentAnswer::query()
+                    ->whereIn('assessment_attempt_id', $attemptIds)
+                    ->delete();
+            }
+
+            AssessmentAttempt::query()->where('user_id', $student->id)->delete();
+            AssessmentProgress::query()->where('user_id', $student->id)->delete();
+            LessonProgress::query()->where('user_id', $student->id)->delete();
+            AssignmentSubmission::query()->where('user_id', $student->id)->delete();
+            Certificate::withTrashed()->where('user_id', $student->id)->forceDelete();
+            UserSession::query()->where('user_id', $student->id)->delete();
+            DB::table('sessions')->where('user_id', $student->id)->delete();
+            $student->delete();
+        });
+
+        $certificateFiles->each(function (string $path) {
+            if (Storage::disk('local')->exists($path)) {
+                Storage::disk('local')->delete($path);
+            }
+        });
+
+        return redirect()
+            ->route('admin.student-progress.index')
+            ->with('status', 'student-account-deleted');
+    }
+
     private function buildStudentsByTierPayload(
         EloquentCollection $students,
         Collection $tiers,
@@ -151,6 +266,7 @@ class StudentController extends Controller
             AccessTier::SLUG_MASTER_CLASS => 'Masterclass',
             AccessTier::SLUG_ONLINE => 'Online',
             AccessTier::SLUG_STARTER_KIT => 'Starter Kit',
+            'unassigned' => 'Unassigned',
         ]);
 
         return $sectionDefinitions->map(function (string $label, string $slug) use ($students, $tiers, $modules) {
@@ -161,14 +277,19 @@ class StudentController extends Controller
                 'slug' => $slug,
                 'label' => $label,
                 'students' => $students
-                    ->filter(fn (User $student) => $student->accessTier?->slug === $slug)
+                    ->filter(fn (User $student) => $slug === 'unassigned'
+                        ? $student->accessTier === null
+                        : $student->accessTier?->slug === $slug)
                     ->values()
                     ->map(fn (User $student, int $index) => [
                         'id' => $student->id,
                         'number' => $index + 1,
                         'name' => $student->name ?: trim("{$student->first_name} {$student->last_name}"),
+                        'email' => $student->email,
                         'profile_photo' => $student->profile_photo,
                         'profile_initials' => $this->initialsFor($student),
+                        'access_tier_name' => $student->accessTier?->name ?? 'Not assigned',
+                        'is_active' => $student->isStudentAccountActive(),
                         'progress_percentage' => $this->progressPercentageForStudent($student, $modules, $tierId),
                         'registration_date' => optional($student->created_at)->format('Y-m-d'),
                         'assignment_status' => $this->assignmentStatusForStudent($student),

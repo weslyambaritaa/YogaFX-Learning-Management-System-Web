@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
+            'track.student.session' => \App\Http\Middleware\TrackStudentSessionActivity::class,
+            'student.active' => \App\Http\Middleware\EnsureStudentAccountIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

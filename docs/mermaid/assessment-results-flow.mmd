@@ -1,0 +1,41 @@
+flowchart TD
+
+    A[Admin opens Assessment menu] --> B[System shows Assessment List]
+
+    B --> C{Choose action}
+
+    %% Preview
+    C -->|Preview| D[Open Assessment Preview]
+    D --> E[Show simulation of assessment flow]
+    E --> F[Admin reviews simulated questions and result flow]
+    F --> B
+
+    %% View Results
+    C -->|View Results| G[Open Assessment Results List]
+    G --> H{Any completed results?}
+    H -->|No| I[Show empty state]
+    H -->|Yes| J[Show all completed user results]
+
+    %% Result Detail
+    J --> K[Admin selects one result]
+    K --> L[Open Result Detail]
+    L --> M[Show summary: name email phone correct answers points percentage duration]
+    M --> N[Show all questions and user answers]
+    N --> O[Back to Results]
+    O --> J
+
+    %% Delete Result
+    J --> P[Admin clicks Delete result]
+    P --> Q[Show delete confirmation]
+    Q --> R{Confirm delete?}
+    R -->|No| J
+    R -->|Yes| S[Delete selected result]
+    S --> T[Refresh results list]
+    T --> J
+
+    %% Edit/Delete Assessment
+    C -->|Edit| U[Open Assessment Edit]
+    U --> B
+
+    C -->|Delete| V[Delete Assessment Flow]
+    V --> B

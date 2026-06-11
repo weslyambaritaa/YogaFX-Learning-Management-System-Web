@@ -8,18 +8,22 @@ export default function VideoJsPlayer({
     poster = null,
     className = '',
     onPlaybackError = null,
+    onProgressUpdate = null,
 }) {
     const containerRef = useRef(null);
     const playerRef = useRef(null);
     const latestSourceRef = useRef(src);
     const latestPosterRef = useRef(poster);
     const latestPlaybackErrorHandlerRef = useRef(onPlaybackError);
+    const latestProgressHandlerRef = useRef(onProgressUpdate);
+    const lastReportedProgressRef = useRef(0);
     const [loadFailed, setLoadFailed] = useState(false);
 
     useEffect(() => {
         latestSourceRef.current = src;
         latestPosterRef.current = poster;
         latestPlaybackErrorHandlerRef.current = onPlaybackError;
+        latestProgressHandlerRef.current = onProgressUpdate;
 
         if (!playerRef.current) {
             return;
@@ -41,7 +45,7 @@ export default function VideoJsPlayer({
 
         playerRef.current.pause();
         playerRef.current.src([]);
-    }, [poster, src]);
+    }, [onPlaybackError, onProgressUpdate, poster, src]);
 
     useEffect(() => {
         if (!containerRef.current) {
@@ -62,6 +66,7 @@ export default function VideoJsPlayer({
                 const videoElement = document.createElement('video-js');
                 videoElement.className =
                     'video-js vjs-big-play-centered overflow-hidden rounded-[24px]';
+                // videoElement.setAttribute('referrerpolicy', 'no-referrer');
                 containerRef.current.appendChild(videoElement);
 
                 const player = videojs(videoElement, {
@@ -71,12 +76,6 @@ export default function VideoJsPlayer({
                     preload: 'auto',
                     responsive: true,
                     playsinline: true,
-                    crossOrigin: 'anonymous',
-                    html5: {
-                        vhs: {
-                            overrideNative: true,
-                        },
-                    },
                     poster: latestPosterRef.current ?? undefined,
                     sources: latestSourceRef.current
                         ? [
@@ -90,15 +89,57 @@ export default function VideoJsPlayer({
 
                 player.on('error', () => {
                     const playerError = player.error();
-                    const message =
-                        playerError?.message ??
-                        'The lesson video could not be loaded from Bunny Stream.';
+                    const debugPayload = {
+                        message:
+                            playerError?.message ??
+                            'The lesson video could not be loaded from Bunny Stream.',
+                        code: playerError?.code ?? null,
+                        type: playerError?.type ?? null,
+                        src: player.currentSrc() || latestSourceRef.current || null,
+                        networkState:
+                            typeof player.networkState === 'function'
+                                ? player.networkState()
+                                : null,
+                        readyState:
+                            typeof player.readyState === 'function'
+                                ? player.readyState()
+                                : null,
+                    };
 
-                    latestPlaybackErrorHandlerRef.current?.(message);
+                    console.error('Video.js playback error', debugPayload, playerError);
+                    latestPlaybackErrorHandlerRef.current?.(debugPayload);
                 });
 
                 player.on('loadedmetadata', () => {
+                    lastReportedProgressRef.current = 0;
                     latestPlaybackErrorHandlerRef.current?.(null);
+                });
+
+                player.on('timeupdate', () => {
+                    const duration = player.duration();
+                    const currentTime = player.currentTime();
+
+                    if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(currentTime)) {
+                        return;
+                    }
+
+                    const progress = Math.max(
+                        0,
+                        Math.min(100, Math.round((currentTime / duration) * 100)),
+                    );
+
+                    if (
+                        progress >= 100 ||
+                        progress - lastReportedProgressRef.current >= 5
+                    ) {
+                        lastReportedProgressRef.current = progress;
+                        latestProgressHandlerRef.current?.(progress);
+                    }
+                });
+
+                player.on('ended', () => {
+                    lastReportedProgressRef.current = 100;
+                    latestProgressHandlerRef.current?.(100);
                 });
 
                 playerRef.current = player;

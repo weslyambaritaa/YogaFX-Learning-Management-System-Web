@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\AccessTierController;
+use App\Http\Controllers\Admin\AssessmentPreviewController;
+use App\Http\Controllers\Admin\AssessmentResultController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\EmailNotificationController;
 use App\Http\Controllers\Admin\EbookController;
@@ -47,15 +49,20 @@ Route::middleware('auth')->group(function () {
     })->middleware('role:admin')->name('admin.dashboard');
 
     Route::get('/student/dashboard', [HomeController::class, 'index'])
-        ->middleware('role:student')
+        ->middleware(['role:student', 'student.active', 'track.student.session'])
         ->name('student.dashboard');
 
-    Route::middleware('role:student')->group(function () {
+    Route::get('/student/inactive', function () {
+        return Inertia::render('Student/Inactive');
+    })->middleware('role:student')->name('student.inactive');
+
+    Route::middleware(['role:student', 'student.active', 'track.student.session'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::get('/modules', [ModuleCatalogController::class, 'index'])->name('modules.index');
         Route::get('/modules/{module:url_slug}', [ModuleCatalogController::class, 'show'])->name('modules.show');
         Route::get('/lessons/{lesson}', [LessonCatalogController::class, 'show'])->name('lessons.show');
+        Route::post('/lessons/{lesson}/progress', [LessonCatalogController::class, 'updateProgress'])->name('lessons.progress.update');
         Route::get('/lessons/{lesson}/assessment', [AssessmentController::class, 'intro'])->name('assessments.intro');
         Route::post('/lessons/{lesson}/assessment/start', [AssessmentController::class, 'start'])->name('assessments.start');
         Route::get('/lessons/{lesson}/assessment/attempts/{attempt}', [AssessmentController::class, 'show'])->name('assessments.show');
@@ -107,6 +114,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/scoreboards/{assessment}/result-ranges', [ScoreboardBuilderController::class, 'storeResultRange'])->name('scoreboards.result-ranges.store');
         Route::patch('/scoreboards/{assessment}/result-ranges/{resultRange}', [ScoreboardBuilderController::class, 'updateResultRange'])->name('scoreboards.result-ranges.update');
         Route::delete('/scoreboards/{assessment}/result-ranges/{resultRange}', [ScoreboardBuilderController::class, 'destroyResultRange'])->name('scoreboards.result-ranges.destroy');
+        Route::get('/assessments/{assessment}/preview', [AssessmentPreviewController::class, 'show'])->name('assessments.preview');
+        Route::post('/assessments/{assessment}/preview/answer', [AssessmentPreviewController::class, 'answer'])->name('assessments.preview.answer');
+        Route::post('/assessments/{assessment}/preview/back', [AssessmentPreviewController::class, 'back'])->name('assessments.preview.back');
+        Route::get('/assessments/{assessment}/preview/result', [AssessmentPreviewController::class, 'result'])->name('assessments.preview.result');
+        Route::get('/assessments/{assessment}/results', [AssessmentResultController::class, 'index'])->name('assessments.results.index');
+        Route::get('/assessments/{assessment}/results/{attempt}', [AssessmentResultController::class, 'show'])->name('assessments.results.show');
+        Route::delete('/assessments/{assessment}/results/{attempt}', [AssessmentResultController::class, 'destroy'])->name('assessments.results.destroy');
 
         Route::get('/ebooks', [EbookController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/create', [EbookController::class, 'create'])->name('ebooks.create');
@@ -135,6 +149,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/student-progress/certificates', [StudentProgressController::class, 'certificatesIndex'])->name('student-progress.certificates.index');
         Route::get('/student-progress/students/{student}', [StudentController::class, 'edit'])->name('student-progress.students.edit');
         Route::patch('/student-progress/students/{student}', [StudentController::class, 'update'])->name('student-progress.students.update');
+        Route::patch('/student-progress/students/{student}/status', [StudentController::class, 'updateStatus'])->name('student-progress.students.status');
+        Route::post('/student-progress/students/{student}/reset-progress', [StudentController::class, 'resetProgress'])->name('student-progress.students.reset-progress');
+        Route::delete('/student-progress/students/{student}', [StudentController::class, 'destroy'])->name('student-progress.students.destroy');
         Route::get('/student-progress/students/{student}/completed-lessons', [StudentProgressController::class, 'showCompletedLessons'])->name('student-progress.completed-lessons.show');
         Route::post('/student-progress/students/{student}/completed-lessons/{lessonProgress}/reset', [StudentProgressController::class, 'resetLesson'])->name('student-progress.completed-lessons.reset');
         Route::get('/student-progress/students/{student}/assignments', [StudentProgressController::class, 'showAssignments'])->name('student-progress.assignments.show');

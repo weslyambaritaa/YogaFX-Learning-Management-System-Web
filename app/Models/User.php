@@ -17,7 +17,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'name',
     'role',
+    'is_active',
     'access_tier_id',
+    'total_access_duration_seconds',
     'email',
     'password',
     'first_name',
@@ -75,7 +77,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
+            'is_active' => 'boolean',
             'hours_per_week' => 'integer',
+            'total_access_duration_seconds' => 'integer',
             'password' => 'hashed',
         ];
     }
@@ -105,6 +109,11 @@ class User extends Authenticatable
         return $this->hasMany(AssessmentProgress::class);
     }
 
+    public function userSessions(): HasMany
+    {
+        return $this->hasMany(UserSession::class);
+    }
+
     public function certificates(): HasMany
     {
         return $this->hasMany(Certificate::class);
@@ -118,6 +127,19 @@ class User extends Authenticatable
     public function isStudent(): bool
     {
         return $this->role === self::ROLE_STUDENT;
+    }
+
+    public function isStudentAccountActive(): bool
+    {
+        if (! $this->isStudent()) {
+            return true;
+        }
+
+        if (! array_key_exists('is_active', $this->getAttributes())) {
+            return true;
+        }
+
+        return (bool) $this->getAttribute('is_active');
     }
 
     public function hasRole(string ...$roles): bool
@@ -136,6 +158,10 @@ class User extends Authenticatable
 
     public function postLoginRouteName(): string
     {
+        if ($this->isStudent() && ! $this->isStudentAccountActive()) {
+            return 'student.inactive';
+        }
+
         if ($this->isStudent() && ! $this->hasCompletedStudentProfile()) {
             return 'profile.edit';
         }

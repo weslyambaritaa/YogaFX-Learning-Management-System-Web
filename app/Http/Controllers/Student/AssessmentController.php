@@ -28,6 +28,7 @@ class AssessmentController extends Controller
 
         $this->authorizeLessonAssessmentAccess($lesson, $user->id);
         $attempt = $this->resolveInProgressAttempt($lesson->assessment, $user->id);
+        $completedAttempt = $this->resolveCompletedAttempt($lesson->assessment, $user->id);
         $progress = $this->lessonProgress($lesson, $user->id);
 
         return Inertia::render('Student/Assessments/Intro', [
@@ -61,6 +62,12 @@ class AssessmentController extends Controller
                 'started_at' => $attempt->started_at?->toDateTimeString(),
                 'expires_at' => $attempt->expires_at?->toDateTimeString(),
             ] : null,
+            'completedAttempt' => $completedAttempt ? [
+                'id' => $completedAttempt->id,
+                'completed_at' => $completedAttempt->completed_at?->toDateTimeString(),
+                'total_score' => $completedAttempt->total_score,
+                'result_label' => $completedAttempt->result_label,
+            ] : null,
         ]);
     }
 
@@ -72,6 +79,15 @@ class AssessmentController extends Controller
         $this->authorizeLessonAssessmentAccess($lesson, $user->id, true);
 
         $assessment = $lesson->assessment;
+        $completedAttempt = $this->resolveCompletedAttempt($assessment, $user->id);
+
+        if ($completedAttempt) {
+            return redirect()->route('assessments.result', [
+                'lesson' => $lesson->id,
+                'attempt' => $completedAttempt->id,
+            ]);
+        }
+
         $attempt = $this->resolveInProgressAttempt($assessment, $user->id);
 
         if (! $attempt) {
@@ -112,6 +128,13 @@ class AssessmentController extends Controller
         abort_unless($attempt->user_id === $user->id && $attempt->assessment_id === $lesson->assessment_id, 404);
 
         $this->authorizeLessonAssessmentAccess($lesson, $user->id, true);
+
+        if ($attempt->status === AssessmentAttempt::STATUS_COMPLETED || $attempt->status === AssessmentAttempt::STATUS_EXPIRED) {
+            return redirect()->route('assessments.result', [
+                'lesson' => $lesson->id,
+                'attempt' => $attempt->id,
+            ]);
+        }
 
         if ($redirect = $this->handleExpiry($lesson, $attempt)) {
             return $redirect;
@@ -179,6 +202,13 @@ class AssessmentController extends Controller
 
         $this->authorizeLessonAssessmentAccess($lesson, $user->id, true);
 
+        if ($attempt->status === AssessmentAttempt::STATUS_COMPLETED || $attempt->status === AssessmentAttempt::STATUS_EXPIRED) {
+            return redirect()->route('assessments.result', [
+                'lesson' => $lesson->id,
+                'attempt' => $attempt->id,
+            ]);
+        }
+
         if ($redirect = $this->handleExpiry($lesson, $attempt)) {
             return $redirect;
         }
@@ -208,6 +238,13 @@ class AssessmentController extends Controller
         $user = $request->user();
         abort_unless($user && $lesson->assessment, 404);
         abort_unless($attempt->user_id === $user->id && $attempt->assessment_id === $lesson->assessment_id, 404);
+
+        if ($attempt->status === AssessmentAttempt::STATUS_COMPLETED || $attempt->status === AssessmentAttempt::STATUS_EXPIRED) {
+            return redirect()->route('assessments.result', [
+                'lesson' => $lesson->id,
+                'attempt' => $attempt->id,
+            ]);
+        }
 
         $assessment = $lesson->assessment->load('questions');
         $currentQuestion = $attempt->currentQuestion ?? $assessment->questions->sortBy('sort_order')->first();
@@ -334,6 +371,17 @@ class AssessmentController extends Controller
         return $attempt;
     }
 
+    private function resolveCompletedAttempt(Assessment $assessment, int $userId): ?AssessmentAttempt
+    {
+        return AssessmentAttempt::query()
+            ->where('assessment_id', $assessment->id)
+            ->where('user_id', $userId)
+            ->where('status', AssessmentAttempt::STATUS_COMPLETED)
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->first();
+    }
+
     private function handleExpiry(Lesson $lesson, AssessmentAttempt $attempt): ?RedirectResponse
     {
         if ($attempt->expires_at && $attempt->expires_at->isPast()) {
@@ -433,39 +481,19 @@ class AssessmentController extends Controller
         }
 
         if ($question->isOptionBased()) {
-            $optionIds = collect($request->input('option_ids', []))
-                ->merge($request->filled('option_id') ? [$request->input('option_id')] : [])
-                ->filter(fn ($value) => $value !== null && $value !== '')
-                ->map(fn ($value) => (int) $value)
-                ->unique()
-                ->values();
-
             $availableOptions = $this->questionOptionsForPlayer($question);
-            $selectedOptions = $availableOptions
-                ->whereIn('id', $optionIds)
-                ->values();
+            $selectedOptions = $this->validatedSelectedOptions(
+                $request,
+                $question,
+                $availableOptions,
+            );
 
-            if ($question->required && $selectedOptions->isEmpty()) {
+            if (
+                $this->questionUsesCorrectnessGate($question, $availableOptions)
+                && ! $this->selectionIsFullyCorrect($selectedOptions, $availableOptions)
+            ) {
                 throw ValidationException::withMessages([
-                    'option_ids' => 'Please choose at least one answer before continuing.',
-                ]);
-            }
-
-            if (! $question->allow_multi_select && $selectedOptions->count() > 1) {
-                throw ValidationException::withMessages([
-                    'option_ids' => 'Only one answer can be selected for this question.',
-                ]);
-            }
-
-            if ($question->min_count !== null && $selectedOptions->count() < $question->min_count) {
-                throw ValidationException::withMessages([
-                    'option_ids' => 'Select at least '.$question->min_count.' answers.',
-                ]);
-            }
-
-            if ($question->max_count !== null && $selectedOptions->count() > $question->max_count) {
-                throw ValidationException::withMessages([
-                    'option_ids' => 'Select no more than '.$question->max_count.' answers.',
+                    'option_ids' => 'Oops!!! Wrong Answer! Please refer to your workbook and try again.',
                 ]);
             }
 
@@ -602,7 +630,8 @@ class AssessmentController extends Controller
             'show_instruction' => $question->show_instruction,
             'instruction_text' => $question->instruction_text,
             'required' => $question->required,
-            'allow_multi_select' => $question->allow_multi_select,
+            'allow_multi_select' => $this->questionAllowsMultiSelect($question),
+            'has_correctness_gate' => $this->questionUsesCorrectnessGate($question),
             'min_count' => $question->min_count,
             'max_count' => $question->max_count,
             'show_labels' => $question->show_labels,
@@ -630,6 +659,7 @@ class AssessmentController extends Controller
                     'id' => $option->id,
                     'label' => $option->label,
                     'internal_value' => $option->internal_value,
+                    'is_correct' => (bool) $option->is_correct,
                     'is_other_option' => $option->is_other_option,
                     'image_url' => $option->image
                         ? route('media.show', ['entity' => 'question-option', 'id' => $option->id, 'field' => 'image'])
@@ -638,5 +668,109 @@ class AssessmentController extends Controller
                 ->values()
                 ->all(),
         ];
+    }
+
+    private function questionAllowsMultiSelect(Question $question): bool
+    {
+        if ($question->question_type === Question::TYPE_MULTIPLE_CHOICE_CHECKBOXES) {
+            return true;
+        }
+
+        if (in_array($question->question_type, [
+            Question::TYPE_MULTIPLE_CHOICE_BUTTONS,
+            Question::TYPE_IMAGE_BUTTON,
+        ], true)) {
+            return (bool) $question->allow_multi_select;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  Collection<int, QuestionOption>  $availableOptions
+     * @return Collection<int, QuestionOption>
+     */
+    private function validatedSelectedOptions(
+        Request $request,
+        Question $question,
+        Collection $availableOptions,
+    ): Collection {
+        $optionIds = collect($request->input('option_ids', []))
+            ->merge($request->filled('option_id') ? [$request->input('option_id')] : [])
+            ->filter(fn ($value) => $value !== null && $value !== '')
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values();
+
+        $selectedOptions = $availableOptions
+            ->whereIn('id', $optionIds)
+            ->values();
+
+        if ($question->required && $selectedOptions->isEmpty()) {
+            throw ValidationException::withMessages([
+                'option_ids' => 'Please choose at least one answer before continuing.',
+            ]);
+        }
+
+        if (! $this->questionAllowsMultiSelect($question) && $selectedOptions->count() > 1) {
+            throw ValidationException::withMessages([
+                'option_ids' => 'Only one answer can be selected for this question.',
+            ]);
+        }
+
+        if ($question->min_count !== null && $selectedOptions->count() < $question->min_count) {
+            throw ValidationException::withMessages([
+                'option_ids' => 'Select at least '.$question->min_count.' answers.',
+            ]);
+        }
+
+        if ($question->max_count !== null && $selectedOptions->count() > $question->max_count) {
+            throw ValidationException::withMessages([
+                'option_ids' => 'Select no more than '.$question->max_count.' answers.',
+            ]);
+        }
+
+        return $selectedOptions;
+    }
+
+    private function questionUsesCorrectnessGate(
+        Question $question,
+        ?Collection $availableOptions = null,
+    ): bool {
+        if (! $question->isOptionBased()) {
+            return false;
+        }
+
+        $availableOptions ??= $this->questionOptionsForPlayer($question);
+
+        return $availableOptions->contains(
+            fn (QuestionOption $option) => (bool) $option->is_correct,
+        );
+    }
+
+    /**
+     * @param  Collection<int, QuestionOption>  $selectedOptions
+     * @param  Collection<int, QuestionOption>  $availableOptions
+     */
+    private function selectionIsFullyCorrect(
+        Collection $selectedOptions,
+        Collection $availableOptions,
+    ): bool {
+        $selectedIds = $selectedOptions
+            ->pluck('id')
+            ->map(fn ($value) => (int) $value)
+            ->sort()
+            ->values();
+
+        $correctIds = $availableOptions
+            ->filter(fn (QuestionOption $option) => (bool) $option->is_correct)
+            ->pluck('id')
+            ->map(fn ($value) => (int) $value)
+            ->sort()
+            ->values();
+
+        return $selectedIds->isNotEmpty()
+            && $selectedIds->count() === $correctIds->count()
+            && $selectedIds->values()->all() === $correctIds->values()->all();
     }
 }

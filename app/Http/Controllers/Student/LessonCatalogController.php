@@ -8,6 +8,8 @@ use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Services\BunnyStreamService;
+use App\Services\StudentSessionTrackingService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -17,25 +19,19 @@ class LessonCatalogController extends Controller
 {
     use BuildsProtectedMediaUrls;
 
-    public function __construct(private readonly BunnyStreamService $bunnyStreamService)
-    {
-    }
+    public function __construct(
+        private readonly BunnyStreamService $bunnyStreamService,
+        private readonly StudentSessionTrackingService $sessionTrackingService,
+    ) {}
 
     public function show(Request $request, Lesson $lesson): Response
     {
         $user = $request->user();
-        $accessTierId = $user?->access_tier_id;
-
-        abort_unless(
-            $user
-            && $lesson->accessTiers()->where('access_tiers.id', $accessTierId)->exists()
-            && $lesson->module?->accessTiers()->where('access_tiers.id', $accessTierId)->exists(),
-            403,
-        );
+        $this->authorizeLessonAccess($request, $lesson);
 
         $lessonNavigation = Lesson::query()
             ->where('module_id', $lesson->module_id)
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user?->access_tier_id))
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get();
@@ -119,6 +115,45 @@ class LessonCatalogController extends Controller
                     'url' => route('lessons.show', $item),
                 ]),
             ],
+            'accessTimeSummary' => $this->sessionTrackingService->summaryForUser($user),
+        ]);
+    }
+
+    public function updateProgress(Request $request, Lesson $lesson): JsonResponse
+    {
+        $user = $request->user();
+        $this->authorizeLessonAccess($request, $lesson);
+
+        $validated = $request->validate([
+            'watch_progress' => ['required', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        $incomingProgress = round((float) $validated['watch_progress'], 2);
+        $existingProgress = (float) LessonProgress::query()
+            ->where('user_id', $user?->id)
+            ->where('lesson_id', $lesson->id)
+            ->value('watch_progress');
+
+        $watchProgress = max($existingProgress, $incomingProgress);
+        $isDone = $watchProgress >= 95;
+
+        $lessonProgress = LessonProgress::query()->updateOrCreate(
+            [
+                'user_id' => $user?->id,
+                'lesson_id' => $lesson->id,
+            ],
+            [
+                'watch_progress' => $watchProgress,
+                'video_completed_at' => $isDone ? now() : null,
+                'is_done' => $isDone,
+                'completed_at' => $isDone ? now() : null,
+            ],
+        );
+
+        return response()->json([
+            'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
+            'is_done' => (bool) $lessonProgress->is_done,
+            'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
         ]);
     }
 
@@ -198,5 +233,18 @@ class LessonCatalogController extends Controller
             'is_found_in_library' => $videoInspection['is_verified'] ? true : null,
             'warning_message' => null,
         ];
+    }
+
+    private function authorizeLessonAccess(Request $request, Lesson $lesson): void
+    {
+        $user = $request->user();
+        $accessTierId = $user?->access_tier_id;
+
+        abort_unless(
+            $user
+            && $lesson->accessTiers()->where('access_tiers.id', $accessTierId)->exists()
+            && $lesson->module?->accessTiers()->where('access_tiers.id', $accessTierId)->exists(),
+            403,
+        );
     }
 }
