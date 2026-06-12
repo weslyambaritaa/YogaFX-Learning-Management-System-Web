@@ -185,6 +185,20 @@ function clearBuilderDraftCache(scoreboardId) {
     window.localStorage.removeItem(builderDraftStorageKey(scoreboardId));
 }
 
+function omitKey(collection, keyToOmit) {
+    return Object.fromEntries(
+        Object.entries(collection).filter(([key]) => String(key) !== String(keyToOmit)),
+    );
+}
+
+function omitKeys(collection, keysToOmit) {
+    const keySet = new Set(keysToOmit.map((key) => String(key)));
+
+    return Object.fromEntries(
+        Object.entries(collection).filter(([key]) => !keySet.has(String(key))),
+    );
+}
+
 function formatQuestionType(type) {
     return type
         .split('_')
@@ -1728,6 +1742,15 @@ function useQuestionConfigPanel({
     }, [question?.id]);
 
     useEffect(() => {
+        if (
+            Object.keys(questionDrafts).length === 0 &&
+            Object.keys(optionDrafts).length === 0
+        ) {
+            clearBuilderDraftCache(scoreboard.id);
+
+            return;
+        }
+
         writeBuilderDraftCache(scoreboard.id, {
             questionDrafts,
             optionDrafts,
@@ -2102,19 +2125,23 @@ function useQuestionConfigPanel({
                 && questionForm.data.scoring_category !== 'overall_only')
         : false;
 
-    const hasUnsavedQuestionChanges = questions.some((currentQuestion) => {
-        const currentDraft = buildQuestionPayload(currentQuestion.id);
+    const hasUnsavedQuestionChanges = question
+        ? (() => {
+            const currentDraft = buildQuestionPayload(question.id);
 
-        if (!currentDraft) {
-            return false;
-        }
+            if (!currentDraft) {
+                return false;
+            }
 
-        return (
-            serializeDraft(currentDraft) !==
-            lastSavedQuestionSnapshotsRef.current[currentQuestion.id]
-        );
-    });
-    const persistedOptions = questions.flatMap((currentQuestion) => currentQuestion.options ?? []);
+            return (
+                serializeDraft(currentDraft) !==
+                lastSavedQuestionSnapshotsRef.current[question.id]
+            );
+        })()
+        : false;
+    const persistedOptions = (question?.options ?? []).filter(
+        (option) => !option.is_virtual,
+    );
     const hasUnsavedOptionChanges = persistedOptions.some((option) => {
         const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
         return (
@@ -2141,21 +2168,12 @@ function useQuestionConfigPanel({
         setSaveError(null);
 
         try {
-            const changedQuestions = orderedQuestions.filter((currentQuestion) => {
-                const currentDraft = buildQuestionPayload(currentQuestion.id);
+            const changedQuestionIds = question && hasUnsavedQuestionChanges
+                ? [question.id]
+                : [];
 
-                if (!currentDraft) {
-                    return false;
-                }
-
-                return (
-                    serializeDraft(currentDraft) !==
-                    lastSavedQuestionSnapshotsRef.current[currentQuestion.id]
-                );
-            });
-
-            for (const currentQuestion of changedQuestions) {
-                await saveQuestion(currentQuestion.id);
+            for (const questionId of changedQuestionIds) {
+                await saveQuestion(questionId);
             }
 
             const changedOptions = persistedOptions.filter((option) => {
@@ -2172,7 +2190,17 @@ function useQuestionConfigPanel({
 
             setSaveState('saved');
             setRestoredDraftNotice(false);
-            clearBuilderDraftCache(scoreboard.id);
+            if (question?.id) {
+                setQuestionDrafts((current) => omitKey(current, question.id));
+            }
+            if (changedOptions.length > 0) {
+                setOptionDrafts((current) =>
+                    omitKeys(
+                        current,
+                        changedOptions.map((option) => option.id),
+                    ),
+                );
+            }
         } catch (error) {
             setSaveState('unsaved');
             const firstMessage =

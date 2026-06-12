@@ -298,7 +298,13 @@ class AssessmentController extends Controller
             ]);
         }
 
-        $attempt->load('resultRange');
+        $attempt->load([
+            'resultRange',
+            'answers.questionOption',
+            'assessment.questions.options',
+        ]);
+
+        $resultMetrics = $this->buildAttemptResultMetrics($attempt);
 
         return Inertia::render('Student/Assessments/Result', [
             'lesson' => [
@@ -322,6 +328,9 @@ class AssessmentController extends Controller
                 'total_score' => $attempt->total_score,
                 'result_label' => $attempt->result_label,
                 'result_description' => $attempt->resultRange?->description,
+                'correct_answers' => $resultMetrics['correct_answers'],
+                'gradable_questions' => $resultMetrics['gradable_questions'],
+                'percentage_correct' => $resultMetrics['percentage_correct'],
             ],
         ]);
     }
@@ -902,5 +911,59 @@ class AssessmentController extends Controller
             ->values();
 
         return $this->resolveNextQuestion($question, $selectedOptions, $questions);
+    }
+
+    /**
+     * @return array{correct_answers:int, gradable_questions:int, percentage_correct:int}
+     */
+    private function buildAttemptResultMetrics(AssessmentAttempt $attempt): array
+    {
+        $gradableQuestions = $attempt->assessment->questions
+            ->filter(fn (Question $question) => $this->questionUsesCorrectnessGate($question))
+            ->values();
+
+        if ($gradableQuestions->isEmpty()) {
+            return [
+                'correct_answers' => 0,
+                'gradable_questions' => 0,
+                'percentage_correct' => 0,
+            ];
+        }
+
+        $answersByQuestion = $attempt->answers->groupBy('question_id');
+
+        $correctAnswers = $gradableQuestions->reduce(
+            function (int $total, Question $question) use ($answersByQuestion): int {
+                $selectedIds = $answersByQuestion
+                    ->get($question->id, collect())
+                    ->pluck('question_option_id')
+                    ->filter()
+                    ->map(fn ($value) => (int) $value)
+                    ->sort()
+                    ->values();
+
+                $correctIds = $this->questionOptionsForPlayer($question)
+                    ->filter(fn (QuestionOption $option) => (bool) $option->is_correct)
+                    ->pluck('id')
+                    ->map(fn ($value) => (int) $value)
+                    ->sort()
+                    ->values();
+
+                $isCorrect = $selectedIds->isNotEmpty()
+                    && $selectedIds->count() === $correctIds->count()
+                    && $selectedIds->all() === $correctIds->all();
+
+                return $total + ($isCorrect ? 1 : 0);
+            },
+            0,
+        );
+
+        return [
+            'correct_answers' => $correctAnswers,
+            'gradable_questions' => $gradableQuestions->count(),
+            'percentage_correct' => (int) round(
+                ($correctAnswers / max($gradableQuestions->count(), 1)) * 100,
+            ),
+        ];
     }
 }

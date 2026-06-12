@@ -120,18 +120,26 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                                     Assessment Complete
                                 </div>
                                 <h3 className="mt-4 text-4xl font-semibold tracking-tight text-white">
-                                    {attempt.total_score}
+                                    {attempt.percentage_correct}%
                                 </h3>
                                 <p className="mt-3 text-base leading-7 text-white/72">
-                                    {attempt.result_label
-                                        ? `${attempt.result_label}${attempt.result_description ? ` - ${attempt.result_description}` : ''}`
-                                        : 'This scoreboard does not use result ranges yet, so your raw score is shown directly.'}
+                                    {attempt.gradable_questions > 0
+                                        ? `You answered ${attempt.correct_answers} of ${attempt.gradable_questions} graded questions correctly.`
+                                        : 'This assessment does not have auto-graded questions yet, so no correctness percentage is available.'}
                                 </p>
                                 <p className="mt-4 text-sm text-white/46">
                                     This assessment has already been completed. Retake is currently disabled.
                                 </p>
 
                                 <div className="mt-8 grid gap-4 md:grid-cols-3">
+                                    <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4">
+                                        <div className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                            Correct Answers
+                                        </div>
+                                        <div className="mt-2 text-lg font-semibold text-white">
+                                            {attempt.correct_answers}/{attempt.gradable_questions}
+                                        </div>
+                                    </div>
                                     <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4">
                                         <div className="text-xs uppercase tracking-[0.16em] text-white/45">
                                             Status
@@ -142,10 +150,10 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                                     </div>
                                     <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4">
                                         <div className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                            Finished By
+                                            Result Range
                                         </div>
                                         <div className="mt-2 text-lg font-semibold text-white">
-                                            {attempt.finished_reason}
+                                            {attempt.result_label ?? 'Not configured'}
                                         </div>
                                     </div>
                                     <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4">

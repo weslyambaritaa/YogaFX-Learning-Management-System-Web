@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AccessTierController;
 use App\Http\Controllers\Admin\AssessmentPreviewController;
 use App\Http\Controllers\Admin\AssessmentResultController;
 use App\Http\Controllers\Admin\CourseController;
+use App\Http\Controllers\Admin\DialogContentController as AdminDialogContentController;
 use App\Http\Controllers\Admin\EmailNotificationController;
 use App\Http\Controllers\Admin\EbookController;
 use App\Http\Controllers\Admin\LessonController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\CourseCatalogController;
 use App\Http\Controllers\Student\EbookCatalogController;
 use App\Http\Controllers\Student\AssessmentController;
+use App\Http\Controllers\Student\DialogContentController as StudentDialogContentController;
 use App\Http\Controllers\Student\HomeController;
 use App\Http\Controllers\Student\LessonCatalogController;
 use App\Http\Controllers\Student\ModuleCatalogController;
@@ -70,6 +72,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/lessons/{lesson}/assessment/attempts/{attempt}/back', [AssessmentController::class, 'back'])->name('assessments.back');
         Route::get('/lessons/{lesson}/assessment/attempts/{attempt}/result', [AssessmentController::class, 'result'])->name('assessments.result');
         Route::get('/certificates/{certificate}/download', [HomeController::class, 'downloadCertificate'])->name('student.certificates.download');
+        Route::get('/dialogs/full-standing', [StudentDialogContentController::class, 'standing'])->name('student.dialogs.standing');
+        Route::get('/dialogs/full-floor', [StudentDialogContentController::class, 'floor'])->name('student.dialogs.floor');
         Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
@@ -136,6 +140,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/courses/{course}/edit', [CourseController::class, 'edit'])->name('courses.edit');
         Route::patch('/courses/{course}', [CourseController::class, 'update'])->name('courses.update');
         Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
+
+        Route::get('/dialogs', [AdminDialogContentController::class, 'edit'])->name('dialogs.edit');
+        Route::patch('/dialogs', [AdminDialogContentController::class, 'update'])->name('dialogs.update');
 
         Route::redirect('/email-notifications', '/admin/email-notifications/module_completion')->name('email-notifications.index');
         Route::get('/email-notifications/{notificationType}', [EmailNotificationController::class, 'show'])->name('email-notifications.show');

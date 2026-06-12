@@ -29,6 +29,7 @@ import {
     LayoutDashboard,
     Mail,
     Menu,
+    MessageSquareText,
     PlaySquare,
     UserRound,
 } from 'lucide-react';
@@ -75,6 +76,12 @@ const adminNavigationItems = [
         route: 'admin.students.index',
         match: ['admin.students.*'],
         icon: UserRound,
+    },
+    {
+        label: 'Dialog',
+        route: 'admin.dialogs.edit',
+        match: ['admin.dialogs.*'],
+        icon: MessageSquareText,
     },
     {
         label: 'Video Lecture',
@@ -191,8 +198,16 @@ const studentNavigationItems = [
 ];
 
 const studentInstantAccessItems = [
-    { label: 'Full Standing Dialog' },
-    { label: 'Full Floor Dialog' },
+    {
+        label: 'Full Standing Dialog',
+        route: 'student.dialogs.standing',
+        match: ['student.dialogs.standing'],
+    },
+    {
+        label: 'Full Floor Dialog',
+        route: 'student.dialogs.floor',
+        match: ['student.dialogs.floor'],
+    },
 ];
 
 const adminPageTitles = {
@@ -227,6 +242,7 @@ const adminPageTitles = {
     'admin.student-progress.certificates.show': 'Certificate',
     'admin.students.index': 'Students',
     'admin.students.edit': 'Student Detail',
+    'admin.dialogs.edit': 'Dialog',
     'admin.email-notifications.index': 'Email Notification',
     'admin.email-notifications.show': 'Email Notification',
     'admin.access-tiers.index': 'Access Tiers',
@@ -687,17 +703,21 @@ function StudentTopNavigation({
                                     {studentInstantAccessItems.map((item) => (
                                         <Button
                                             key={item.label}
-                                            type="button"
-                                            variant="ghost"
-                                            disabled
+                                            asChild
+                                            variant={isItemActive(item) ? 'secondary' : 'ghost'}
                                             className={[
                                                 'h-11 w-full justify-start rounded-xl px-3 opacity-100',
-                                                isImmersive
+                                                isImmersive && !isItemActive(item)
                                                     ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
                                                     : '',
                                             ].join(' ')}
                                         >
-                                            {item.label}
+                                            <Link
+                                                href={route(item.route)}
+                                                onClick={() => setMobileOpen(false)}
+                                            >
+                                                {item.label}
+                                            </Link>
                                         </Button>
                                     ))}
                                 </div>
@@ -754,17 +774,16 @@ function StudentTopNavigation({
                         {studentInstantAccessItems.map((item) => (
                             <Button
                                 key={item.label}
-                                type="button"
-                                variant="ghost"
-                                disabled
+                                asChild
+                                variant={isItemActive(item) ? 'secondary' : 'ghost'}
                                 className={[
                                     'rounded-full px-4 text-xs font-medium opacity-100',
-                                    isImmersive
+                                    isImmersive && !isItemActive(item)
                                         ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
                                         : '',
                                 ].join(' ')}
                             >
-                                {item.label}
+                                <Link href={route(item.route)}>{item.label}</Link>
                             </Button>
                         ))}
                     </div>

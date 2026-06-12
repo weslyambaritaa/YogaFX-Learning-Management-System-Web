@@ -480,6 +480,61 @@ export default function AssessmentShow({
                                             );
                                         }
 
+                                        if (question.question_type === 'radio_buttons') {
+                                            return (
+                                                <button
+                                                    key={option.id}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        question.allow_multi_select
+                                                            ? toggleOption(option.id)
+                                                            : selectSingleOption(
+                                                                  option.id,
+                                                              )
+                                                    }
+                                                    className={[
+                                                        'flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60',
+                                                        selectedState === 'correct'
+                                                            ? 'border-emerald-300/50 bg-emerald-500/18 text-white shadow-[0_12px_32px_rgba(16,185,129,0.18)]'
+                                                            : selectedState === 'incorrect'
+                                                              ? 'border-rose-300/50 bg-rose-500/18 text-white shadow-[0_12px_32px_rgba(244,63,94,0.18)]'
+                                                              : selected
+                                                                ? 'border-red-300/50 bg-red-500/18 text-white shadow-[0_12px_32px_rgba(226,72,72,0.18)]'
+                                                                : 'border-white/10 bg-white/5 text-white/84 hover:border-white/24 hover:bg-white/8',
+                                                    ].join(' ')}
+                                                >
+                                                    <span
+                                                        className={[
+                                                            'flex size-5 shrink-0 items-center justify-center rounded-full border transition',
+                                                            selectedState === 'correct'
+                                                                ? 'border-emerald-200 bg-emerald-100/15'
+                                                                : selectedState === 'incorrect'
+                                                                  ? 'border-rose-200 bg-rose-100/15'
+                                                                  : selected
+                                                                    ? 'border-red-200 bg-red-100/15'
+                                                                    : 'border-white/35 bg-transparent',
+                                                        ].join(' ')}
+                                                    >
+                                                        <span
+                                                            className={[
+                                                                'size-2 rounded-full transition',
+                                                                selected
+                                                                    ? selectedState === 'correct'
+                                                                        ? 'bg-emerald-100'
+                                                                        : selectedState === 'incorrect'
+                                                                          ? 'bg-rose-100'
+                                                                          : 'bg-red-100'
+                                                                    : 'bg-transparent',
+                                                            ].join(' ')}
+                                                        />
+                                                    </span>
+                                                    <span className="text-sm font-medium">
+                                                        {option.label}
+                                                    </span>
+                                                </button>
+                                            );
+                                        }
+
                                         return (
                                             <button
                                                 key={option.id}
