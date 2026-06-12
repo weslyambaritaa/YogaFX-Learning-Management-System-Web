@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Events\EmailNotifications\AssignmentApproved;
 use App\Events\EmailNotifications\AssignmentRejected;
@@ -13,6 +14,7 @@ use App\Models\Certificate;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
+use App\Services\BunnyStorageService;
 use App\Services\StudentSessionTrackingService;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
@@ -26,8 +28,11 @@ use Inertia\Response;
 
 class StudentProgressController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+
     public function __construct(
         private readonly StudentSessionTrackingService $sessionTrackingService,
+        private readonly BunnyStorageService $bunnyStorage,
     ) {}
 
     public function completedLessonsIndex(): RedirectResponse
@@ -186,6 +191,8 @@ class StudentProgressController extends Controller
             [AssignmentSubmission::STATUS_APPROVED, AssignmentSubmission::STATUS_REJECTED],
             true,
         ) ? now() : null;
+        $assignmentSubmission->reviewed_at = $assignmentSubmission->graded_at;
+        $assignmentSubmission->reviewed_by = $assignmentSubmission->graded_at ? auth()->id() : null;
         $assignmentSubmission->save();
 
         $emailPayload = [
@@ -244,6 +251,8 @@ class StudentProgressController extends Controller
     {
         $student = $this->resolveStudent($student);
         abort_unless($assignmentSubmission->user_id === $student->id, 404);
+
+        $this->bunnyStorage->delete($assignmentSubmission->assignment_video);
 
         $assignmentSubmission->update([
             'assignment_video' => null,
@@ -502,6 +511,7 @@ class StudentProgressController extends Controller
     private function assignmentsPayload(User $student)
     {
         return AssignmentSubmission::query()
+            ->with('assignment')
             ->where('user_id', $student->id)
             ->orderByDesc('submitted_at')
             ->orderByDesc('id')
@@ -509,7 +519,14 @@ class StudentProgressController extends Controller
             ->map(fn (AssignmentSubmission $assignment) => [
                 'id' => $assignment->id,
                 'title' => $assignment->title(),
-                'video' => $assignment->assignment_video,
+                'video' => $this->protectedMediaUrl(
+                    'assignment-submission',
+                    $assignment->id,
+                    'assignment_video',
+                    $assignment->assignment_video,
+                    versionSeed: $assignment->updated_at,
+                ),
+                'video_path' => $assignment->assignment_video,
                 'status' => $assignment->assignment_status,
                 'feedback' => $assignment->assignment_feedback,
                 'submitted_at' => optional($assignment->submitted_at)->format('Y-m-d H:i'),

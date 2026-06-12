@@ -17,12 +17,15 @@ class AssignmentSubmissionFactory extends Factory
     {
         return [
             'user_id' => User::factory()->student(),
+            'assignment_id' => null,
             'assignment_type' => 'graduation_video',
             'assignment_video' => fake()->url(),
             'assignment_status' => AssignmentSubmission::STATUS_PENDING_REVIEW,
             'assignment_feedback' => null,
             'submitted_at' => now()->subDay(),
             'graded_at' => null,
+            'reviewed_at' => null,
+            'reviewed_by' => null,
         ];
     }
 }

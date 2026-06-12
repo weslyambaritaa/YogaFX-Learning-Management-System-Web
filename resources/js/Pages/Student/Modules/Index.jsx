@@ -143,8 +143,12 @@ export default function StudentModulesIndex({ modules }) {
                                                         {module.title}
                                                     </h3>
                                                     <p className="mt-3 text-sm leading-7 text-white/62">
-                                                        {module.completed_lessons} of {module.lesson_count}{' '}
-                                                        lessons completed in this module.
+                                                        {module.lesson_count > 0
+                                                            ? `${module.completed_lessons} of ${module.lesson_count} lessons completed in this module.`
+                                                            : 'This module is currently centered on assignment access.'}
+                                                    </p>
+                                                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                                        {module.lesson_count} lessons • {module.assignments_count ?? 0} assignments
                                                     </p>
                                                 </div>
                                             </div>

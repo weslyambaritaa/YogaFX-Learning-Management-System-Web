@@ -25,7 +25,7 @@ class ModuleController extends Controller
         return Inertia::render('Admin/Modules/Index', [
             'modules' => Module::query()
                 ->with(['accessTiers'])
-                ->withCount('lessons')
+                ->withCount(['lessons', 'assignments'])
                 ->orderBy('sort_order')
                 ->orderBy('title')
                 ->get()
@@ -44,6 +44,7 @@ class ModuleController extends Controller
                     ),
                     'access_tiers' => $module->accessTiers->pluck('name')->all(),
                     'lessons_count' => $module->lessons_count,
+                    'assignments_count' => $module->assignments_count,
                 ]),
             'status' => session('status'),
         ]);
@@ -134,11 +135,11 @@ class ModuleController extends Controller
 
     public function destroy(Module $module): RedirectResponse
     {
-        if ($module->lessons()->exists()) {
+        if ($module->lessons()->exists() || $module->assignments()->exists()) {
             return redirect()
                 ->route('admin.modules.index')
                 ->withErrors([
-                    'module' => 'This module cannot be deleted because it still contains lessons.',
+                    'module' => 'This module cannot be deleted because it still contains lessons or assignments.',
                 ]);
         }
 

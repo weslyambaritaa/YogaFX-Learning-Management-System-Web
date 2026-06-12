@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
+use App\Models\AssignmentSubmission;
 use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
@@ -38,6 +39,7 @@ class ModuleCatalogController extends Controller
         return Inertia::render('Student/Modules/Index', [
             'modules' => $modules->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $lessonUnlockMap, $completedAssessmentIds) {
                 $totalLessons = $module->lessons->count();
+                $totalAssignments = $module->assignments->count();
                 $completedLessons = $module->lessons->filter(function (Lesson $lesson) use ($lessonProgressMap, $completedAssessmentIds) {
                     return $this->isLessonFullyComplete(
                         $lesson,
@@ -49,18 +51,20 @@ class ModuleCatalogController extends Controller
                 $hasUnlockedLesson = $module->lessons->contains(
                     fn (Lesson $lesson) => (bool) ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false),
                 );
+                $hasAccessibleContent = $hasUnlockedLesson || $totalAssignments > 0;
                 $status = $totalLessons > 0 && $completedLessons === $totalLessons
                     ? 'completed'
-                    : (! $hasUnlockedLesson ? 'locked' : ($isActive ? 'active' : 'available'));
+                    : (! $hasAccessibleContent ? 'locked' : ($isActive ? 'active' : 'available'));
 
                 return [
                     'id' => $module->id,
                     'title' => $module->title,
                     'description' => $module->description,
                     'url_slug' => $module->url_slug,
-                    'url' => $hasUnlockedLesson ? route('modules.show', $module->url_slug) : null,
+                    'url' => $hasAccessibleContent ? route('modules.show', $module->url_slug) : null,
                     'sort_order' => $module->sort_order,
                     'lesson_count' => $totalLessons,
+                    'assignments_count' => $totalAssignments,
                     'completed_lessons' => $completedLessons,
                     'progress_percentage' => $totalLessons > 0
                         ? (int) round(($completedLessons / $totalLessons) * 100)
@@ -103,6 +107,10 @@ class ModuleCatalogController extends Controller
         );
         $lessonUnlockMap = $this->lessonUnlockMap($user?->id, $modules, $lessonProgressMap);
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
+        $assignmentSubmissionMap = $this->assignmentSubmissionMap(
+            $user?->id,
+            $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
+        );
         $completedLessons = $lessons->filter(fn (Lesson $lesson) => $this->isLessonFullyComplete(
             $lesson,
             $lessonProgressMap->get($lesson->id),
@@ -165,6 +173,24 @@ class ModuleCatalogController extends Controller
                             ? route('lessons.show', $lesson)
                             : null,
                     ]),
+                'assignments' => $currentModule->assignments
+                    ->map(function ($assignment) use ($assignmentSubmissionMap) {
+                        $submission = $assignmentSubmissionMap->get($assignment->id);
+
+                        return [
+                            'id' => $assignment->id,
+                            'title' => $assignment->title,
+                            'description' => $assignment->description,
+                            'sort_order' => $assignment->sort_order,
+                            'status' => $assignment->status,
+                            'is_required' => $assignment->is_required,
+                            'submission_status' => $submission?->assignment_status,
+                            'submission_feedback' => $submission?->assignment_feedback,
+                            'submitted_at' => $submission?->submitted_at?->format('Y-m-d H:i'),
+                            'url' => route('assignments.show', $assignment),
+                        ];
+                    })
+                    ->values(),
             ],
         ]);
     }
@@ -180,10 +206,32 @@ class ModuleCatalogController extends Controller
                     ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
                     ->orderBy('sort_order')
                     ->orderBy('title'),
+                'assignments' => fn ($query) => $query
+                    ->where('status', \App\Models\Assignment::STATUS_LIVE)
+                    ->orderBy('sort_order')
+                    ->orderBy('title'),
             ])
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get();
+    }
+
+    private function assignmentSubmissionMap(?int $userId, iterable $assignmentIds): Collection
+    {
+        $assignmentIds = collect($assignmentIds)->filter()->values();
+
+        if (! $userId || $assignmentIds->isEmpty()) {
+            return collect();
+        }
+
+        return AssignmentSubmission::query()
+            ->where('user_id', $userId)
+            ->whereIn('assignment_id', $assignmentIds)
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('assignment_id')
+            ->keyBy('assignment_id');
     }
 
     private function lessonUnlockMap(?int $userId, Collection $modules, Collection $lessonProgressMap): Collection

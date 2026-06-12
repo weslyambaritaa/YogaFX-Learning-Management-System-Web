@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccessTierController;
+use App\Http\Controllers\Admin\AssignmentController as AdminAssignmentController;
 use App\Http\Controllers\Admin\AssessmentPreviewController;
 use App\Http\Controllers\Admin\AssessmentResultController;
 use App\Http\Controllers\Admin\CourseController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\CourseCatalogController;
 use App\Http\Controllers\Student\EbookCatalogController;
 use App\Http\Controllers\Student\AssessmentController;
+use App\Http\Controllers\Student\AssignmentController as StudentAssignmentController;
 use App\Http\Controllers\Student\DialogContentController as StudentDialogContentController;
 use App\Http\Controllers\Student\HomeController;
 use App\Http\Controllers\Student\LessonCatalogController;
@@ -64,6 +66,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/modules', [ModuleCatalogController::class, 'index'])->name('modules.index');
         Route::get('/modules/{module:url_slug}', [ModuleCatalogController::class, 'show'])->name('modules.show');
         Route::get('/lessons/{lesson}', [LessonCatalogController::class, 'show'])->name('lessons.show');
+        Route::get('/assignments/{assignment}', [StudentAssignmentController::class, 'show'])->name('assignments.show');
+        Route::post('/assignments/{assignment}/submit', [StudentAssignmentController::class, 'store'])->name('assignments.submit');
         Route::post('/lessons/{lesson}/progress', [LessonCatalogController::class, 'updateProgress'])->name('lessons.progress.update');
         Route::get('/lessons/{lesson}/assessment', [AssessmentController::class, 'intro'])->name('assessments.intro');
         Route::post('/lessons/{lesson}/assessment/start', [AssessmentController::class, 'start'])->name('assessments.start');
@@ -93,6 +97,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/modules/{module}/edit', [ModuleController::class, 'edit'])->name('modules.edit');
         Route::patch('/modules/{module}', [ModuleController::class, 'update'])->name('modules.update');
         Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])->name('modules.destroy');
+        Route::get('/modules/{module}/assignments', [AdminAssignmentController::class, 'index'])->name('modules.assignments.index');
+        Route::get('/modules/{module}/assignments/create', [AdminAssignmentController::class, 'create'])->name('modules.assignments.create');
+        Route::post('/modules/{module}/assignments', [AdminAssignmentController::class, 'store'])->name('modules.assignments.store');
+        Route::get('/modules/{module}/assignments/{assignment}', [AdminAssignmentController::class, 'show'])->name('modules.assignments.show');
+        Route::get('/modules/{module}/assignments/{assignment}/edit', [AdminAssignmentController::class, 'edit'])->name('modules.assignments.edit');
+        Route::patch('/modules/{module}/assignments/{assignment}', [AdminAssignmentController::class, 'update'])->name('modules.assignments.update');
+        Route::delete('/modules/{module}/assignments/{assignment}', [AdminAssignmentController::class, 'destroy'])->name('modules.assignments.destroy');
+        Route::patch('/modules/{module}/assignments/{assignment}/submissions/{assignmentSubmission}', [AdminAssignmentController::class, 'updateSubmission'])->name('modules.assignments.submissions.update');
+        Route::delete('/modules/{module}/assignments/{assignment}/submissions/{assignmentSubmission}/video', [AdminAssignmentController::class, 'deleteSubmissionVideo'])->name('modules.assignments.submissions.delete-video');
 
         Route::get('/lessons', [LessonController::class, 'index'])->name('lessons.index');
         Route::get('/lessons/create', [LessonController::class, 'create'])->name('lessons.create');

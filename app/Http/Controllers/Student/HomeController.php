@@ -825,7 +825,15 @@ class HomeController extends Controller
         $hasRejected = $relevantSubmissions
             ->contains(fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_REJECTED);
         $hasPendingReview = $relevantSubmissions
-            ->contains(fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_PENDING_REVIEW);
+            ->contains(fn (AssignmentSubmission $submission) => in_array(
+                $submission->assignment_status,
+                [
+                    AssignmentSubmission::STATUS_PENDING_REVIEW,
+                    AssignmentSubmission::STATUS_SUBMITTED,
+                    AssignmentSubmission::STATUS_UNDER_REVIEW,
+                ],
+                true,
+            ));
         $hasApproved = $relevantSubmissions->isNotEmpty()
             && $relevantSubmissions->every(
                 fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_APPROVED
@@ -891,13 +899,13 @@ class HomeController extends Controller
                 'status' => str($latestFeedback->assignment_status)->replace('_', ' ')->title()->value(),
             ] : null,
             'latest_submission_at' => optional($latestSubmittedAt)->format('Y-m-d H:i'),
-            'support_note' => 'Student-side assignment submission page is still not active, so this milestone currently reflects assignment data that already exists in YogaFX and keeps CTA on safe learning routes.',
+            'support_note' => 'Student assignment submission is now handled from the student learning area, while Home keeps reflecting the latest submission and review state as a milestone.',
         ];
 
         return match ($state) {
             'not_started' => array_merge($payload, [
                 'title' => 'Assignment milestone is waiting for your first submission.',
-                'description' => 'You are in the Online tier, so assignment belongs to your journey. Home can already show the milestone, even though the dedicated student submission page is not active yet.',
+                'description' => 'You are in the Online tier, so assignment belongs to your journey. Home keeps the milestone visible until your first submission is uploaded from the student learning area.',
                 'status' => 'Not started',
                 'cta_label' => $learningCta['label'],
             ]),

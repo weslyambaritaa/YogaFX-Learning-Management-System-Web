@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Models\AssignmentSubmission;
 use App\Models\Assessment;
 use App\Models\AssessmentDesign;
 use App\Models\Course;
@@ -56,6 +58,12 @@ class ContentFileController extends Controller
                     'thumbnail' => ['download' => false],
                     'workbook' => ['download' => true],
                     'audio_url' => ['download' => false],
+                ],
+            ],
+            'assignment-submission' => [
+                'model' => AssignmentSubmission::class,
+                'fields' => [
+                    'assignment_video' => ['download' => false],
                 ],
             ],
             'ebook' => [
@@ -135,6 +143,15 @@ class ContentFileController extends Controller
             $assessment = $record->question?->assessment;
             abort_unless($assessment, 403);
             $this->authorizeAccess($request, $assessment);
+
+            return;
+        }
+
+        if ($record instanceof AssignmentSubmission) {
+            abort_unless(
+                $user->isAdmin() || $record->user_id === $user->id,
+                403,
+            );
 
             return;
         }

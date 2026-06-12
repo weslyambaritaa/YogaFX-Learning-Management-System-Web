@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/react';
 import {
     ArrowRight,
     CheckCircle2,
+    ClipboardCheck,
     Lock,
     PlayCircle,
 } from 'lucide-react';
@@ -27,6 +28,33 @@ const lessonStatusConfig = {
         icon: Lock,
         label: 'Locked',
         className: 'text-white/45',
+    },
+};
+
+const assignmentStatusConfig = {
+    approved: {
+        label: 'Approved',
+        className: 'text-[#3DDC84]',
+    },
+    rejected: {
+        label: 'Needs Revision',
+        className: 'text-rose-200',
+    },
+    under_review: {
+        label: 'Under Review',
+        className: 'text-[#f2d9c8]',
+    },
+    pending_review: {
+        label: 'Under Review',
+        className: 'text-[#f2d9c8]',
+    },
+    submitted: {
+        label: 'Submitted',
+        className: 'text-[#f2d9c8]',
+    },
+    none: {
+        label: 'Not Submitted',
+        className: 'text-white/55',
     },
 };
 
@@ -177,6 +205,84 @@ export default function StudentModuleShow({ module }) {
                         })}
                     </div>
                 </section>
+
+                {module.assignments?.length ? (
+                    <section className="space-y-5">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                                    Assignment Submission
+                                </p>
+                                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                    Upload your module assignments
+                                </h2>
+                            </div>
+                            <div className="hidden text-sm text-white/42 md:block">
+                                Separate from lessons, focused on submission
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 xl:grid-cols-2">
+                            {module.assignments.map((assignment) => {
+                                const assignmentStatus = assignmentStatusConfig[assignment.submission_status ?? 'none']
+                                    ?? assignmentStatusConfig.none;
+
+                                return (
+                                    <Link
+                                        key={assignment.id}
+                                        href={assignment.url}
+                                        className="group rounded-[28px] border border-white/10 bg-white/[0.04] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="space-y-3">
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
+                                                    <ClipboardCheck className="size-3.5" />
+                                                    Assignment {assignment.sort_order}
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-semibold tracking-tight text-white">
+                                                        {assignment.title}
+                                                    </h3>
+                                                    <p className="mt-3 text-sm leading-7 text-white/62">
+                                                        {assignment.description
+                                                            || 'Open this assignment to upload your video submission and track the current review status.'}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/68">
+                                                {assignment.is_required ? 'Required' : 'Optional'}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-4">
+                                            <div>
+                                                <div className={`text-sm font-medium ${assignmentStatus.className}`}>
+                                                    {assignmentStatus.label}
+                                                </div>
+                                                <div className="mt-1 text-xs text-white/42">
+                                                    {assignment.submitted_at
+                                                        ? `Last submitted ${assignment.submitted_at}`
+                                                        : 'No submission has been uploaded yet'}
+                                                </div>
+                                                {assignment.submission_feedback ? (
+                                                    <p className="mt-2 max-w-md text-xs leading-6 text-white/52">
+                                                        Latest feedback: {assignment.submission_feedback}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+
+                                            <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
+                                                Open Assignment
+                                                <ArrowRight className="size-4 transition group-hover:translate-x-1" />
+                                            </div>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </section>
+                ) : null}
             </div>
         </AuthenticatedLayout>
     );

@@ -194,7 +194,7 @@ const adminUtilityItems = [
 
 const studentNavigationItems = [
     { label: 'Home', route: 'student.dashboard', match: ['student.dashboard'] },
-    { label: 'Modules', route: 'modules.index', match: ['modules.index', 'modules.show', 'lessons.show'] },
+    { label: 'Modules', route: 'modules.index', match: ['modules.index', 'modules.show', 'lessons.show', 'assignments.show'] },
 ];
 
 const studentInstantAccessItems = [
@@ -215,6 +215,10 @@ const adminPageTitles = {
     'admin.modules.index': 'Modules',
     'admin.modules.create': 'Create Module',
     'admin.modules.edit': 'Edit Module',
+    'admin.modules.assignments.index': 'Assignments',
+    'admin.modules.assignments.create': 'Create Assignment',
+    'admin.modules.assignments.edit': 'Edit Assignment',
+    'admin.modules.assignments.show': 'Review Assignment',
     'admin.lessons.index': 'Lessons',
     'admin.lessons.create': 'Create Lesson',
     'admin.lessons.edit': 'Edit Lesson',
