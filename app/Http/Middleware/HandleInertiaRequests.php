@@ -38,6 +38,7 @@ class HandleInertiaRequests extends Middleware
                     'id' => $user->id,
                     'name' => $user->name,
                     'role' => $user->role,
+                    'is_active' => $user->isStudentAccountActive(),
                     'access_tier_id' => $user->access_tier_id,
                     'access_tier' => $user->accessTier ? [
                         'id' => $user->accessTier->id,

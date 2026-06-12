@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Assessment;
 use App\Models\AssessmentAnswer;
@@ -21,6 +22,8 @@ use Inertia\Response;
 
 class AssessmentController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+
     public function intro(Request $request, Lesson $lesson): Response
     {
         $user = $request->user();
@@ -28,6 +31,7 @@ class AssessmentController extends Controller
 
         $this->authorizeLessonAssessmentAccess($lesson, $user->id);
         $attempt = $this->resolveInProgressAttempt($lesson->assessment, $user->id);
+        $completedAttempt = $this->resolveCompletedAttempt($lesson->assessment, $user->id);
         $progress = $this->lessonProgress($lesson, $user->id);
 
         return Inertia::render('Student/Assessments/Intro', [
@@ -53,13 +57,19 @@ class AssessmentController extends Controller
             'eligibility' => [
                 'is_unlocked' => $this->isAssessmentUnlocked($lesson, $progress),
                 'watch_progress' => $progress?->watch_progress,
-                'requires_watch_progress' => $lesson->video !== null,
+                'requires_watch_progress' => $lesson->lesson_video_id !== null,
             ],
             'attempt' => $attempt ? [
                 'id' => $attempt->id,
                 'status' => $attempt->status,
                 'started_at' => $attempt->started_at?->toDateTimeString(),
                 'expires_at' => $attempt->expires_at?->toDateTimeString(),
+            ] : null,
+            'completedAttempt' => $completedAttempt ? [
+                'id' => $completedAttempt->id,
+                'completed_at' => $completedAttempt->completed_at?->toDateTimeString(),
+                'total_score' => $completedAttempt->total_score,
+                'result_label' => $completedAttempt->result_label,
             ] : null,
         ]);
     }
@@ -72,6 +82,15 @@ class AssessmentController extends Controller
         $this->authorizeLessonAssessmentAccess($lesson, $user->id, true);
 
         $assessment = $lesson->assessment;
+        $completedAttempt = $this->resolveCompletedAttempt($assessment, $user->id);
+
+        if ($completedAttempt) {
+            return redirect()->route('assessments.result', [
+                'lesson' => $lesson->id,
+                'attempt' => $completedAttempt->id,
+            ]);
+        }
+
         $attempt = $this->resolveInProgressAttempt($assessment, $user->id);
 
         if (! $attempt) {
@@ -113,6 +132,13 @@ class AssessmentController extends Controller
 
         $this->authorizeLessonAssessmentAccess($lesson, $user->id, true);
 
+        if ($attempt->status === AssessmentAttempt::STATUS_COMPLETED || $attempt->status === AssessmentAttempt::STATUS_EXPIRED) {
+            return redirect()->route('assessments.result', [
+                'lesson' => $lesson->id,
+                'attempt' => $attempt->id,
+            ]);
+        }
+
         if ($redirect = $this->handleExpiry($lesson, $attempt)) {
             return $redirect;
         }
@@ -121,6 +147,8 @@ class AssessmentController extends Controller
         $question = $attempt->currentQuestion ?? $assessment->questions->sortBy('sort_order')->first();
 
         abort_unless($question, 404);
+
+        $history = $this->ensureAttemptHistory($request, $assessment, $attempt, $question);
 
         $savedAnswers = $attempt->answers()
             ->where('question_id', $question->id)
@@ -141,7 +169,13 @@ class AssessmentController extends Controller
                 'show_progress_bar' => $assessment->show_progress_bar,
                 'design' => [
                     'logo_url' => $assessment->design?->logo
-                        ? route('media.show', ['entity' => 'assessment-design', 'id' => $assessment->design->id, 'field' => 'logo'])
+                        ? $this->protectedMediaUrl(
+                            'assessment-design',
+                            $assessment->design->id,
+                            'logo',
+                            $assessment->design->logo,
+                            versionSeed: $assessment->design->updated_at?->timestamp,
+                        )
                         : null,
                     'logo_max_width' => $assessment->design?->logo_max_width,
                     'logo_alignment' => $assessment->design?->logo_alignment,
@@ -166,7 +200,7 @@ class AssessmentController extends Controller
                 'expires_at' => $attempt->expires_at?->toIso8601String(),
             ],
             'question' => $this->serializePlayerQuestion($question, $savedAnswers),
-            'canGoBack' => $assessment->allow_back_navigation && $currentIndex !== false && $currentIndex > 0,
+            'canGoBack' => $assessment->allow_back_navigation && ! empty($history),
             'isLastQuestion' => $currentIndex !== false && $currentIndex === $orderedQuestions->count() - 1,
         ]);
     }
@@ -179,6 +213,13 @@ class AssessmentController extends Controller
 
         $this->authorizeLessonAssessmentAccess($lesson, $user->id, true);
 
+        if ($attempt->status === AssessmentAttempt::STATUS_COMPLETED || $attempt->status === AssessmentAttempt::STATUS_EXPIRED) {
+            return redirect()->route('assessments.result', [
+                'lesson' => $lesson->id,
+                'attempt' => $attempt->id,
+            ]);
+        }
+
         if ($redirect = $this->handleExpiry($lesson, $attempt)) {
             return $redirect;
         }
@@ -190,8 +231,12 @@ class AssessmentController extends Controller
         $nextQuestion = $this->persistQuestionAnswer($request, $attempt, $question, $assessment->questions);
 
         if (! $nextQuestion) {
+            $this->clearAttemptHistory($request, $attempt);
+
             return $this->completeAttempt($lesson, $attempt, AssessmentAttempt::FINISHED_REASON_MANUAL_SUBMIT);
         }
+
+        $this->pushAttemptHistory($request, $attempt, $question->id);
 
         $attempt->update([
             'current_question_id' => $nextQuestion->id,
@@ -209,21 +254,26 @@ class AssessmentController extends Controller
         abort_unless($user && $lesson->assessment, 404);
         abort_unless($attempt->user_id === $user->id && $attempt->assessment_id === $lesson->assessment_id, 404);
 
+        if ($attempt->status === AssessmentAttempt::STATUS_COMPLETED || $attempt->status === AssessmentAttempt::STATUS_EXPIRED) {
+            return redirect()->route('assessments.result', [
+                'lesson' => $lesson->id,
+                'attempt' => $attempt->id,
+            ]);
+        }
+
         $assessment = $lesson->assessment->load('questions');
         $currentQuestion = $attempt->currentQuestion ?? $assessment->questions->sortBy('sort_order')->first();
         abort_unless($currentQuestion, 404);
 
-        $previousQuestion = $assessment->questions
-            ->sortBy('sort_order')
-            ->values()
-            ->first(fn (Question $question) => $question->sort_order === $currentQuestion->sort_order - 1)
-            ?? $assessment->questions
-                ->sortBy('sort_order')
-                ->values()
-                ->filter(fn (Question $question) => $question->sort_order < $currentQuestion->sort_order)
-                ->last();
+        $history = collect($this->ensureAttemptHistory($request, $assessment, $attempt, $currentQuestion));
+        $previousQuestionId = $history->pop();
+        $previousQuestion = $previousQuestionId
+            ? $assessment->questions->firstWhere('id', (int) $previousQuestionId)
+            : null;
 
         if ($previousQuestion) {
+            $this->putAttemptHistory($request, $attempt, $history->all());
+
             $attempt->update([
                 'current_question_id' => $previousQuestion->id,
             ]);
@@ -248,7 +298,13 @@ class AssessmentController extends Controller
             ]);
         }
 
-        $attempt->load('resultRange');
+        $attempt->load([
+            'resultRange',
+            'answers.questionOption',
+            'assessment.questions.options',
+        ]);
+
+        $resultMetrics = $this->buildAttemptResultMetrics($attempt);
 
         return Inertia::render('Student/Assessments/Result', [
             'lesson' => [
@@ -272,6 +328,9 @@ class AssessmentController extends Controller
                 'total_score' => $attempt->total_score,
                 'result_label' => $attempt->result_label,
                 'result_description' => $attempt->resultRange?->description,
+                'correct_answers' => $resultMetrics['correct_answers'],
+                'gradable_questions' => $resultMetrics['gradable_questions'],
+                'percentage_correct' => $resultMetrics['percentage_correct'],
             ],
         ]);
     }
@@ -305,7 +364,7 @@ class AssessmentController extends Controller
 
     private function isAssessmentUnlocked(Lesson $lesson, ?LessonProgress $progress): bool
     {
-        if ($lesson->video === null) {
+        if ($lesson->lesson_video_id === null) {
             return true;
         }
 
@@ -332,6 +391,17 @@ class AssessmentController extends Controller
         }
 
         return $attempt;
+    }
+
+    private function resolveCompletedAttempt(Assessment $assessment, int $userId): ?AssessmentAttempt
+    {
+        return AssessmentAttempt::query()
+            ->where('assessment_id', $assessment->id)
+            ->where('user_id', $userId)
+            ->where('status', AssessmentAttempt::STATUS_COMPLETED)
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->first();
     }
 
     private function handleExpiry(Lesson $lesson, AssessmentAttempt $attempt): ?RedirectResponse
@@ -433,39 +503,19 @@ class AssessmentController extends Controller
         }
 
         if ($question->isOptionBased()) {
-            $optionIds = collect($request->input('option_ids', []))
-                ->merge($request->filled('option_id') ? [$request->input('option_id')] : [])
-                ->filter(fn ($value) => $value !== null && $value !== '')
-                ->map(fn ($value) => (int) $value)
-                ->unique()
-                ->values();
-
             $availableOptions = $this->questionOptionsForPlayer($question);
-            $selectedOptions = $availableOptions
-                ->whereIn('id', $optionIds)
-                ->values();
+            $selectedOptions = $this->validatedSelectedOptions(
+                $request,
+                $question,
+                $availableOptions,
+            );
 
-            if ($question->required && $selectedOptions->isEmpty()) {
+            if (
+                $this->questionUsesCorrectnessGate($question, $availableOptions)
+                && ! $this->selectionIsFullyCorrect($selectedOptions, $availableOptions)
+            ) {
                 throw ValidationException::withMessages([
-                    'option_ids' => 'Please choose at least one answer before continuing.',
-                ]);
-            }
-
-            if (! $question->allow_multi_select && $selectedOptions->count() > 1) {
-                throw ValidationException::withMessages([
-                    'option_ids' => 'Only one answer can be selected for this question.',
-                ]);
-            }
-
-            if ($question->min_count !== null && $selectedOptions->count() < $question->min_count) {
-                throw ValidationException::withMessages([
-                    'option_ids' => 'Select at least '.$question->min_count.' answers.',
-                ]);
-            }
-
-            if ($question->max_count !== null && $selectedOptions->count() > $question->max_count) {
-                throw ValidationException::withMessages([
-                    'option_ids' => 'Select no more than '.$question->max_count.' answers.',
+                    'option_ids' => 'Oops!!! Wrong Answer! Please refer to your workbook and try again.',
                 ]);
             }
 
@@ -581,7 +631,7 @@ class AssessmentController extends Controller
     {
         $options = $question->options->sortBy('sort_order')->values();
 
-        if ($question->question_type === Question::TYPE_YES_NO_MAYBE && ! $question->show_maybe_answer) {
+        if ($question->question_type === Question::TYPE_YES_NO_MAYBE) {
             $options = $options->reject(fn (QuestionOption $option) => $option->internal_value === 'maybe')->values();
         }
 
@@ -602,7 +652,8 @@ class AssessmentController extends Controller
             'show_instruction' => $question->show_instruction,
             'instruction_text' => $question->instruction_text,
             'required' => $question->required,
-            'allow_multi_select' => $question->allow_multi_select,
+            'allow_multi_select' => $this->questionAllowsMultiSelect($question),
+            'has_correctness_gate' => $this->questionUsesCorrectnessGate($question),
             'min_count' => $question->min_count,
             'max_count' => $question->max_count,
             'show_labels' => $question->show_labels,
@@ -630,13 +681,289 @@ class AssessmentController extends Controller
                     'id' => $option->id,
                     'label' => $option->label,
                     'internal_value' => $option->internal_value,
+                    'is_correct' => (bool) $option->is_correct,
                     'is_other_option' => $option->is_other_option,
                     'image_url' => $option->image
-                        ? route('media.show', ['entity' => 'question-option', 'id' => $option->id, 'field' => 'image'])
+                        ? $this->protectedMediaUrl(
+                            'question-option',
+                            $option->id,
+                            'image',
+                            $option->image,
+                            versionSeed: $option->updated_at?->timestamp,
+                        )
                         : null,
                 ])
                 ->values()
                 ->all(),
+        ];
+    }
+
+    private function questionAllowsMultiSelect(Question $question): bool
+    {
+        if ($question->question_type === Question::TYPE_MULTIPLE_CHOICE_CHECKBOXES) {
+            return true;
+        }
+
+        if (in_array($question->question_type, [
+            Question::TYPE_MULTIPLE_CHOICE_BUTTONS,
+            Question::TYPE_IMAGE_BUTTON,
+        ], true)) {
+            return (bool) $question->allow_multi_select;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  Collection<int, QuestionOption>  $availableOptions
+     * @return Collection<int, QuestionOption>
+     */
+    private function validatedSelectedOptions(
+        Request $request,
+        Question $question,
+        Collection $availableOptions,
+    ): Collection {
+        $optionIds = collect($request->input('option_ids', []))
+            ->merge($request->filled('option_id') ? [$request->input('option_id')] : [])
+            ->filter(fn ($value) => $value !== null && $value !== '')
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values();
+
+        $selectedOptions = $availableOptions
+            ->whereIn('id', $optionIds)
+            ->values();
+
+        if ($question->required && $selectedOptions->isEmpty()) {
+            throw ValidationException::withMessages([
+                'option_ids' => 'Please choose at least one answer before continuing.',
+            ]);
+        }
+
+        if (! $this->questionAllowsMultiSelect($question) && $selectedOptions->count() > 1) {
+            throw ValidationException::withMessages([
+                'option_ids' => 'Only one answer can be selected for this question.',
+            ]);
+        }
+
+        if ($question->min_count !== null && $selectedOptions->count() < $question->min_count) {
+            throw ValidationException::withMessages([
+                'option_ids' => 'Select at least '.$question->min_count.' answers.',
+            ]);
+        }
+
+        if ($question->max_count !== null && $selectedOptions->count() > $question->max_count) {
+            throw ValidationException::withMessages([
+                'option_ids' => 'Select no more than '.$question->max_count.' answers.',
+            ]);
+        }
+
+        return $selectedOptions;
+    }
+
+    private function questionUsesCorrectnessGate(
+        Question $question,
+        ?Collection $availableOptions = null,
+    ): bool {
+        if (! $question->isOptionBased()) {
+            return false;
+        }
+
+        $availableOptions ??= $this->questionOptionsForPlayer($question);
+
+        return $availableOptions->contains(
+            fn (QuestionOption $option) => (bool) $option->is_correct,
+        );
+    }
+
+    /**
+     * @param  Collection<int, QuestionOption>  $selectedOptions
+     * @param  Collection<int, QuestionOption>  $availableOptions
+     */
+    private function selectionIsFullyCorrect(
+        Collection $selectedOptions,
+        Collection $availableOptions,
+    ): bool {
+        $selectedIds = $selectedOptions
+            ->pluck('id')
+            ->map(fn ($value) => (int) $value)
+            ->sort()
+            ->values();
+
+        $correctIds = $availableOptions
+            ->filter(fn (QuestionOption $option) => (bool) $option->is_correct)
+            ->pluck('id')
+            ->map(fn ($value) => (int) $value)
+            ->sort()
+            ->values();
+
+        return $selectedIds->isNotEmpty()
+            && $selectedIds->count() === $correctIds->count()
+            && $selectedIds->values()->all() === $correctIds->values()->all();
+    }
+
+    private function attemptHistoryKey(AssessmentAttempt $attempt): string
+    {
+        return 'student_assessment_history.'.$attempt->id;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function ensureAttemptHistory(
+        Request $request,
+        Assessment $assessment,
+        AssessmentAttempt $attempt,
+        Question $currentQuestion,
+    ): array {
+        $history = collect($request->session()->get($this->attemptHistoryKey($attempt), []))
+            ->map(fn ($value) => (int) $value)
+            ->filter()
+            ->values();
+
+        if ($history->isNotEmpty()) {
+            return $history->all();
+        }
+
+        $rebuiltHistory = $this->rebuildAttemptHistory($assessment, $attempt, $currentQuestion);
+        $this->putAttemptHistory($request, $attempt, $rebuiltHistory);
+
+        return $rebuiltHistory;
+    }
+
+    /**
+     * @param  array<int, int>  $history
+     */
+    private function putAttemptHistory(Request $request, AssessmentAttempt $attempt, array $history): void
+    {
+        $request->session()->put($this->attemptHistoryKey($attempt), array_values($history));
+    }
+
+    private function pushAttemptHistory(Request $request, AssessmentAttempt $attempt, int $questionId): void
+    {
+        $history = collect($request->session()->get($this->attemptHistoryKey($attempt), []))
+            ->map(fn ($value) => (int) $value)
+            ->filter()
+            ->values();
+
+        if ($history->last() !== $questionId) {
+            $history->push($questionId);
+        }
+
+        $this->putAttemptHistory($request, $attempt, $history->all());
+    }
+
+    private function clearAttemptHistory(Request $request, AssessmentAttempt $attempt): void
+    {
+        $request->session()->forget($this->attemptHistoryKey($attempt));
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function rebuildAttemptHistory(
+        Assessment $assessment,
+        AssessmentAttempt $attempt,
+        Question $currentQuestion,
+    ): array {
+        $questions = $assessment->questions->sortBy('sort_order')->values();
+        $firstQuestion = $questions->first();
+
+        if (! $firstQuestion || $firstQuestion->id === $currentQuestion->id) {
+            return [];
+        }
+
+        $answersByQuestion = $attempt->answers()
+            ->with('questionOption')
+            ->get()
+            ->groupBy('question_id');
+
+        $history = [];
+        $cursor = $firstQuestion;
+        $guard = 0;
+
+        while ($cursor && $cursor->id !== $currentQuestion->id && $guard < $questions->count()) {
+            $nextQuestion = $this->resolveNextQuestionFromSavedAnswers(
+                $cursor,
+                $questions,
+                $answersByQuestion->get($cursor->id, collect()),
+            );
+
+            if (! $nextQuestion) {
+                break;
+            }
+
+            $history[] = $cursor->id;
+            $cursor = $nextQuestion;
+            $guard++;
+        }
+
+        return $cursor && $cursor->id === $currentQuestion->id ? $history : [];
+    }
+
+    private function resolveNextQuestionFromSavedAnswers(
+        Question $question,
+        Collection $questions,
+        Collection $savedAnswers,
+    ): ?Question {
+        $selectedOptions = $question->options
+            ->whereIn('id', $savedAnswers->pluck('question_option_id')->filter()->map(fn ($value) => (int) $value))
+            ->values();
+
+        return $this->resolveNextQuestion($question, $selectedOptions, $questions);
+    }
+
+    /**
+     * @return array{correct_answers:int, gradable_questions:int, percentage_correct:int}
+     */
+    private function buildAttemptResultMetrics(AssessmentAttempt $attempt): array
+    {
+        $gradableQuestions = $attempt->assessment->questions
+            ->filter(fn (Question $question) => $this->questionUsesCorrectnessGate($question))
+            ->values();
+
+        if ($gradableQuestions->isEmpty()) {
+            return [
+                'correct_answers' => 0,
+                'gradable_questions' => 0,
+                'percentage_correct' => 0,
+            ];
+        }
+
+        $answersByQuestion = $attempt->answers->groupBy('question_id');
+
+        $correctAnswers = $gradableQuestions->reduce(
+            function (int $total, Question $question) use ($answersByQuestion): int {
+                $selectedIds = $answersByQuestion
+                    ->get($question->id, collect())
+                    ->pluck('question_option_id')
+                    ->filter()
+                    ->map(fn ($value) => (int) $value)
+                    ->sort()
+                    ->values();
+
+                $correctIds = $this->questionOptionsForPlayer($question)
+                    ->filter(fn (QuestionOption $option) => (bool) $option->is_correct)
+                    ->pluck('id')
+                    ->map(fn ($value) => (int) $value)
+                    ->sort()
+                    ->values();
+
+                $isCorrect = $selectedIds->isNotEmpty()
+                    && $selectedIds->count() === $correctIds->count()
+                    && $selectedIds->all() === $correctIds->all();
+
+                return $total + ($isCorrect ? 1 : 0);
+            },
+            0,
+        );
+
+        return [
+            'correct_answers' => $correctAnswers,
+            'gradable_questions' => $gradableQuestions->count(),
+            'percentage_correct' => (int) round(
+                ($correctAnswers / max($gradableQuestions->count(), 1)) * 100,
+            ),
         ];
     }
 }

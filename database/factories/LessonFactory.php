@@ -26,8 +26,8 @@ class LessonFactory extends Factory
             'title' => fake()->sentence(3),
             'thumbnail' => 'lessons/default-thumbnail.jpg',
             'workbook' => null,
-            'video' => fake()->url(),
-            'audio' => fake()->url(),
+            'lesson_video_id' => (string) fake()->uuid(),
+            'audio_url' => fake()->url(),
             'content' => fake()->paragraph(),
             'sort_order' => null,
         ];

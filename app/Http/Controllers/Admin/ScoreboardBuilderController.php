@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Models\Assessment;
@@ -20,6 +21,7 @@ use Inertia\Response;
 
 class ScoreboardBuilderController extends Controller
 {
+    use BuildsProtectedMediaUrls;
     use HandlesLocalUploads;
 
     public function show(Request $request, Assessment $assessment): Response
@@ -150,6 +152,9 @@ class ScoreboardBuilderController extends Controller
             ]);
         }
 
+        $validated = $this->normalizeQuestionSettings($validated);
+        $this->validateSelectionRules($question, $validated);
+
         DB::transaction(function () use ($question, $validated): void {
             $question->update($validated);
 
@@ -173,7 +178,7 @@ class ScoreboardBuilderController extends Controller
         abort_unless($question->assessment_id === $assessment->id, 404);
 
         foreach ($question->options as $option) {
-            $this->deleteUploadedFile($option->image);
+            $this->deleteUploadedFileFromAnyStorage($option->image);
         }
 
         $question->delete();
@@ -240,11 +245,17 @@ class ScoreboardBuilderController extends Controller
             ]);
         }
 
-        $validated['image'] = $this->storeUploadedFile(
-            $request->file('image'),
-            'assessments/question-options',
-            $option->image,
-        );
+        $validated['image'] = $question->question_type === Question::TYPE_IMAGE_BUTTON
+            ? $this->storeUploadedFileToBunny(
+                $request->file('image'),
+                'assessments/question-options',
+                $option->image,
+            )
+            : $this->storeUploadedFile(
+                $request->file('image'),
+                'assessments/question-options',
+                $option->image,
+            );
 
         DB::transaction(function () use ($option, $validated, $question): void {
             $option->update($validated);
@@ -258,6 +269,7 @@ class ScoreboardBuilderController extends Controller
 
             $this->validateMultiSelectJumpTargets($validatedQuestion);
             $this->validateCorrectAnswerSelections($validatedQuestion);
+            $this->validateSelectionRules($validatedQuestion);
         });
 
         return redirect()
@@ -275,7 +287,7 @@ class ScoreboardBuilderController extends Controller
             ]);
         }
 
-        $this->deleteUploadedFile($option->image);
+        $this->deleteUploadedFileFromAnyStorage($option->image);
         $option->delete();
 
         return redirect()
@@ -412,9 +424,13 @@ class ScoreboardBuilderController extends Controller
                 'jump_to_question_id' => $option->jump_to_question_id,
                 'is_other_option' => $option->is_other_option,
                 'is_fixed_option' => $option->is_fixed_option,
-                'image_url' => $option->image
-                    ? route('media.show', ['entity' => 'question-option', 'id' => $option->id, 'field' => 'image'])
-                    : null,
+                'image_url' => $this->protectedMediaUrl(
+                    'question-option',
+                    $option->id,
+                    'image',
+                    $option->image,
+                    versionSeed: $option->updated_at?->timestamp,
+                ),
             ])->values()->all(),
         ];
     }
@@ -442,7 +458,7 @@ class ScoreboardBuilderController extends Controller
     private function questionTypeOptions(): array
     {
         return [
-            ['value' => Question::TYPE_YES_NO_MAYBE, 'label' => 'Yes / No / Maybe'],
+            ['value' => Question::TYPE_YES_NO_MAYBE, 'label' => 'Yes / No'],
             ['value' => Question::TYPE_MULTIPLE_CHOICE_CHECKBOXES, 'label' => 'Multiple Choice Checkboxes'],
             ['value' => Question::TYPE_MULTIPLE_CHOICE_BUTTONS, 'label' => 'Multiple Choice Buttons'],
             ['value' => Question::TYPE_RADIO_BUTTONS, 'label' => 'Radio Buttons'],
@@ -462,7 +478,6 @@ class ScoreboardBuilderController extends Controller
             $fixedOptions = collect([
                 ['label' => 'Yes', 'internal_value' => 'yes', 'sort_order' => 1],
                 ['label' => 'No', 'internal_value' => 'no', 'sort_order' => 2],
-                ['label' => 'Maybe', 'internal_value' => 'maybe', 'sort_order' => 3],
             ]);
 
             foreach ($fixedOptions as $fixedOption) {
@@ -474,6 +489,15 @@ class ScoreboardBuilderController extends Controller
                         'is_fixed_option' => true,
                     ],
                 );
+            }
+
+            $maybeOption = $question->options()
+                ->where('internal_value', 'maybe')
+                ->first();
+
+            if ($maybeOption) {
+                $this->deleteUploadedFileFromAnyStorage($maybeOption->image);
+                $maybeOption->delete();
             }
         }
 
@@ -497,7 +521,7 @@ class ScoreboardBuilderController extends Controller
             $otherOption = $question->options()->where('is_other_option', true)->first();
 
             if ($otherOption) {
-                $this->deleteUploadedFile($otherOption->image);
+                $this->deleteUploadedFileFromAnyStorage($otherOption->image);
                 $otherOption->delete();
             }
         }
@@ -539,6 +563,60 @@ class ScoreboardBuilderController extends Controller
         }
     }
 
+    /**
+     * @param  array<string, mixed>|null  $payload
+     */
+    private function validateSelectionRules(Question|array $questionOrPayload, ?array $payload = null): void
+    {
+        $questionType = $payload['question_type']
+            ?? ($questionOrPayload instanceof Question
+                ? $questionOrPayload->question_type
+                : (string) ($questionOrPayload['question_type'] ?? ''));
+
+        if ($questionType !== Question::TYPE_MULTIPLE_CHOICE_CHECKBOXES) {
+            return;
+        }
+
+        $minCount = $payload['min_count']
+            ?? ($questionOrPayload instanceof Question
+                ? $questionOrPayload->min_count
+                : ($questionOrPayload['min_count'] ?? null));
+        $maxCount = $payload['max_count']
+            ?? ($questionOrPayload instanceof Question
+                ? $questionOrPayload->max_count
+                : ($questionOrPayload['max_count'] ?? null));
+        $optionCount = $questionOrPayload instanceof Question
+            ? $questionOrPayload->options()->where('is_other_option', false)->count()
+            : null;
+        $correctOptionCount = $questionOrPayload instanceof Question
+            ? $questionOrPayload->options()->where('is_correct', true)->count()
+            : null;
+
+        if ($minCount !== null && (int) $minCount < 1) {
+            throw ValidationException::withMessages([
+                'min_count' => 'Minimum selection count must be at least 1 for checkbox questions.',
+            ]);
+        }
+
+        if ($maxCount !== null && $minCount !== null && (int) $maxCount < (int) $minCount) {
+            throw ValidationException::withMessages([
+                'max_count' => 'Maximum selection count must be greater than or equal to minimum count.',
+            ]);
+        }
+
+        if ($optionCount !== null && $maxCount !== null && (int) $maxCount > $optionCount) {
+            throw ValidationException::withMessages([
+                'max_count' => 'Maximum selection count cannot exceed the number of available checkbox answers.',
+            ]);
+        }
+
+        if ($correctOptionCount !== null && $maxCount !== null && $correctOptionCount > (int) $maxCount) {
+            throw ValidationException::withMessages([
+                'max_count' => 'Maximum selection count cannot be lower than the number of correct checkbox answers.',
+            ]);
+        }
+    }
+
     private function syncCorrectAnswerSelection(Question $question, QuestionOption $selectedOption): void
     {
         if ($this->questionAllowsMultipleCorrectAnswers($question)) {
@@ -564,6 +642,103 @@ class ScoreboardBuilderController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function normalizeQuestionSettings(array $validated): array
+    {
+        $questionType = (string) ($validated['question_type'] ?? '');
+
+        if ($questionType === Question::TYPE_YES_NO_MAYBE) {
+            $validated['show_maybe_answer'] = false;
+        }
+
+        if (in_array($questionType, [
+            Question::TYPE_LINEAR_SCALE,
+            Question::TYPE_DIVIDED_SCALE,
+        ], true)) {
+            $validated['starting_score'] = null;
+            $validated['allow_decimals'] = false;
+        }
+
+        if ($questionType !== Question::TYPE_DIVIDED_SCALE) {
+            $validated['section_count'] = null;
+        }
+
+        if ($questionType !== Question::TYPE_SLIDING_SCALE) {
+            $validated['show_score_tooltip'] = false;
+            $validated['score_tooltip_format'] = null;
+        }
+
+        if (! in_array($questionType, [
+            Question::TYPE_SLIDING_SCALE,
+            Question::TYPE_LINEAR_SCALE,
+            Question::TYPE_DIVIDED_SCALE,
+        ], true)) {
+            $validated['left_label'] = null;
+            $validated['center_label'] = null;
+            $validated['right_label'] = null;
+        }
+
+        if ($questionType !== Question::TYPE_OPEN_TEXT) {
+            $validated['input_type'] = null;
+            $validated['character_limit'] = null;
+        } else {
+            $validated['input_type'] = $this->normalizeOpenTextInputType(
+                $validated['input_type'] ?? null,
+            );
+        }
+
+        if ($questionType !== Question::TYPE_IMAGE_BUTTON) {
+            $validated['answer_image_fit'] = null;
+            $validated['answers_per_row'] = null;
+            $validated['show_labels'] = true;
+        } else {
+            $validated['answer_image_fit'] = $this->normalizeAnswerImageFit(
+                $validated['answer_image_fit'] ?? null,
+            );
+            $validated['answers_per_row'] = $this->normalizeAnswersPerRow(
+                $validated['answers_per_row'] ?? null,
+            );
+        }
+
+        if (! in_array($questionType, [
+            Question::TYPE_MULTIPLE_CHOICE_BUTTONS,
+            Question::TYPE_IMAGE_BUTTON,
+        ], true)) {
+            $validated['allow_multi_select'] = $questionType === Question::TYPE_MULTIPLE_CHOICE_CHECKBOXES;
+        }
+
+        if ($questionType !== Question::TYPE_MULTIPLE_CHOICE_CHECKBOXES) {
+            $validated['min_count'] = null;
+            $validated['max_count'] = null;
+        }
+
+        if ($questionType !== Question::TYPE_MULTIPLE_CHOICE_BUTTONS) {
+            $validated['allow_other_option'] = false;
+        }
+
+        return $validated;
+    }
+
+    private function normalizeOpenTextInputType(mixed $inputType): string
+    {
+        return $inputType === 'textarea' || $inputType === 'multi_line'
+            ? 'multi_line'
+            : 'single_line';
+    }
+
+    private function normalizeAnswerImageFit(mixed $fit): string
+    {
+        return $fit === 'contain' ? 'contain' : 'cover';
+    }
+
+    private function normalizeAnswersPerRow(mixed $answersPerRow): int
+    {
+        return (int) ((int) $answersPerRow === 4 ? 4 : 2);
     }
 
     /**

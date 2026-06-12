@@ -29,6 +29,7 @@ import {
     LayoutDashboard,
     Mail,
     Menu,
+    MessageSquareText,
     PlaySquare,
     UserRound,
 } from 'lucide-react';
@@ -59,16 +60,28 @@ const adminNavigationItems = [
         match: ['admin.lessons.*'],
     },
     {
-        label: 'Scoreboards',
+        label: 'Assessment',
         route: 'admin.scoreboards.index',
         icon: ClipboardList,
-        match: ['admin.scoreboards.*'],
+        match: ['admin.scoreboards.*', 'admin.assessments.*'],
     },
     {
         label: 'Student Progress',
         route: 'admin.student-progress.index',
         match: ['admin.student-progress.*'],
         icon: FileSpreadsheet,
+    },
+    {
+        label: 'Students',
+        route: 'admin.students.index',
+        match: ['admin.students.*'],
+        icon: UserRound,
+    },
+    {
+        label: 'Dialog',
+        route: 'admin.dialogs.edit',
+        match: ['admin.dialogs.*'],
+        icon: MessageSquareText,
     },
     {
         label: 'Video Lecture',
@@ -185,8 +198,16 @@ const studentNavigationItems = [
 ];
 
 const studentInstantAccessItems = [
-    { label: 'Full Standing Dialog' },
-    { label: 'Full Floor Dialog' },
+    {
+        label: 'Full Standing Dialog',
+        route: 'student.dialogs.standing',
+        match: ['student.dialogs.standing'],
+    },
+    {
+        label: 'Full Floor Dialog',
+        route: 'student.dialogs.floor',
+        match: ['student.dialogs.floor'],
+    },
 ];
 
 const adminPageTitles = {
@@ -197,10 +218,14 @@ const adminPageTitles = {
     'admin.lessons.index': 'Lessons',
     'admin.lessons.create': 'Create Lesson',
     'admin.lessons.edit': 'Edit Lesson',
-    'admin.scoreboards.index': 'Scoreboards',
-    'admin.scoreboards.create': 'Create Scoreboard',
-    'admin.scoreboards.edit': 'Edit Scoreboard',
-    'admin.scoreboards.builder': 'Scoreboard Builder',
+    'admin.scoreboards.index': 'Assessment',
+    'admin.scoreboards.create': 'Create Assessment',
+    'admin.scoreboards.edit': 'Edit Assessment',
+    'admin.scoreboards.builder': 'Assessment Builder',
+    'admin.assessments.preview': 'Assessment Preview',
+    'admin.assessments.preview.result': 'Assessment Preview Result',
+    'admin.assessments.results.index': 'Assessment Results',
+    'admin.assessments.results.show': 'Assessment Result Detail',
     'admin.courses.index': 'Video Lecture',
     'admin.courses.create': 'Create Video Lecture',
     'admin.courses.edit': 'Edit Video Lecture',
@@ -212,10 +237,12 @@ const adminPageTitles = {
     'admin.student-progress.completed-lessons.index': 'Completed Lesson',
     'admin.student-progress.assignments.index': 'Assignment',
     'admin.student-progress.certificates.index': 'Certificate',
-    'admin.student-progress.students.edit': 'Student Detail',
     'admin.student-progress.completed-lessons.show': 'Completed Lesson',
     'admin.student-progress.assignments.show': 'Assignment',
     'admin.student-progress.certificates.show': 'Certificate',
+    'admin.students.index': 'Students',
+    'admin.students.edit': 'Student Detail',
+    'admin.dialogs.edit': 'Dialog',
     'admin.email-notifications.index': 'Email Notification',
     'admin.email-notifications.show': 'Email Notification',
     'admin.access-tiers.index': 'Access Tiers',
@@ -676,17 +703,21 @@ function StudentTopNavigation({
                                     {studentInstantAccessItems.map((item) => (
                                         <Button
                                             key={item.label}
-                                            type="button"
-                                            variant="ghost"
-                                            disabled
+                                            asChild
+                                            variant={isItemActive(item) ? 'secondary' : 'ghost'}
                                             className={[
                                                 'h-11 w-full justify-start rounded-xl px-3 opacity-100',
-                                                isImmersive
+                                                isImmersive && !isItemActive(item)
                                                     ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
                                                     : '',
                                             ].join(' ')}
                                         >
-                                            {item.label}
+                                            <Link
+                                                href={route(item.route)}
+                                                onClick={() => setMobileOpen(false)}
+                                            >
+                                                {item.label}
+                                            </Link>
                                         </Button>
                                     ))}
                                 </div>
@@ -743,17 +774,16 @@ function StudentTopNavigation({
                         {studentInstantAccessItems.map((item) => (
                             <Button
                                 key={item.label}
-                                type="button"
-                                variant="ghost"
-                                disabled
+                                asChild
+                                variant={isItemActive(item) ? 'secondary' : 'ghost'}
                                 className={[
                                     'rounded-full px-4 text-xs font-medium opacity-100',
-                                    isImmersive
+                                    isImmersive && !isItemActive(item)
                                         ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
                                         : '',
                                 ].join(' ')}
                             >
-                                {item.label}
+                                <Link href={route(item.route)}>{item.label}</Link>
                             </Button>
                         ))}
                     </div>

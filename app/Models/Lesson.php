@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MaintainsSequentialSortOrder;
 use Database\Factories\LessonFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,8 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'title',
     'thumbnail',
     'workbook',
-    'video',
-    'audio',
+    'lesson_video_id',
+    'audio_url',
     'content',
     'sort_order',
 ])]
@@ -24,6 +25,7 @@ class Lesson extends Model
 {
     /** @use HasFactory<LessonFactory> */
     use HasFactory;
+    use MaintainsSequentialSortOrder;
 
     protected static function booted(): void
     {
@@ -43,6 +45,30 @@ class Lesson extends Model
                     ->max('sort_order')) + 1;
             }
         });
+
+        static::updated(function (Lesson $lesson): void {
+            if ($lesson->wasChanged('module_id')) {
+                static::query()
+                    ->where('module_id', $lesson->getOriginal('module_id'))
+                    ->orderBy('sort_order')
+                    ->get()
+                    ->values()
+                    ->each(function (Lesson $scopedLesson, int $index): void {
+                        $expectedOrder = $index + 1;
+
+                        if ((int) $scopedLesson->sort_order !== $expectedOrder) {
+                            $scopedLesson->updateQuietly([
+                                'sort_order' => $expectedOrder,
+                            ]);
+                        }
+                    });
+            }
+        });
+    }
+
+    protected function sortOrderScopeColumns(): array
+    {
+        return ['module_id'];
     }
 
     public function module(): BelongsTo

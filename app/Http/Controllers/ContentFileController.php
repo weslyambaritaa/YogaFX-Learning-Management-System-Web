@@ -55,6 +55,7 @@ class ContentFileController extends Controller
                 'fields' => [
                     'thumbnail' => ['download' => false],
                     'workbook' => ['download' => true],
+                    'audio_url' => ['download' => false],
                 ],
             ],
             'ebook' => [

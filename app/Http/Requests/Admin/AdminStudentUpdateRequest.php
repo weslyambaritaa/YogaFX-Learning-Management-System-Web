@@ -17,6 +17,7 @@ class AdminStudentUpdateRequest extends ProfileUpdateRequest
         return [
             ...parent::rules(),
             'access_tier_id' => ['nullable', Rule::exists('access_tiers', 'id')],
+            'is_active' => ['required', 'boolean'],
         ];
     }
 }

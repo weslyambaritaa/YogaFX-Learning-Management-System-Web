@@ -60,6 +60,33 @@ export default function ModuleForm({
                 </div>
             </div>
 
+            <div className="max-w-xs">
+                <InputLabel htmlFor="sort_order" value="Order" />
+                <TextInput
+                    id="sort_order"
+                    type="number"
+                    min="1"
+                    className="mt-1 block w-full"
+                    value={data.sort_order ?? ''}
+                    onChange={(event) => setData('sort_order', event.target.value)}
+                />
+                <InputError className="mt-2" message={errors.sort_order} />
+            </div>
+
+            <div>
+                <InputLabel htmlFor="description" value="Description" />
+                <textarea
+                    id="description"
+                    rows="5"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    value={data.description ?? ''}
+                    onChange={(event) =>
+                        setData('description', event.target.value)
+                    }
+                />
+                <InputError className="mt-2" message={errors.description} />
+            </div>
+
             <AccessTierMultiSelect
                 value={data.access_tier_ids}
                 onChange={(value) => setData('access_tier_ids', value)}

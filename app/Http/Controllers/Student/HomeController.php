@@ -10,6 +10,7 @@ use App\Models\Certificate;
 use App\Models\Ebook;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Services\StudentSessionTrackingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -20,6 +21,10 @@ use Inertia\Response;
 class HomeController extends Controller
 {
     use BuildsProtectedMediaUrls;
+
+    public function __construct(
+        private readonly StudentSessionTrackingService $sessionTrackingService,
+    ) {}
 
     public function index(Request $request): Response|RedirectResponse
     {
@@ -63,6 +68,9 @@ class HomeController extends Controller
                     'is_active' => $tier->is_active,
                 ] : null,
             ],
+            'accessTimeSummary' => $user
+                ? $this->sessionTrackingService->summaryForUser($user)
+                : null,
             'continueLearning' => $continueLearning,
             'progressSummary' => $progressSummary,
             'nextStep' => $nextStep,

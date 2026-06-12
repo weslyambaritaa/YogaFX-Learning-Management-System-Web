@@ -3,31 +3,39 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
-use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\LessonRequest;
-use App\Support\UploadConstraints;
 use App\Models\AccessTier;
 use App\Models\Assessment;
 use App\Models\Lesson;
 use App\Models\Module;
+use App\Services\BunnyStorageService;
+use App\Support\BunnyAssetPath;
+use App\Support\UploadConstraints;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class LessonController extends Controller
 {
     use BuildsProtectedMediaUrls;
-    use HandlesLocalUploads;
+
+    public function __construct(
+        private readonly BunnyStorageService $bunnyStorage,
+    ) {
+    }
 
     public function index(): Response
     {
         return Inertia::render('Admin/Lessons/Index', [
             'lessons' => Lesson::query()
                 ->with(['module', 'accessTiers', 'assessment'])
-                ->orderBy('sort_order')
-                ->orderBy('title')
+                ->orderBy('sort_order', 'asc')
+                ->orderBy('title', 'asc')
                 ->get()
                 ->map(fn (Lesson $lesson) => [
                     'id' => $lesson->id,
@@ -44,8 +52,8 @@ class LessonController extends Controller
                         versionSeed: $lesson->updated_at,
                     ),
                     'has_workbook' => $lesson->workbook !== null,
-                    'has_video' => $lesson->video !== null,
-                    'has_audio' => $lesson->audio !== null,
+                    'has_lesson_video' => $lesson->lesson_video_id !== null,
+                    'has_audio' => $lesson->audio_url !== null,
                 ]),
             'status' => session('status'),
         ]);
@@ -64,9 +72,11 @@ class LessonController extends Controller
     public function store(LessonRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'lessons/thumbnails');
-        $data['workbook'] = $this->storeUploadedFile($request->file('workbook'), 'lessons/workbooks');
+        $data['thumbnail'] = $this->storeLessonAsset($request->file('thumbnail'), 'lessons/thumbnails');
+        $data['workbook'] = $this->storeLessonAsset($request->file('workbook'), 'lessons/workbooks');
+        $data['audio_url'] = $this->storeAudioAsset($request->audioUpload());
         unset($data['access_tier_ids']);
+        unset($data['audio']);
 
         $lesson = Lesson::query()->create($data);
         $lesson->accessTiers()->sync($request->validated('access_tier_ids'));
@@ -83,14 +93,13 @@ class LessonController extends Controller
             : [false, null];
 
         return Inertia::render('Admin/Lessons/Edit', [
-                'lesson' => [
-                    'id' => $lesson->id,
-                    'module_id' => $lesson->module_id,
+            'lesson' => [
+                'id' => $lesson->id,
+                'module_id' => $lesson->module_id,
                 'access_tier_ids' => $lesson->accessTiers()->pluck('access_tiers.id')->all(),
                 'assessment_id' => $lesson->assessment_id,
                 'title' => $lesson->title,
-                'video' => $lesson->video,
-                'audio' => $lesson->audio,
+                'lesson_video_id' => $lesson->lesson_video_id,
                 'content' => $lesson->content,
                 'thumbnail_url' => $this->protectedMediaUrl(
                     'lesson',
@@ -101,12 +110,12 @@ class LessonController extends Controller
                 ),
                 'workbook_preview' => $lesson->workbook ? [
                     'title' => "{$lesson->title} Workbook",
-                    'file_name' => basename((string) $lesson->workbook),
+                    'file_name' => basename(BunnyAssetPath::isBunnyPath($lesson->workbook) ? BunnyAssetPath::objectKey($lesson->workbook) : (string) $lesson->workbook),
                     'mime_type' => $workbookMimeType,
                     'preview_supported' => $workbookPreviewSupported,
                     'preview_message' => $workbookPreviewSupported
                         ? null
-                        : 'This workbook file cannot be previewed in the browser yet. You can still download it.',
+                        : 'This workbook file cannot be previewed in the browser yet. You can still open it from the asset link.',
                     'preview_url' => $this->protectedMediaUrl(
                         'lesson',
                         $lesson->id,
@@ -124,6 +133,13 @@ class LessonController extends Controller
                         versionSeed: $lesson->updated_at,
                     ),
                 ] : null,
+                'audio_preview_url' => $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'audio_url',
+                    $lesson->audio_url,
+                    versionSeed: $lesson->updated_at,
+                ),
             ],
             'accessTiers' => $this->accessTierOptions(),
             'modules' => $this->moduleOptions(),
@@ -136,17 +152,22 @@ class LessonController extends Controller
     public function update(LessonRequest $request, Lesson $lesson): RedirectResponse
     {
         $data = $request->validated();
-        $data['thumbnail'] = $this->storeUploadedFile(
+        $data['thumbnail'] = $this->storeLessonAsset(
             $request->file('thumbnail'),
             'lessons/thumbnails',
             $lesson->thumbnail,
         );
-        $data['workbook'] = $this->storeUploadedFile(
+        $data['workbook'] = $this->storeLessonAsset(
             $request->file('workbook'),
             'lessons/workbooks',
             $lesson->workbook,
         );
+        $data['audio_url'] = $this->storeAudioAsset(
+            $request->audioUpload(),
+            $lesson->audio_url,
+        );
         unset($data['access_tier_ids']);
+        unset($data['audio']);
 
         $lesson->update($data);
         $lesson->accessTiers()->sync($request->validated('access_tier_ids'));
@@ -158,8 +179,9 @@ class LessonController extends Controller
 
     public function destroy(Lesson $lesson): RedirectResponse
     {
-        $this->deleteUploadedFile($lesson->thumbnail);
-        $this->deleteUploadedFile($lesson->workbook);
+        $this->bunnyStorage->delete($lesson->thumbnail);
+        $this->bunnyStorage->delete($lesson->workbook);
+        $this->bunnyStorage->delete($lesson->audio_url);
         $lesson->delete();
 
         return redirect()
@@ -167,11 +189,59 @@ class LessonController extends Controller
             ->with('status', 'lesson-deleted');
     }
 
+    private function storeLessonAsset(mixed $file, string $directory, ?string $currentPath = null): ?string
+    {
+        if (! $file) {
+            return $currentPath;
+        }
+
+        return $this->bunnyStorage->upload($file, $directory, $currentPath);
+    }
+
+    private function storeAudioAsset(mixed $file, ?string $currentPath = null): ?string
+    {
+        if (! $file) {
+            return $currentPath;
+        }
+
+        try {
+            return $this->bunnyStorage->upload($file, 'lessons/audio', $currentPath);
+        } catch (RuntimeException $exception) {
+            Log::error('Lesson audio upload failed.', [
+                'message' => $exception->getMessage(),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+                'previous_message' => $exception->getPrevious()?->getMessage(),
+                'previous_file' => $exception->getPrevious()?->getFile(),
+                'previous_line' => $exception->getPrevious()?->getLine(),
+                'audio_original_name' => method_exists($file, 'getClientOriginalName') ? $file->getClientOriginalName() : null,
+                'audio_mime_type' => method_exists($file, 'isValid')
+                    && method_exists($file, 'getRealPath')
+                    && $file->isValid()
+                    && is_string($file->getRealPath())
+                    && $file->getRealPath() !== ''
+                    && is_readable($file->getRealPath())
+                    && method_exists($file, 'getMimeType')
+                        ? $file->getMimeType()
+                        : null,
+                'audio_size_bytes' => method_exists($file, 'getSize') ? $file->getSize() : null,
+            ]);
+
+            if (config('app.debug')) {
+                throw $exception;
+            }
+
+            throw ValidationException::withMessages([
+                'audio' => $exception->getMessage(),
+            ]);
+        }
+    }
+
     private function accessTierOptions(): array
     {
         return AccessTier::query()
             ->orderByDesc('is_active')
-            ->orderBy('name')
+            ->orderBy('name', 'asc')
             ->get()
             ->map(fn (AccessTier $accessTier) => [
                 'id' => $accessTier->id,
@@ -184,8 +254,8 @@ class LessonController extends Controller
     private function moduleOptions(): array
     {
         return Module::query()
-            ->orderBy('sort_order')
-            ->orderBy('title')
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('title', 'asc')
             ->get()
             ->map(fn (Module $module) => [
                 'id' => $module->id,
@@ -198,7 +268,7 @@ class LessonController extends Controller
     {
         return Assessment::query()
             ->orderByDesc('updated_at')
-            ->orderBy('title')
+            ->orderBy('title', 'asc')
             ->get()
             ->map(fn (Assessment $assessment) => [
                 'id' => $assessment->id,
@@ -214,6 +284,10 @@ class LessonController extends Controller
         return [
             'max_size_bytes' => UploadConstraints::MAX_FILE_SIZE_KB * 1024,
             'max_size_label' => UploadConstraints::MAX_FILE_SIZE_MB.' MB',
+            'workbook_max_size_bytes' => UploadConstraints::LESSON_WORKBOOK_MAX_FILE_SIZE_KB * 1024,
+            'workbook_max_size_label' => UploadConstraints::labelFromMb(UploadConstraints::LESSON_WORKBOOK_MAX_FILE_SIZE_MB),
+            'audio_max_size_bytes' => UploadConstraints::LESSON_AUDIO_MAX_FILE_SIZE_KB * 1024,
+            'audio_max_size_label' => UploadConstraints::labelFromMb(UploadConstraints::LESSON_AUDIO_MAX_FILE_SIZE_MB),
         ];
     }
 
@@ -222,6 +296,18 @@ class LessonController extends Controller
      */
     private function previewMetadata(string $path): array
     {
+        if (BunnyAssetPath::isBunnyPath($path)) {
+            $extension = strtolower(pathinfo(BunnyAssetPath::objectKey($path), PATHINFO_EXTENSION));
+            $mimeType = match ($extension) {
+                'pdf' => 'application/pdf',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                default => null,
+            };
+
+            return [$extension === 'pdf', $mimeType];
+        }
+
         $mimeType = Storage::disk('local')->mimeType($path);
         $isPdf = str($path)->lower()->endsWith('.pdf')
             || $mimeType === 'application/pdf';

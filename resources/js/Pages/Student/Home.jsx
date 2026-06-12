@@ -2,10 +2,27 @@ import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { ChevronRight, Play, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+function formatDurationParts(totalSeconds) {
+    const safeSeconds = Math.max(0, Number(totalSeconds || 0));
+    const hours = Math.floor(safeSeconds / 3600)
+        .toString()
+        .padStart(2, '0');
+    const minutes = Math.floor((safeSeconds % 3600) / 60)
+        .toString()
+        .padStart(2, '0');
+    const seconds = Math.floor(safeSeconds % 60)
+        .toString()
+        .padStart(2, '0');
+
+    return { hours, minutes, seconds };
+}
 
 export default function StudentHome({
     homeStage,
     studentContext,
+    accessTimeSummary,
     continueLearning,
     progressSummary,
     nextStep,
@@ -45,6 +62,9 @@ export default function StudentHome({
         tierLabel,
         'Learning momentum is active',
     ];
+    const [runningAccessSeconds, setRunningAccessSeconds] = useState(
+        accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+    );
     const heroPrimaryKind = homeExperience?.primary_cta_kind ?? 'link';
     const heroSecondaryKind = 'link';
     const continueEngineLabel = homeExperience?.state === 'journey_complete'
@@ -88,6 +108,43 @@ export default function StudentHome({
             kind: certificateMilestone?.cta_kind === 'download' ? 'download' : 'link',
         },
     ];
+
+    useEffect(() => {
+        if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
+            setRunningAccessSeconds(
+                accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+            );
+
+            return undefined;
+        }
+
+        const updateTimer = () => {
+            const loginAt = new Date(
+                accessTimeSummary.active_session_login_at,
+            ).getTime();
+            const elapsed = Math.max(
+                0,
+                Math.floor((Date.now() - loginAt) / 1000),
+            );
+
+            setRunningAccessSeconds(
+                (accessTimeSummary.total_access_duration_seconds ?? 0) + elapsed,
+            );
+        };
+
+        updateTimer();
+
+        const interval = window.setInterval(updateTimer, 1000);
+
+        return () => window.clearInterval(interval);
+    }, [
+        accessTimeSummary?.active_session_login_at,
+        accessTimeSummary?.currently_active,
+        accessTimeSummary?.running_total_access_duration_seconds,
+        accessTimeSummary?.total_access_duration_seconds,
+    ]);
+
+    const runningAccessParts = formatDurationParts(runningAccessSeconds);
 
     return (
         <AuthenticatedLayout
@@ -200,13 +257,13 @@ export default function StudentHome({
                                 <div className="space-y-6">
                                     <div className="space-y-2">
                                         <p className="text-xs uppercase tracking-[0.24em] text-white/55">
-                                            {homeExperience?.highlight_label ?? 'Running Total'}
+                                            Total access time
                                         </p>
                                         <div className="text-3xl font-semibold tracking-[0.08em] text-white">
-                                            {homeExperience?.highlight_value ?? '132:65:06'}
+                                            {`${runningAccessParts.hours}:${runningAccessParts.minutes}:${runningAccessParts.seconds}`}
                                         </div>
                                         <p className="text-sm text-white/58">
-                                            {homeExperience?.highlight_caption ?? 'Login Time'}
+                                            Cumulative student access time
                                         </p>
                                     </div>
 
