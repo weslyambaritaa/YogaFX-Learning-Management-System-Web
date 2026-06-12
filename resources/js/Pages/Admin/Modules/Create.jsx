@@ -2,9 +2,11 @@ import ModuleForm from '@/Components/ModuleForm';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function CreateModule({ accessTiers }) {
+export default function CreateModule({ accessTiers, nextSortOrder }) {
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         title: '',
+        description: '',
+        sort_order: String(nextSortOrder ?? 1),
         url_slug: '',
         thumbnail: null,
         access_tier_ids: [],

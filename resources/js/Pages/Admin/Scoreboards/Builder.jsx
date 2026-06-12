@@ -2125,23 +2125,21 @@ function useQuestionConfigPanel({
                 && questionForm.data.scoring_category !== 'overall_only')
         : false;
 
-    const hasUnsavedQuestionChanges = question
-        ? (() => {
-            const currentDraft = buildQuestionPayload(question.id);
+    const hasUnsavedQuestionChanges = questions.some((currentQuestion) => {
+        const currentDraft = buildQuestionPayload(currentQuestion.id);
 
-            if (!currentDraft) {
-                return false;
-            }
+        if (!currentDraft) {
+            return false;
+        }
 
-            return (
-                serializeDraft(currentDraft) !==
-                lastSavedQuestionSnapshotsRef.current[question.id]
-            );
-        })()
-        : false;
-    const persistedOptions = (question?.options ?? []).filter(
-        (option) => !option.is_virtual,
-    );
+        return (
+            serializeDraft(currentDraft) !==
+            lastSavedQuestionSnapshotsRef.current[currentQuestion.id]
+        );
+    });
+    const persistedOptions = questions
+        .flatMap((currentQuestion) => currentQuestion.options ?? [])
+        .filter((option) => !option.is_virtual);
     const hasUnsavedOptionChanges = persistedOptions.some((option) => {
         const currentDraft = optionDrafts[option.id] ?? buildOptionDraft(option);
         return (
@@ -2168,9 +2166,20 @@ function useQuestionConfigPanel({
         setSaveError(null);
 
         try {
-            const changedQuestionIds = question && hasUnsavedQuestionChanges
-                ? [question.id]
-                : [];
+            const changedQuestionIds = questions
+                .filter((currentQuestion) => {
+                    const currentDraft = buildQuestionPayload(currentQuestion.id);
+
+                    if (!currentDraft) {
+                        return false;
+                    }
+
+                    return (
+                        serializeDraft(currentDraft) !==
+                        lastSavedQuestionSnapshotsRef.current[currentQuestion.id]
+                    );
+                })
+                .map((currentQuestion) => currentQuestion.id);
 
             for (const questionId of changedQuestionIds) {
                 await saveQuestion(questionId);
@@ -2190,8 +2199,10 @@ function useQuestionConfigPanel({
 
             setSaveState('saved');
             setRestoredDraftNotice(false);
-            if (question?.id) {
-                setQuestionDrafts((current) => omitKey(current, question.id));
+            if (changedQuestionIds.length > 0) {
+                setQuestionDrafts((current) =>
+                    omitKeys(current, changedQuestionIds),
+                );
             }
             if (changedOptions.length > 0) {
                 setOptionDrafts((current) =>

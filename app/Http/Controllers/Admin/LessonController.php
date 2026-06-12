@@ -284,6 +284,8 @@ class LessonController extends Controller
         return [
             'max_size_bytes' => UploadConstraints::MAX_FILE_SIZE_KB * 1024,
             'max_size_label' => UploadConstraints::MAX_FILE_SIZE_MB.' MB',
+            'workbook_max_size_bytes' => UploadConstraints::LESSON_WORKBOOK_MAX_FILE_SIZE_KB * 1024,
+            'workbook_max_size_label' => UploadConstraints::labelFromMb(UploadConstraints::LESSON_WORKBOOK_MAX_FILE_SIZE_MB),
             'audio_max_size_bytes' => UploadConstraints::LESSON_AUDIO_MAX_FILE_SIZE_KB * 1024,
             'audio_max_size_label' => UploadConstraints::labelFromMb(UploadConstraints::LESSON_AUDIO_MAX_FILE_SIZE_MB),
         ];

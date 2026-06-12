@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MaintainsSequentialSortOrder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class QuestionOption extends Model
 {
     use HasFactory;
+    use MaintainsSequentialSortOrder;
 
     protected function casts(): array
     {
@@ -52,5 +54,10 @@ class QuestionOption extends Model
     public function answers(): HasMany
     {
         return $this->hasMany(AssessmentAnswer::class);
+    }
+
+    protected function sortOrderScopeColumns(): array
+    {
+        return ['question_id'];
     }
 }

@@ -56,6 +56,7 @@ class ModuleCatalogController extends Controller
                 return [
                     'id' => $module->id,
                     'title' => $module->title,
+                    'description' => $module->description,
                     'url_slug' => $module->url_slug,
                     'url' => $hasUnlockedLesson ? route('modules.show', $module->url_slug) : null,
                     'sort_order' => $module->sort_order,
@@ -112,6 +113,7 @@ class ModuleCatalogController extends Controller
             'module' => [
                 'id' => $module->id,
                 'title' => $module->title,
+                'description' => $module->description,
                 'url_slug' => $module->url_slug,
                 'sort_order' => $module->sort_order,
                 'lesson_count' => $lessons->count(),

@@ -37,6 +37,8 @@ class ModuleRequest extends FormRequest
 
         return [
             'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'sort_order' => ['nullable', 'integer', 'min:1'],
             'url_slug' => [
                 'required',
                 'string',

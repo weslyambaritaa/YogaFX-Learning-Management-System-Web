@@ -7,22 +7,28 @@ export default function VideoJsPlayer({
     src,
     poster = null,
     className = '',
+    autoplay = false,
     onPlaybackError = null,
     onProgressUpdate = null,
+    onTimeUpdate = null,
 }) {
     const containerRef = useRef(null);
     const playerRef = useRef(null);
     const latestSourceRef = useRef(src);
     const latestPosterRef = useRef(poster);
+    const latestAutoplayRef = useRef(autoplay);
     const latestPlaybackErrorHandlerRef = useRef(onPlaybackError);
     const latestProgressHandlerRef = useRef(onProgressUpdate);
+    const latestTimeUpdateHandlerRef = useRef(onTimeUpdate);
     const lastReportedProgressRef = useRef(0);
     const [loadFailed, setLoadFailed] = useState(false);
 
     useEffect(() => {
         latestPlaybackErrorHandlerRef.current = onPlaybackError;
         latestProgressHandlerRef.current = onProgressUpdate;
-    }, [onPlaybackError, onProgressUpdate]);
+        latestTimeUpdateHandlerRef.current = onTimeUpdate;
+        latestAutoplayRef.current = autoplay;
+    }, [autoplay, onPlaybackError, onProgressUpdate, onTimeUpdate]);
 
     useEffect(() => {
         latestSourceRef.current = src;
@@ -35,12 +41,25 @@ export default function VideoJsPlayer({
         playerRef.current.poster(poster ?? '');
 
         if (src) {
+            const attemptAutoplay = () => {
+                if (!latestAutoplayRef.current) {
+                    return;
+                }
+
+                const playbackResult = playerRef.current?.play?.();
+
+                if (playbackResult && typeof playbackResult.catch === 'function') {
+                    playbackResult.catch(() => {});
+                }
+            };
+
             playerRef.current.src([
                 {
                     src,
                     type: HLS_SOURCE_TYPE,
                 },
             ]);
+            playerRef.current.one('loadedmetadata', attemptAutoplay);
             playerRef.current.load();
 
             return;
@@ -73,7 +92,7 @@ export default function VideoJsPlayer({
                 containerRef.current.appendChild(videoElement);
 
                 const player = videojs(videoElement, {
-                    autoplay: false,
+                    autoplay: latestAutoplayRef.current,
                     controls: true,
                     fluid: true,
                     preload: 'auto',
@@ -116,6 +135,14 @@ export default function VideoJsPlayer({
                 player.on('loadedmetadata', () => {
                     lastReportedProgressRef.current = 0;
                     latestPlaybackErrorHandlerRef.current?.(null);
+
+                    if (latestAutoplayRef.current) {
+                        const playbackResult = player.play();
+
+                        if (playbackResult && typeof playbackResult.catch === 'function') {
+                            playbackResult.catch(() => {});
+                        }
+                    }
                 });
 
                 player.on('timeupdate', () => {
@@ -138,11 +165,24 @@ export default function VideoJsPlayer({
                         lastReportedProgressRef.current = progress;
                         latestProgressHandlerRef.current?.(progress);
                     }
+
+                    latestTimeUpdateHandlerRef.current?.({
+                        currentTime,
+                        duration,
+                        remainingSeconds: Math.max(0, duration - currentTime),
+                        isEnded: false,
+                    });
                 });
 
                 player.on('ended', () => {
                     lastReportedProgressRef.current = 100;
                     latestProgressHandlerRef.current?.(100);
+                    latestTimeUpdateHandlerRef.current?.({
+                        currentTime: player.duration(),
+                        duration: player.duration(),
+                        remainingSeconds: 0,
+                        isEnded: true,
+                    });
                 });
 
                 playerRef.current = player;

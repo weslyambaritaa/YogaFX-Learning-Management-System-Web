@@ -102,7 +102,7 @@ class LessonRequest extends FormRequest
                     $fail('The thumbnail must be a valid image file in a supported format, such as JPG, PNG, GIF, BMP, WebP, SVG, AVIF, HEIC, or HEIF.');
                 },
             ],
-            'workbook' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
+            'workbook' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:'.UploadConstraints::LESSON_WORKBOOK_MAX_FILE_SIZE_KB],
             'audio' => [
                 'nullable',
                 'file',
@@ -173,8 +173,8 @@ class LessonRequest extends FormRequest
             'thumbnail.file' => 'The thumbnail upload is invalid.',
             'thumbnail.uploaded' => 'The thumbnail could not be uploaded. Please make sure the file is not larger than '.UploadConstraints::labelFromMb(UploadConstraints::MAX_FILE_SIZE_MB).' and try again.',
             'thumbnail.max' => 'The thumbnail must not be larger than '.UploadConstraints::labelFromMb(UploadConstraints::MAX_FILE_SIZE_MB).'.',
-            'workbook.uploaded' => 'The workbook file could not be uploaded. Please make sure the file is not larger than '.UploadConstraints::labelFromMb(UploadConstraints::MAX_FILE_SIZE_MB).' and try again.',
-            'workbook.max' => 'The workbook file must not be larger than '.UploadConstraints::labelFromMb(UploadConstraints::MAX_FILE_SIZE_MB).'.',
+            'workbook.uploaded' => 'The workbook file could not be uploaded. Please make sure the file is not larger than '.UploadConstraints::labelFromMb(UploadConstraints::LESSON_WORKBOOK_MAX_FILE_SIZE_MB).' and try again.',
+            'workbook.max' => 'The workbook file must not be larger than '.UploadConstraints::labelFromMb(UploadConstraints::LESSON_WORKBOOK_MAX_FILE_SIZE_MB).'.',
             'audio.max' => 'The audio file must not be larger than '.UploadConstraints::labelFromMb(UploadConstraints::LESSON_AUDIO_MAX_FILE_SIZE_MB).'.',
         ];
 

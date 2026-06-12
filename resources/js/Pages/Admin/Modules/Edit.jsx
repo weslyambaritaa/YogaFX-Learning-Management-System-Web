@@ -5,6 +5,8 @@ import { Head, Link, useForm } from '@inertiajs/react';
 export default function EditModule({ module, accessTiers, status }) {
     const { data, setData, patch, processing, errors, setError, clearErrors } = useForm({
         title: module.title ?? '',
+        description: module.description ?? '',
+        sort_order: String(module.sort_order ?? 1),
         url_slug: module.url_slug ?? '',
         thumbnail: null,
         access_tier_ids: module.access_tier_ids ?? [],

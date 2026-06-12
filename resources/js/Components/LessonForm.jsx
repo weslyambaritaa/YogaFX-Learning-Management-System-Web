@@ -39,6 +39,10 @@ export default function LessonForm({
         uploadConstraints?.audio_max_size_bytes ?? maxUploadSizeBytes;
     const audioMaxUploadSizeLabel =
         uploadConstraints?.audio_max_size_label ?? maxUploadSizeLabel;
+    const workbookMaxUploadSizeBytes =
+        uploadConstraints?.workbook_max_size_bytes ?? maxUploadSizeBytes;
+    const workbookMaxUploadSizeLabel =
+        uploadConstraints?.workbook_max_size_label ?? maxUploadSizeLabel;
 
     const handleFileChange = (field, label) => (event) => {
         const file = event.currentTarget.files?.[0] ?? null;
@@ -52,9 +56,18 @@ export default function LessonForm({
         }
 
         const isAudioField = field === 'audio';
+        const isWorkbookField = field === 'workbook';
         const errorMessage = validateUploadSize(file, label, {
-            maxUploadSizeBytes: isAudioField ? audioMaxUploadSizeBytes : maxUploadSizeBytes,
-            maxUploadSizeLabel: isAudioField ? audioMaxUploadSizeLabel : maxUploadSizeLabel,
+            maxUploadSizeBytes: isAudioField
+                ? audioMaxUploadSizeBytes
+                : isWorkbookField
+                  ? workbookMaxUploadSizeBytes
+                  : maxUploadSizeBytes,
+            maxUploadSizeLabel: isAudioField
+                ? audioMaxUploadSizeLabel
+                : isWorkbookField
+                  ? workbookMaxUploadSizeLabel
+                  : maxUploadSizeLabel,
         });
 
         if (errorMessage) {
@@ -222,7 +235,7 @@ export default function LessonForm({
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                     />
                     <p className="mt-2 text-xs text-gray-500">
-                        Maximum file size: {maxUploadSizeLabel}. Workbook files are stored in
+                        Maximum file size: {workbookMaxUploadSizeLabel}. Workbook files are stored in
                         Bunny Storage.
                     </p>
                     <InputError className="mt-2" message={errors.workbook} />

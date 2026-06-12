@@ -89,6 +89,11 @@ export default function ModulesIndex({ modules, status }) {
                                                         <div className="text-xs text-gray-500">
                                                             {module.url_slug}
                                                         </div>
+                                                        {module.description ? (
+                                                            <div className="mt-1 max-w-md text-xs leading-5 text-gray-500">
+                                                                {module.description}
+                                                            </div>
+                                                        ) : null}
                                                     </div>
                                                 </div>
                                             </td>

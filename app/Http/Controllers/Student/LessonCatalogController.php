@@ -53,6 +53,12 @@ class LessonCatalogController extends Controller
         ))->count();
         $currentProgress = $progressMap->get($lesson->id);
         $videoState = $this->videoStateForLesson($lesson);
+        $currentLessonIndex = $lessonNavigation->search(
+            fn (Lesson $item) => $item->id === $lesson->id,
+        );
+        $nextLesson = $currentLessonIndex !== false
+            ? $lessonNavigation->get($currentLessonIndex + 1)
+            : null;
 
         return Inertia::render('Student/Lessons/Show', [
             'lesson' => [
@@ -77,6 +83,7 @@ class LessonCatalogController extends Controller
                             ->where('lesson_id', $lesson->id)
                             ->where('user_id', $user->id)
                             ->value('watch_progress') >= 95,
+                    'is_completed' => $completedAssessmentIds->contains((int) $lesson->assessment_id),
                     'current_attempt_id' => AssessmentAttempt::query()
                         ->where('assessment_id', $lesson->assessment_id)
                         ->where('user_id', $user->id)
@@ -102,6 +109,7 @@ class LessonCatalogController extends Controller
                         $completedAssessmentIds,
                     ),
                 ],
+                'autoplay' => $request->boolean('autoplay'),
                 'thumbnail_url' => $this->protectedMediaUrl(
                     'lesson',
                     $lesson->id,
@@ -120,6 +128,19 @@ class LessonCatalogController extends Controller
                     'id' => $item->id,
                     'title' => $item->title,
                     'sort_order' => $item->sort_order,
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'lesson',
+                        $item->id,
+                        'thumbnail',
+                        $item->thumbnail,
+                        versionSeed: $item->updated_at,
+                    ) ?: $this->protectedMediaUrl(
+                        'lesson',
+                        $lesson->id,
+                        'thumbnail',
+                        $lesson->thumbnail,
+                        versionSeed: $lesson->updated_at,
+                    ),
                     'is_locked' => ! ($lessonUnlockMap->get($item->id)['is_unlocked'] ?? false),
                     'lock_reason' => $lessonUnlockMap->get($item->id)['reason'] ?? null,
                     'status' => $this->isLessonFullyComplete(
@@ -136,6 +157,23 @@ class LessonCatalogController extends Controller
                         ? route('lessons.show', $item)
                         : null,
                 ]),
+                'next_lesson' => $nextLesson ? [
+                    'id' => $nextLesson->id,
+                    'title' => $nextLesson->title,
+                    'sort_order' => $nextLesson->sort_order,
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'lesson',
+                        $nextLesson->id,
+                        'thumbnail',
+                        $nextLesson->thumbnail,
+                        versionSeed: $nextLesson->updated_at,
+                    ),
+                    'is_unlocked' => (bool) ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false),
+                    'lock_reason' => $lessonUnlockMap->get($nextLesson->id)['reason'] ?? null,
+                    'url' => ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false)
+                        ? route('lessons.show', $nextLesson)
+                        : null,
+                ] : null,
             ],
             'accessTimeSummary' => $this->sessionTrackingService->summaryForUser($user),
         ]);

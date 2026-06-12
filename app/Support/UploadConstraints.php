@@ -7,6 +7,9 @@ class UploadConstraints
     public const MAX_FILE_SIZE_KB = 10240;
     public const MAX_FILE_SIZE_MB = 10;
 
+    public const LESSON_WORKBOOK_MAX_FILE_SIZE_KB = 102400;
+    public const LESSON_WORKBOOK_MAX_FILE_SIZE_MB = 100;
+
     public const LESSON_AUDIO_MAX_FILE_SIZE_KB = 51200;
     public const LESSON_AUDIO_MAX_FILE_SIZE_MB = 50;
 

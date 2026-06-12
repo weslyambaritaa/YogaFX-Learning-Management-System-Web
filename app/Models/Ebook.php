@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MaintainsSequentialSortOrder;
 use Database\Factories\EbookFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,15 +14,7 @@ class Ebook extends Model
 {
     /** @use HasFactory<EbookFactory> */
     use HasFactory;
-
-    protected static function booted(): void
-    {
-        static::creating(function (Ebook $ebook): void {
-            if ($ebook->sort_order === null) {
-                $ebook->sort_order = ((int) static::query()->max('sort_order')) + 1;
-            }
-        });
-    }
+    use MaintainsSequentialSortOrder;
 
     public function accessTiers(): BelongsToMany
     {

@@ -1,7 +1,7 @@
 import { Button } from '@/Components/ui/button';
 import VideoJsPlayer from '@/Components/VideoJsPlayer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import {
     CheckCircle2,
@@ -54,6 +54,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const [playerWarning, setPlayerWarning] = useState(null);
     const [watchProgress, setWatchProgress] = useState(lesson.progress?.watch_progress ?? 0);
     const [isLessonDone, setIsLessonDone] = useState(Boolean(lesson.progress?.is_done));
+    const [assessmentState, setAssessmentState] = useState(lesson.assessment);
+    const [moduleState, setModuleState] = useState(lesson.module);
+    const [navigationItems, setNavigationItems] = useState(lesson.navigation ?? []);
+    const [nextLesson, setNextLesson] = useState(lesson.next_lesson);
+    const [autoNextCountdown, setAutoNextCountdown] = useState(null);
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
     );
@@ -62,6 +67,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         latestSent: Number(lesson.progress?.watch_progress ?? 0),
         pending: null,
     });
+    const autoNextStartedRef = useRef(false);
     const lessonVideoUrl = lesson.video?.hls_url ?? null;
     const lessonVideoWarning = lesson.video?.warning_message ?? null;
     const playbackErrorMessage =
@@ -85,12 +91,49 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     useEffect(() => {
         setWatchProgress(lesson.progress?.watch_progress ?? 0);
         setIsLessonDone(Boolean(lesson.progress?.is_done));
+        setAssessmentState(lesson.assessment);
+        setModuleState(lesson.module);
+        setNavigationItems(lesson.navigation ?? []);
+        setNextLesson(lesson.next_lesson);
+        setAutoNextCountdown(null);
+        autoNextStartedRef.current = false;
         progressRequestRef.current = {
             inFlight: false,
             latestSent: Number(lesson.progress?.watch_progress ?? 0),
             pending: null,
         };
     }, [lesson.id, lesson.progress?.is_done, lesson.progress?.watch_progress]);
+
+    const resolvedNextLessonUrl = nextLesson?.url
+        ?? (nextLesson?.id ? route('lessons.show', nextLesson.id) : null);
+    const autoplayNextLessonUrl = nextLesson?.id
+        ? route('lessons.show', { lesson: nextLesson.id, autoplay: 1 })
+        : null;
+    const canOpenNextLesson = Boolean(nextLesson?.is_unlocked && resolvedNextLessonUrl);
+    const totalAccessParts = formatDurationParts(totalAccessSeconds);
+    const canAutoAdvance = Boolean(
+        lesson.lesson_video_id && !assessmentState && nextLesson?.id,
+    );
+
+    useEffect(() => {
+        if (autoNextCountdown === null || !autoplayNextLessonUrl) {
+            return undefined;
+        }
+
+        if (autoNextCountdown <= 0) {
+            router.visit(autoplayNextLessonUrl);
+
+            return undefined;
+        }
+
+        const timeout = window.setTimeout(() => {
+            setAutoNextCountdown((current) =>
+                current === null ? null : Math.max(0, current - 1),
+            );
+        }, 1000);
+
+        return () => window.clearTimeout(timeout);
+    }, [autoNextCountdown, autoplayNextLessonUrl]);
 
     useEffect(() => {
         if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
@@ -123,8 +166,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         accessTimeSummary?.running_total_access_duration_seconds,
         accessTimeSummary?.total_access_duration_seconds,
     ]);
-
-    const totalAccessParts = formatDurationParts(totalAccessSeconds);
 
     const readXsrfToken = () => {
         const xsrfCookie = document.cookie
@@ -169,10 +210,88 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
             const result = await response.json();
             const persistedProgress = Number(result?.watch_progress ?? pendingProgress);
+            const completedNow = Boolean(result?.is_done);
 
             progressRequestRef.current.latestSent = persistedProgress;
             setWatchProgress(persistedProgress);
-            setIsLessonDone(Boolean(result?.is_done));
+            setIsLessonDone(completedNow);
+            setAssessmentState((current) =>
+                current
+                    ? {
+                          ...current,
+                          is_unlocked:
+                              current.is_unlocked || Boolean(result?.assessment_unlocked),
+                      }
+                    : current,
+            );
+            setNavigationItems((current) =>
+                current.map((item) =>
+                    item.id === lesson.id
+                        ? {
+                              ...item,
+                              progress_percentage: persistedProgress,
+                              status: completedNow
+                                  ? 'completed'
+                                  : item.status === 'completed'
+                                    ? 'completed'
+                                    : 'current',
+                          }
+                        : item,
+                ),
+            );
+
+            if (completedNow) {
+                setModuleState((current) => {
+                    if (!current || isLessonDone) {
+                        return current;
+                    }
+
+                    const completedLessons = Math.min(
+                        Number(current.completed_lessons ?? 0) + 1,
+                        Number(current.lesson_count ?? 0),
+                    );
+
+                    return {
+                        ...current,
+                        completed_lessons: completedLessons,
+                        progress_percentage:
+                            Number(current.lesson_count ?? 0) > 0
+                                ? Math.round(
+                                      (completedLessons / Number(current.lesson_count)) * 100,
+                                  )
+                                : 0,
+                    };
+                });
+
+                setNavigationItems((current) =>
+                    current.map((item) =>
+                        item.id === nextLesson?.id
+                            ? {
+                                  ...item,
+                                  is_locked: false,
+                                  lock_reason: null,
+                                  status:
+                                      item.status === 'locked'
+                                          ? 'available'
+                                          : item.status,
+                                  url:
+                                      nextLesson?.url
+                                      ?? route('lessons.show', nextLesson.id),
+                              }
+                            : item,
+                    ),
+                );
+                setNextLesson((current) =>
+                    current
+                        ? {
+                              ...current,
+                              is_unlocked: true,
+                              lock_reason: null,
+                              url: current.url ?? route('lessons.show', current.id),
+                          }
+                        : current,
+                );
+            }
         } catch (error) {
             console.error('Failed to persist lesson watch progress.', error);
             progressRequestRef.current.pending = Math.max(
@@ -208,6 +327,33 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         void flushProgressUpdate();
     };
 
+    const handlePlayerTimeUpdate = ({ remainingSeconds, isEnded }) => {
+        if (!canAutoAdvance) {
+            return;
+        }
+
+        if (isEnded) {
+            if (!autoNextStartedRef.current) {
+                autoNextStartedRef.current = true;
+                setAutoNextCountdown(0);
+            }
+
+            return;
+        }
+
+        if (remainingSeconds <= 10 && remainingSeconds > 0) {
+            autoNextStartedRef.current = true;
+            setAutoNextCountdown(Math.ceil(remainingSeconds));
+
+            return;
+        }
+
+        if (remainingSeconds > 10 && autoNextStartedRef.current) {
+            autoNextStartedRef.current = false;
+            setAutoNextCountdown(null);
+        }
+    };
+
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
@@ -239,8 +385,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         src={lessonVideoUrl}
                                         poster={lesson.thumbnail_url}
                                         className="overflow-hidden rounded-[24px]"
+                                        autoplay={Boolean(lesson.autoplay)}
                                         onPlaybackError={setPlayerWarning}
                                         onProgressUpdate={handleProgressUpdate}
+                                        onTimeUpdate={handlePlayerTimeUpdate}
                                     />
                                 </div>
                             ) : lesson.thumbnail_url ? (
@@ -260,6 +408,26 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     ? 'Lesson completed'
                                     : `${watchProgress}% lesson progress`}
                             </div>
+                            {autoNextCountdown !== null && nextLesson?.title ? (
+                                <div className="absolute inset-x-5 bottom-5 rounded-2xl border border-white/15 bg-black/55 px-5 py-4 backdrop-blur">
+                                    <div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">
+                                        Up Next
+                                    </div>
+                                    <div className="mt-2 flex items-center justify-between gap-4">
+                                        <div>
+                                            <div className="text-lg font-semibold text-white">
+                                                {nextLesson.title}
+                                            </div>
+                                            <div className="mt-1 text-sm text-white/70">
+                                                Auto continuing in {autoNextCountdown} seconds
+                                            </div>
+                                        </div>
+                                        <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-lg font-semibold text-white">
+                                            {autoNextCountdown}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
 
                         <div className="space-y-6 p-6 sm:p-8">
@@ -360,23 +528,27 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 Assessment
                                             </div>
                                             <div className="mt-1 text-base font-semibold text-slate-900">
-                                                {lesson.assessment.title}
+                                                {assessmentState.title}
                                             </div>
                                             <p className="mt-1 text-sm text-slate-600">
-                                                {lesson.assessment.is_unlocked
+                                                {assessmentState.is_completed
+                                                    ? 'This assessment has already been completed.'
+                                                    : assessmentState.is_unlocked
                                                     ? 'This assessment is ready to start.'
                                                     : 'Assessment unlocks after your lesson watch progress reaches 95%.'}
                                             </p>
                                         </div>
 
-                                        {lesson.assessment.is_unlocked ? (
+                                        {assessmentState.is_unlocked ? (
                                             <Link
                                                 href={route('assessments.intro', lesson.id)}
                                                 className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                                             >
-                                                {lesson.assessment.current_attempt_id
+                                                {assessmentState.current_attempt_id
                                                     ? 'Resume Assessment'
-                                                    : 'Open Assessment'}
+                                                    : assessmentState.is_completed
+                                                      ? 'View Assessment Result'
+                                                      : 'Open Assessment'}
                                             </Link>
                                         ) : (
                                             <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
@@ -388,14 +560,33 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             )}
 
                             {lesson.module && (
-                                <Link
-                                    href={route('modules.show', lesson.module.url_slug)}
-                                    className="inline-flex items-center gap-2 text-sm font-medium text-white/82 transition hover:text-white"
-                                >
-                                    Back to module
-                                    <ChevronRight className="size-4" />
-                                </Link>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Link
+                                        href={route('modules.show', lesson.module.url_slug)}
+                                        className="inline-flex items-center gap-2 text-sm font-medium text-white/82 transition hover:text-white"
+                                    >
+                                        Back to module
+                                        <ChevronRight className="size-4" />
+                                    </Link>
+                                    {nextLesson ? (
+                                        canOpenNextLesson ? (
+                                            <Button
+                                                asChild
+                                                className="bg-[#e24848] text-white hover:bg-[#f05a5a]"
+                                            >
+                                                <Link href={resolvedNextLessonUrl}>
+                                                    Next Lesson
+                                                </Link>
+                                            </Button>
+                                        ) : (
+                                            <div className="rounded-full border border-amber-400/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
+                                                {nextLesson.lock_reason ?? 'Finish this lesson before continuing.'}
+                                            </div>
+                                        )
+                                    ) : null}
+                                </div>
                             )}
+
                         </div>
                     </div>
                 </section>
@@ -406,13 +597,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             Progress
                         </p>
                         <h2 className="mt-3 text-2xl font-semibold text-white">
-                            You've completed {lesson.module?.completed_lessons ?? 0} of{' '}
-                            {lesson.module?.lesson_count ?? 0} lessons
+                            You've completed {moduleState?.completed_lessons ?? 0} of{' '}
+                            {moduleState?.lesson_count ?? 0} lessons
                         </h2>
                         <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
                             <div
                                 className="h-full rounded-full bg-[#3DDC84]"
-                                style={{ width: `${lesson.module?.progress_percentage ?? 0}%` }}
+                                style={{ width: `${moduleState?.progress_percentage ?? 0}%` }}
                             />
                         </div>
                         <p className="mt-3 text-sm text-white/58">
@@ -434,7 +625,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         </div>
 
                         <div className="mt-5 space-y-3">
-                            {lesson.navigation?.map((item) => {
+                            {navigationItems?.map((item) => {
                                 const status =
                                     navigationStatusConfig[item.status] ??
                                     navigationStatusConfig.available;
@@ -445,28 +636,39 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     <NavigationTag
                                         key={item.id}
                                         {...(item.url ? { href: item.url } : {})}
-                                        className="block rounded-[22px] border border-white/10 bg-black/18 p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
+                                    className="block rounded-[22px] border border-white/10 bg-black/18 p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
                                     >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="space-y-2">
-                                                <p className="text-xs uppercase tracking-[0.22em] text-white/42">
-                                                    Lesson {item.sort_order}
-                                                </p>
-                                                <h3 className="text-sm font-medium leading-6 text-white">
-                                                    {item.title}
-                                                </h3>
-                                                {item.is_locked && item.lock_reason ? (
-                                                    <p className="text-xs leading-5 text-amber-200/80">
-                                                        {item.lock_reason}
-                                                    </p>
+                                        <div className="flex items-start gap-4">
+                                            <div className="h-20 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/5">
+                                                {item.thumbnail_url ? (
+                                                    <img
+                                                        src={item.thumbnail_url}
+                                                        alt={item.title}
+                                                        className="h-full w-full object-cover"
+                                                    />
                                                 ) : null}
                                             </div>
-                                            <span
-                                                className={`inline-flex items-center gap-2 text-xs font-medium ${status.className}`}
-                                            >
-                                                <StatusIcon className="size-4" />
-                                                {status.label}
-                                            </span>
+                                            <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
+                                                <div className="space-y-2">
+                                                    <p className="text-xs uppercase tracking-[0.22em] text-white/42">
+                                                        Lesson {item.sort_order}
+                                                    </p>
+                                                    <h3 className="text-sm font-medium leading-6 text-white">
+                                                        {item.title}
+                                                    </h3>
+                                                    {item.is_locked && item.lock_reason ? (
+                                                        <p className="text-xs leading-5 text-amber-200/80">
+                                                            {item.lock_reason}
+                                                        </p>
+                                                    ) : null}
+                                                </div>
+                                                <span
+                                                    className={`inline-flex items-center gap-2 text-xs font-medium ${status.className}`}
+                                                >
+                                                    <StatusIcon className="size-4" />
+                                                    {status.label}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">

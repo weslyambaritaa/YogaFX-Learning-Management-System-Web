@@ -62,9 +62,8 @@ export default function StudentModuleShow({ module }) {
                                 {module.title}
                             </h1>
                             <p className="max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
-                                Navigate this module like a premium episode selection view.
-                                Every lesson is presented with clear order, status, and learning
-                                signals.
+                                {module.description
+                                    || 'Navigate this module like a premium episode selection view. Every lesson is presented with clear order, status, and learning signals.'}
                             </p>
                         </div>
 
