@@ -1,82 +1,49 @@
 import DeleteConfirmationDialog from "@/Components/DeleteConfirmationDialog";
-import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, usePage } from "@inertiajs/react";
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { Search, Plus, BookOpen } from "lucide-react";
 import { useState } from "react";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25];
 
-function buildAssetLabels(lesson) {
-    return [
-        lesson.has_workbook ? "Workbook" : null,
-        lesson.has_lesson_video ? "Lesson Video" : null,
-        lesson.has_audio ? "Audio" : null,
-    ].filter(Boolean);
-}
-
-export default function LessonsIndex({ lessons, status }) {
+export default function LessonsIndex({ lessons = [], status }) {
     const errors = usePage().props.errors;
+
     const [search, setSearch] = useState("");
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(5);
     const [currentPage, setCurrentPage] = useState(1);
 
-    const normalizedSearch = search.trim().toLowerCase();
-    const filteredLessons = lessons.filter((lesson) => {
-        if (!normalizedSearch) {
-            return true;
-        }
-
-        return [
-            lesson.title,
-            lesson.module,
-            lesson.scoreboard ?? "",
-            lesson.access_tiers.join(" "),
-            buildAssetLabels(lesson).join(" "),
-        ]
-            .join(" ")
-            .toLowerCase()
-            .includes(normalizedSearch);
-    });
-
-    const totalPages = Math.max(
-        1,
-        Math.ceil(filteredLessons.length / pageSize),
+    // client-side filter
+    const filtered = lessons.filter(
+        (l) =>
+            (l.title ?? "").toLowerCase().includes(search.toLowerCase()) ||
+            (l.module ?? "").toLowerCase().includes(search.toLowerCase()),
     );
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     const safePage = Math.min(currentPage, totalPages);
-    const paginatedLessons = filteredLessons.slice(
+    const paginated = filtered.slice(
         (safePage - 1) * pageSize,
         safePage * pageSize,
     );
-    const paginationStart = filteredLessons.length
-        ? (safePage - 1) * pageSize + 1
-        : 0;
-    const paginationEnd = filteredLessons.length
-        ? paginationStart + paginatedLessons.length - 1
-        : 0;
-    const visiblePages = Array.from({ length: totalPages }, (_, index) => {
-        return index + 1;
-    }).filter((page) => Math.abs(page - safePage) <= 1);
 
-    const handleSearchChange = (event) => {
-        setSearch(event.target.value);
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
         setCurrentPage(1);
     };
-
-    const handlePageSizeChange = (event) => {
-        setPageSize(Number(event.target.value));
+    const handlePageSize = (e) => {
+        setPageSize(Number(e.target.value));
         setCurrentPage(1);
     };
 
     return (
         <AuthenticatedLayout
             header={
-                <div className="min-w-0">
+                <div className="flex flex-col gap-1">
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
                         Lessons
                     </h2>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="text-sm text-gray-500">
                         Manage lesson records independently from module
                         navigation.
                     </p>
@@ -85,373 +52,306 @@ export default function LessonsIndex({ lessons, status }) {
         >
             <Head title="Lessons" />
 
-            <div className="py-8 sm:py-10">
-                <div className="mx-auto max-w-7xl space-y-5 px-4 sm:px-6 lg:px-8">
+            <div className="py-8">
+                <div className="mx-auto max-w-7xl space-y-4 px-4 sm:px-6 lg:px-8">
+                    {/* Status banners */}
                     {status === "lesson-created" && (
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Lesson has been created.
                         </div>
                     )}
                     {status === "lesson-updated" && (
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Lesson has been updated.
                         </div>
                     )}
                     {status === "lesson-deleted" && (
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Lesson has been deleted.
                         </div>
                     )}
                     {errors.lesson && (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                             {errors.lesson}
                         </div>
                     )}
 
-                    <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
-                        <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-                            <div className="space-y-2">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">
-                                    Content Management
-                                </p>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <h3 className="text-lg font-semibold text-slate-900">
-                                        Lesson List
-                                    </h3>
-                                    <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                                        {filteredLessons.length} lesson
-                                        {filteredLessons.length === 1
-                                            ? ""
-                                            : "s"}
-                                    </span>
-                                </div>
+                    {/* Card */}
+                    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                        {/* Card header */}
+                        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                            {/* Left: icon + title */}
+                            <div className="flex items-center gap-2">
+                                <BookOpen className="h-5 w-5 text-gray-500 shrink-0" />
+                                <span className="text-base font-semibold text-gray-800">
+                                    Lesson List
+                                </span>
                             </div>
 
-                            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
-                                <div className="relative w-full sm:max-w-[320px]">
-                                    <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                                    <Input
-                                        type="search"
+                            {/* Right: search + add */}
+                            <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search by title or module"
                                         value={search}
-                                        onChange={handleSearchChange}
-                                        placeholder="Search lessons"
-                                        className="h-11 rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus-visible:border-slate-300 focus-visible:ring-slate-200"
+                                        onChange={handleSearch}
+                                        className="h-10 w-56 rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
                                     />
                                 </div>
-
-                                <Button
-                                    asChild
-                                    size="lg"
-                                    className="h-11 rounded-xl bg-black px-5 text-sm font-semibold text-white hover:bg-slate-800"
+                                <Link
+                                    href={route("admin.lessons.create")}
+                                    className="flex h-10 items-center gap-1.5 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-700 whitespace-nowrap"
                                 >
-                                    <Link href={route("admin.lessons.create")}>
-                                        <Plus className="size-4" />
-                                        Create Lesson
-                                    </Link>
-                                </Button>
+                                    <Plus className="h-4 w-4" />
+                                    Add Lesson
+                                </Link>
                             </div>
                         </div>
 
+                        {/* Table */}
                         <div className="overflow-x-auto">
-                            <table className="min-w-[980px] w-full table-fixed text-sm">
-                                <thead className="bg-black">
-                                    <tr>
-                                        <th className="w-[28%] px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
-                                            Lesson
+                            <table className="w-full table-fixed text-sm">
+                                <colgroup>
+                                    <col className="w-8" />
+                                    <col className="w-10" />
+                                    <col className="w-[18%]" />
+                                    <col className="w-[14%]" />
+                                    <col className="w-[16%]" />
+                                    <col className="w-[18%]" />
+                                    <col className="w-[14%]" />
+                                    <col className="w-20" />
+                                </colgroup>
+                                <thead>
+                                    <tr className="bg-gray-900 text-white">
+                                        <th className="px-3 py-3 text-left">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-gray-600 bg-gray-800 accent-indigo-500"
+                                                onChange={() => {}}
+                                            />
                                         </th>
-                                        <th className="w-[16%] px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
-                                            Module
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                                            No
                                         </th>
-                                        <th className="w-[18%] px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
-                                            Tiers
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                                            Title
                                         </th>
-                                        <th className="w-[8%] px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
-                                            Order
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                                            Thumbnail
                                         </th>
-                                        <th className="w-[14%] px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
-                                            Scoreboard
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                                            Video
                                         </th>
-                                        <th className="w-[16%] px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                                            Access Tier
+                                        </th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide">
                                             Assets
                                         </th>
-                                        <th className="w-[14%] px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                                        <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide">
                                             Action
                                         </th>
                                     </tr>
                                 </thead>
-
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {paginatedLessons.length === 0 ? (
+                                <tbody className="divide-y divide-gray-100">
+                                    {paginated.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan={7}
-                                                className="px-6 py-16 text-center"
+                                                colSpan={8}
+                                                className="px-4 py-10 text-center text-sm text-gray-400"
                                             >
-                                                <div className="mx-auto max-w-sm space-y-2">
-                                                    <p className="text-sm font-medium text-slate-900">
-                                                        {search
-                                                            ? "No lessons match your search."
-                                                            : "No lessons available yet."}
-                                                    </p>
-                                                    <p className="text-sm text-slate-500">
-                                                        {search
-                                                            ? "Try a different keyword to find the lesson you need."
-                                                            : "Create a lesson to start building the learning library."}
-                                                    </p>
-                                                </div>
+                                                {search
+                                                    ? "No lessons match your search."
+                                                    : "No lessons yet."}
                                             </td>
                                         </tr>
                                     ) : (
-                                        paginatedLessons.map((lesson) => {
-                                            const assetLabels =
-                                                buildAssetLabels(lesson);
-
-                                            return (
-                                                <tr
-                                                    key={lesson.id}
-                                                    className="align-top transition-colors hover:bg-slate-50/80"
-                                                >
-                                                    <td className="px-6 py-5">
-                                                        <div className="flex items-center gap-4">
-                                                            {lesson.thumbnail_url ? (
-                                                                <img
-                                                                    src={
-                                                                        lesson.thumbnail_url
-                                                                    }
-                                                                    alt={
-                                                                        lesson.title
-                                                                    }
-                                                                    className="h-14 w-20 shrink-0 rounded-xl object-cover ring-1 ring-black/5"
-                                                                />
-                                                            ) : (
-                                                                <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">
-                                                                    No image
-                                                                </div>
-                                                            )}
-
-                                                            <div className="min-w-0 space-y-1">
-                                                                <p className="truncate text-sm font-semibold text-slate-900">
-                                                                    {
-                                                                        lesson.title
-                                                                    }
-                                                                </p>
-                                                                <p className="text-xs text-slate-500">
-                                                                    Learning
-                                                                    content item
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-6 py-5">
-                                                        <div className="space-y-1">
-                                                            <p className="line-clamp-2 text-sm font-medium text-slate-700">
-                                                                {lesson.module}
-                                                            </p>
-                                                            <p className="text-xs text-slate-400">
-                                                                Linked module
-                                                            </p>
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-6 py-5">
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {lesson.access_tiers
-                                                                .length > 0 ? (
-                                                                lesson.access_tiers.map(
-                                                                    (tier) => (
-                                                                        <span
-                                                                            key={
-                                                                                tier
-                                                                            }
-                                                                            className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600"
-                                                                        >
-                                                                            {
-                                                                                tier
-                                                                            }
-                                                                        </span>
-                                                                    ),
-                                                                )
-                                                            ) : (
-                                                                <span className="text-sm text-slate-400">
-                                                                    None
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-6 py-5 text-sm font-medium text-slate-700">
-                                                        {lesson.sort_order}
-                                                    </td>
-
-                                                    <td className="px-6 py-5">
-                                                        <span className="inline-flex max-w-full items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600">
-                                                            <span className="truncate">
-                                                                {lesson.scoreboard ??
-                                                                    "None"}
-                                                            </span>
-                                                        </span>
-                                                    </td>
-
-                                                    <td className="px-6 py-5">
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {assetLabels.length >
-                                                            0 ? (
-                                                                assetLabels.map(
-                                                                    (asset) => (
-                                                                        <span
-                                                                            key={
-                                                                                asset
-                                                                            }
-                                                                            className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
-                                                                        >
-                                                                            {
-                                                                                asset
-                                                                            }
-                                                                        </span>
-                                                                    ),
-                                                                )
-                                                            ) : (
-                                                                <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-                                                                    Basic
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-
-                                                    <td className="px-6 py-5">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <Link
-                                                                href={route(
-                                                                    "admin.lessons.edit",
-                                                                    lesson.id,
-                                                                )}
-                                                                className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                                                            >
-                                                                Edit
-                                                            </Link>
-                                                            <DeleteConfirmationDialog
-                                                                href={route(
-                                                                    "admin.lessons.destroy",
-                                                                    lesson.id,
-                                                                )}
-                                                                title="Delete lesson?"
-                                                                description={`This will permanently delete "${lesson.title}". This action cannot be undone.`}
-                                                                triggerClassName="inline-flex h-9 items-center justify-center rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-600 transition hover:bg-rose-50 hover:text-rose-700"
+                                        paginated.map((lesson, idx) => (
+                                            <tr
+                                                key={lesson.id}
+                                                className="align-middle hover:bg-gray-50"
+                                                style={{ height: "60px" }}
+                                            >
+                                                {/* Checkbox */}
+                                                <td className="px-3 py-3">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded border-gray-300 accent-indigo-500"
+                                                    />
+                                                </td>
+                                                {/* No */}
+                                                <td className="px-3 py-3 text-gray-500">
+                                                    {(safePage - 1) * pageSize +
+                                                        idx +
+                                                        1}
+                                                </td>
+                                                {/* Title */}
+                                                <td className="px-3 py-3">
+                                                    <span className="font-medium text-gray-900 line-clamp-2">
+                                                        {lesson.title}
+                                                    </span>
+                                                </td>
+                                                {/* Thumbnail */}
+                                                <td className="px-3 py-3">
+                                                    {lesson.thumbnail_url ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <img
+                                                                src={
+                                                                    lesson.thumbnail_url
+                                                                }
+                                                                alt={
+                                                                    lesson.title
+                                                                }
+                                                                className="h-8 w-12 rounded object-cover shrink-0"
                                                             />
+                                                            <span className="truncate text-xs text-gray-400">
+                                                                {
+                                                                    lesson.thumbnail_url
+                                                                        .split(
+                                                                            "/",
+                                                                        )
+                                                                        .pop()
+                                                                        .split(
+                                                                            "?",
+                                                                        )[0]
+                                                                }
+                                                            </span>
                                                         </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                {/* Video */}
+                                                <td className="px-3 py-3">
+                                                    {lesson.has_lesson_video ? (
+                                                        <span className="truncate text-xs text-gray-600">
+                                                            {lesson.video_filename ??
+                                                                "Video attached"}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400">
+                                                            —
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                {/* Access Tier */}
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    <span className="line-clamp-2 text-xs">
+                                                        {lesson.access_tiers?.join(
+                                                            ", ",
+                                                        ) ?? "—"}
+                                                    </span>
+                                                </td>
+                                                {/* Assets */}
+                                                <td className="px-3 py-3 text-gray-500 text-xs">
+                                                    {[
+                                                        lesson.has_workbook
+                                                            ? "Workbook"
+                                                            : null,
+                                                        lesson.has_lesson_video
+                                                            ? "Video"
+                                                            : null,
+                                                        lesson.has_audio
+                                                            ? "Audio"
+                                                            : null,
+                                                    ]
+                                                        .filter(Boolean)
+                                                        .join(", ") || "Basic"}
+                                                </td>
+                                                {/* Action */}
+                                                <td className="px-3 py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        <Link
+                                                            href={route(
+                                                                "admin.lessons.edit",
+                                                                lesson.id,
+                                                            )}
+                                                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                                        >
+                                                            Edit
+                                                        </Link>
+                                                        <DeleteConfirmationDialog
+                                                            href={route(
+                                                                "admin.lessons.destroy",
+                                                                lesson.id,
+                                                            )}
+                                                            title="Delete lesson?"
+                                                            description={`This will permanently delete "${lesson.title}". This action cannot be undone.`}
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
                                     )}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div className="flex flex-col gap-4 border-t border-slate-200 px-5 py-4 sm:px-6 xl:flex-row xl:items-center xl:justify-between">
-                            <div className="flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:gap-5">
-                                <div>
-                                    Showing {paginationStart}-{paginationEnd} of{" "}
-                                    {filteredLessons.length} lessons
-                                </div>
-                                <label className="flex items-center gap-3 text-sm text-slate-600">
-                                    <span>Data per page</span>
-                                    <select
-                                        value={pageSize}
-                                        onChange={handlePageSizeChange}
-                                        className="h-10 rounded-xl border border-slate-200 bg-white px-3 pr-9 text-sm text-slate-700 outline-none transition focus:border-slate-300"
-                                    >
-                                        {PAGE_SIZE_OPTIONS.map((option) => (
-                                            <option key={option} value={option}>
-                                                {option}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
+                        {/* Pagination footer */}
+                        <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3">
+                            {/* Data per page */}
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <span>Data per page</span>
+                                <select
+                                    value={pageSize}
+                                    onChange={handlePageSize}
+                                    className="rounded border border-gray-200 bg-white px-2 py-1 pr-7 text-xs text-gray-700 focus:outline-none cursor-pointer"
+                                >
+                                    {PAGE_SIZE_OPTIONS.map((n) => (
+                                        <option key={n} value={n}>
+                                            {n}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
+                            {/* Page buttons */}
+                            <div className="flex items-center gap-1 text-sm">
                                 <button
-                                    type="button"
                                     onClick={() =>
-                                        setCurrentPage((page) =>
-                                            Math.max(1, page - 1),
+                                        setCurrentPage((p) =>
+                                            Math.max(1, p - 1),
                                         )
                                     }
                                     disabled={safePage === 1}
-                                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded px-3 py-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-40"
                                 >
-                                    <ChevronLeft className="size-4" />
-                                    Previous
+                                    ‹ Previous
                                 </button>
-
-                                {safePage > 2 && (
+                                {Array.from(
+                                    { length: totalPages },
+                                    (_, i) => i + 1,
+                                ).map((p) => (
                                     <button
-                                        type="button"
-                                        onClick={() => setCurrentPage(1)}
-                                        className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                                        key={p}
+                                        onClick={() => setCurrentPage(p)}
+                                        className={`min-w-[32px] rounded px-2 py-1.5 text-sm font-medium ${
+                                            p === safePage
+                                                ? "bg-gray-900 text-white"
+                                                : "text-gray-600 hover:bg-gray-100"
+                                        }`}
                                     >
-                                        1
-                                    </button>
-                                )}
-
-                                {safePage > 3 && (
-                                    <span className="px-1 text-sm text-slate-400">
-                                        ...
-                                    </span>
-                                )}
-
-                                {visiblePages.map((page) => (
-                                    <button
-                                        key={page}
-                                        type="button"
-                                        onClick={() => setCurrentPage(page)}
-                                        className={[
-                                            "inline-flex h-10 min-w-10 items-center justify-center rounded-xl border px-3 text-sm font-medium transition",
-                                            page === safePage
-                                                ? "border-black bg-black text-white"
-                                                : "border-slate-200 text-slate-600 hover:bg-slate-50",
-                                        ].join(" ")}
-                                    >
-                                        {page}
+                                        {p}
                                     </button>
                                 ))}
-
-                                {safePage < totalPages - 2 && (
-                                    <span className="px-1 text-sm text-slate-400">
-                                        ...
-                                    </span>
-                                )}
-
-                                {safePage < totalPages - 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setCurrentPage(totalPages)
-                                        }
-                                        className="inline-flex h-10 min-w-10 items-center justify-center rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                                    >
-                                        {totalPages}
-                                    </button>
-                                )}
-
                                 <button
-                                    type="button"
                                     onClick={() =>
-                                        setCurrentPage((page) =>
-                                            Math.min(totalPages, page + 1),
+                                        setCurrentPage((p) =>
+                                            Math.min(totalPages, p + 1),
                                         )
                                     }
                                     disabled={safePage === totalPages}
-                                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded px-3 py-1.5 text-gray-500 hover:bg-gray-100 disabled:opacity-40"
                                 >
-                                    Next
-                                    <ChevronRight className="size-4" />
+                                    Next ›
                                 </button>
                             </div>
                         </div>
-                    </section>
+                    </div>
                 </div>
             </div>
         </AuthenticatedLayout>
