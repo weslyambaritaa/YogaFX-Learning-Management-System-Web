@@ -25,7 +25,7 @@ class ModuleController extends Controller
         return Inertia::render('Admin/Modules/Index', [
             'modules' => Module::query()
                 ->with(['accessTiers'])
-                ->withCount('lessons')
+                ->withCount(['lessons', 'assignments'])
                 ->orderBy('sort_order')
                 ->orderBy('title')
                 ->get()
@@ -43,7 +43,11 @@ class ModuleController extends Controller
                         versionSeed: $module->updated_at,
                     ),
                     'access_tiers' => $module->accessTiers->pluck('name')->all(),
+                    'certificate_enabled' => (bool) $module->certificate_enabled,
+                    'ebook_enabled' => (bool) $module->ebook_enabled,
+                    'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
                     'lessons_count' => $module->lessons_count,
+                    'assignments_count' => $module->assignments_count,
                 ]),
             'status' => session('status'),
         ]);
@@ -62,6 +66,9 @@ class ModuleController extends Controller
     public function store(ModuleRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
+        $data['ebook_enabled'] = (bool) ($data['ebook_enabled'] ?? false);
+        $data['video_lecturer_enabled'] = (bool) ($data['video_lecturer_enabled'] ?? false);
         $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'modules/thumbnails');
         unset($data['access_tier_ids']);
         $requestedSortOrder = (int) ($data['sort_order'] ?? 0);
@@ -94,6 +101,9 @@ class ModuleController extends Controller
                 'description' => $module->description,
                 'sort_order' => $module->sort_order,
                 'url_slug' => $module->url_slug,
+                'certificate_enabled' => (bool) $module->certificate_enabled,
+                'ebook_enabled' => (bool) $module->ebook_enabled,
+                'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
                 'access_tier_ids' => $module->accessTiers()->pluck('access_tiers.id')->all(),
                 'thumbnail_url' => $this->protectedMediaUrl(
                     'module',
@@ -111,6 +121,9 @@ class ModuleController extends Controller
     public function update(ModuleRequest $request, Module $module): RedirectResponse
     {
         $data = $request->validated();
+        $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
+        $data['ebook_enabled'] = (bool) ($data['ebook_enabled'] ?? false);
+        $data['video_lecturer_enabled'] = (bool) ($data['video_lecturer_enabled'] ?? false);
         $data['thumbnail'] = $this->storeUploadedFile(
             $request->file('thumbnail'),
             'modules/thumbnails',
@@ -134,11 +147,11 @@ class ModuleController extends Controller
 
     public function destroy(Module $module): RedirectResponse
     {
-        if ($module->lessons()->exists()) {
+        if ($module->lessons()->exists() || $module->assignments()->exists()) {
             return redirect()
                 ->route('admin.modules.index')
                 ->withErrors([
-                    'module' => 'This module cannot be deleted because it still contains lessons.',
+                    'module' => 'This module cannot be deleted because it still contains lessons or assignments.',
                 ]);
         }
 

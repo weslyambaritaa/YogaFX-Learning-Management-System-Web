@@ -63,7 +63,7 @@ export default function StudentCoursesIndex({ courses }) {
                                 <div className="space-y-4 p-6">
                                     <div className="inline-flex items-center gap-2 text-sm font-medium text-[#f15b3a]">
                                         <PlayCircle className="size-4" />
-                                        Ready to watch
+                                        {course.video?.is_ready ? 'Ready to watch' : 'Video unavailable'}
                                     </div>
 
                                     <div>
@@ -75,14 +75,28 @@ export default function StudentCoursesIndex({ courses }) {
                                         </p>
                                     </div>
 
+                                    {course.video?.warning_message ? (
+                                        <p className="text-sm leading-6 text-amber-200/90">
+                                            {course.video.warning_message}
+                                        </p>
+                                    ) : null}
+
                                     <Button
-                                        asChild
-                                        className="rounded-full bg-[#f15b3a] text-white hover:bg-[#ff6a49]"
+                                        asChild={Boolean(course.video?.is_ready && course.video?.hls_url)}
+                                        disabled={!course.video?.is_ready || !course.video?.hls_url}
+                                        className="rounded-full bg-[#f15b3a] text-white hover:bg-[#ff6a49] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        <a href={course.video} target="_blank" rel="noreferrer">
-                                            Open Course Video
-                                            <ArrowUpRight className="ml-2 size-4" />
-                                        </a>
+                                        {course.video?.is_ready && course.video?.hls_url ? (
+                                            <a href={course.video.hls_url} target="_blank" rel="noreferrer">
+                                                Open Course Video
+                                                <ArrowUpRight className="ml-2 size-4" />
+                                            </a>
+                                        ) : (
+                                            <span>
+                                                Video Not Ready
+                                                <ArrowUpRight className="ml-2 inline size-4" />
+                                            </span>
+                                        )}
                                     </Button>
                                 </div>
                             </article>

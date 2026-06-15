@@ -68,6 +68,18 @@ export default function ModulesIndex({ modules, status }) {
                                             Lessons
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                            Assignments
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                            Certificate
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                            Ebook
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                            Video Lecturer
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Action
                                         </th>
                                     </tr>
@@ -106,8 +118,26 @@ export default function ModulesIndex({ modules, status }) {
                                             <td className="px-4 py-3 text-gray-700">
                                                 {module.lessons_count}
                                             </td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {module.assignments_count}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {module.certificate_enabled ? 'Checked' : 'Not checked'}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {module.ebook_enabled ? 'Checked' : 'Not checked'}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {module.video_lecturer_enabled ? 'Checked' : 'Not checked'}
+                                            </td>
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex flex-wrap items-center gap-4">
+                                                    <Link
+                                                        href={route('admin.modules.assignments.index', module.id)}
+                                                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                                    >
+                                                        Assignments
+                                                    </Link>
                                                     <Link
                                                         href={route('admin.modules.edit', module.id)}
                                                         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"

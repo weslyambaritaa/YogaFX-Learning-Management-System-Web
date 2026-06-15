@@ -21,14 +21,14 @@ class CourseController extends Controller
     {
         return Inertia::render('Admin/Courses/Index', [
             'courses' => Course::query()
-                ->with('accessTier')
+                ->with('accessTiers')
                 ->orderBy('title')
                 ->get()
                 ->map(fn (Course $course) => [
                     'id' => $course->id,
                     'title' => $course->title,
                     'url_slug' => $course->url_slug,
-                    'access_tier' => $course->accessTier?->name,
+                    'access_tiers' => $course->accessTiers->pluck('name')->all(),
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'course',
                         $course->id,
@@ -52,8 +52,14 @@ class CourseController extends Controller
     {
         $data = $request->validated();
         $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'courses/thumbnails');
+        $data['access_tier_id'] = collect($request->validated('access_tier_ids'))
+            ->map(fn ($tierId) => (int) $tierId)
+            ->filter()
+            ->first();
+        unset($data['access_tier_ids']);
 
-        Course::query()->create($data);
+        $course = Course::query()->create($data);
+        $course->accessTiers()->sync($request->validated('access_tier_ids'));
 
         return redirect()
             ->route('admin.courses.index')
@@ -67,7 +73,7 @@ class CourseController extends Controller
                 'id' => $course->id,
                 'title' => $course->title,
                 'url_slug' => $course->url_slug,
-                'access_tier_id' => $course->access_tier_id,
+                'access_tier_ids' => $course->accessTiers()->pluck('access_tiers.id')->all(),
                 'description' => $course->description,
                 'video' => $course->video,
                 'thumbnail_url' => $this->protectedMediaUrl(
@@ -91,8 +97,14 @@ class CourseController extends Controller
             'courses/thumbnails',
             $course->thumbnail,
         );
+        $data['access_tier_id'] = collect($request->validated('access_tier_ids'))
+            ->map(fn ($tierId) => (int) $tierId)
+            ->filter()
+            ->first();
+        unset($data['access_tier_ids']);
 
         $course->update($data);
+        $course->accessTiers()->sync($request->validated('access_tier_ids'));
 
         return redirect()
             ->route('admin.courses.index')

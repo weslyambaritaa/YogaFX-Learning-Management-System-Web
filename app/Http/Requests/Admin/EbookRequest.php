@@ -26,7 +26,7 @@ class EbookRequest extends FormRequest
 
         return [
             'title' => ['required', 'string', 'max:255'],
-            'file' => [...$fileRule, 'file', 'mimes:pdf', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
+            'file' => [...$fileRule, 'file', 'mimes:pdf', 'max:'.UploadConstraints::EBOOK_MAX_FILE_SIZE_KB],
             'access_tier_ids' => ['required', 'array', 'min:1'],
             'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],
         ];
@@ -35,7 +35,7 @@ class EbookRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'file.max' => 'The ebook file must not be larger than 10 MB.',
+            'file.max' => 'The ebook file must not be larger than '.UploadConstraints::labelFromMb(UploadConstraints::EBOOK_MAX_FILE_SIZE_MB).'.',
         ];
     }
 }

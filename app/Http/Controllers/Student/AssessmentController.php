@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Events\EmailNotifications\AssessmentCompleted;
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Assessment;
@@ -13,6 +14,7 @@ use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Question;
 use App\Models\QuestionOption;
+use App\Services\StudentLearningMilestoneEmailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -23,6 +25,11 @@ use Inertia\Response;
 class AssessmentController extends Controller
 {
     use BuildsProtectedMediaUrls;
+
+    public function __construct(
+        private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
+    ) {
+    }
 
     public function intro(Request $request, Lesson $lesson): Response
     {
@@ -422,6 +429,7 @@ class AssessmentController extends Controller
 
     private function completeAttempt(Lesson $lesson, AssessmentAttempt $attempt, string $finishedReason): RedirectResponse
     {
+        $previousStatus = $attempt->status;
         $attempt->loadMissing(['assessment.resultRanges', 'answers']);
 
         $totalScore = (float) $attempt->answers->sum(fn (AssessmentAnswer $answer) => (float) ($answer->score_awarded ?? 0));
@@ -472,6 +480,27 @@ class AssessmentController extends Controller
                 'completed_at' => now(),
             ],
         );
+
+        if ($previousStatus !== AssessmentAttempt::STATUS_COMPLETED && ! $isExpired) {
+            $attempt->loadMissing(['user', 'assessment']);
+
+            if ($attempt->user) {
+                event(new AssessmentCompleted([
+                    'user_name' => $attempt->user->name,
+                    'user_email' => $attempt->user->email,
+                    'assessment_title' => $attempt->assessment?->title,
+                    'assessment_score' => (string) $totalScore,
+                    'completed_at' => now()->format('Y-m-d H:i'),
+                    'result_url' => route('assessments.result', [
+                        'lesson' => $lesson->id,
+                        'attempt' => $attempt->id,
+                    ]),
+                    'dashboard_url' => route('student.dashboard'),
+                ], 'assessment_attempt', $attempt->id));
+
+                $this->studentLearningMilestoneEmailService->syncLessonMilestones($attempt->user, $lesson);
+            }
+        }
 
         return redirect()->route('assessments.result', [
             'lesson' => $lesson->id,

@@ -8,6 +8,9 @@ export default function CreateModule({ accessTiers, nextSortOrder }) {
         description: '',
         sort_order: String(nextSortOrder ?? 1),
         url_slug: '',
+        certificate_enabled: false,
+        ebook_enabled: false,
+        video_lecturer_enabled: false,
         thumbnail: null,
         access_tier_ids: [],
     });

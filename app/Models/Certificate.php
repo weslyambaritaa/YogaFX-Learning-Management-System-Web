@@ -28,7 +28,7 @@ class Certificate extends Model
 
     public const TYPES = [
         self::TYPE_BIKRAM => 'Bikram Yoga Certificate',
-        self::TYPE_YOGA_ALLIANCE => 'Yoga Alliance Certification',
+        self::TYPE_YOGA_ALLIANCE => 'Yoga Alliance Certificate',
     ];
 
     protected function casts(): array

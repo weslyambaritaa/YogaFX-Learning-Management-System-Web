@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
+use App\Models\AccessTier;
 use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Services\BunnyStreamService;
+use App\Services\StudentLearningMilestoneEmailService;
 use App\Services\StudentSessionTrackingService;
+use App\Support\BunnyAssetPath;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -24,6 +28,7 @@ class LessonCatalogController extends Controller
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly StudentSessionTrackingService $sessionTrackingService,
+        private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
     ) {}
 
     public function show(Request $request, Lesson $lesson): Response
@@ -103,6 +108,8 @@ class LessonCatalogController extends Controller
                 ] : null,
                 'progress' => [
                     'watch_progress' => (int) round((float) ($currentProgress?->watch_progress ?? 0)),
+                    'is_workbook_downloaded' => (bool) ($currentProgress?->is_workbook_downloaded ?? false),
+                    'workbook_downloaded_at' => $currentProgress?->workbook_downloaded_at?->toIso8601String(),
                     'is_done' => $this->isLessonFullyComplete(
                         $lesson,
                         $currentProgress,
@@ -117,30 +124,14 @@ class LessonCatalogController extends Controller
                     $lesson->thumbnail,
                     versionSeed: $lesson->updated_at,
                 ),
-                'workbook_url' => $this->protectedMediaUrl(
-                    'lesson',
-                    $lesson->id,
-                    'workbook',
-                    $lesson->workbook,
-                    versionSeed: $lesson->updated_at,
-                ),
+                'workbook_url' => $lesson->workbook
+                    ? route('lessons.workbook.download', $lesson)
+                    : null,
                 'navigation' => $lessonNavigation->map(fn (Lesson $item) => [
                     'id' => $item->id,
                     'title' => $item->title,
                     'sort_order' => $item->sort_order,
-                    'thumbnail_url' => $this->protectedMediaUrl(
-                        'lesson',
-                        $item->id,
-                        'thumbnail',
-                        $item->thumbnail,
-                        versionSeed: $item->updated_at,
-                    ) ?: $this->protectedMediaUrl(
-                        'lesson',
-                        $lesson->id,
-                        'thumbnail',
-                        $lesson->thumbnail,
-                        versionSeed: $lesson->updated_at,
-                    ),
+                    'thumbnail_url' => $this->lessonThumbnailUrl($item, $lesson->module),
                     'is_locked' => ! ($lessonUnlockMap->get($item->id)['is_unlocked'] ?? false),
                     'lock_reason' => $lessonUnlockMap->get($item->id)['reason'] ?? null,
                     'status' => $this->isLessonFullyComplete(
@@ -161,13 +152,7 @@ class LessonCatalogController extends Controller
                     'id' => $nextLesson->id,
                     'title' => $nextLesson->title,
                     'sort_order' => $nextLesson->sort_order,
-                    'thumbnail_url' => $this->protectedMediaUrl(
-                        'lesson',
-                        $nextLesson->id,
-                        'thumbnail',
-                        $nextLesson->thumbnail,
-                        versionSeed: $nextLesson->updated_at,
-                    ),
+                    'thumbnail_url' => $this->lessonThumbnailUrl($nextLesson, $lesson->module),
                     'is_unlocked' => (bool) ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false),
                     'lock_reason' => $lessonUnlockMap->get($nextLesson->id)['reason'] ?? null,
                     'url' => ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false)
@@ -177,6 +162,42 @@ class LessonCatalogController extends Controller
             ],
             'accessTimeSummary' => $this->sessionTrackingService->summaryForUser($user),
         ]);
+    }
+
+    public function downloadWorkbook(Request $request, Lesson $lesson): RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = $request->user();
+        $this->authorizeLessonAccess($request, $lesson);
+
+        abort_unless(filled($lesson->workbook), 404);
+
+        LessonProgress::query()->updateOrCreate(
+            [
+                'user_id' => $user?->id,
+                'lesson_id' => $lesson->id,
+            ],
+            [
+                'is_workbook_downloaded' => true,
+                'workbook_downloaded_at' => now(),
+            ],
+        );
+
+        $downloadUrl = $this->protectedMediaUrl(
+            'lesson',
+            $lesson->id,
+            'workbook',
+            $lesson->workbook,
+            download: true,
+            versionSeed: $lesson->updated_at,
+        );
+
+        abort_unless($downloadUrl, 404);
+
+        if (BunnyAssetPath::isBunnyPath($lesson->workbook) || filter_var($lesson->workbook, FILTER_VALIDATE_URL)) {
+            return redirect()->away($downloadUrl);
+        }
+
+        return redirect($downloadUrl);
     }
 
     public function updateProgress(Request $request, Lesson $lesson): JsonResponse
@@ -217,6 +238,10 @@ class LessonCatalogController extends Controller
                 'completed_at' => $isDone ? now() : null,
             ],
         );
+
+        if ($isDone && $user) {
+            $this->studentLearningMilestoneEmailService->syncLessonMilestones($user, $lesson);
+        }
 
         return response()->json([
             'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
@@ -303,6 +328,26 @@ class LessonCatalogController extends Controller
         ];
     }
 
+    private function lessonThumbnailUrl(Lesson $lesson, ?Module $module = null): ?string
+    {
+        return $this->protectedMediaUrl(
+            'lesson',
+            $lesson->id,
+            'thumbnail',
+            $lesson->thumbnail,
+            versionSeed: $lesson->updated_at,
+        ) ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
+            ?: ($module
+                ? $this->protectedMediaUrl(
+                    'module',
+                    $module->id,
+                    'thumbnail',
+                    $module->thumbnail,
+                    versionSeed: $module->updated_at,
+                )
+                : null);
+    }
+
     private function authorizeLessonAccess(Request $request, Lesson $lesson): void
     {
         $user = $request->user();
@@ -333,7 +378,7 @@ class LessonCatalogController extends Controller
             ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
             ->with([
                 'lessons' => fn ($query) => $query
-                    ->select(['id', 'module_id', 'title', 'sort_order', 'assessment_id', 'lesson_video_id'])
+                    ->select(['id', 'module_id', 'title', 'sort_order', 'assessment_id', 'lesson_video_id', 'thumbnail', 'workbook'])
                     ->with(['assessment:id,status,is_active'])
                     ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
                     ->orderBy('sort_order')

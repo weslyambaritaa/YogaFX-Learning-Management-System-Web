@@ -9,6 +9,7 @@ use App\Models\EmailLog;
 use App\Models\EmailTemplate;
 use App\Models\Module;
 use App\Models\User;
+use App\Support\EmailNotificationTemplateDefaults;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -41,7 +42,7 @@ class EmailNotificationService
      */
     public function sendTest(string $notificationType, string $sendTo, ?int $moduleId = null): array
     {
-        $template = $this->findOrCreateTemplate($notificationType);
+        $template = $this->preparedTemplate($notificationType);
         $payload = $this->samplePayloadFor($notificationType, $sendTo, $moduleId);
         $delivery = [
             'recipient_type' => 'test',
@@ -134,11 +135,9 @@ class EmailNotificationService
         ?string $referenceType = null,
         ?int $referenceId = null,
     ): void {
-        $template = EmailTemplate::query()
-            ->where('notification_type', $notificationType)
-            ->first();
+        $template = $this->preparedTemplate($notificationType);
 
-        if (! $template || ! $template->is_enabled) {
+        if (! $template->is_enabled) {
             return;
         }
 
@@ -157,9 +156,38 @@ class EmailNotificationService
         }
     }
 
+    public function sendAssignmentApprovedNotification(
+        array $payload,
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+    ): void {
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED);
+
+        $recipientEmail = (string) ($payload['user_email'] ?? '');
+
+        if ($recipientEmail === '') {
+            return;
+        }
+
+        $subject = $this->render((string) $template->subject_user, $payload);
+        $body = $this->render((string) $template->body_user, $payload);
+
+        $this->deliver(
+            template: $template,
+            notificationType: EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED,
+            subject: $subject,
+            body: $body,
+            recipientEmail: $recipientEmail,
+            recipientType: 'user',
+            referenceType: $referenceType,
+            referenceId: $referenceId,
+            variantLabel: 'User Email',
+        );
+    }
+
     public function shouldHandlePasswordResetTemplate(): bool
     {
-        $template = $this->findTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
 
         return $template instanceof EmailTemplate
             && $template->is_enabled
@@ -184,15 +212,59 @@ class EmailNotificationService
         ], 'user', $user->id));
     }
 
+    public function sendStudentPasswordChangeRequested(
+        User $user,
+        string $changePasswordUrl,
+        string $otpCode,
+        int $expiresInMinutes,
+    ): void {
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
+        $payload = [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'reset_url' => $changePasswordUrl,
+            'password_change_url' => $changePasswordUrl,
+            'otp_code' => $otpCode,
+            'reset_expiry_minutes' => (string) $expiresInMinutes,
+            'login_url' => route('login'),
+        ];
+
+        $deliveries = $this->buildDeliveries($template, $payload);
+
+        foreach ($deliveries as $delivery) {
+            $body = $delivery['body'];
+
+            if ($delivery['recipient_type'] === 'user') {
+                $body = $this->ensurePasswordChangeVerificationBlock(
+                    $body,
+                    (string) $template->body_user,
+                    $payload,
+                );
+            }
+
+            $this->deliver(
+                template: $template,
+                notificationType: EmailNotificationTypeRegistry::RESET_PASSWORD,
+                subject: $delivery['subject'],
+                body: $body,
+                recipientEmail: $delivery['recipient_email'],
+                recipientType: $delivery['recipient_type'],
+                referenceType: 'student_password_change',
+                referenceId: $user->id,
+                variantLabel: $delivery['variant_label'],
+            );
+        }
+    }
+
     public function sendInactivityReminders(): int
     {
-        $template = $this->findTemplate(EmailNotificationTypeRegistry::REMINDER);
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::REMINDER);
 
-        if (! $template || ! $template->is_enabled) {
+        if (! $template->is_enabled) {
             return 0;
         }
 
-        $threshold = now()->subDays(7);
+        $threshold = now()->subHours(3);
         $sentCount = 0;
 
         User::query()
@@ -224,14 +296,14 @@ class EmailNotificationService
                     return;
                 }
 
-                $inactiveDays = (string) $lastProgressUpdate->diffInDays(now());
+                $inactiveHours = max($lastProgressUpdate->diffInHours(now()), 3);
 
                 event(new ReminderTriggered([
                     'user_name' => $user->name,
                     'user_email' => $user->email,
-                    'last_activity_date' => $lastProgressUpdate->toDateString(),
-                    'inactive_days' => $inactiveDays,
-                    'dashboard_url' => route('dashboard'),
+                    'last_activity_date' => $lastProgressUpdate->toDateTimeString(),
+                    'inactive_days' => (string) $inactiveHours,
+                    'dashboard_url' => route('student.dashboard'),
                     'login_url' => route('login'),
                 ], 'user', $user->id));
 
@@ -314,6 +386,31 @@ class EmailNotificationService
             ->all();
     }
 
+    private function preparedTemplate(string $notificationType): EmailTemplate
+    {
+        $template = $this->findOrCreateTemplate($notificationType);
+        $defaults = EmailNotificationTemplateDefaults::for($notificationType);
+        $hasChanges = false;
+
+        foreach (['subject_user', 'body_user', 'subject_admin', 'body_admin'] as $field) {
+            if (! filled($template->{$field}) && filled($defaults[$field] ?? null)) {
+                $template->{$field} = $defaults[$field];
+                $hasChanges = true;
+            }
+        }
+
+        if (($defaults['auto_enable'] ?? false) && ! $template->is_enabled) {
+            $template->is_enabled = true;
+            $hasChanges = true;
+        }
+
+        if ($hasChanges) {
+            $template->save();
+        }
+
+        return $template;
+    }
+
     private function deliver(
         EmailTemplate $template,
         string $notificationType,
@@ -354,8 +451,7 @@ class EmailNotificationService
                 referenceId: $referenceId,
                 errorMessage: $throwable->getMessage(),
             );
-
-            throw $throwable;
+            report($throwable);
         }
     }
 
@@ -524,6 +620,37 @@ class EmailNotificationService
         ]);
     }
 
+    private function ensurePasswordChangeVerificationBlock(
+        string $renderedBody,
+        string $templateBody,
+        array $payload,
+    ): string {
+        $sections = [];
+
+        if (
+            ! str_contains($templateBody, 'otp_code')
+            && filled($payload['otp_code'] ?? null)
+        ) {
+            $sections[] = '<p>Your one-time password code: <strong>'.e((string) $payload['otp_code']).'</strong></p>';
+        }
+
+        if (
+            ! str_contains($templateBody, 'password_change_url')
+            && ! str_contains($templateBody, 'reset_url')
+            && filled($payload['password_change_url'] ?? null)
+        ) {
+            $url = (string) $payload['password_change_url'];
+            $escapedUrl = e($url);
+            $sections[] = '<p>Continue here to change your password: <a href="'.$escapedUrl.'">'.$escapedUrl.'</a></p>';
+        }
+
+        if ($sections === []) {
+            return $renderedBody;
+        }
+
+        return $renderedBody.implode('', $sections);
+    }
+
     private function samplePayloadFor(string $notificationType, string $sendTo, ?int $moduleId = null): array
     {
         $selectedModule = $moduleId !== null
@@ -560,12 +687,12 @@ class EmailNotificationService
             'assessment_title' => 'Sample Assessment',
             'assessment_score' => '85',
             'completed_at' => now()->format('Y-m-d H:i'),
-            'result_url' => route('dashboard'),
+            'result_url' => route('student.dashboard'),
             'course_title' => 'YogaFX Core Journey',
             'completion_date' => now()->toDateString(),
             'last_activity_date' => now()->subDays(8)->toDateString(),
             'inactive_days' => '8',
-            'dashboard_url' => route('dashboard'),
+            'dashboard_url' => route('student.dashboard'),
             'login_url' => route('login'),
         ];
 

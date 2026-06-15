@@ -6,7 +6,7 @@ export default function EditCourse({ course, accessTiers, status }) {
     const { data, setData, patch, processing, errors, setError, clearErrors } = useForm({
         title: course.title ?? '',
         url_slug: course.url_slug ?? '',
-        access_tier_id: course.access_tier_id ?? '',
+        access_tier_ids: course.access_tier_ids ?? [],
         description: course.description ?? '',
         thumbnail: null,
         video: course.video ?? '',
