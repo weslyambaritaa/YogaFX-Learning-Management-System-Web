@@ -93,8 +93,16 @@ class CertificateGeneratorService
         $maxWidth = isset($placement['max_width']) ? (int) $placement['max_width'] : null;
         $alignment = (string) ($placement['alignment'] ?? 'center');
         $verticalAlignment = (string) ($placement['vertical_alignment'] ?? 'baseline');
-        $x = (int) ($placement['x'] ?? 0);
-        $y = (int) ($placement['y'] ?? 0);
+        $x = $this->resolvePlacementCoordinate(
+            $placement['x'] ?? 0,
+            imagesx($image),
+            'center',
+        );
+        $y = $this->resolvePlacementCoordinate(
+            $placement['y'] ?? 0,
+            imagesy($image),
+            'middle',
+        );
         $rgb = $this->parseHexColor((string) ($placement['font_color'] ?? '#000000'));
         $color = imagecolorallocate($image, $rgb['red'], $rgb['green'], $rgb['blue']);
         $boundingBox = $this->measureTextBox($fontSize, $fontPath, $studentName);
@@ -281,5 +289,22 @@ class CertificateGeneratorService
             'width' => $maxX - $minX,
             'height' => $maxY - $minY,
         ];
+    }
+
+    private function resolvePlacementCoordinate(mixed $value, int $dimension, string $keyword): int
+    {
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+
+            if ($normalized === $keyword) {
+                return (int) round($dimension / 2);
+            }
+
+            if (is_numeric($normalized)) {
+                return (int) round((float) $normalized);
+            }
+        }
+
+        return (int) round((float) $value);
     }
 }

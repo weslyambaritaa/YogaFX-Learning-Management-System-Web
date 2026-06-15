@@ -28,7 +28,7 @@ return [
             'template_source_url' => 'https://online-v2.26and2yoga.com/wp-content/uploads/2025/12/1.jpg',
             'file_name_suffix' => 'bikram-yoga-certificate',
             'placement' => [
-                'x' => 845,
+                'x' => 'center',
                 'y' => 805,
                 'font_size' => 42,
                 'min_font_size' => 28,
@@ -44,7 +44,7 @@ return [
             'template_source_url' => 'https://online-v2.26and2yoga.com/wp-content/uploads/2025/12/2.jpg',
             'file_name_suffix' => 'yoga-alliance-certificate',
             'placement' => [
-                'x' => 845,
+                'x' => 'center',
                 'y' => 805,
                 'font_size' => 42,
                 'min_font_size' => 28,
