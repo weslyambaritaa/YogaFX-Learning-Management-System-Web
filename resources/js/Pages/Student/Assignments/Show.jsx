@@ -51,7 +51,7 @@ export default function StudentAssignmentShow({ assignment, uploadConstraints, s
 
                     <div className="mt-6 flex flex-wrap gap-3">
                         <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
-                            {assignment.is_required ? 'Required submission' : 'Optional submission'}
+                            Required submission
                         </div>
                         <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
                             Assignment {assignment.sort_order}

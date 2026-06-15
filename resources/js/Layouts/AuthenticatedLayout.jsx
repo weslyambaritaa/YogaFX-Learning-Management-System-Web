@@ -218,7 +218,6 @@ const adminPageTitles = {
     'admin.modules.assignments.index': 'Assignments',
     'admin.modules.assignments.create': 'Create Assignment',
     'admin.modules.assignments.edit': 'Edit Assignment',
-    'admin.modules.assignments.show': 'Review Assignment',
     'admin.lessons.index': 'Lessons',
     'admin.lessons.create': 'Create Lesson',
     'admin.lessons.edit': 'Edit Lesson',

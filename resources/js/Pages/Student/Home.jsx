@@ -845,7 +845,9 @@ export default function StudentHome({
                                                     </div>
                                                     <div className="absolute bottom-4 left-4 right-4">
                                                         <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-                                                            {module.lesson_count} lessons
+                                                            {module.lesson_count > 0
+                                                                ? `${module.lesson_count} lessons`
+                                                                : 'Resource module'}
                                                         </p>
                                                         <h3 className="mt-2 text-xl font-semibold leading-tight text-white">
                                                             {module.title}
@@ -856,7 +858,11 @@ export default function StudentHome({
                                                 <div className="space-y-4">
                                                     <div className="flex items-center justify-between gap-3 text-sm text-white/55">
                                                         <span>
-                                                            {module.completed_lessons} of {module.lesson_count} lessons completed
+                                                            {module.lesson_count > 0
+                                                                ? `${module.completed_lessons} of ${module.lesson_count} lessons completed`
+                                                                : module.status === 'completed'
+                                                                  ? 'Automatically completed resource module'
+                                                                  : 'Resource module ready to open'}
                                                         </span>
                                                         <span>{module.progress_percentage}%</span>
                                                     </div>

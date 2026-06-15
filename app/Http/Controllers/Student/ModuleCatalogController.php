@@ -66,6 +66,7 @@ class ModuleCatalogController extends Controller
                 $moduleAccess = $moduleAccessMap->get($module->id, [
                     'is_visible' => false,
                     'status' => 'locked',
+                    'is_complete' => false,
                 ]);
                 $totalLessons = $module->lessons->count();
                 $totalAssignments = $module->assignments->count();
@@ -96,7 +97,7 @@ class ModuleCatalogController extends Controller
                     'completed_lessons' => $completedLessons,
                     'progress_percentage' => $totalLessons > 0
                         ? (int) round(($completedLessons / $totalLessons) * 100)
-                        : 0,
+                        : (($moduleAccess['is_complete'] ?? false) ? 100 : 0),
                     'status' => $status,
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'module',
@@ -187,7 +188,7 @@ class ModuleCatalogController extends Controller
                 'completed_lessons' => $completedLessons,
                 'progress_percentage' => $lessons->count() > 0
                     ? (int) round(($completedLessons / $lessons->count()) * 100)
-                    : 0,
+                    : (($currentModuleAccess['is_complete'] ?? false) ? 100 : 0),
                 'certificate_enabled' => (bool) $module->certificate_enabled,
                 'ebook_enabled' => (bool) $module->ebook_enabled,
                 'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
@@ -604,7 +605,13 @@ class ModuleCatalogController extends Controller
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
     ): bool {
-        $hasTrackableContent = $module->lessons->isNotEmpty() || $module->assignments->isNotEmpty();
+        $liveAssignments = $module->assignments->where('status', Assignment::STATUS_LIVE);
+
+        if ($module->lessons->isEmpty() && $liveAssignments->isEmpty()) {
+            return (bool) $module->ebook_enabled;
+        }
+
+        $hasTrackableContent = $module->lessons->isNotEmpty() || $liveAssignments->isNotEmpty();
 
         if (! $hasTrackableContent) {
             return false;
@@ -618,9 +625,7 @@ class ModuleCatalogController extends Controller
             ),
         );
 
-        $allRequiredAssignmentsComplete = $module->assignments
-            ->where('status', Assignment::STATUS_LIVE)
-            ->where('is_required', true)
+        $allRequiredAssignmentsComplete = $liveAssignments
             ->every(fn (Assignment $assignment) => $this->isAssignmentComplete(
                 $assignmentSubmissionMap->get($assignment->id),
             ));
@@ -630,7 +635,7 @@ class ModuleCatalogController extends Controller
 
     private function isAssignmentComplete(?AssignmentSubmission $submission): bool
     {
-        return filled($submission?->submitted_at) || filled($submission?->assignment_video);
+        return $submission?->assignment_status === AssignmentSubmission::STATUS_APPROVED;
     }
 
     private function isCertificateDownloadModule(Module $module): bool

@@ -252,11 +252,11 @@ class StudentProgressController extends Controller
         $student = $this->resolveStudent($student);
         abort_unless($assignmentSubmission->user_id === $student->id, 404);
 
-        $this->bunnyStorage->delete($assignmentSubmission->assignment_video);
+        if (filled($assignmentSubmission->assignment_video)) {
+            $this->bunnyStorage->delete($assignmentSubmission->assignment_video);
+        }
 
-        $assignmentSubmission->update([
-            'assignment_video' => null,
-        ]);
+        $assignmentSubmission->delete();
 
         return redirect()
             ->route('admin.student-progress.assignments.show', $student)
@@ -505,7 +505,6 @@ class StudentProgressController extends Controller
             ->with([
                 'assignments' => fn ($query) => $query
                     ->where('status', Assignment::STATUS_LIVE)
-                    ->where('is_required', true)
                     ->select('id', 'module_id'),
             ])
             ->get(['id'])
@@ -515,7 +514,7 @@ class StudentProgressController extends Controller
             ->values();
 
         if ($requiredAssignmentIds->isEmpty()) {
-            return 'Not Required';
+            return 'Not Available';
         }
 
         $submittedAssignmentIds = $student->assignmentSubmissions

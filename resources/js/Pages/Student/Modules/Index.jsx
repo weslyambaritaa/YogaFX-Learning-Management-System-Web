@@ -145,7 +145,9 @@ export default function StudentModulesIndex({ modules }) {
                                                     <p className="mt-3 text-sm leading-7 text-white/62">
                                                         {module.lesson_count > 0
                                                             ? `${module.completed_lessons} of ${module.lesson_count} lessons completed in this module.`
-                                                            : 'This module is currently centered on assignment access.'}
+                                                            : module.ebook_enabled
+                                                              ? 'This module is a resource-only module and is automatically marked complete in your learning path.'
+                                                              : 'This module is currently centered on assignment access.'}
                                                     </p>
                                                     <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/40">
                                                         {module.lesson_count} lessons • {module.assignments_count ?? 0} assignments

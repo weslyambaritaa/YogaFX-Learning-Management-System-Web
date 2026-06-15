@@ -2,25 +2,17 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Events\EmailNotifications\AssignmentApproved;
-use App\Events\EmailNotifications\AssignmentRejected;
-use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignmentRequest;
 use App\Models\Assignment;
-use App\Models\AssignmentSubmission;
 use App\Models\Module;
-use App\Models\User;
 use App\Services\BunnyStorageService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AssignmentController extends Controller
 {
-    use BuildsProtectedMediaUrls;
-
     public function __construct(
         private readonly BunnyStorageService $bunnyStorage,
     ) {
@@ -131,115 +123,6 @@ class AssignmentController extends Controller
             ->with('status', 'assignment-deleted');
     }
 
-    public function show(Module $module, Assignment $assignment): Response
-    {
-        abort_unless($assignment->module_id === $module->id, 404);
-        $module->loadCount(['lessons', 'assignments']);
-
-        return Inertia::render('Admin/Assignments/Show', [
-            'module' => $this->modulePayload($module),
-            'assignment' => [
-                'id' => $assignment->id,
-                'title' => $assignment->title,
-                'description' => $assignment->description,
-                'sort_order' => $assignment->sort_order,
-                'status' => $assignment->status,
-                'is_required' => $assignment->is_required,
-            ],
-            'submissionStatuses' => $this->submissionStatusOptions(),
-            'submissions' => $assignment->submissions()
-                ->with('user:id,name,email')
-                ->latest('submitted_at')
-                ->latest('id')
-                ->get()
-                ->map(fn (AssignmentSubmission $submission) => [
-                    'id' => $submission->id,
-                    'student' => [
-                        'id' => $submission->user?->id,
-                        'name' => $submission->user?->name ?? 'Unknown student',
-                        'email' => $submission->user?->email,
-                    ],
-                    'status' => $submission->assignment_status,
-                    'feedback' => $submission->assignment_feedback,
-                    'submitted_at' => $submission->submitted_at?->format('Y-m-d H:i'),
-                    'reviewed_at' => $submission->reviewed_at?->format('Y-m-d H:i'),
-                    'video_url' => $this->protectedMediaUrl(
-                        'assignment-submission',
-                        $submission->id,
-                        'assignment_video',
-                        $submission->assignment_video,
-                        versionSeed: $submission->updated_at,
-                    ),
-                    'video_path' => $submission->assignment_video,
-                ]),
-            'status' => session('status'),
-        ]);
-    }
-
-    public function updateSubmission(Request $request, Module $module, Assignment $assignment, AssignmentSubmission $assignmentSubmission): RedirectResponse
-    {
-        abort_unless($assignment->module_id === $module->id, 404);
-        abort_unless($assignmentSubmission->assignment_id === $assignment->id, 404);
-
-        $data = $request->validate([
-            'assignment_status' => ['required', 'in:'.implode(',', AssignmentSubmission::STATUSES)],
-            'assignment_feedback' => ['nullable', 'string'],
-        ]);
-
-        $previousStatus = $assignmentSubmission->assignment_status;
-        $assignmentSubmission->fill($data);
-        $isReviewed = in_array(
-            $assignmentSubmission->assignment_status,
-            [AssignmentSubmission::STATUS_APPROVED, AssignmentSubmission::STATUS_REJECTED],
-            true,
-        );
-
-        $assignmentSubmission->graded_at = $isReviewed ? now() : null;
-        $assignmentSubmission->reviewed_at = $isReviewed ? now() : null;
-        $assignmentSubmission->reviewed_by = $isReviewed ? auth()->id() : null;
-        $assignmentSubmission->save();
-
-        $student = $assignmentSubmission->user;
-        $emailPayload = [
-            'user_name' => $student?->name,
-            'user_email' => $student?->email,
-            'assignment_type' => $assignmentSubmission->title(),
-            'feedback' => $assignmentSubmission->assignment_feedback,
-            'admin_email' => config('mail.from.address'),
-            'dashboard_url' => route('student.dashboard'),
-        ];
-
-        if (
-            $previousStatus !== AssignmentSubmission::STATUS_APPROVED
-            && $assignmentSubmission->assignment_status === AssignmentSubmission::STATUS_APPROVED
-        ) {
-            event(new AssignmentApproved($emailPayload, 'assignment_submission', $assignmentSubmission->id));
-        }
-
-        if ($assignmentSubmission->assignment_status === AssignmentSubmission::STATUS_REJECTED) {
-            event(new AssignmentRejected($emailPayload, 'assignment_submission', $assignmentSubmission->id));
-        }
-
-        return redirect()
-            ->route('admin.modules.assignments.show', [$module, $assignment])
-            ->with('status', 'assignment-submission-updated');
-    }
-
-    public function deleteSubmissionVideo(Module $module, Assignment $assignment, AssignmentSubmission $assignmentSubmission): RedirectResponse
-    {
-        abort_unless($assignment->module_id === $module->id, 404);
-        abort_unless($assignmentSubmission->assignment_id === $assignment->id, 404);
-
-        $this->bunnyStorage->delete($assignmentSubmission->assignment_video);
-        $assignmentSubmission->update([
-            'assignment_video' => null,
-        ]);
-
-        return redirect()
-            ->route('admin.modules.assignments.show', [$module, $assignment])
-            ->with('status', 'assignment-submission-video-deleted');
-    }
-
     private function modulePayload(Module $module): array
     {
         return [
@@ -260,19 +143,6 @@ class AssignmentController extends Controller
             ])
             ->values()
             ->all();
-    }
-
-    private function submissionStatusOptions(): array
-    {
-        return collect([
-            AssignmentSubmission::STATUS_SUBMITTED,
-            AssignmentSubmission::STATUS_UNDER_REVIEW,
-            AssignmentSubmission::STATUS_APPROVED,
-            AssignmentSubmission::STATUS_REJECTED,
-        ])->map(fn (string $status) => [
-            'value' => $status,
-            'label' => str($status)->replace('_', ' ')->title()->value(),
-        ])->values()->all();
     }
 
     private function normalizeAssignmentSortOrder(Module $module): void

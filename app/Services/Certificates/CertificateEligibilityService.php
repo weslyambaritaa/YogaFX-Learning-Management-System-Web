@@ -235,23 +235,19 @@ class CertificateEligibilityService
             ];
         }
 
-        $submittedAssignmentIds = AssignmentSubmission::query()
+        $approvedAssignmentIds = AssignmentSubmission::query()
             ->where('user_id', $student->id)
             ->whereIn('assignment_id', $assignmentIds)
-            ->where(function ($query) {
-                $query
-                    ->whereNotNull('assignment_video')
-                    ->orWhereNotNull('submitted_at');
-            })
+            ->where('assignment_status', AssignmentSubmission::STATUS_APPROVED)
             ->pluck('assignment_id')
             ->map(fn ($assignmentId) => (int) $assignmentId)
             ->unique()
             ->values();
 
         return [
-            'completed' => $submittedAssignmentIds->count(),
+            'completed' => $approvedAssignmentIds->count(),
             'total' => $assignmentIds->count(),
-            'detail' => 'Student must submit all required live assignments available in the active tier.',
+            'detail' => 'Student must receive approval for all required live assignments available in the active tier.',
         ];
     }
 
@@ -268,7 +264,6 @@ class CertificateEligibilityService
             ->with([
                 'assignments' => fn ($query) => $query
                     ->where('status', Assignment::STATUS_LIVE)
-                    ->where('is_required', true)
                     ->select('id', 'module_id'),
             ])
             ->get(['id'])

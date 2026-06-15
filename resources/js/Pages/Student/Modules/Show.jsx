@@ -254,7 +254,7 @@ export default function StudentModuleShow({ module }) {
                                             </div>
 
                                             <div className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/68">
-                                                {assignment.is_required ? 'Required' : 'Optional'}
+                                                Required
                                             </div>
                                         </div>
 

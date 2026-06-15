@@ -503,9 +503,7 @@ class HomeController extends Controller
     protected function buildAvailableModulesSection(Request $request, Collection $availableModules): array
     {
         $user = $request->user();
-        $moduleCollection = $availableModules
-            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
-            ->values();
+        $moduleCollection = $availableModules->values();
 
         if (! $user || ! $user->access_tier_id) {
             return [
@@ -528,7 +526,7 @@ class HomeController extends Controller
                 'state' => 'empty',
                 'eyebrow' => 'Available Modules',
                 'title' => 'No module is available in this tier yet.',
-                'description' => 'Home is ready to show a premium module catalog, but there are no accessible modules with lessons for the current student tier yet.',
+                'description' => 'Home is ready to show a premium module catalog, but there are no accessible modules for the current student tier yet.',
                 'items' => [],
                 'summary' => [
                     'total' => 0,
@@ -550,8 +548,9 @@ class HomeController extends Controller
             $completedLessons = $module->lessons
                 ->filter(fn ($lesson) => (bool) optional($lessonProgressMap->get($lesson->id))->is_done)
                 ->count();
+            $isResourceOnlyModule = $totalLessons === 0 && (bool) $module->ebook_enabled;
             $isActive = $module->lessons->contains(fn ($lesson) => $lesson->id === $activeLessonId);
-            $status = $totalLessons > 0 && $completedLessons === $totalLessons
+            $status = $isResourceOnlyModule || ($totalLessons > 0 && $completedLessons === $totalLessons)
                 ? 'completed'
                 : ($isActive ? 'active' : 'available');
             $statusLabel = match ($status) {
@@ -569,7 +568,7 @@ class HomeController extends Controller
                 'completed_lessons' => $completedLessons,
                 'progress_percentage' => $totalLessons > 0
                     ? (int) round(($completedLessons / $totalLessons) * 100)
-                    : 0,
+                    : ($isResourceOnlyModule ? 100 : 0),
                 'status' => $status,
                 'status_label' => $statusLabel,
                 'cta_label' => match ($status) {
@@ -793,7 +792,6 @@ class HomeController extends Controller
             ->with([
                 'assignments' => fn ($query) => $query
                     ->where('status', Assignment::STATUS_LIVE)
-                    ->where('is_required', true)
                     ->orderBy('sort_order')
                     ->orderBy('title'),
             ])
@@ -807,7 +805,7 @@ class HomeController extends Controller
                 'state' => 'not_available',
                 'eyebrow' => 'Assignment Milestone',
                 'title' => 'Assignment is not included in your current tier.',
-                'description' => 'No required live assignment is attached to the active tier yet, so assignment milestone is not part of the current path.',
+                'description' => 'No live assignment is attached to the active tier yet, so assignment milestone is not part of the current path.',
                 'status' => 'Not available for your tier',
                 'eligibility_label' => 'Unavailable in '.($tier->name ?? 'current tier'),
                 'cta_label' => 'Browse Modules',

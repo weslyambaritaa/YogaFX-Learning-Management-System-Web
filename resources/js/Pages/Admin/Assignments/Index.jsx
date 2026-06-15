@@ -118,15 +118,6 @@ export default function AssignmentIndex({ module, assignments, status }) {
                                                 <td className="px-4 py-3">
                                                     <div className="flex flex-wrap items-center gap-4">
                                                         <Link
-                                                            href={route('admin.modules.assignments.show', {
-                                                                module: module.id,
-                                                                assignment: assignment.id,
-                                                            })}
-                                                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                                                        >
-                                                            Review
-                                                        </Link>
-                                                        <Link
                                                             href={route('admin.modules.assignments.edit', {
                                                                 module: module.id,
                                                                 assignment: assignment.id,
