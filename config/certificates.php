@@ -30,8 +30,8 @@ return [
             'file_name_suffix' => 'bikram-yoga-certificate',
             'placement' => [
                 'x' => 'center',
-                'y' => 630,
-                'font_size' => 48,
+                'y' => 805,
+                'font_size' => 42,
                 'font_color' => '#000000',
                 'alignment' => 'center',
                 'font_family' => 'dejavu_sans_bold',
