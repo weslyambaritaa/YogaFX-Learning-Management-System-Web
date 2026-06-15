@@ -410,6 +410,7 @@ class ModuleCatalogController extends Controller
         Collection $completedAssessmentIds,
     ): array {
         $tier = $user?->accessTier;
+        $summary = $user ? $this->certificateEligibilityService->summaryForStudent($user) : null;
         $latestCertificate = $user
             ? Certificate::query()
                 ->where('user_id', $user->id)
@@ -417,7 +418,8 @@ class ModuleCatalogController extends Controller
                 ->latest('id')
                 ->first()
             : null;
-        $eligibleTier = $user && $user->access_tier_id !== null && $tier?->slug !== AccessTier::SLUG_STARTER_KIT;
+        $availableTypes = collect($summary['available_types'] ?? []);
+        $eligibleTier = $user && $user->access_tier_id !== null && $availableTypes->isNotEmpty();
         $learningModules = $modules
             ->reject(fn (Module $module) => $this->isCertificateDownloadModule($module))
             ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
@@ -430,29 +432,30 @@ class ModuleCatalogController extends Controller
                     $completedAssessmentIds,
                 ),
             ));
+        $learningEligible = (bool) ($summary['learning_eligible'] ?? false);
         $hasCertificate = (bool) $latestCertificate;
-        $isVisible = $eligibleTier && ($currentPathCompleted || $hasCertificate);
+        $isVisible = $eligibleTier && ($learningEligible || $hasCertificate);
         $state = ! $eligibleTier
             ? 'not_available'
-            : ($hasCertificate ? 'download_available' : ($currentPathCompleted ? 'ready' : 'locked'));
+            : ($hasCertificate ? 'download_available' : ($learningEligible ? 'ready' : 'locked'));
 
         return [
             'state' => $state,
             'is_visible' => $isVisible,
-            'module_status' => $hasCertificate ? 'completed' : ($currentPathCompleted ? 'available' : 'locked'),
+            'module_status' => $hasCertificate ? 'completed' : ($learningEligible ? 'available' : 'locked'),
             'module_description' => $hasCertificate
                 ? 'Your certificate is ready. Open this module to review and download your latest YogaFX certificate.'
-                : ($currentPathCompleted
+                : ($learningEligible
                     ? 'Your learning journey is complete and this certificate module is now open while certificate generation is being finalized.'
                     : 'Complete your full YogaFX learning journey to unlock certificate access.'),
             'title' => $hasCertificate
                 ? 'Your latest certificate is ready to download.'
-                : ($currentPathCompleted
+                : ($learningEligible
                     ? 'Your certificate milestone is ready from the learning side.'
                     : 'Certificate access is not unlocked yet.'),
             'description' => $hasCertificate
                 ? 'This module now acts as your student certificate area. Download the latest certificate record generated for your account.'
-                : ($currentPathCompleted
+                : ($learningEligible
                     ? 'You have completed the accessible learning path for your current tier. If the certificate file has not been generated yet, please wait for the YogaFX team to finalize it.'
                     : 'Certificate access opens after the required YogaFX journey has been completed.'),
             'eligibility_label' => $eligibleTier
@@ -461,6 +464,10 @@ class ModuleCatalogController extends Controller
             'support_note' => $hasCertificate
                 ? 'The latest available certificate record is surfaced here so you do not need a separate student certificate menu.'
                 : 'This page opens as soon as your learning path reaches certificate readiness, even if the final file is still waiting to be generated.',
+            'requirements' => $summary['requirements'] ?? [],
+            'learning_eligible' => $learningEligible,
+            'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
+            'eligibility_message' => $summary['message'] ?? null,
             'latest_certificate' => $latestCertificate ? [
                 'id' => $latestCertificate->id,
                 'type_label' => $latestCertificate->typeLabel(),

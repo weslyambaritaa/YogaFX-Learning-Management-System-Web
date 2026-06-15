@@ -80,10 +80,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const contentActions = [
         lesson.workbook_url
             ? {
-                  label: 'Open Workbook',
+                  label: lesson.progress?.is_workbook_downloaded
+                      ? 'Download Workbook Again'
+                      : 'Download Workbook',
                   href: lesson.workbook_url,
                   icon: FileText,
-                  external: true,
+                  external: false,
               }
             : null,
     ].filter(Boolean);

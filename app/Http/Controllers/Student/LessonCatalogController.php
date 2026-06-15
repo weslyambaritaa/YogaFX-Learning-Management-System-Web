@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
+use App\Models\AccessTier;
 use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
@@ -11,7 +12,9 @@ use App\Models\Module;
 use App\Services\BunnyStreamService;
 use App\Services\StudentLearningMilestoneEmailService;
 use App\Services\StudentSessionTrackingService;
+use App\Support\BunnyAssetPath;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -105,6 +108,8 @@ class LessonCatalogController extends Controller
                 ] : null,
                 'progress' => [
                     'watch_progress' => (int) round((float) ($currentProgress?->watch_progress ?? 0)),
+                    'is_workbook_downloaded' => (bool) ($currentProgress?->is_workbook_downloaded ?? false),
+                    'workbook_downloaded_at' => $currentProgress?->workbook_downloaded_at?->toIso8601String(),
                     'is_done' => $this->isLessonFullyComplete(
                         $lesson,
                         $currentProgress,
@@ -119,13 +124,9 @@ class LessonCatalogController extends Controller
                     $lesson->thumbnail,
                     versionSeed: $lesson->updated_at,
                 ),
-                'workbook_url' => $this->protectedMediaUrl(
-                    'lesson',
-                    $lesson->id,
-                    'workbook',
-                    $lesson->workbook,
-                    versionSeed: $lesson->updated_at,
-                ),
+                'workbook_url' => $lesson->workbook
+                    ? route('lessons.workbook.download', $lesson)
+                    : null,
                 'navigation' => $lessonNavigation->map(fn (Lesson $item) => [
                     'id' => $item->id,
                     'title' => $item->title,
@@ -161,6 +162,42 @@ class LessonCatalogController extends Controller
             ],
             'accessTimeSummary' => $this->sessionTrackingService->summaryForUser($user),
         ]);
+    }
+
+    public function downloadWorkbook(Request $request, Lesson $lesson): RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = $request->user();
+        $this->authorizeLessonAccess($request, $lesson);
+
+        abort_unless(filled($lesson->workbook), 404);
+
+        LessonProgress::query()->updateOrCreate(
+            [
+                'user_id' => $user?->id,
+                'lesson_id' => $lesson->id,
+            ],
+            [
+                'is_workbook_downloaded' => true,
+                'workbook_downloaded_at' => now(),
+            ],
+        );
+
+        $downloadUrl = $this->protectedMediaUrl(
+            'lesson',
+            $lesson->id,
+            'workbook',
+            $lesson->workbook,
+            download: true,
+            versionSeed: $lesson->updated_at,
+        );
+
+        abort_unless($downloadUrl, 404);
+
+        if (BunnyAssetPath::isBunnyPath($lesson->workbook) || filter_var($lesson->workbook, FILTER_VALIDATE_URL)) {
+            return redirect()->away($downloadUrl);
+        }
+
+        return redirect($downloadUrl);
     }
 
     public function updateProgress(Request $request, Lesson $lesson): JsonResponse
@@ -341,7 +378,7 @@ class LessonCatalogController extends Controller
             ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
             ->with([
                 'lessons' => fn ($query) => $query
-                    ->select(['id', 'module_id', 'title', 'sort_order', 'assessment_id', 'lesson_video_id', 'thumbnail'])
+                    ->select(['id', 'module_id', 'title', 'sort_order', 'assessment_id', 'lesson_video_id', 'thumbnail', 'workbook'])
                     ->with(['assessment:id,status,is_active'])
                     ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
                     ->orderBy('sort_order')
