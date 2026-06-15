@@ -59,7 +59,9 @@ class ModuleCatalogController extends Controller
                 $hasUnlockedLesson = $module->lessons->contains(
                     fn (Lesson $lesson) => (bool) ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false),
                 );
-                $hasAccessibleContent = $hasUnlockedLesson || $totalAssignments > 0;
+                $hasAccessibleContent = $hasUnlockedLesson
+                    || $totalAssignments > 0
+                    || (bool) $module->certificate_enabled;
                 $status = $totalLessons > 0 && $completedLessons === $totalLessons
                     ? 'completed'
                     : (! $hasAccessibleContent ? 'locked' : ($isActive ? 'active' : 'available'));
