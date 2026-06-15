@@ -1,15 +1,21 @@
 <?php
 
+use App\Support\MobileApiResponse;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use App\Support\UploadConstraints;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
+        api: __DIR__.'/../routes/api.php',
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
@@ -21,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'mobile.student' => \App\Http\Middleware\EnsureMobileStudentAccess::class,
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'track.student.session' => \App\Http\Middleware\TrackStudentSessionActivity::class,
             'student.active' => \App\Http\Middleware\EnsureStudentAccountIsActive::class,
@@ -30,6 +37,37 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (AuthenticationException $exception, Request $request) {
+            if (! $request->is('api/mobile/v1/*')) {
+                return null;
+            }
+
+            return MobileApiResponse::error('Unauthenticated.', 401);
+        });
+
+        $exceptions->render(function (ValidationException $exception, Request $request) {
+            if (! $request->is('api/mobile/v1/*')) {
+                return null;
+            }
+
+            return MobileApiResponse::error(
+                $exception->getMessage(),
+                $exception->status,
+                $exception->errors(),
+            );
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
+            if (! $request->is('api/mobile/v1/*')) {
+                return null;
+            }
+
+            return MobileApiResponse::error(
+                $exception->getMessage() !== '' ? $exception->getMessage() : Response::$statusTexts[$exception->getStatusCode()],
+                $exception->getStatusCode(),
+            );
+        });
 
         $serverLimitSummary = static function (): string {
             $postMaxSize = (string) ini_get('post_max_size');
