@@ -46,6 +46,7 @@ class ModuleRequest extends FormRequest
                 'regex:/^[a-z0-9-]+$/',
                 Rule::unique(Module::class, 'url_slug')->ignore($module?->id),
             ],
+            'certificate_enabled' => ['nullable', 'boolean'],
             'thumbnail' => [...$thumbnailRule, 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
             'access_tier_ids' => ['required', 'array', 'min:1'],
             'access_tier_ids.*' => ['integer', Rule::exists('access_tiers', 'id')],

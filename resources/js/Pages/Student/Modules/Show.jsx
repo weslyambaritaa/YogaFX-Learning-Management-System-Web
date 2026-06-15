@@ -4,6 +4,7 @@ import {
     ArrowRight,
     CheckCircle2,
     ClipboardCheck,
+    Download,
     Lock,
     PlayCircle,
 } from 'lucide-react';
@@ -281,6 +282,60 @@ export default function StudentModuleShow({ module }) {
                                 );
                             })}
                         </div>
+                    </section>
+                ) : null}
+
+                {module.certificate_enabled ? (
+                    <section className="space-y-5">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                                    Certificate
+                                </p>
+                                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                    Download your generated certificates
+                                </h2>
+                            </div>
+                        </div>
+
+                        {(module.certificates ?? []).length ? (
+                            <div className="grid gap-4 xl:grid-cols-2">
+                                {module.certificates.map((certificate) => (
+                                    <a
+                                        key={certificate.id}
+                                        href={certificate.download_url}
+                                        className="group rounded-[28px] border border-white/10 bg-white/[0.04] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="space-y-3">
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
+                                                    <Download className="size-3.5" />
+                                                    Certificate PDF
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-semibold tracking-tight text-white">
+                                                        {certificate.type_label}
+                                                    </h3>
+                                                    <p className="mt-3 text-sm leading-7 text-white/62">
+                                                        Generated {certificate.generated_at}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
+                                                Download
+                                                <ArrowRight className="size-4 transition group-hover:translate-x-1" />
+                                            </div>
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
+                                No certificate PDF has been generated for your account yet in
+                                this module.
+                            </div>
+                        )}
                     </section>
                 ) : null}
             </div>

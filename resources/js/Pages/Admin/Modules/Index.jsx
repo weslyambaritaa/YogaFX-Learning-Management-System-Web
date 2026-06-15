@@ -71,6 +71,9 @@ export default function ModulesIndex({ modules, status }) {
                                             Assignments
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                            Certificate
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Action
                                         </th>
                                     </tr>
@@ -111,6 +114,9 @@ export default function ModulesIndex({ modules, status }) {
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">
                                                 {module.assignments_count}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {module.certificate_enabled ? 'Checked' : 'Not checked'}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-wrap items-center gap-4">

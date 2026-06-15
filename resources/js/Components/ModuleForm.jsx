@@ -73,6 +73,27 @@ export default function ModuleForm({
                 <InputError className="mt-2" message={errors.sort_order} />
             </div>
 
+            <label className="flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3">
+                <input
+                    type="checkbox"
+                    checked={Boolean(data.certificate_enabled)}
+                    onChange={(event) =>
+                        setData('certificate_enabled', event.target.checked)
+                    }
+                    className="mt-1 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                />
+                <div>
+                    <div className="text-sm font-medium text-gray-900">
+                        Enable certificate on this module
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">
+                        If checked, students can download their generated certificates
+                        from this module page.
+                    </p>
+                </div>
+            </label>
+            <InputError className="mt-2" message={errors.certificate_enabled} />
+
             <div>
                 <InputLabel htmlFor="description" value="Description" />
                 <textarea

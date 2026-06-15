@@ -130,19 +130,7 @@ class LessonCatalogController extends Controller
                     'id' => $item->id,
                     'title' => $item->title,
                     'sort_order' => $item->sort_order,
-                    'thumbnail_url' => $this->protectedMediaUrl(
-                        'lesson',
-                        $item->id,
-                        'thumbnail',
-                        $item->thumbnail,
-                        versionSeed: $item->updated_at,
-                    ) ?: $this->protectedMediaUrl(
-                        'lesson',
-                        $lesson->id,
-                        'thumbnail',
-                        $lesson->thumbnail,
-                        versionSeed: $lesson->updated_at,
-                    ),
+                    'thumbnail_url' => $this->lessonThumbnailUrl($item, $lesson->module),
                     'is_locked' => ! ($lessonUnlockMap->get($item->id)['is_unlocked'] ?? false),
                     'lock_reason' => $lessonUnlockMap->get($item->id)['reason'] ?? null,
                     'status' => $this->isLessonFullyComplete(
@@ -163,13 +151,7 @@ class LessonCatalogController extends Controller
                     'id' => $nextLesson->id,
                     'title' => $nextLesson->title,
                     'sort_order' => $nextLesson->sort_order,
-                    'thumbnail_url' => $this->protectedMediaUrl(
-                        'lesson',
-                        $nextLesson->id,
-                        'thumbnail',
-                        $nextLesson->thumbnail,
-                        versionSeed: $nextLesson->updated_at,
-                    ),
+                    'thumbnail_url' => $this->lessonThumbnailUrl($nextLesson, $lesson->module),
                     'is_unlocked' => (bool) ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false),
                     'lock_reason' => $lessonUnlockMap->get($nextLesson->id)['reason'] ?? null,
                     'url' => ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false)
@@ -309,6 +291,26 @@ class LessonCatalogController extends Controller
         ];
     }
 
+    private function lessonThumbnailUrl(Lesson $lesson, ?Module $module = null): ?string
+    {
+        return $this->protectedMediaUrl(
+            'lesson',
+            $lesson->id,
+            'thumbnail',
+            $lesson->thumbnail,
+            versionSeed: $lesson->updated_at,
+        ) ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
+            ?: ($module
+                ? $this->protectedMediaUrl(
+                    'module',
+                    $module->id,
+                    'thumbnail',
+                    $module->thumbnail,
+                    versionSeed: $module->updated_at,
+                )
+                : null);
+    }
+
     private function authorizeLessonAccess(Request $request, Lesson $lesson): void
     {
         $user = $request->user();
@@ -339,7 +341,7 @@ class LessonCatalogController extends Controller
             ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
             ->with([
                 'lessons' => fn ($query) => $query
-                    ->select(['id', 'module_id', 'title', 'sort_order', 'assessment_id', 'lesson_video_id'])
+                    ->select(['id', 'module_id', 'title', 'sort_order', 'assessment_id', 'lesson_video_id', 'thumbnail'])
                     ->with(['assessment:id,status,is_active'])
                     ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
                     ->orderBy('sort_order')
