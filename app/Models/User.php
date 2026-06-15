@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Auth\Notifications\ResetPassword as ResetPasswordNotification;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -200,14 +199,6 @@ class User extends Authenticatable
 
     public function sendPasswordResetNotification($token): void
     {
-        $emailNotificationService = app(EmailNotificationService::class);
-
-        if ($emailNotificationService->shouldHandlePasswordResetTemplate()) {
-            $emailNotificationService->sendPasswordResetRequested($this, $token);
-
-            return;
-        }
-
-        $this->notify(new ResetPasswordNotification($token));
+        app(EmailNotificationService::class)->sendPasswordResetRequested($this, $token);
     }
 }

@@ -186,6 +186,7 @@ class AssignmentController extends Controller
             'assignment_feedback' => ['nullable', 'string'],
         ]);
 
+        $previousStatus = $assignmentSubmission->assignment_status;
         $assignmentSubmission->fill($data);
         $isReviewed = in_array(
             $assignmentSubmission->assignment_status,
@@ -205,9 +206,13 @@ class AssignmentController extends Controller
             'assignment_type' => $assignmentSubmission->title(),
             'feedback' => $assignmentSubmission->assignment_feedback,
             'admin_email' => config('mail.from.address'),
+            'dashboard_url' => route('student.dashboard'),
         ];
 
-        if ($assignmentSubmission->assignment_status === AssignmentSubmission::STATUS_APPROVED) {
+        if (
+            $previousStatus !== AssignmentSubmission::STATUS_APPROVED
+            && $assignmentSubmission->assignment_status === AssignmentSubmission::STATUS_APPROVED
+        ) {
             event(new AssignmentApproved($emailPayload, 'assignment_submission', $assignmentSubmission->id));
         }
 

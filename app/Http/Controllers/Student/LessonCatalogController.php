@@ -9,6 +9,7 @@ use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Services\BunnyStreamService;
+use App\Services\StudentLearningMilestoneEmailService;
 use App\Services\StudentSessionTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class LessonCatalogController extends Controller
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly StudentSessionTrackingService $sessionTrackingService,
+        private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
     ) {}
 
     public function show(Request $request, Lesson $lesson): Response
@@ -217,6 +219,10 @@ class LessonCatalogController extends Controller
                 'completed_at' => $isDone ? now() : null,
             ],
         );
+
+        if ($isDone && $user) {
+            $this->studentLearningMilestoneEmailService->syncLessonMilestones($user, $lesson);
+        }
 
         return response()->json([
             'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
