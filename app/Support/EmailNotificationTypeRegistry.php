@@ -115,6 +115,8 @@ class EmailNotificationTypeRegistry
                     '{{ user_name }}',
                     '{{ user_email }}',
                     '{{ reset_url }}',
+                    '{{ password_change_url }}',
+                    '{{ otp_code }}',
                     '{{ reset_expiry_minutes }}',
                     '{{ login_url }}',
                 ],

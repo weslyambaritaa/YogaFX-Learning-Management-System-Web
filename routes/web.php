@@ -22,6 +22,7 @@ use App\Http\Controllers\Student\DialogContentController as StudentDialogContent
 use App\Http\Controllers\Student\HomeController;
 use App\Http\Controllers\Student\LessonCatalogController;
 use App\Http\Controllers\Student\ModuleCatalogController;
+use App\Http\Controllers\Student\ProfilePasswordController;
 use App\Http\Controllers\Admin\ScoreboardBuilderController;
 use App\Http\Controllers\Admin\ScoreboardController;
 use Illuminate\Foundation\Application;
@@ -63,6 +64,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:student', 'student.active', 'track.student.session'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::post('/profile/password/request', [ProfilePasswordController::class, 'request'])->name('profile.password.request');
         Route::get('/modules', [ModuleCatalogController::class, 'index'])->name('modules.index');
         Route::get('/modules/{module:url_slug}', [ModuleCatalogController::class, 'show'])->name('modules.show');
         Route::get('/lessons/{lesson}', [LessonCatalogController::class, 'show'])->name('lessons.show');
@@ -82,6 +84,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
     });
+
+    Route::get('/profile/password/change/{token}', [ProfilePasswordController::class, 'edit'])->name('profile.password.change.edit');
+    Route::post('/profile/password/change', [ProfilePasswordController::class, 'update'])->name('profile.password.change.update');
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/access-tiers', [AccessTierController::class, 'index'])->name('access-tiers.index');

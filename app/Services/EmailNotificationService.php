@@ -212,6 +212,50 @@ class EmailNotificationService
         ], 'user', $user->id));
     }
 
+    public function sendStudentPasswordChangeRequested(
+        User $user,
+        string $changePasswordUrl,
+        string $otpCode,
+        int $expiresInMinutes,
+    ): void {
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
+        $payload = [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'reset_url' => $changePasswordUrl,
+            'password_change_url' => $changePasswordUrl,
+            'otp_code' => $otpCode,
+            'reset_expiry_minutes' => (string) $expiresInMinutes,
+            'login_url' => route('login'),
+        ];
+
+        $deliveries = $this->buildDeliveries($template, $payload);
+
+        foreach ($deliveries as $delivery) {
+            $body = $delivery['body'];
+
+            if ($delivery['recipient_type'] === 'user') {
+                $body = $this->ensurePasswordChangeVerificationBlock(
+                    $body,
+                    (string) $template->body_user,
+                    $payload,
+                );
+            }
+
+            $this->deliver(
+                template: $template,
+                notificationType: EmailNotificationTypeRegistry::RESET_PASSWORD,
+                subject: $delivery['subject'],
+                body: $body,
+                recipientEmail: $delivery['recipient_email'],
+                recipientType: $delivery['recipient_type'],
+                referenceType: 'student_password_change',
+                referenceId: $user->id,
+                variantLabel: $delivery['variant_label'],
+            );
+        }
+    }
+
     public function sendInactivityReminders(): int
     {
         $template = $this->preparedTemplate(EmailNotificationTypeRegistry::REMINDER);
@@ -575,6 +619,37 @@ class EmailNotificationService
             'error_message' => $errorMessage,
             'sent_at' => now(),
         ]);
+    }
+
+    private function ensurePasswordChangeVerificationBlock(
+        string $renderedBody,
+        string $templateBody,
+        array $payload,
+    ): string {
+        $sections = [];
+
+        if (
+            ! str_contains($templateBody, 'otp_code')
+            && filled($payload['otp_code'] ?? null)
+        ) {
+            $sections[] = '<p>Your one-time password code: <strong>'.e((string) $payload['otp_code']).'</strong></p>';
+        }
+
+        if (
+            ! str_contains($templateBody, 'password_change_url')
+            && ! str_contains($templateBody, 'reset_url')
+            && filled($payload['password_change_url'] ?? null)
+        ) {
+            $url = (string) $payload['password_change_url'];
+            $escapedUrl = e($url);
+            $sections[] = '<p>Continue here to change your password: <a href="'.$escapedUrl.'">'.$escapedUrl.'</a></p>';
+        }
+
+        if ($sections === []) {
+            return $renderedBody;
+        }
+
+        return $renderedBody.implode('', $sections);
     }
 
     private function samplePayloadFor(string $notificationType, string $sendTo, ?int $moduleId = null): array
