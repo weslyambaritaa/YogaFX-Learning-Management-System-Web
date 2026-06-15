@@ -9,6 +9,7 @@ use App\Support\BunnyAssetPath;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -32,17 +33,16 @@ class CertificateGeneratorService
             throw new RuntimeException('Certificate template configuration is missing.');
         }
 
-        $templateBytes = $this->loadTemplateBytes($template);
-        $renderedImagePath = $this->renderStudentNameToTemplate($templateBytes, $studentName, $template['placement'] ?? []);
-        $pdfBinary = $this->buildPdfFromRenderedImage($renderedImagePath);
-
-        $fileName = sprintf(
-            '%s-%s.pdf',
-            Str::slug($studentName),
-            $template['file_name_suffix'] ?? Str::slug($certificateType),
-        );
-        $objectKey = trim((string) config('certificates.output_directory', 'certificates'), '/').'/'.$student->id.'/'.$fileName;
         $timestamp = now();
+        $templateBytes = $this->loadTemplateBytes($template);
+        $renderedImagePath = $this->renderCertificateTemplate(
+            $templateBytes,
+            $studentName,
+            $template['placement'] ?? [],
+            $template['date_placement'] ?? [],
+            $timestamp,
+        );
+        $pdfBinary = $this->buildPdfFromRenderedImage($renderedImagePath);
 
         $existing = Certificate::query()
             ->where('user_id', $student->id)
@@ -53,6 +53,15 @@ class CertificateGeneratorService
 
         $previousPath = $existing?->file_path;
         $nextVersion = max(1, (int) ($existing?->version ?? 0) + 1);
+        $fileName = sprintf(
+            '%s-%s.pdf',
+            Str::slug($studentName),
+            $template['file_name_suffix'] ?? Str::slug($certificateType),
+        );
+        $objectKey = trim((string) config('certificates.output_directory', 'certificates'), '/')
+            .'/'.$student->id
+            .'/'.$certificateType
+            .'/v'.$nextVersion.'-'.$timestamp->format('YmdHis').'-'.Str::uuid()->toString().'.pdf';
 
         $storedPath = $this->bunnyStorage->uploadContents($pdfBinary, $objectKey, 'application/pdf');
 
@@ -79,7 +88,13 @@ class CertificateGeneratorService
         return $certificate->fresh(['generator:id,name']);
     }
 
-    private function renderStudentNameToTemplate(string $templateBytes, string $studentName, array $placement): string
+    private function renderCertificateTemplate(
+        string $templateBytes,
+        string $studentName,
+        array $placement,
+        array $datePlacement,
+        Carbon $generatedAt,
+    ): string
     {
         $image = imagecreatefromstring($templateBytes);
 
@@ -87,6 +102,32 @@ class CertificateGeneratorService
             throw new RuntimeException('Unable to read the JPG certificate template.');
         }
 
+        $this->drawText($image, $studentName, $placement, 'Unable to calculate certificate name placement using the configured font.');
+
+        if ($datePlacement !== []) {
+            $this->drawText(
+                $image,
+                $generatedAt->format('F j, Y'),
+                $datePlacement,
+                'Unable to calculate certificate date placement using the configured font.',
+            );
+        }
+
+        $outputPath = storage_path('app/tmp/'.Str::uuid()->toString().'.jpg');
+        $outputDirectory = dirname($outputPath);
+
+        if (! is_dir($outputDirectory)) {
+            mkdir($outputDirectory, 0755, true);
+        }
+
+        imagejpeg($image, $outputPath, 100);
+        imagedestroy($image);
+
+        return $outputPath;
+    }
+
+    private function drawText($image, string $text, array $placement, string $errorMessage): void
+    {
         $fontPath = $this->resolveFontPath((string) ($placement['font_family'] ?? 'dejavu_sans'));
         $fontSize = (float) ($placement['font_size'] ?? 42);
         $minFontSize = (float) ($placement['min_font_size'] ?? max(12, $fontSize - 16));
@@ -105,11 +146,11 @@ class CertificateGeneratorService
         );
         $rgb = $this->parseHexColor((string) ($placement['font_color'] ?? '#000000'));
         $color = imagecolorallocate($image, $rgb['red'], $rgb['green'], $rgb['blue']);
-        $boundingBox = $this->measureTextBox($fontSize, $fontPath, $studentName);
+        $boundingBox = $this->measureTextBox($fontSize, $fontPath, $text);
 
         if ($boundingBox === false) {
             imagedestroy($image);
-            throw new RuntimeException('Unable to calculate certificate name placement using the configured font.');
+            throw new RuntimeException($errorMessage);
         }
 
         while (
@@ -118,11 +159,11 @@ class CertificateGeneratorService
             && $fontSize > $minFontSize
         ) {
             $fontSize -= 1;
-            $boundingBox = $this->measureTextBox($fontSize, $fontPath, $studentName);
+            $boundingBox = $this->measureTextBox($fontSize, $fontPath, $text);
 
             if ($boundingBox === false) {
                 imagedestroy($image);
-                throw new RuntimeException('Unable to calculate certificate name placement using the configured font.');
+                throw new RuntimeException($errorMessage);
             }
         }
 
@@ -139,19 +180,7 @@ class CertificateGeneratorService
             default => $y,
         };
 
-        imagettftext($image, $fontSize, 0, $baselineX, $baselineY, $color, $fontPath, $studentName);
-
-        $outputPath = storage_path('app/tmp/'.Str::uuid()->toString().'.jpg');
-        $outputDirectory = dirname($outputPath);
-
-        if (! is_dir($outputDirectory)) {
-            mkdir($outputDirectory, 0755, true);
-        }
-
-        imagejpeg($image, $outputPath, 100);
-        imagedestroy($image);
-
-        return $outputPath;
+        imagettftext($image, $fontSize, 0, $baselineX, $baselineY, $color, $fontPath, $text);
     }
 
     private function resolveStudentCertificateName(User $student): string

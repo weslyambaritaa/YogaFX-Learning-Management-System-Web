@@ -451,8 +451,7 @@ class EmailNotificationService
                 referenceId: $referenceId,
                 errorMessage: $throwable->getMessage(),
             );
-
-            throw $throwable;
+            report($throwable);
         }
     }
 
