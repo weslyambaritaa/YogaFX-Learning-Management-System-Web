@@ -4,14 +4,15 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
+use App\Models\AccessTier;
 use App\Models\AssignmentSubmission;
 use App\Models\AssessmentAttempt;
+use App\Models\Certificate;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
-use App\Models\Certificate;
-use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\BunnyStreamService;
+use App\Services\Certificates\CertificateEligibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -21,6 +22,7 @@ class ModuleCatalogController extends Controller
 {
     use BuildsProtectedMediaUrls;
 
+    private const CERTIFICATE_DOWNLOAD_SLUG = 'certificate-download';
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly CertificateEligibilityService $certificateEligibilityService,
@@ -45,7 +47,15 @@ class ModuleCatalogController extends Controller
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
 
         return Inertia::render('Student/Modules/Index', [
-            'modules' => $modules->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $lessonUnlockMap, $completedAssessmentIds) {
+            'modules' => $modules->map(function (Module $module) use ($user, $modules, $activeLessonId, $lessonProgressMap, $lessonUnlockMap, $completedAssessmentIds) {
+                $certificateState = $this->isCertificateDownloadModule($module)
+                    ? $this->certificateAccessState(
+                        $user,
+                        $modules,
+                        $lessonProgressMap,
+                        $completedAssessmentIds,
+                    )
+                    : null;
                 $totalLessons = $module->lessons->count();
                 $totalAssignments = $module->assignments->count();
                 $completedLessons = $module->lessons->filter(function (Lesson $lesson) use ($lessonProgressMap, $completedAssessmentIds) {
@@ -65,11 +75,21 @@ class ModuleCatalogController extends Controller
                 $status = $totalLessons > 0 && $completedLessons === $totalLessons
                     ? 'completed'
                     : (! $hasAccessibleContent ? 'locked' : ($isActive ? 'active' : 'available'));
+                $hasAccessibleContent = $this->isCertificateDownloadModule($module)
+                    ? (bool) ($certificateState['is_visible'] ?? false)
+                    : ($hasUnlockedLesson || $totalAssignments > 0);
+                $status = $this->isCertificateDownloadModule($module)
+                    ? ($certificateState['module_status'] ?? 'locked')
+                    : ($totalLessons > 0 && $completedLessons === $totalLessons
+                        ? 'completed'
+                        : (! $hasAccessibleContent ? 'locked' : ($isActive ? 'active' : 'available')));
 
                 return [
                     'id' => $module->id,
                     'title' => $module->title,
-                    'description' => $module->description,
+                    'description' => $this->isCertificateDownloadModule($module)
+                        ? ($certificateState['module_description'] ?? $module->description)
+                        : $module->description,
                     'url_slug' => $module->url_slug,
                     'url' => $hasAccessibleContent ? route('modules.show', $module->url_slug) : null,
                     'sort_order' => $module->sort_order,
@@ -106,7 +126,6 @@ class ModuleCatalogController extends Controller
         $modules = $this->accessibleModulesWithLessons($accessTierId);
         $currentModule = $modules->firstWhere('id', $module->id);
         abort_unless($currentModule, 404);
-        $lessons = $currentModule->lessons;
 
         $lessonProgressMap = $this->lessonProgressMap(
             $user?->id,
@@ -116,6 +135,37 @@ class ModuleCatalogController extends Controller
             $user?->id,
             $modules->flatMap(fn (Module $item) => $item->lessons->pluck('assessment_id'))->filter(),
         );
+
+        if ($this->isCertificateDownloadModule($currentModule)) {
+            $certificateState = $this->certificateAccessState(
+                $user,
+                $modules,
+                $lessonProgressMap,
+                $completedAssessmentIds,
+            );
+
+            abort_unless($certificateState['is_visible'] ?? false, 403);
+
+            return Inertia::render('Student/Certificates/Show', [
+                'module' => [
+                    'id' => $currentModule->id,
+                    'title' => $currentModule->title,
+                    'description' => $currentModule->description,
+                    'url_slug' => $currentModule->url_slug,
+                    'sort_order' => $currentModule->sort_order,
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'module',
+                        $currentModule->id,
+                        'thumbnail',
+                        $currentModule->thumbnail,
+                        versionSeed: $currentModule->updated_at,
+                    ),
+                ],
+                'certificate' => $certificateState,
+            ]);
+        }
+
+        $lessons = $currentModule->lessons;
         $lessonUnlockMap = $this->lessonUnlockMap($user?->id, $modules, $lessonProgressMap);
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
         $assignmentSubmissionMap = $this->assignmentSubmissionMap(
@@ -346,6 +396,84 @@ class ModuleCatalogController extends Controller
         }
 
         return true;
+    }
+
+    private function isCertificateDownloadModule(Module $module): bool
+    {
+        return $module->url_slug === self::CERTIFICATE_DOWNLOAD_SLUG;
+    }
+
+    private function certificateAccessState(
+        $user,
+        Collection $modules,
+        Collection $lessonProgressMap,
+        Collection $completedAssessmentIds,
+    ): array {
+        $tier = $user?->accessTier;
+        $latestCertificate = $user
+            ? Certificate::query()
+                ->where('user_id', $user->id)
+                ->latest('generated_at')
+                ->latest('id')
+                ->first()
+            : null;
+        $eligibleTier = $user && $user->access_tier_id !== null && $tier?->slug !== AccessTier::SLUG_STARTER_KIT;
+        $learningModules = $modules
+            ->reject(fn (Module $module) => $this->isCertificateDownloadModule($module))
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->values();
+        $currentPathCompleted = $learningModules->isNotEmpty()
+            && $learningModules->every(fn (Module $module) => $module->lessons->every(
+                fn (Lesson $lesson) => $this->isLessonFullyComplete(
+                    $lesson,
+                    $lessonProgressMap->get($lesson->id),
+                    $completedAssessmentIds,
+                ),
+            ));
+        $hasCertificate = (bool) $latestCertificate;
+        $isVisible = $eligibleTier && ($currentPathCompleted || $hasCertificate);
+        $state = ! $eligibleTier
+            ? 'not_available'
+            : ($hasCertificate ? 'download_available' : ($currentPathCompleted ? 'ready' : 'locked'));
+
+        return [
+            'state' => $state,
+            'is_visible' => $isVisible,
+            'module_status' => $hasCertificate ? 'completed' : ($currentPathCompleted ? 'available' : 'locked'),
+            'module_description' => $hasCertificate
+                ? 'Your certificate is ready. Open this module to review and download your latest YogaFX certificate.'
+                : ($currentPathCompleted
+                    ? 'Your learning journey is complete and this certificate module is now open while certificate generation is being finalized.'
+                    : 'Complete your full YogaFX learning journey to unlock certificate access.'),
+            'title' => $hasCertificate
+                ? 'Your latest certificate is ready to download.'
+                : ($currentPathCompleted
+                    ? 'Your certificate milestone is ready from the learning side.'
+                    : 'Certificate access is not unlocked yet.'),
+            'description' => $hasCertificate
+                ? 'This module now acts as your student certificate area. Download the latest certificate record generated for your account.'
+                : ($currentPathCompleted
+                    ? 'You have completed the accessible learning path for your current tier. If the certificate file has not been generated yet, please wait for the YogaFX team to finalize it.'
+                    : 'Certificate access opens after the required YogaFX journey has been completed.'),
+            'eligibility_label' => $eligibleTier
+                ? 'Certificate included in '.($tier?->name ?? 'your current tier')
+                : 'Certificate not available in this tier',
+            'support_note' => $hasCertificate
+                ? 'The latest available certificate record is surfaced here so you do not need a separate student certificate menu.'
+                : 'This page opens as soon as your learning path reaches certificate readiness, even if the final file is still waiting to be generated.',
+            'latest_certificate' => $latestCertificate ? [
+                'id' => $latestCertificate->id,
+                'type_label' => $latestCertificate->typeLabel(),
+                'version' => $latestCertificate->version,
+                'generated_at' => optional($latestCertificate->generated_at)->format('Y-m-d H:i'),
+                'download_url' => route('student.certificates.download', $latestCertificate),
+            ] : null,
+            'cta_label' => $hasCertificate ? 'Download Latest Certificate' : 'Browse Modules',
+            'cta_url' => $hasCertificate
+                ? route('student.certificates.download', $latestCertificate)
+                : route('modules.index'),
+            'cta_kind' => $hasCertificate ? 'download' : 'link',
+        ];
     }
 
     protected function lessonProgressMap(?int $userId, iterable $lessonIds): Collection
