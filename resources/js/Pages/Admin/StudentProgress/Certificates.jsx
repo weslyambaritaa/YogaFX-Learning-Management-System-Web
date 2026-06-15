@@ -5,6 +5,7 @@ import { router, usePage } from '@inertiajs/react';
 const statusMessages = {
     'student-progress-certificate-generated': 'Certificate has been generated.',
     'student-progress-certificate-recreated': 'Certificate has been regenerated.',
+    'student-progress-certificate-deleted': 'Certificate has been deleted.',
     'student-progress-graduation-email-sent': 'Graduation email has been sent.',
 };
 
@@ -33,6 +34,21 @@ export default function Certificates({
 
     const regenerateCertificate = (certificateId) => {
         router.post(route('admin.student-progress.certificates.recreate', {
+            student: student.id,
+            certificate: certificateId,
+        }));
+    };
+
+    const deleteCertificate = (certificateId) => {
+        if (
+            !window.confirm(
+                'Delete this generated certificate? The stored PDF will also be removed.',
+            )
+        ) {
+            return;
+        }
+
+        router.delete(route('admin.student-progress.certificates.destroy', {
             student: student.id,
             certificate: certificateId,
         }));
@@ -210,6 +226,18 @@ export default function Certificates({
                                                         asChild
                                                     >
                                                         <a href={row.download_url}>Download</a>
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            deleteCertificate(
+                                                                row.certificate_id,
+                                                            )
+                                                        }
+                                                    >
+                                                        Delete
                                                     </Button>
                                                 </>
                                             )}

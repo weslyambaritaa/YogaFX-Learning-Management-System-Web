@@ -20,7 +20,7 @@ class CertificateGeneratorService
 
     public function generate(User $student, string $certificateType, ?int $generatedByUserId = null): Certificate
     {
-        $studentName = trim((string) $student->name);
+        $studentName = $this->resolveStudentCertificateName($student);
 
         if ($studentName === '') {
             throw new RuntimeException('Student primary account name is required before certificate generation.');
@@ -89,27 +89,49 @@ class CertificateGeneratorService
 
         $fontPath = $this->resolveFontPath((string) ($placement['font_family'] ?? 'dejavu_sans'));
         $fontSize = (float) ($placement['font_size'] ?? 42);
+        $minFontSize = (float) ($placement['min_font_size'] ?? max(12, $fontSize - 16));
+        $maxWidth = isset($placement['max_width']) ? (int) $placement['max_width'] : null;
         $alignment = (string) ($placement['alignment'] ?? 'center');
+        $verticalAlignment = (string) ($placement['vertical_alignment'] ?? 'baseline');
         $x = (int) ($placement['x'] ?? 0);
         $y = (int) ($placement['y'] ?? 0);
         $rgb = $this->parseHexColor((string) ($placement['font_color'] ?? '#000000'));
         $color = imagecolorallocate($image, $rgb['red'], $rgb['green'], $rgb['blue']);
-        $boundingBox = imagettfbbox($fontSize, 0, $fontPath, $studentName);
+        $boundingBox = $this->measureTextBox($fontSize, $fontPath, $studentName);
 
         if ($boundingBox === false) {
             imagedestroy($image);
             throw new RuntimeException('Unable to calculate certificate name placement using the configured font.');
         }
 
-        $textWidth = abs($boundingBox[4] - $boundingBox[0]);
+        while (
+            $maxWidth !== null
+            && $boundingBox['width'] > $maxWidth
+            && $fontSize > $minFontSize
+        ) {
+            $fontSize -= 1;
+            $boundingBox = $this->measureTextBox($fontSize, $fontPath, $studentName);
 
-        if ($alignment === 'center') {
-            $x -= (int) round($textWidth / 2);
-        } elseif ($alignment === 'right') {
-            $x -= $textWidth;
+            if ($boundingBox === false) {
+                imagedestroy($image);
+                throw new RuntimeException('Unable to calculate certificate name placement using the configured font.');
+            }
         }
 
-        imagettftext($image, $fontSize, 0, $x, $y, $color, $fontPath, $studentName);
+        $baselineX = match ($alignment) {
+            'left' => $x - $boundingBox['min_x'],
+            'right' => $x - $boundingBox['max_x'],
+            default => $x - (int) round(($boundingBox['min_x'] + $boundingBox['max_x']) / 2),
+        };
+
+        $baselineY = match ($verticalAlignment) {
+            'top' => $y - $boundingBox['min_y'],
+            'middle', 'center' => $y - (int) round(($boundingBox['min_y'] + $boundingBox['max_y']) / 2),
+            'bottom' => $y - $boundingBox['max_y'],
+            default => $y,
+        };
+
+        imagettftext($image, $fontSize, 0, $baselineX, $baselineY, $color, $fontPath, $studentName);
 
         $outputPath = storage_path('app/tmp/'.Str::uuid()->toString().'.jpg');
         $outputDirectory = dirname($outputPath);
@@ -122,6 +144,25 @@ class CertificateGeneratorService
         imagedestroy($image);
 
         return $outputPath;
+    }
+
+    private function resolveStudentCertificateName(User $student): string
+    {
+        $candidates = [
+            trim((string) $student->name),
+            trim(implode(' ', array_filter([
+                $student->first_name,
+                $student->last_name,
+            ]))),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate !== '') {
+                return preg_replace('/\s+/', ' ', $candidate) ?? $candidate;
+            }
+        }
+
+        return '';
     }
 
     private function loadTemplateBytes(array $template): string
@@ -213,6 +254,32 @@ class CertificateGeneratorService
             'red' => hexdec(substr($normalized, 0, 2)),
             'green' => hexdec(substr($normalized, 2, 2)),
             'blue' => hexdec(substr($normalized, 4, 2)),
+        ];
+    }
+
+    private function measureTextBox(float $fontSize, string $fontPath, string $text): array|false
+    {
+        $box = imagettfbbox($fontSize, 0, $fontPath, $text);
+
+        if ($box === false) {
+            return false;
+        }
+
+        $xs = [$box[0], $box[2], $box[4], $box[6]];
+        $ys = [$box[1], $box[3], $box[5], $box[7]];
+        $minX = (int) min($xs);
+        $maxX = (int) max($xs);
+        $minY = (int) min($ys);
+        $maxY = (int) max($ys);
+
+        return [
+            'box' => $box,
+            'min_x' => $minX,
+            'max_x' => $maxX,
+            'min_y' => $minY,
+            'max_y' => $maxY,
+            'width' => $maxX - $minX,
+            'height' => $maxY - $minY,
         ];
     }
 }
