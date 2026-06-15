@@ -8,6 +8,7 @@ export default function EditModule({ module, accessTiers, status }) {
         description: module.description ?? '',
         sort_order: String(module.sort_order ?? 1),
         url_slug: module.url_slug ?? '',
+        certificate_enabled: Boolean(module.certificate_enabled),
         thumbnail: null,
         access_tier_ids: module.access_tier_ids ?? [],
     });

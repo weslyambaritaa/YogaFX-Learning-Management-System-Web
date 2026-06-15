@@ -43,6 +43,7 @@ class ModuleController extends Controller
                         versionSeed: $module->updated_at,
                     ),
                     'access_tiers' => $module->accessTiers->pluck('name')->all(),
+                    'certificate_enabled' => (bool) $module->certificate_enabled,
                     'lessons_count' => $module->lessons_count,
                     'assignments_count' => $module->assignments_count,
                 ]),
@@ -63,6 +64,7 @@ class ModuleController extends Controller
     public function store(ModuleRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
         $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'modules/thumbnails');
         unset($data['access_tier_ids']);
         $requestedSortOrder = (int) ($data['sort_order'] ?? 0);
@@ -95,6 +97,7 @@ class ModuleController extends Controller
                 'description' => $module->description,
                 'sort_order' => $module->sort_order,
                 'url_slug' => $module->url_slug,
+                'certificate_enabled' => (bool) $module->certificate_enabled,
                 'access_tier_ids' => $module->accessTiers()->pluck('access_tiers.id')->all(),
                 'thumbnail_url' => $this->protectedMediaUrl(
                     'module',
@@ -112,6 +115,7 @@ class ModuleController extends Controller
     public function update(ModuleRequest $request, Module $module): RedirectResponse
     {
         $data = $request->validated();
+        $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
         $data['thumbnail'] = $this->storeUploadedFile(
             $request->file('thumbnail'),
             'modules/thumbnails',

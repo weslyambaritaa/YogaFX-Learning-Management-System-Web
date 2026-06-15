@@ -17,11 +17,7 @@ class BunnyStorageService
 {
     public function upload(UploadedFile $file, string $directory, ?string $currentPath = null): string
     {
-        $objectKey = null;
-
         try {
-            $this->ensureWriteConfigured();
-
             $fileContents = file_get_contents($file->getRealPath());
 
             if ($fileContents === false) {
@@ -32,32 +28,14 @@ class BunnyStorageService
             $filename = Str::uuid()->toString().($extension ? '.'.Str::lower($extension) : '');
             $objectKey = trim($directory, '/').'/'.$filename;
 
-            $response = Http::withHeaders([
-                'AccessKey' => (string) config('bunny.storage.access_key'),
-            ])->withBody(
+            return $this->uploadContents(
                 $fileContents,
+                $objectKey,
                 $file->getMimeType() ?: 'application/octet-stream',
-            )->timeout(120)->put($this->uploadUrl($objectKey));
-
-            if (! $response->successful()) {
-                Log::error('Bunny Storage upload failed.', [
-                    'directory' => $directory,
-                    'object_key' => $objectKey,
-                    'status' => $response->status(),
-                    'response_body' => Str::limit(trim($response->body()), 1000),
-                    'client_filename' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getMimeType(),
-                    'size_bytes' => $file->getSize(),
-                ]);
-
-                throw new RuntimeException($this->uploadFailureMessage($response->status(), $response->body()));
-            }
-
-            return BunnyAssetPath::fromObjectKey($objectKey);
+            );
         } catch (Throwable $exception) {
             $context = [
                 'directory' => $directory,
-                'object_key' => $objectKey,
                 'client_filename' => $file->getClientOriginalName(),
                 'mime_type' => $file->getMimeType(),
                 'size_bytes' => $file->getSize(),
@@ -87,6 +65,32 @@ class BunnyStorageService
 
             throw new RuntimeException('Unexpected Bunny Storage upload exception: '.$exception->getMessage(), previous: $exception);
         }
+    }
+
+    public function uploadContents(string $contents, string $objectKey, string $mimeType = 'application/octet-stream'): string
+    {
+        $this->ensureWriteConfigured();
+
+        $response = Http::withHeaders([
+            'AccessKey' => (string) config('bunny.storage.access_key'),
+        ])->withBody(
+            $contents,
+            $mimeType,
+        )->timeout(120)->put($this->uploadUrl($objectKey));
+
+        if (! $response->successful()) {
+            Log::error('Bunny Storage upload failed.', [
+                'object_key' => $objectKey,
+                'status' => $response->status(),
+                'response_body' => Str::limit(trim($response->body()), 1000),
+                'mime_type' => $mimeType,
+                'size_bytes' => strlen($contents),
+            ]);
+
+            throw new RuntimeException($this->uploadFailureMessage($response->status(), $response->body()));
+        }
+
+        return BunnyAssetPath::fromObjectKey($objectKey);
     }
 
     public function delete(?string $path): void

@@ -9,6 +9,9 @@ use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Models\Certificate;
+use App\Services\Certificates\CertificateEligibilityService;
+use App\Services\BunnyStreamService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -17,6 +20,11 @@ use Inertia\Response;
 class ModuleCatalogController extends Controller
 {
     use BuildsProtectedMediaUrls;
+
+    public function __construct(
+        private readonly BunnyStreamService $bunnyStreamService,
+        private readonly CertificateEligibilityService $certificateEligibilityService,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -65,6 +73,7 @@ class ModuleCatalogController extends Controller
                     'sort_order' => $module->sort_order,
                     'lesson_count' => $totalLessons,
                     'assignments_count' => $totalAssignments,
+                    'certificate_enabled' => (bool) $module->certificate_enabled,
                     'completed_lessons' => $completedLessons,
                     'progress_percentage' => $totalLessons > 0
                         ? (int) round(($completedLessons / $totalLessons) * 100)
@@ -129,6 +138,7 @@ class ModuleCatalogController extends Controller
                 'progress_percentage' => $lessons->count() > 0
                     ? (int) round(($completedLessons / $lessons->count()) * 100)
                     : 0,
+                'certificate_enabled' => (bool) $module->certificate_enabled,
                 'thumbnail_url' => $this->protectedMediaUrl(
                     'module',
                     $module->id,
@@ -156,19 +166,7 @@ class ModuleCatalogController extends Controller
                                 ? 'locked'
                                 : ($lesson->id === $activeLessonId ? 'active' : 'available')),
                         'progress_percentage' => (int) round((float) (optional($lessonProgressMap->get($lesson->id))->watch_progress ?? 0)),
-                        'thumbnail_url' => $this->protectedMediaUrl(
-                            'lesson',
-                            $lesson->id,
-                            'thumbnail',
-                            $lesson->thumbnail,
-                            versionSeed: $lesson->updated_at,
-                        ) ?: $this->protectedMediaUrl(
-                            'module',
-                            $module->id,
-                            'thumbnail',
-                            $module->thumbnail,
-                            versionSeed: $module->updated_at,
-                        ),
+                        'thumbnail_url' => $this->lessonThumbnailUrl($lesson, $module),
                         'url' => ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false)
                             ? route('lessons.show', $lesson)
                             : null,
@@ -191,6 +189,23 @@ class ModuleCatalogController extends Controller
                         ];
                     })
                     ->values(),
+                'certificates' => $module->certificate_enabled
+                    ? $this->certificateEligibilityService
+                        ->latestCertificatesByType($user, $this->certificateEligibilityService->summaryForStudent($user)['available_types'])
+                        ->sortByDesc(fn (Certificate $certificate) => sprintf(
+                            '%010d-%010d',
+                            $certificate->generated_at?->getTimestamp() ?? 0,
+                            $certificate->id,
+                        ))
+                        ->values()
+                        ->map(fn (Certificate $certificate) => [
+                            'id' => $certificate->id,
+                            'type_label' => $certificate->typeLabel(),
+                            'generated_at' => optional($certificate->generated_at)->format('Y-m-d H:i'),
+                            'download_url' => route('student.certificates.download', $certificate),
+                        ])
+                        ->all()
+                    : [],
             ],
         ]);
     }
@@ -360,5 +375,23 @@ class ModuleCatalogController extends Controller
             ))
             ->keys()
             ->first();
+    }
+
+    private function lessonThumbnailUrl(Lesson $lesson, Module $module): ?string
+    {
+        return $this->protectedMediaUrl(
+            'lesson',
+            $lesson->id,
+            'thumbnail',
+            $lesson->thumbnail,
+            versionSeed: $lesson->updated_at,
+        ) ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
+            ?: $this->protectedMediaUrl(
+                'module',
+                $module->id,
+                'thumbnail',
+                $module->thumbnail,
+                versionSeed: $module->updated_at,
+            );
     }
 }

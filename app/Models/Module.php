@@ -10,12 +10,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['title', 'description', 'url_slug', 'thumbnail', 'sort_order'])]
+#[Fillable(['title', 'description', 'url_slug', 'thumbnail', 'sort_order', 'certificate_enabled'])]
 class Module extends Model
 {
     /** @use HasFactory<ModuleFactory> */
     use HasFactory;
     use MaintainsSequentialSortOrder;
+
+    protected function casts(): array
+    {
+        return [
+            'certificate_enabled' => 'boolean',
+        ];
+    }
 
     public function accessTiers(): BelongsToMany
     {

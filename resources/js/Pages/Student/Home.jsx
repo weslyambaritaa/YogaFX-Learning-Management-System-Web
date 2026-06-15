@@ -1106,9 +1106,7 @@ export default function StudentHome({
                                                     ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-200'
                                                     : certificateMilestone?.state === 'ready'
                                                       ? 'border-amber-300/30 bg-amber-300/15 text-amber-100'
-                                                      : certificateMilestone?.state === 'not_available'
-                                                        ? 'border-white/15 bg-black/25 text-white/65'
-                                                        : 'border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]',
+                                                      : 'border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]',
                                             ].join(' ')}
                                         >
                                             {certificateMilestone?.status ?? 'Certificate tracked'}
@@ -1189,24 +1187,48 @@ export default function StudentHome({
                                             Certificate context
                                         </p>
                                         <h3 className="text-xl font-semibold text-white">
-                                            Home makes certificate status visible without needing a
-                                            dedicated page
+                                            Your generated certificate PDFs appear here
                                         </h3>
                                     </div>
 
                                     <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
                                         <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                            Latest certificate
+                                            Available downloads
                                         </p>
-                                        <p className="mt-3 text-sm font-medium text-white">
-                                            {certificateMilestone?.latest_certificate?.type_label ??
-                                                'No generated certificate yet'}
-                                        </p>
-                                        <p className="mt-2 text-sm leading-6 text-white/60">
-                                            {certificateMilestone?.latest_certificate
-                                                ? `Version ${certificateMilestone.latest_certificate.version}, generated ${certificateMilestone.latest_certificate.generated_at}`
-                                                : 'When YogaFX generates a certificate record, the latest file details will appear here.'}
-                                        </p>
+                                        {(certificateMilestone?.generated_certificates ?? []).length ===
+                                        0 ? (
+                                            <p className="mt-3 text-sm leading-6 text-white/60">
+                                                No certificate PDF has been generated for your
+                                                account yet.
+                                            </p>
+                                        ) : (
+                                            <div className="mt-3 space-y-3">
+                                                {(certificateMilestone?.generated_certificates ??
+                                                    []).map((certificate) => (
+                                                    <div
+                                                        key={certificate.id}
+                                                        className="rounded-2xl border border-white/10 bg-black/20 p-3"
+                                                    >
+                                                        <p className="text-sm font-medium text-white">
+                                                            {certificate.type_label}
+                                                        </p>
+                                                        <p className="mt-1 text-sm text-white/60">
+                                                            Generated {certificate.generated_at}
+                                                        </p>
+                                                        <Button
+                                                            asChild
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="mt-3 rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                        >
+                                                            <a href={certificate.download_url}>
+                                                                Download PDF
+                                                            </a>
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

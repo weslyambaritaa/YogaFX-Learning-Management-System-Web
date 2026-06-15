@@ -10,12 +10,16 @@ use App\Events\EmailNotifications\CertificateCreated;
 use App\Mail\StudentProgressActionMail;
 use App\Models\AccessTier;
 use App\Models\AssignmentSubmission;
+use App\Models\Assignment;
 use App\Models\Certificate;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
+use App\Services\Certificates\CertificateEligibilityService;
+use App\Services\Certificates\CertificateGeneratorService;
 use App\Services\BunnyStorageService;
 use App\Services\StudentSessionTrackingService;
+use App\Support\BunnyAssetPath;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,6 +37,8 @@ class StudentProgressController extends Controller
     public function __construct(
         private readonly StudentSessionTrackingService $sessionTrackingService,
         private readonly BunnyStorageService $bunnyStorage,
+        private readonly CertificateEligibilityService $certificateEligibilityService,
+        private readonly CertificateGeneratorService $certificateGeneratorService,
     ) {}
 
     public function completedLessonsIndex(): RedirectResponse
@@ -48,7 +54,7 @@ class StudentProgressController extends Controller
                 'lessonProgresses' => fn ($query) => $query
                     ->where('is_done', true)
                     ->select('id', 'user_id', 'lesson_id'),
-                'assignmentSubmissions:id,user_id,assignment_type,assignment_video',
+                'assignmentSubmissions:id,user_id,assignment_id,assignment_type,assignment_video,submitted_at',
             ])
             ->where('role', User::ROLE_STUDENT)
             ->whereNotNull('access_tier_id')
@@ -139,19 +145,8 @@ class StudentProgressController extends Controller
 
         return Inertia::render('Admin/StudentProgress/Certificates', [
             'student' => $this->studentPayload($student),
-            'certificates' => $this->certificatesPayload($student),
-            'certificateTypes' => collect(Certificate::TYPES)
-                ->map(fn (string $label, string $value) => [
-                    'value' => $value,
-                    'label' => $label,
-                ])
-                ->values(),
-            'certificateEligibility' => [
-                'eligible' => $this->studentCanReceiveCertificates($student),
-                'message' => $this->studentCanReceiveCertificates($student)
-                    ? null
-                    : 'This student is not eligible to receive a certificate based on the current access tier.',
-            ],
+            'certificateRows' => $this->certificateEligibilityService->rowsForStudent($student),
+            'certificateReadiness' => $this->certificateReadinessPayload($student),
             'status' => session('status'),
         ]);
     }
@@ -271,13 +266,21 @@ class StudentProgressController extends Controller
     public function generateCertificate(Request $request, User $student): RedirectResponse
     {
         $student = $this->resolveStudent($student);
-        abort_unless($this->studentCanReceiveCertificates($student), 422);
-
         $data = $request->validate([
-            'certificate_type' => ['required', 'in:'.implode(',', array_keys(Certificate::TYPES))],
+            'certificate_type' => ['required', 'string'],
         ]);
 
-        $certificate = $this->createCertificate($student, $data['certificate_type']);
+        $row = collect($this->certificateEligibilityService->rowsForStudent($student))
+            ->firstWhere('type', $data['certificate_type']);
+
+        abort_if(! $row, 422, 'This certificate type is not available for the student active tier.');
+        abort_if(! $row['can_generate'], 422, $row['action_block_reason']);
+
+        $certificate = $this->certificateGeneratorService->generate(
+            $student,
+            $data['certificate_type'],
+            auth()->id(),
+        );
 
         event(new CertificateCreated([
             'user_name' => $student->name,
@@ -295,9 +298,25 @@ class StudentProgressController extends Controller
     {
         $student = $this->resolveStudent($student);
         abort_unless($certificate->user_id === $student->id, 404);
-        abort_unless($this->studentCanReceiveCertificates($student), 422);
 
-        $this->createCertificate($student, $certificate->certificate_type);
+        $row = collect($this->certificateEligibilityService->rowsForStudent($student))
+            ->firstWhere('type', $certificate->certificate_type);
+
+        abort_if(! $row, 422, 'This certificate type is not available for the student active tier.');
+        abort_if(! $row['can_regenerate'], 422, $row['action_block_reason']);
+
+        $regenerated = $this->certificateGeneratorService->generate(
+            $student,
+            $certificate->certificate_type,
+            auth()->id(),
+        );
+
+        event(new CertificateCreated([
+            'user_name' => $student->name,
+            'user_email' => $student->email,
+            'certificate_type' => $regenerated->typeLabel(),
+            'certificate_file_name' => $regenerated->file_name,
+        ], 'certificate', $regenerated->id));
 
         return redirect()
             ->route('admin.student-progress.certificates.show', $student)
@@ -307,10 +326,10 @@ class StudentProgressController extends Controller
     public function sendGraduationEmail(User $student): RedirectResponse
     {
         $student = $this->resolveStudent($student);
-        $certificates = Certificate::query()
-            ->where('user_id', $student->id)
-            ->latest('generated_at')
-            ->get();
+        $summary = $this->certificateEligibilityService->summaryForStudent($student);
+        $certificates = $this->certificateEligibilityService
+            ->latestCertificatesByType($student, $summary['available_types'])
+            ->values();
 
         abort_unless($certificates->isNotEmpty(), 422);
 
@@ -321,12 +340,16 @@ class StudentProgressController extends Controller
             [
                 'Your certificate records are ready in YogaFX LMS.',
                 'Available certificates: '.$certificates
-                    ->map(fn (Certificate $certificate) => $certificate->typeLabel().' v'.$certificate->version)
+                    ->map(fn (Certificate $certificate) => $certificate->typeLabel())
                     ->join(', '),
             ],
         );
 
-        $latestCertificate = $certificates->first();
+        $latestCertificate = $certificates->sortByDesc(fn (Certificate $certificate) => sprintf(
+            '%010d-%010d',
+            $certificate->generated_at?->getTimestamp() ?? 0,
+            $certificate->id,
+        ))->first();
 
         event(new CertificateCreated([
             'user_name' => $student->name,
@@ -344,6 +367,14 @@ class StudentProgressController extends Controller
     {
         $student = $this->resolveStudent($student);
         abort_unless($certificate->user_id === $student->id, 404);
+
+        if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
+            $url = $this->bunnyStorage->url($certificate->file_path);
+            abort_unless(filled($url), 404);
+
+            return redirect()->away($url);
+        }
+
         abort_unless(Storage::disk('local')->exists($certificate->file_path), 404);
 
         return Storage::disk('local')->download($certificate->file_path, $certificate->file_name);
@@ -354,7 +385,9 @@ class StudentProgressController extends Controller
         $student = $this->resolveStudent($student);
         abort_unless($certificate->user_id === $student->id, 404);
 
-        if (Storage::disk('local')->exists($certificate->file_path)) {
+        if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
+            $this->bunnyStorage->delete($certificate->file_path);
+        } elseif (Storage::disk('local')->exists($certificate->file_path)) {
             Storage::disk('local')->delete($certificate->file_path);
         }
 
@@ -467,16 +500,32 @@ class StudentProgressController extends Controller
 
     private function assignmentStatusForStudent(User $student): string
     {
-        $submittedTypes = $student->assignmentSubmissions
-            ->filter(fn (AssignmentSubmission $submission) => filled($submission->assignment_video))
-            ->pluck('assignment_type')
-            ->map(fn (string $type) => str($type)->lower()->value());
+        $requiredAssignmentIds = Module::query()
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $student->access_tier_id))
+            ->with([
+                'assignments' => fn ($query) => $query
+                    ->where('status', Assignment::STATUS_LIVE)
+                    ->where('is_required', true)
+                    ->select('id', 'module_id'),
+            ])
+            ->get(['id'])
+            ->flatMap(fn (Module $module) => $module->assignments->pluck('id'))
+            ->map(fn ($assignmentId) => (int) $assignmentId)
+            ->unique()
+            ->values();
 
-        $hasLegacyGraduationSubmission = $submittedTypes->contains('graduation_video');
-        $hasStandingSubmission = $submittedTypes->contains(fn (string $type) => str($type)->contains('standing'));
-        $hasFloorSubmission = $submittedTypes->contains(fn (string $type) => str($type)->contains('floor'));
+        if ($requiredAssignmentIds->isEmpty()) {
+            return 'Not Required';
+        }
 
-        return ($hasLegacyGraduationSubmission || ($hasStandingSubmission && $hasFloorSubmission))
+        $submittedAssignmentIds = $student->assignmentSubmissions
+            ->filter(fn (AssignmentSubmission $submission) => $requiredAssignmentIds->contains((int) $submission->assignment_id))
+            ->filter(fn (AssignmentSubmission $submission) => filled($submission->assignment_video) || filled($submission->submitted_at))
+            ->pluck('assignment_id')
+            ->map(fn ($assignmentId) => (int) $assignmentId)
+            ->unique();
+
+        return $submittedAssignmentIds->count() >= $requiredAssignmentIds->count()
             ? 'Submitted'
             : 'Not Submitted';
     }
@@ -538,24 +587,21 @@ class StudentProgressController extends Controller
             ]);
     }
 
-    private function certificatesPayload(User $student)
+    private function certificateReadinessPayload(User $student): array
     {
-        return Certificate::query()
-            ->where('user_id', $student->id)
-            ->latest('generated_at')
-            ->latest('id')
-            ->get()
-            ->map(fn (Certificate $certificate) => [
-                'id' => $certificate->id,
-                'type' => $certificate->certificate_type,
-                'type_label' => $certificate->typeLabel(),
-                'version' => $certificate->version,
-                'generated_at' => optional($certificate->generated_at)->format('Y-m-d H:i'),
-                'download_url' => route('admin.student-progress.certificates.download', [
-                    'student' => $student,
-                    'certificate' => $certificate,
-                ]),
-            ]);
+        $summary = $this->certificateEligibilityService->summaryForStudent($student);
+        $generatedCertificates = $this->certificateEligibilityService
+            ->latestCertificatesByType($student, $summary['available_types']);
+
+        return [
+            'tier_name' => $summary['tier']['name'] ?? null,
+            'message' => $summary['message'],
+            'learning_eligible' => $summary['learning_eligible'],
+            'has_required_name' => $summary['has_required_name'],
+            'requirements' => $summary['requirements'],
+            'generated_count' => $generatedCertificates->count(),
+            'available_count' => count($summary['available_types']),
+        ];
     }
 
     private function resolveStudent(User $student): User
@@ -563,46 +609,6 @@ class StudentProgressController extends Controller
         abort_unless($student->isStudent(), 404);
 
         return $student->load('accessTier');
-    }
-
-    private function studentCanReceiveCertificates(User $student): bool
-    {
-        return $student->accessTier?->slug !== 'starter_kit'
-            && $student->access_tier_id !== null;
-    }
-
-    private function createCertificate(User $student, string $certificateType): Certificate
-    {
-        $version = ((int) Certificate::withTrashed()
-            ->where('user_id', $student->id)
-            ->where('certificate_type', $certificateType)
-            ->max('version')) + 1;
-
-        $certificateLabel = Certificate::TYPES[$certificateType] ?? $certificateType;
-        $timestamp = now();
-        $safeStudentName = Str::slug($student->name ?: 'student');
-        $safeType = Str::slug($certificateLabel);
-        $fileName = "{$safeStudentName}-{$safeType}-v{$version}.html";
-        $path = "certificates/{$student->id}/{$fileName}";
-
-        $contents = view('certificates.template', [
-            'student' => $student,
-            'certificateLabel' => $certificateLabel,
-            'generatedAt' => $timestamp,
-            'version' => $version,
-        ])->render();
-
-        Storage::disk('local')->put($path, $contents);
-
-        return Certificate::query()->create([
-            'user_id' => $student->id,
-            'certificate_type' => $certificateType,
-            'file_path' => $path,
-            'file_name' => $fileName,
-            'version' => $version,
-            'generated_by_user_id' => auth()->id(),
-            'generated_at' => $timestamp,
-        ]);
     }
 
     private function sendEmail(User $student, string $subject, string $heading, array $bodyLines): void

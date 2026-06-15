@@ -83,6 +83,20 @@ class BunnyStreamService
             .'/'.rawurlencode((string) $videoId).'/playlist.m3u8';
     }
 
+    public function thumbnailUrl(?string $videoId): ?string
+    {
+        if (! filled($videoId)) {
+            return null;
+        }
+
+        if (! $this->hasPlaybackConfig()) {
+            return null;
+        }
+
+        return rtrim((string) config('bunny.stream.cdn_base_url'), '/')
+            .'/'.rawurlencode((string) $videoId).'/thumbnail.jpg';
+    }
+
     /**
      * @return array{
      *     video_id: string|null,
