@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useEffect, useRef } from 'react';
 import {
     ArrowRight,
     CheckCircle2,
@@ -31,6 +32,22 @@ const statusConfig = {
 };
 
 export default function StudentModulesIndex({ modules }) {
+    const hasReloadedRef = useRef(false);
+
+    useEffect(() => {
+        if (hasReloadedRef.current) {
+            return;
+        }
+
+        hasReloadedRef.current = true;
+
+        router.reload({
+            only: ['modules'],
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }, []);
+
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
@@ -145,9 +162,11 @@ export default function StudentModulesIndex({ modules }) {
                                                     <p className="mt-3 text-sm leading-7 text-white/62">
                                                         {module.lesson_count > 0
                                                             ? `${module.completed_lessons} of ${module.lesson_count} lessons completed in this module.`
-                                                            : module.ebook_enabled
-                                                              ? 'This module is a resource-only module and is automatically marked complete in your learning path.'
-                                                              : 'This module is currently centered on assignment access.'}
+                                                            : (module.assignments_count ?? 0) > 0
+                                                              ? 'This module is driven by assignment submission and review before your journey can move forward.'
+                                                            : module.status === 'completed'
+                                                              ? 'This module has been opened and is now marked complete in your learning path.'
+                                                              : 'Open this module once to mark it in your learning journey.'}
                                                     </p>
                                                     <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/40">
                                                         {module.lesson_count} lessons • {module.assignments_count ?? 0} assignments
@@ -156,18 +175,20 @@ export default function StudentModulesIndex({ modules }) {
                                             </div>
 
                                             <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-white/40">
-                                                        <span>Progress</span>
-                                                        <span>{module.progress_percentage}%</span>
+                                                {module.show_progress ? (
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-white/40">
+                                                            <span>Progress</span>
+                                                            <span>{module.progress_percentage}%</span>
+                                                        </div>
+                                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                            <div
+                                                                className="h-full rounded-full bg-[#f15b3a]"
+                                                                style={{ width: `${module.progress_percentage}%` }}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                                                        <div
-                                                            className="h-full rounded-full bg-[#f15b3a]"
-                                                            style={{ width: `${module.progress_percentage}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
+                                                ) : null}
 
                                                 <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
                                                     {module.url ? 'Open Module' : 'Module Locked'}

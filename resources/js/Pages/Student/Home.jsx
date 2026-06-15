@@ -1,8 +1,8 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ChevronRight, Play, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
@@ -33,6 +33,7 @@ export default function StudentHome({
     ebookResourcesSection,
     homeExperience,
 }) {
+    const hasReloadedRef = useRef(false);
     const studentName = studentContext?.display_name ?? 'Student';
     const fullName = studentContext?.full_name ?? studentName;
     const accessTier = studentContext?.access_tier ?? null;
@@ -65,6 +66,21 @@ export default function StudentHome({
     const [runningAccessSeconds, setRunningAccessSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
     );
+
+    useEffect(() => {
+        if (hasReloadedRef.current) {
+            return;
+        }
+
+        hasReloadedRef.current = true;
+
+        router.reload({
+            only: ['availableModulesSection', 'progressSummary', 'nextStep', 'certificateMilestone', 'homeExperience'],
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }, []);
+
     const heroPrimaryKind = homeExperience?.primary_cta_kind ?? 'link';
     const heroSecondaryKind = 'link';
     const continueEngineLabel = homeExperience?.state === 'journey_complete'
@@ -855,31 +871,37 @@ export default function StudentHome({
                                                     </div>
                                                 </div>
 
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center justify-between gap-3 text-sm text-white/55">
-                                                        <span>
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between gap-3 text-sm text-white/55">
+                                                            <span>
                                                             {module.lesson_count > 0
                                                                 ? `${module.completed_lessons} of ${module.lesson_count} lessons completed`
+                                                                : (module.assignments_count ?? 0) > 0
+                                                                  ? 'Assignment review is required before this module can be cleared'
                                                                 : module.status === 'completed'
-                                                                  ? 'Automatically completed resource module'
-                                                                  : 'Resource module ready to open'}
-                                                        </span>
-                                                        <span>{module.progress_percentage}%</span>
-                                                    </div>
+                                                                  ? 'Opened and completed in your journey'
+                                                                  : 'Open this module once to complete it'}
+                                                            </span>
+                                                            {module.show_progress ? (
+                                                                <span>{module.progress_percentage}%</span>
+                                                            ) : null}
+                                                        </div>
 
-                                                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                                                        <div
-                                                            className={[
-                                                                'h-full rounded-full transition-all',
-                                                                module.status === 'completed'
-                                                                    ? 'bg-emerald-400'
-                                                                    : 'bg-[#d5462f]',
-                                                            ].join(' ')}
-                                                            style={{
-                                                                width: `${module.progress_percentage}%`,
-                                                            }}
-                                                        />
-                                                    </div>
+                                                    {module.show_progress ? (
+                                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                            <div
+                                                                className={[
+                                                                    'h-full rounded-full transition-all',
+                                                                    module.status === 'completed'
+                                                                        ? 'bg-emerald-400'
+                                                                        : 'bg-[#d5462f]',
+                                                                ].join(' ')}
+                                                                style={{
+                                                                    width: `${module.progress_percentage}%`,
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : null}
 
                                                     <div className="flex items-center justify-between gap-3">
                                                         <p className="text-sm leading-6 text-white/58">

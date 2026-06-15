@@ -98,17 +98,30 @@ export default function StudentModuleShow({ module }) {
                             </p>
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
-                            <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
-                                {module.completed_lessons} / {module.lesson_count} lessons completed
+                        {module.show_progress ? (
+                            <div className="flex flex-wrap gap-3">
+                                <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
+                                    {module.completed_lessons} / {module.lesson_count} lessons completed
+                                </div>
+                                <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
+                                    {module.progress_percentage}% module progress
+                                </div>
                             </div>
-                            <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
-                                {module.progress_percentage}% module progress
+                        ) : (
+                            <div className="flex flex-wrap gap-3">
+                                <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
+                                    {module.assignments?.length
+                                        ? 'Assignment submission and approval are required before this module can be cleared.'
+                                        : module.status === 'completed'
+                                        ? 'This module has been opened and marked complete.'
+                                        : 'Open this module once to mark it complete in your path.'}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </section>
 
+                {module.lessons.length ? (
                 <section className="space-y-5">
                     <div className="flex items-center justify-between gap-4">
                         <div>
@@ -208,6 +221,7 @@ export default function StudentModuleShow({ module }) {
                         })}
                     </div>
                 </section>
+                ) : null}
 
                 {module.assignments?.length ? (
                     <section className="space-y-5">

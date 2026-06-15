@@ -14,6 +14,7 @@ use App\Models\Ebook;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Models\StudentModuleVisit;
 use App\Services\BunnyStreamService;
 use App\Services\Certificates\CertificateEligibilityService;
 use Illuminate\Http\Request;
@@ -38,6 +39,10 @@ class ModuleCatalogController extends Controller
         $accessTierId = $user?->access_tier_id;
 
         $modules = $this->accessibleModulesWithLessons($accessTierId);
+        $resourceModuleVisitMap = $this->resourceModuleVisitMap(
+            $user?->id,
+            $modules->pluck('id'),
+        );
 
         $lessonProgressMap = $this->lessonProgressMap(
             $user?->id,
@@ -58,6 +63,7 @@ class ModuleCatalogController extends Controller
             $lessonProgressMap,
             $completedAssessmentIds,
             $assignmentSubmissionMap,
+            $resourceModuleVisitMap,
         );
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
 
@@ -98,6 +104,7 @@ class ModuleCatalogController extends Controller
                     'progress_percentage' => $totalLessons > 0
                         ? (int) round(($completedLessons / $totalLessons) * 100)
                         : (($moduleAccess['is_complete'] ?? false) ? 100 : 0),
+                    'show_progress' => $totalLessons > 0,
                     'status' => $status,
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'module',
@@ -124,6 +131,10 @@ class ModuleCatalogController extends Controller
         $modules = $this->accessibleModulesWithLessons($accessTierId);
         $currentModule = $modules->firstWhere('id', $module->id);
         abort_unless($currentModule, 404);
+        $resourceModuleVisitMap = $this->resourceModuleVisitMap(
+            $user?->id,
+            $modules->pluck('id'),
+        );
 
         $lessonProgressMap = $this->lessonProgressMap(
             $user?->id,
@@ -143,10 +154,34 @@ class ModuleCatalogController extends Controller
             $lessonProgressMap,
             $completedAssessmentIds,
             $assignmentSubmissionMap,
+            $resourceModuleVisitMap,
         );
         $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
 
         abort_unless((bool) ($currentModuleAccess['is_visible'] ?? false), 403);
+
+        if ($this->shouldAutoCompleteOnFirstOpen($currentModule) && ! $resourceModuleVisitMap->has($currentModule->id)) {
+            StudentModuleVisit::query()->firstOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'module_id' => $currentModule->id,
+                ],
+                [
+                    'opened_at' => now(),
+                ],
+            );
+
+            $resourceModuleVisitMap = $resourceModuleVisitMap->put($currentModule->id, true);
+            $moduleAccessMap = $this->moduleAccessMap(
+                $user,
+                $modules,
+                $lessonProgressMap,
+                $completedAssessmentIds,
+                $assignmentSubmissionMap,
+                $resourceModuleVisitMap,
+            );
+            $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
+        }
 
         if ($this->isCertificateDownloadModule($currentModule)) {
             return Inertia::render('Student/Certificates/Show', [
@@ -189,6 +224,8 @@ class ModuleCatalogController extends Controller
                 'progress_percentage' => $lessons->count() > 0
                     ? (int) round(($completedLessons / $lessons->count()) * 100)
                     : (($currentModuleAccess['is_complete'] ?? false) ? 100 : 0),
+                'show_progress' => $lessons->count() > 0,
+                'status' => $currentModuleAccess['status'] ?? 'available',
                 'certificate_enabled' => (bool) $module->certificate_enabled,
                 'ebook_enabled' => (bool) $module->ebook_enabled,
                 'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
@@ -378,6 +415,7 @@ class ModuleCatalogController extends Controller
         Collection $lessonProgressMap,
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
+        Collection $resourceModuleVisitMap,
     ): Collection {
         $accessMap = collect();
         $allPreviousModulesComplete = true;
@@ -407,6 +445,7 @@ class ModuleCatalogController extends Controller
                 $lessonProgressMap,
                 $completedAssessmentIds,
                 $assignmentSubmissionMap,
+                $resourceModuleVisitMap,
             );
 
             $accessMap->put($module->id, [
@@ -604,11 +643,12 @@ class ModuleCatalogController extends Controller
         Collection $lessonProgressMap,
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
+        Collection $resourceModuleVisitMap,
     ): bool {
         $liveAssignments = $module->assignments->where('status', Assignment::STATUS_LIVE);
 
         if ($module->lessons->isEmpty() && $liveAssignments->isEmpty()) {
-            return (bool) $module->ebook_enabled;
+            return $resourceModuleVisitMap->has($module->id);
         }
 
         $hasTrackableContent = $module->lessons->isNotEmpty() || $liveAssignments->isNotEmpty();
@@ -636,6 +676,28 @@ class ModuleCatalogController extends Controller
     private function isAssignmentComplete(?AssignmentSubmission $submission): bool
     {
         return $submission?->assignment_status === AssignmentSubmission::STATUS_APPROVED;
+    }
+
+    private function resourceModuleVisitMap(?int $userId, iterable $moduleIds): Collection
+    {
+        $moduleIds = collect($moduleIds)->filter()->values();
+
+        if (! $userId || $moduleIds->isEmpty()) {
+            return collect();
+        }
+
+        return StudentModuleVisit::query()
+            ->where('user_id', $userId)
+            ->whereIn('module_id', $moduleIds)
+            ->pluck('module_id')
+            ->map(fn ($moduleId) => (int) $moduleId)
+            ->flip();
+    }
+
+    private function shouldAutoCompleteOnFirstOpen(Module $module): bool
+    {
+        return $module->lessons->isEmpty()
+            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty();
     }
 
     private function isCertificateDownloadModule(Module $module): bool

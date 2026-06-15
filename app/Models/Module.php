@@ -40,4 +40,9 @@ class Module extends Model
     {
         return $this->hasMany(Assignment::class);
     }
+
+    public function studentVisits(): HasMany
+    {
+        return $this->hasMany(StudentModuleVisit::class);
+    }
 }

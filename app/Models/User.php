@@ -118,6 +118,11 @@ class User extends Authenticatable
         return $this->hasMany(Certificate::class);
     }
 
+    public function studentModuleVisits(): HasMany
+    {
+        return $this->hasMany(StudentModuleVisit::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;

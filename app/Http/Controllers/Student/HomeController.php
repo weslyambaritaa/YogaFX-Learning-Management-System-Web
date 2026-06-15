@@ -11,6 +11,7 @@ use App\Models\Certificate;
 use App\Models\Ebook;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Models\StudentModuleVisit;
 use App\Services\BunnyStorageService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\StudentSessionTrackingService;
@@ -118,6 +119,10 @@ class HomeController extends Controller
             ->with([
                 'lessons' => fn ($query) => $query
                     ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
+                    ->orderBy('sort_order')
+                    ->orderBy('title'),
+                'assignments' => fn ($query) => $query
+                    ->where('status', Assignment::STATUS_LIVE)
                     ->orderBy('sort_order')
                     ->orderBy('title'),
             ])
@@ -541,16 +546,23 @@ class HomeController extends Controller
             $user->id,
             $moduleCollection->flatMap(fn (Module $module) => $module->lessons->pluck('id')),
         );
+        $resourceModuleVisitMap = $this->resourceModuleVisitMap(
+            $user->id,
+            $moduleCollection->pluck('id'),
+        );
         $activeLessonId = $this->latestProgressLessonId($user->id, $lessonProgressMap);
 
-        $items = $moduleCollection->map(function (Module $module) use ($activeLessonId, $lessonProgressMap) {
+        $items = $moduleCollection->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $resourceModuleVisitMap) {
             $totalLessons = $module->lessons->count();
             $completedLessons = $module->lessons
                 ->filter(fn ($lesson) => (bool) optional($lessonProgressMap->get($lesson->id))->is_done)
                 ->count();
-            $isResourceOnlyModule = $totalLessons === 0 && (bool) $module->ebook_enabled;
+            $isResourceOnlyModule = $totalLessons === 0
+                && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty();
+            $isVisitedResourceModule = $isResourceOnlyModule
+                && $resourceModuleVisitMap->has($module->id);
             $isActive = $module->lessons->contains(fn ($lesson) => $lesson->id === $activeLessonId);
-            $status = $isResourceOnlyModule || ($totalLessons > 0 && $completedLessons === $totalLessons)
+            $status = $isVisitedResourceModule || ($totalLessons > 0 && $completedLessons === $totalLessons)
                 ? 'completed'
                 : ($isActive ? 'active' : 'available');
             $statusLabel = match ($status) {
@@ -565,10 +577,12 @@ class HomeController extends Controller
                 'url_slug' => $module->url_slug,
                 'sort_order' => $module->sort_order,
                 'lesson_count' => $totalLessons,
+                'assignments_count' => $module->assignments->count(),
                 'completed_lessons' => $completedLessons,
                 'progress_percentage' => $totalLessons > 0
                     ? (int) round(($completedLessons / $totalLessons) * 100)
-                    : ($isResourceOnlyModule ? 100 : 0),
+                    : ($isVisitedResourceModule ? 100 : 0),
+                'show_progress' => $totalLessons > 0,
                 'status' => $status,
                 'status_label' => $statusLabel,
                 'cta_label' => match ($status) {
@@ -600,6 +614,22 @@ class HomeController extends Controller
                 'available' => $items->where('status', 'available')->count(),
             ],
         ];
+    }
+
+    protected function resourceModuleVisitMap(?int $userId, iterable $moduleIds): Collection
+    {
+        $moduleIds = collect($moduleIds)->filter()->values();
+
+        if (! $userId || $moduleIds->isEmpty()) {
+            return collect();
+        }
+
+        return StudentModuleVisit::query()
+            ->where('user_id', $userId)
+            ->whereIn('module_id', $moduleIds)
+            ->pluck('module_id')
+            ->map(fn ($moduleId) => (int) $moduleId)
+            ->flip();
     }
 
     protected function buildSequentialAwareness(Request $request, Collection $availableModules, array $continueLearning): array
