@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\AccessTier;
+use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\AssessmentAttempt;
 use App\Models\Certificate;
@@ -44,18 +45,25 @@ class ModuleCatalogController extends Controller
             $modules->flatMap(fn (Module $module) => $module->lessons->pluck('assessment_id'))->filter(),
         );
         $lessonUnlockMap = $this->lessonUnlockMap($user?->id, $modules, $lessonProgressMap);
+        $assignmentSubmissionMap = $this->assignmentSubmissionMap(
+            $user?->id,
+            $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
+        );
+        $moduleAccessMap = $this->moduleAccessMap(
+            $user,
+            $modules,
+            $lessonProgressMap,
+            $completedAssessmentIds,
+            $assignmentSubmissionMap,
+        );
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
 
         return Inertia::render('Student/Modules/Index', [
-            'modules' => $modules->map(function (Module $module) use ($user, $modules, $activeLessonId, $lessonProgressMap, $lessonUnlockMap, $completedAssessmentIds) {
-                $certificateState = $this->isCertificateDownloadModule($module)
-                    ? $this->certificateAccessState(
-                        $user,
-                        $modules,
-                        $lessonProgressMap,
-                        $completedAssessmentIds,
-                    )
-                    : null;
+            'modules' => $modules->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $completedAssessmentIds, $moduleAccessMap) {
+                $moduleAccess = $moduleAccessMap->get($module->id, [
+                    'is_visible' => false,
+                    'status' => 'locked',
+                ]);
                 $totalLessons = $module->lessons->count();
                 $totalAssignments = $module->assignments->count();
                 $completedLessons = $module->lessons->filter(function (Lesson $lesson) use ($lessonProgressMap, $completedAssessmentIds) {
@@ -66,32 +74,16 @@ class ModuleCatalogController extends Controller
                     );
                 })->count();
                 $isActive = $module->lessons->contains(fn (Lesson $lesson) => $lesson->id === $activeLessonId);
-                $hasUnlockedLesson = $module->lessons->contains(
-                    fn (Lesson $lesson) => (bool) ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false),
-                );
-                $hasAccessibleContent = $hasUnlockedLesson
-                    || $totalAssignments > 0
-                    || (bool) $module->certificate_enabled;
-                $status = $totalLessons > 0 && $completedLessons === $totalLessons
-                    ? 'completed'
-                    : (! $hasAccessibleContent ? 'locked' : ($isActive ? 'active' : 'available'));
-                $hasAccessibleContent = $this->isCertificateDownloadModule($module)
-                    ? (bool) ($certificateState['is_visible'] ?? false)
-                    : ($hasUnlockedLesson || $totalAssignments > 0);
-                $status = $this->isCertificateDownloadModule($module)
-                    ? ($certificateState['module_status'] ?? 'locked')
-                    : ($totalLessons > 0 && $completedLessons === $totalLessons
-                        ? 'completed'
-                        : (! $hasAccessibleContent ? 'locked' : ($isActive ? 'active' : 'available')));
+                $status = $moduleAccess['status'] === 'available' && $isActive
+                    ? 'active'
+                    : $moduleAccess['status'];
 
                 return [
                     'id' => $module->id,
                     'title' => $module->title,
-                    'description' => $this->isCertificateDownloadModule($module)
-                        ? ($certificateState['module_description'] ?? $module->description)
-                        : $module->description,
+                    'description' => $moduleAccess['description'] ?? $module->description,
                     'url_slug' => $module->url_slug,
-                    'url' => $hasAccessibleContent ? route('modules.show', $module->url_slug) : null,
+                    'url' => ($moduleAccess['is_visible'] ?? false) ? route('modules.show', $module->url_slug) : null,
                     'sort_order' => $module->sort_order,
                     'lesson_count' => $totalLessons,
                     'assignments_count' => $totalAssignments,
@@ -135,17 +127,22 @@ class ModuleCatalogController extends Controller
             $user?->id,
             $modules->flatMap(fn (Module $item) => $item->lessons->pluck('assessment_id'))->filter(),
         );
+        $assignmentSubmissionMap = $this->assignmentSubmissionMap(
+            $user?->id,
+            $modules->flatMap(fn (Module $item) => $item->assignments->pluck('id')),
+        );
+        $moduleAccessMap = $this->moduleAccessMap(
+            $user,
+            $modules,
+            $lessonProgressMap,
+            $completedAssessmentIds,
+            $assignmentSubmissionMap,
+        );
+        $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
+
+        abort_unless((bool) ($currentModuleAccess['is_visible'] ?? false), 403);
 
         if ($this->isCertificateDownloadModule($currentModule)) {
-            $certificateState = $this->certificateAccessState(
-                $user,
-                $modules,
-                $lessonProgressMap,
-                $completedAssessmentIds,
-            );
-
-            abort_unless($certificateState['is_visible'] ?? false, 403);
-
             return Inertia::render('Student/Certificates/Show', [
                 'module' => [
                     'id' => $currentModule->id,
@@ -161,17 +158,13 @@ class ModuleCatalogController extends Controller
                         versionSeed: $currentModule->updated_at,
                     ),
                 ],
-                'certificate' => $certificateState,
+                'certificate' => $currentModuleAccess['certificate_state'] ?? [],
             ]);
         }
 
         $lessons = $currentModule->lessons;
         $lessonUnlockMap = $this->lessonUnlockMap($user?->id, $modules, $lessonProgressMap);
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
-        $assignmentSubmissionMap = $this->assignmentSubmissionMap(
-            $user?->id,
-            $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
-        );
         $completedLessons = $lessons->filter(fn (Lesson $lesson) => $this->isLessonFullyComplete(
             $lesson,
             $lessonProgressMap->get($lesson->id),
@@ -301,6 +294,58 @@ class ModuleCatalogController extends Controller
             ->keyBy('assignment_id');
     }
 
+    private function moduleAccessMap(
+        $user,
+        Collection $modules,
+        Collection $lessonProgressMap,
+        Collection $completedAssessmentIds,
+        Collection $assignmentSubmissionMap,
+    ): Collection {
+        $accessMap = collect();
+        $allPreviousModulesComplete = true;
+
+        foreach ($modules as $module) {
+            if ($this->isCertificateDownloadModule($module)) {
+                $certificateState = $this->certificateAccessState(
+                    $user,
+                    $modules,
+                    $lessonProgressMap,
+                    $completedAssessmentIds,
+                );
+
+                $accessMap->put($module->id, [
+                    'is_visible' => (bool) ($certificateState['is_visible'] ?? false),
+                    'status' => $certificateState['module_status'] ?? 'locked',
+                    'description' => $certificateState['module_description'] ?? $module->description,
+                    'is_complete' => ($certificateState['state'] ?? null) === 'download_available',
+                    'certificate_state' => $certificateState,
+                ]);
+
+                continue;
+            }
+
+            $isComplete = $this->isModuleFullyComplete(
+                $module,
+                $lessonProgressMap,
+                $completedAssessmentIds,
+                $assignmentSubmissionMap,
+            );
+
+            $accessMap->put($module->id, [
+                'is_visible' => $allPreviousModulesComplete,
+                'status' => $isComplete
+                    ? 'completed'
+                    : ($allPreviousModulesComplete ? 'available' : 'locked'),
+                'description' => $module->description,
+                'is_complete' => $isComplete,
+            ]);
+
+            $allPreviousModulesComplete = $allPreviousModulesComplete && $isComplete;
+        }
+
+        return $accessMap;
+    }
+
     private function lessonUnlockMap(?int $userId, Collection $modules, Collection $lessonProgressMap): Collection
     {
         $orderedLessons = $modules->flatMap(fn (Module $module) => $module->lessons)->values();
@@ -396,6 +441,41 @@ class ModuleCatalogController extends Controller
         }
 
         return true;
+    }
+
+    private function isModuleFullyComplete(
+        Module $module,
+        Collection $lessonProgressMap,
+        Collection $completedAssessmentIds,
+        Collection $assignmentSubmissionMap,
+    ): bool {
+        $hasTrackableContent = $module->lessons->isNotEmpty() || $module->assignments->isNotEmpty();
+
+        if (! $hasTrackableContent) {
+            return false;
+        }
+
+        $allLessonsComplete = $module->lessons->every(
+            fn (Lesson $lesson) => $this->isLessonFullyComplete(
+                $lesson,
+                $lessonProgressMap->get($lesson->id),
+                $completedAssessmentIds,
+            ),
+        );
+
+        $allRequiredAssignmentsComplete = $module->assignments
+            ->where('status', Assignment::STATUS_LIVE)
+            ->where('is_required', true)
+            ->every(fn (Assignment $assignment) => $this->isAssignmentComplete(
+                $assignmentSubmissionMap->get($assignment->id),
+            ));
+
+        return $allLessonsComplete && $allRequiredAssignmentsComplete;
+    }
+
+    private function isAssignmentComplete(?AssignmentSubmission $submission): bool
+    {
+        return filled($submission?->submitted_at) || filled($submission?->assignment_video);
     }
 
     private function isCertificateDownloadModule(Module $module): bool
