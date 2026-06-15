@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['title', 'description', 'url_slug', 'thumbnail', 'sort_order', 'certificate_enabled'])]
+#[Fillable(['title', 'description', 'url_slug', 'thumbnail', 'sort_order', 'certificate_enabled', 'ebook_enabled', 'video_lecturer_enabled'])]
 class Module extends Model
 {
     /** @use HasFactory<ModuleFactory> */
@@ -21,6 +21,8 @@ class Module extends Model
     {
         return [
             'certificate_enabled' => 'boolean',
+            'ebook_enabled' => 'boolean',
+            'video_lecturer_enabled' => 'boolean',
         ];
     }
 

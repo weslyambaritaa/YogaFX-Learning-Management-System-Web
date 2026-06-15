@@ -5,7 +5,9 @@ import {
     CheckCircle2,
     ClipboardCheck,
     Download,
+    FileText,
     Lock,
+    Play,
     PlayCircle,
 } from 'lucide-react';
 
@@ -282,6 +284,155 @@ export default function StudentModuleShow({ module }) {
                                 );
                             })}
                         </div>
+                    </section>
+                ) : null}
+
+                {module.ebook_enabled ? (
+                    <section className="space-y-5">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                                    Ebooks
+                                </p>
+                                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                    Browse your ebook library
+                                </h2>
+                            </div>
+                        </div>
+
+                        {(module.ebooks ?? []).length ? (
+                            <div className="grid gap-4 xl:grid-cols-2">
+                                {module.ebooks.map((ebook) => (
+                                    <div
+                                        key={ebook.id}
+                                        className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5"
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="space-y-3">
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
+                                                    <FileText className="size-3.5" />
+                                                    Ebook {ebook.sort_order}
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-semibold tracking-tight text-white">
+                                                        {ebook.title}
+                                                    </h3>
+                                                    <p className="mt-3 text-sm leading-7 text-white/62">
+                                                        {ebook.file_name}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6 flex flex-wrap gap-3 border-t border-white/8 pt-4">
+                                            <a
+                                                href={ebook.preview_url}
+                                                className="inline-flex items-center gap-2 rounded-full bg-[#d5462f] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#e2553d]"
+                                            >
+                                                Open Ebook
+                                                <ArrowRight className="size-4" />
+                                            </a>
+                                            {ebook.download_url ? (
+                                                <a
+                                                    href={ebook.download_url}
+                                                    className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                                                >
+                                                    Download
+                                                    <Download className="size-4" />
+                                                </a>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
+                                No ebook entries are available for your current access tier in
+                                this module yet.
+                            </div>
+                        )}
+                    </section>
+                ) : null}
+
+                {module.video_lecturer_enabled ? (
+                    <section className="space-y-5">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                                    Video Lecturer
+                                </p>
+                                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                    Browse your lecturer videos
+                                </h2>
+                            </div>
+                        </div>
+
+                        {(module.video_lecturers ?? []).length ? (
+                            <div className="grid gap-4 xl:grid-cols-2">
+                                {module.video_lecturers.map((course) => (
+                                    <div
+                                        key={course.id}
+                                        className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04]"
+                                    >
+                                        <div className="relative overflow-hidden">
+                                            {course.thumbnail_url ? (
+                                                <img
+                                                    src={course.thumbnail_url}
+                                                    alt={course.title}
+                                                    className="aspect-[16/9] h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="aspect-[16/9] bg-[radial-gradient(circle_at_24%_20%,_rgba(223,103,57,0.45),_transparent_28%),linear-gradient(160deg,_#2b1d16_0%,_#120f0e_100%)]" />
+                                            )}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                        </div>
+
+                                        <div className="space-y-4 p-5">
+                                            <div className="inline-flex items-center gap-2 text-sm font-medium text-[#f15b3a]">
+                                                <Play className="size-4" />
+                                                {course.video?.is_ready ? 'Ready to watch' : 'Video unavailable'}
+                                            </div>
+
+                                            <div>
+                                                <h3 className="text-xl font-semibold tracking-tight text-white">
+                                                    {course.title}
+                                                </h3>
+                                                <p className="mt-3 text-sm leading-7 text-white/62">
+                                                    {course.description || 'Premium YogaFX lecture content ready for viewing.'}
+                                                </p>
+                                            </div>
+
+                                            {course.video?.warning_message ? (
+                                                <p className="text-sm leading-6 text-amber-200/90">
+                                                    {course.video.warning_message}
+                                                </p>
+                                            ) : null}
+
+                                            {course.video?.is_ready && course.video?.hls_url ? (
+                                                <a
+                                                    href={course.video.hls_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-2 rounded-full bg-[#d5462f] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#e2553d]"
+                                                >
+                                                    Open Video
+                                                    <ArrowRight className="size-4" />
+                                                </a>
+                                            ) : (
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/60">
+                                                    Video Not Ready
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
+                                No video lecturer entries are available for your current access
+                                tier in this module yet.
+                            </div>
+                        )}
                     </section>
                 ) : null}
 

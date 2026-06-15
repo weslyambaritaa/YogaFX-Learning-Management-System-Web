@@ -9,6 +9,8 @@ use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\AssessmentAttempt;
 use App\Models\Certificate;
+use App\Models\Course;
+use App\Models\Ebook;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
@@ -16,6 +18,7 @@ use App\Services\BunnyStreamService;
 use App\Services\Certificates\CertificateEligibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -88,6 +91,8 @@ class ModuleCatalogController extends Controller
                     'lesson_count' => $totalLessons,
                     'assignments_count' => $totalAssignments,
                     'certificate_enabled' => (bool) $module->certificate_enabled,
+                    'ebook_enabled' => (bool) $module->ebook_enabled,
+                    'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
                     'completed_lessons' => $completedLessons,
                     'progress_percentage' => $totalLessons > 0
                         ? (int) round(($completedLessons / $totalLessons) * 100)
@@ -184,6 +189,8 @@ class ModuleCatalogController extends Controller
                     ? (int) round(($completedLessons / $lessons->count()) * 100)
                     : 0,
                 'certificate_enabled' => (bool) $module->certificate_enabled,
+                'ebook_enabled' => (bool) $module->ebook_enabled,
+                'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
                 'thumbnail_url' => $this->protectedMediaUrl(
                     'module',
                     $module->id,
@@ -234,6 +241,12 @@ class ModuleCatalogController extends Controller
                         ];
                     })
                     ->values(),
+                'ebooks' => $module->ebook_enabled
+                    ? $this->ebooksForStudent($user?->access_tier_id)
+                    : [],
+                'video_lecturers' => $module->video_lecturer_enabled
+                    ? $this->videoLecturersForStudent($user?->access_tier_id)
+                    : [],
                 'certificates' => $module->certificate_enabled
                     ? $this->certificateEligibilityService
                         ->latestCertificatesByType($user, $this->certificateEligibilityService->summaryForStudent($user)['available_types'])
@@ -292,6 +305,70 @@ class ModuleCatalogController extends Controller
             ->get()
             ->unique('assignment_id')
             ->keyBy('assignment_id');
+    }
+
+    private function ebooksForStudent(?int $accessTierId): array
+    {
+        return Ebook::query()
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get()
+            ->map(function (Ebook $ebook) {
+                $downloadUrl = $this->protectedMediaUrl(
+                    'ebook',
+                    $ebook->id,
+                    'file',
+                    $ebook->file,
+                    download: true,
+                    versionSeed: $ebook->updated_at,
+                );
+                $mimeType = $ebook->file
+                    ? Storage::disk('local')->mimeType($ebook->file)
+                    : null;
+
+                return [
+                    'id' => $ebook->id,
+                    'title' => $ebook->title,
+                    'sort_order' => $ebook->sort_order,
+                    'file_name' => basename((string) $ebook->file),
+                    'preview_url' => route('ebooks.preview', $ebook),
+                    'download_url' => $downloadUrl,
+                    'preview_supported' => str($ebook->file)->lower()->endsWith('.pdf')
+                        || $mimeType === 'application/pdf',
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function videoLecturersForStudent(?int $accessTierId): array
+    {
+        return Course::query()
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
+            ->orderBy('title')
+            ->get()
+            ->values()
+            ->map(function (Course $course, int $index) {
+                $videoState = $this->videoStateForCourse($course);
+
+                return [
+                    'id' => $course->id,
+                    'title' => $course->title,
+                    'url_slug' => $course->url_slug,
+                    'description' => $course->description,
+                    'index' => $index + 1,
+                    'video' => $videoState,
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'course',
+                        $course->id,
+                        'thumbnail',
+                        $course->thumbnail,
+                        versionSeed: $course->updated_at,
+                    ) ?: $this->bunnyStreamService->thumbnailUrl($course->video),
+                ];
+            })
+            ->all();
     }
 
     private function moduleAccessMap(
@@ -441,6 +518,84 @@ class ModuleCatalogController extends Controller
         }
 
         return true;
+    }
+
+    /**
+     * @return array{
+     *     video_id: string|null,
+     *     hls_url: string|null,
+     *     is_ready: bool,
+     *     is_configured: bool,
+     *     is_valid_id: bool,
+     *     is_found_in_library: bool|null,
+     *     warning_message: string|null
+     * }
+     */
+    private function videoStateForCourse(Course $course): array
+    {
+        $videoId = is_string($course->video)
+            ? trim($course->video)
+            : null;
+
+        if (! filled($videoId)) {
+            return [
+                'video_id' => null,
+                'hls_url' => null,
+                'is_ready' => false,
+                'is_configured' => $this->bunnyStreamService->hasPlaybackConfig(),
+                'is_valid_id' => false,
+                'is_found_in_library' => null,
+                'warning_message' => null,
+            ];
+        }
+
+        if (! \Illuminate\Support\Str::isUuid($videoId)) {
+            return [
+                'video_id' => $videoId,
+                'hls_url' => null,
+                'is_ready' => false,
+                'is_configured' => $this->bunnyStreamService->hasPlaybackConfig(),
+                'is_valid_id' => false,
+                'is_found_in_library' => null,
+                'warning_message' => 'This lecturer video is not using a valid Bunny Stream video ID yet.',
+            ];
+        }
+
+        if (! $this->bunnyStreamService->hasPlaybackConfig()) {
+            return [
+                'video_id' => $videoId,
+                'hls_url' => null,
+                'is_ready' => false,
+                'is_configured' => false,
+                'is_valid_id' => true,
+                'is_found_in_library' => null,
+                'warning_message' => 'Bunny Stream CDN is not configured yet in the current environment.',
+            ];
+        }
+
+        $videoInspection = $this->bunnyStreamService->inspectVideoId($videoId);
+
+        if ($videoInspection['is_verified'] && ! $videoInspection['is_found']) {
+            return [
+                'video_id' => $videoId,
+                'hls_url' => null,
+                'is_ready' => false,
+                'is_configured' => true,
+                'is_valid_id' => true,
+                'is_found_in_library' => false,
+                'warning_message' => 'This lecturer video ID was not found in the configured Bunny Stream library.',
+            ];
+        }
+
+        return [
+            'video_id' => $videoId,
+            'hls_url' => $this->bunnyStreamService->hlsUrl($videoId),
+            'is_ready' => true,
+            'is_configured' => true,
+            'is_valid_id' => true,
+            'is_found_in_library' => $videoInspection['is_verified'] ? true : null,
+            'warning_message' => null,
+        ];
     }
 
     private function isModuleFullyComplete(

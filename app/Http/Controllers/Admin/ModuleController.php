@@ -44,6 +44,8 @@ class ModuleController extends Controller
                     ),
                     'access_tiers' => $module->accessTiers->pluck('name')->all(),
                     'certificate_enabled' => (bool) $module->certificate_enabled,
+                    'ebook_enabled' => (bool) $module->ebook_enabled,
+                    'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
                     'lessons_count' => $module->lessons_count,
                     'assignments_count' => $module->assignments_count,
                 ]),
@@ -65,6 +67,8 @@ class ModuleController extends Controller
     {
         $data = $request->validated();
         $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
+        $data['ebook_enabled'] = (bool) ($data['ebook_enabled'] ?? false);
+        $data['video_lecturer_enabled'] = (bool) ($data['video_lecturer_enabled'] ?? false);
         $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'modules/thumbnails');
         unset($data['access_tier_ids']);
         $requestedSortOrder = (int) ($data['sort_order'] ?? 0);
@@ -98,6 +102,8 @@ class ModuleController extends Controller
                 'sort_order' => $module->sort_order,
                 'url_slug' => $module->url_slug,
                 'certificate_enabled' => (bool) $module->certificate_enabled,
+                'ebook_enabled' => (bool) $module->ebook_enabled,
+                'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
                 'access_tier_ids' => $module->accessTiers()->pluck('access_tiers.id')->all(),
                 'thumbnail_url' => $this->protectedMediaUrl(
                     'module',
@@ -116,6 +122,8 @@ class ModuleController extends Controller
     {
         $data = $request->validated();
         $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
+        $data['ebook_enabled'] = (bool) ($data['ebook_enabled'] ?? false);
+        $data['video_lecturer_enabled'] = (bool) ($data['video_lecturer_enabled'] ?? false);
         $data['thumbnail'] = $this->storeUploadedFile(
             $request->file('thumbnail'),
             'modules/thumbnails',
