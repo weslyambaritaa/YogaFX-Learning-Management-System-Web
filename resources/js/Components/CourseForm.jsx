@@ -1,3 +1,4 @@
+import AccessTierMultiSelect from '@/Components/AccessTierMultiSelect';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
@@ -61,37 +62,27 @@ export default function CourseForm({
 
             <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                    <InputLabel htmlFor="access_tier_id" value="Access Tier" />
-                    <select
-                        id="access_tier_id"
-                        value={data.access_tier_id}
-                        onChange={(event) =>
-                            setData('access_tier_id', Number(event.target.value))
-                        }
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    >
-                        <option value="">Select access tier</option>
-                        {accessTiers.map((accessTier) => (
-                            <option key={accessTier.id} value={accessTier.id}>
-                                {accessTier.name}
-                                {!accessTier.is_active ? ' (Inactive)' : ''}
-                            </option>
-                        ))}
-                    </select>
-                    <InputError className="mt-2" message={errors.access_tier_id} />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="video" value="Video URL / Reference" />
+                    <InputLabel htmlFor="video" value="Lecturer Video ID" />
                     <TextInput
                         id="video"
                         className="mt-1 block w-full"
                         value={data.video}
                         onChange={(event) => setData('video', event.target.value)}
                     />
+                    <p className="mt-2 text-xs text-gray-500">
+                        Paste only the Bunny Stream video GUID from the same Bunny library
+                        used by this environment. Do not paste a full URL.
+                    </p>
                     <InputError className="mt-2" message={errors.video} />
                 </div>
             </div>
+
+            <AccessTierMultiSelect
+                value={data.access_tier_ids}
+                onChange={(value) => setData('access_tier_ids', value)}
+                accessTiers={accessTiers}
+                error={errors.access_tier_ids}
+            />
 
             <div>
                 <InputLabel htmlFor="description" value="Description" />

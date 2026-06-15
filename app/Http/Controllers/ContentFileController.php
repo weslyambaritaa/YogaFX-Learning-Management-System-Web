@@ -113,7 +113,10 @@ class ContentFileController extends Controller
         abort_unless($user->access_tier_id !== null, 403);
 
         if ($record instanceof Course) {
-            abort_unless($record->access_tier_id === $user->access_tier_id, 403);
+            abort_unless(
+                $record->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists(),
+                403,
+            );
 
             return;
         }
