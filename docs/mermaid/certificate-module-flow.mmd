@@ -1,0 +1,44 @@
+flowchart TD
+
+    A[Admin opens Student Progress] --> B[Admin selects a student]
+    B --> C[Open Certificate panel for selected student]
+
+    C --> D[System loads student tier]
+    D --> E[System checks student completion eligibility]
+
+    E --> F{Eligible for certificate?}
+
+    F -->|No| G[Show certificate not eligible state]
+    G --> C
+
+    F -->|Yes| H[Show available certificates based on tier]
+
+    H --> I{Tier type}
+
+    I -->|Starter Kit| J[Available: Bikram Yoga Certificate]
+    I -->|Online| K[Available: Bikram Yoga Certificate and Yoga Alliance Certificate]
+    I -->|Master Class| L[Available: Bikram Yoga Certificate and Yoga Alliance Certificate]
+
+    J --> M[Admin clicks Generate or Regenerate]
+    K --> M
+    L --> M
+
+    M --> N[System loads JPG template]
+    N --> O[System renders student name into template]
+    O --> P[System generates final PDF]
+    P --> Q[System stores certificate file]
+    Q --> R[Certificate available for admin download]
+    R --> C
+
+    C --> S[Admin clicks Download PDF]
+    S --> T[Download generated certificate]
+
+    %% Student side
+    U[Student opens Certificate page] --> V[System loads student's generated certificates]
+    V --> W{Certificate available?}
+
+    W -->|No| X[Show empty state]
+    W -->|Yes| Y[Show downloadable certificate list]
+
+    Y --> Z[Student clicks Download PDF]
+    Z --> AA[Download student certificate]

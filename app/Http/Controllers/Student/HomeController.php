@@ -10,6 +10,7 @@ use App\Models\Certificate;
 use App\Models\Ebook;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\StudentSessionTrackingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,7 @@ class HomeController extends Controller
 
     public function __construct(
         private readonly StudentSessionTrackingService $sessionTrackingService,
+        private readonly CertificateEligibilityService $certificateEligibilityService,
     ) {}
 
     public function index(Request $request): Response|RedirectResponse
@@ -932,7 +934,6 @@ class HomeController extends Controller
     protected function buildCertificateMilestone(Request $request, array $progressSummary, array $continueLearning): array
     {
         $user = $request->user();
-        $tier = $user?->accessTier;
         $learningCta = [
             'label' => (($continueLearning['state'] ?? null) === 'resume')
                 ? 'Continue Learning'
@@ -941,114 +942,101 @@ class HomeController extends Controller
             'kind' => 'link',
         ];
 
-        if (! $user || ! $tier) {
+        if (! $user || ! $user->accessTier) {
             return [
                 'state' => 'empty',
                 'eyebrow' => 'Certificate Milestone',
                 'title' => 'Certificate milestone will appear here.',
-                'description' => 'Home needs an active student access tier before it can explain whether certificate belongs to this YogaFX journey.',
+                'description' => 'Home needs an active student access tier before it can explain certificate readiness.',
                 'status' => 'Awaiting access tier',
                 'eligibility_label' => 'Tier eligibility unknown',
                 'cta_label' => 'Open Profile',
                 'cta_url' => route('profile.edit'),
                 'cta_kind' => 'link',
                 'milestones' => [],
+                'generated_certificates' => [],
                 'latest_certificate' => null,
-                'support_note' => 'Student certificate page is still not active, so Home surfaces certificate status directly inside the dashboard.',
+                'support_note' => 'Certificate downloads only appear after admin generation and remain bound to your own account.',
             ];
         }
 
-        if ($tier->slug === AccessTier::SLUG_STARTER_KIT) {
-            return [
-                'state' => 'not_available',
-                'eyebrow' => 'Certificate Milestone',
-                'title' => 'Certificate is not included in your current tier.',
-                'description' => 'Starter Kit focuses on a lighter YogaFX path, so certificate milestone is intentionally not part of this membership level.',
-                'status' => 'Not available for your tier',
-                'eligibility_label' => 'Unavailable in '.($tier->name ?? 'current tier'),
-                'cta_label' => 'Browse Modules',
-                'cta_url' => route('modules.index'),
-                'cta_kind' => 'link',
-                'milestones' => [],
-                'latest_certificate' => null,
-                'support_note' => 'Home still keeps the certificate milestone visible so students understand what belongs to the current tier and what does not.',
-            ];
-        }
+        $summary = $this->certificateEligibilityService->summaryForStudent($user);
+        $generatedCertificates = $this->certificateEligibilityService
+            ->latestCertificatesByType($user, $summary['available_types'])
+            ->sortByDesc(fn (Certificate $certificate) => sprintf(
+                '%010d-%010d',
+                $certificate->generated_at?->getTimestamp() ?? 0,
+                $certificate->id,
+            ))
+            ->values();
 
-        $certificateRecords = Certificate::query()
-            ->where('user_id', $user->id)
-            ->latest('generated_at')
-            ->latest('id')
-            ->get();
-
-        $latestCertificate = $certificateRecords->first();
-        $overallProgress = (int) ($progressSummary['overall_progress_percentage'] ?? 0);
-        $currentPathCompleted = $overallProgress === 100;
-        $hasCertificate = (bool) $latestCertificate;
-
-        $state = $hasCertificate
+        $latestCertificate = $generatedCertificates->first();
+        $hasGeneratedCertificate = $generatedCertificates->isNotEmpty();
+        $state = $hasGeneratedCertificate
             ? 'download_available'
-            : ($currentPathCompleted ? 'ready' : 'in_progress');
+            : ($summary['learning_eligible'] ? 'ready' : 'in_progress');
 
-        $milestones = collect([
-            [
+        $milestones = collect($summary['requirements'])
+            ->map(fn (array $item) => [
+                'label' => $item['label'],
+                'status' => $item['status'],
+                'detail' => $item['total'] === 0
+                    ? $item['label'].' is not required for this certificate path.'
+                    : sprintf('%d of %d required %s completed.', $item['completed'], $item['total'], strtolower($item['label'])),
+            ])
+            ->prepend([
                 'label' => 'Tier entitlement',
-                'status' => 'Eligible',
-                'detail' => 'This tier is eligible for certificate milestone under the current YogaFX rules.',
-            ],
-            [
-                'label' => 'Learning path progress',
-                'status' => $currentPathCompleted ? 'Completed' : "{$overallProgress}% complete",
-                'detail' => $currentPathCompleted
-                    ? 'Your currently accessible learning path has reached full completion.'
-                    : 'Certificate momentum keeps following the completed lessons in your current accessible path.',
-            ],
-            [
-                'label' => 'Certificate record',
-                'status' => $hasCertificate ? 'Available' : 'Not generated yet',
-                'detail' => $hasCertificate
-                    ? 'At least one certificate record already exists for this student.'
-                    : 'No generated certificate record exists yet in YogaFX.',
-            ],
-        ])->values();
+                'status' => count($summary['available_types']) > 0 ? 'Included' : 'Unavailable',
+                'detail' => count($summary['available_types']) > 0
+                    ? 'Your active tier includes certificate access based on the current YogaFX rules.'
+                    : 'Your active tier does not have a certificate mapping yet.',
+            ])
+            ->values();
 
         $payload = [
             'state' => $state,
             'eyebrow' => 'Certificate Milestone',
             'title' => 'Certificate milestone is active for your YogaFX path.',
-            'description' => 'Home keeps certificate visible as a major milestone, while staying honest about the fact that student-side certificate browsing is not a separate page yet.',
-            'status' => 'Certificate tracked',
-            'eligibility_label' => 'Included in '.($tier->name ?? 'eligible tier'),
+            'description' => 'Home keeps certificate status visible while only exposing PDFs that have already been generated for your account.',
+            'status' => $hasGeneratedCertificate ? 'Generated' : ($summary['learning_eligible'] ? 'Eligible' : 'Not Eligible'),
+            'eligibility_label' => 'Included in '.($summary['tier']['name'] ?? 'current tier'),
             'cta_label' => $learningCta['label'],
             'cta_url' => $learningCta['url'],
             'cta_kind' => $learningCta['kind'],
             'milestones' => $milestones,
+            'generated_certificates' => $generatedCertificates
+                ->map(fn (Certificate $certificate) => [
+                    'id' => $certificate->id,
+                    'type_label' => $certificate->typeLabel(),
+                    'generated_at' => optional($certificate->generated_at)->format('Y-m-d H:i'),
+                    'download_url' => route('student.certificates.download', $certificate),
+                ])
+                ->all(),
             'latest_certificate' => $latestCertificate ? [
                 'type_label' => $latestCertificate->typeLabel(),
-                'version' => $latestCertificate->version,
                 'generated_at' => optional($latestCertificate->generated_at)->format('Y-m-d H:i'),
                 'download_url' => route('student.certificates.download', $latestCertificate),
             ] : null,
-            'support_note' => 'Home shows certificate status inside the dashboard first. A dedicated student certificate page is still not part of the active product scope.',
+            'support_note' => 'Student certificate access is download-only, server-side ownership protected, and limited to files that admin has already generated.',
         ];
 
         return match ($state) {
             'in_progress' => array_merge($payload, [
                 'title' => 'Your certificate milestone is still in progress.',
-                'description' => 'Certificate belongs to this tier, but the current accessible learning path is not complete yet. Home keeps the milestone visible so the end goal stays clear.',
-                'status' => 'In progress',
+                'description' => $summary['message'],
+                'status' => 'Not Eligible',
             ]),
             'ready' => array_merge($payload, [
-                'title' => 'Your certificate looks ready from the learning side.',
-                'description' => 'Home sees a completed accessible learning path, but no generated certificate record exists yet. This means the milestone is ready from progress perspective and still waiting for certificate generation.',
-                'status' => 'Ready for generation',
+                'title' => 'Your certificate is eligible and waiting for admin generation.',
+                'description' => 'All relevant learning flow is completed, but no certificate PDF has been generated yet.',
+                'status' => 'Eligible',
                 'cta_label' => 'Review Modules',
                 'cta_url' => route('modules.index'),
             ]),
             'download_available' => array_merge($payload, [
-                'title' => 'Your latest certificate is ready to download.',
-                'description' => 'YogaFX already has a generated certificate record for this student, so Home can surface it directly as a milestone without sending you into a separate certificate page.',
-                'status' => 'Download available',
+                'title' => 'Your generated certificate PDF is ready to download.',
+                'description' => 'Only certificates that already exist as stored PDFs are shown here, and each download stays tied to your own account.',
+                'status' => 'Generated',
                 'cta_label' => 'Download Latest Certificate',
                 'cta_url' => route('student.certificates.download', $latestCertificate),
                 'cta_kind' => 'download',
