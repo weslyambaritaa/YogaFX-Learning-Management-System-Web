@@ -24,6 +24,7 @@ export default function EmailNotificationShow({
     const userEditorRef = useRef(null);
     const adminMediaInputRef = useRef(null);
     const userMediaInputRef = useRef(null);
+    const requiresModuleSelection = notificationType === 'module_completion';
     const [mediaState, setMediaState] = useState({
         admin: { processing: false, message: '' },
         user: { processing: false, message: '' },
@@ -500,30 +501,32 @@ export default function EmailNotificationShow({
                                 </p>
 
                                 <form onSubmit={submitTest} className="mt-4 space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">
-                                            Module
-                                        </label>
-                                        <select
-                                            value={testForm.data.module_id}
-                                            onChange={(event) =>
-                                                testForm.setData('module_id', event.target.value)
-                                            }
-                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        >
-                                            <option value="">Use sample module</option>
-                                            {modules.map((module) => (
-                                                <option key={module.id} value={module.id}>
-                                                    {module.title}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <p className="text-xs text-slate-500">
-                                            When selected, placeholders like
-                                            {' '}`module_title` use this module&apos;s real title.
-                                        </p>
-                                        <InputError message={errors.module_id} />
-                                    </div>
+                                    {requiresModuleSelection ? (
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-slate-700">
+                                                Module
+                                            </label>
+                                            <select
+                                                value={testForm.data.module_id}
+                                                onChange={(event) =>
+                                                    testForm.setData('module_id', event.target.value)
+                                                }
+                                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            >
+                                                <option value="">Use sample module</option>
+                                                {modules.map((module) => (
+                                                    <option key={module.id} value={module.id}>
+                                                        {module.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <p className="text-xs text-slate-500">
+                                                When selected, placeholders like
+                                                {' '}`module_title` use this module&apos;s real title.
+                                            </p>
+                                            <InputError message={errors.module_id} />
+                                        </div>
+                                    ) : null}
 
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-slate-700">
