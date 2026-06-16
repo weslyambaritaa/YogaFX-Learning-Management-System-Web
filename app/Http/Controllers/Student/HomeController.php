@@ -594,16 +594,29 @@ class HomeController extends Controller
                     default => 'Open Module',
                 },
                 'cta_url' => route('modules.show', $module->url_slug),
-                'thumbnail_url' => $this->protectedMediaUrl(
+                    'thumbnail_url' => $this->protectedMediaUrl(
                     'module',
                     $module->id,
                     'thumbnail',
                     $module->thumbnail,
                     versionSeed: $module->updated_at,
                 ),
-            ];
+                'lessons' => $module->lessons->map(fn ($lesson) => [
+                    'id'                  => $lesson->id,
+                    'title'               => $lesson->title,
+                    'sort_order'          => $lesson->sort_order,
+                    'url'                 => route('lessons.show', $lesson),
+                    'status'              => isset($lessonProgressMap[$lesson->id])
+                                                ? ($lessonProgressMap[$lesson->id]->is_done ? 'completed' : 'available')
+                                                : 'available',
+                    'progress_percentage' => isset($lessonProgressMap[$lesson->id])
+                                                ? (int) round((float) $lessonProgressMap[$lesson->id]->watch_progress)
+                                                : 0,
+                ])->values()->toArray(),
+            ];  // <-- penutup array return
         })->values();
 
+        
         return [
             'state' => 'ready',
             'eyebrow' => 'Available Modules',

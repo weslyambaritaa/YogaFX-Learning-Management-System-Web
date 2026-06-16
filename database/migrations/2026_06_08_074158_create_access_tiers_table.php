@@ -1,27 +1,18 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('access_tiers')) {
-            return;
-        }
-
-        Schema::create('access_tiers', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->timestamps();
-        });
+        // Kept as a no-op to preserve migration history.
+        // The canonical access tier schema is defined in
+        // 2026_06_09_090000_create_access_tiers_table.php.
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('access_tiers');
+        //
     }
 };
