@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\EnrollmentUpdateRequest;
 use App\Http\Requests\SignupCompletionRequest;
 use App\Models\OnboardingState;
@@ -13,9 +15,37 @@ use Inertia\Response;
 
 class OnboardingController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+    use HandlesLocalUploads;
+
     public function __construct(
         private readonly SimulatedPaymentFlowService $paymentFlow,
     ) {}
+
+    public function showPaymentSuccess(OnboardingState $onboardingState): Response|RedirectResponse
+    {
+        $onboardingState->loadMissing('user', 'pendingRegistration.accessTier');
+
+        if ($onboardingState->status === OnboardingState::STATUS_COMPLETED) {
+            return redirect()->route('login')->with('status', 'Your YogaFX account is ready. Please sign in.');
+        }
+
+        return Inertia::render('Public/PaymentSuccess', [
+            'onboarding' => [
+                'id' => $onboardingState->id,
+                'status' => $onboardingState->status,
+                'continue_url' => $this->paymentFlow->enrollmentUrl($onboardingState),
+                'access_tier' => [
+                    'name' => $onboardingState->pendingRegistration->accessTier->name,
+                    'slug' => $onboardingState->pendingRegistration->accessTier->slug,
+                ],
+            ],
+            'student' => [
+                'name' => $onboardingState->user->name,
+                'email' => $onboardingState->user->email,
+            ],
+        ]);
+    }
 
     public function showEnrollment(OnboardingState $onboardingState): Response|RedirectResponse
     {
@@ -49,6 +79,13 @@ class OnboardingController extends Controller
                 'whatsapp' => $user->whatsapp,
                 'preferred_certificate_picture' => $user->preferred_certificate_picture,
                 'profile_photo' => $user->profile_photo,
+                'profile_photo_url' => $this->protectedMediaUrl(
+                    'user',
+                    $user->id,
+                    'profile_photo',
+                    $user->profile_photo,
+                    versionSeed: $user->updated_at,
+                ),
                 'instagram' => $user->instagram,
                 'country' => $user->country,
                 'birth_date' => optional($user->birth_date)->toDateString(),
@@ -69,7 +106,17 @@ class OnboardingController extends Controller
         EnrollmentUpdateRequest $request,
         OnboardingState $onboardingState,
     ): RedirectResponse {
-        $onboardingState = $this->paymentFlow->completeEnrollment($onboardingState, $request->validated());
+        $validated = $request->validated();
+        unset($validated['profile_photo']);
+
+        $user = $onboardingState->user;
+        $validated['profile_photo'] = $this->storeUploadedFileToBunny(
+            $request->file('profile_photo'),
+            'users/profile-photos',
+            $user->profile_photo,
+        );
+
+        $onboardingState = $this->paymentFlow->completeEnrollment($onboardingState, $validated);
 
         return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
     }

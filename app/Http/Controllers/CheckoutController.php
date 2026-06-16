@@ -73,6 +73,6 @@ class CheckoutController extends Controller
         /** @var OnboardingState $onboardingState */
         $onboardingState = $result['onboarding_state'];
 
-        return redirect()->away($this->paymentFlow->enrollmentUrl($onboardingState));
+        return redirect()->away($this->paymentFlow->paymentSuccessUrl($onboardingState));
     }
 }

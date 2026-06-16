@@ -8,8 +8,7 @@ export default function Enrollment({ onboarding, student }) {
         last_name: student.last_name ?? '',
         email: student.email ?? '',
         whatsapp: student.whatsapp ?? '',
-        preferred_certificate_picture: student.preferred_certificate_picture ?? '',
-        profile_photo: student.profile_photo ?? '',
+        profile_photo: null,
         instagram: student.instagram ?? '',
         country: student.country ?? '',
         birth_date: student.birth_date ?? '',
@@ -26,7 +25,9 @@ export default function Enrollment({ onboarding, student }) {
 
     const submit = (event) => {
         event.preventDefault();
-        post(onboarding.submit_url);
+        post(onboarding.submit_url, {
+            forceFormData: true,
+        });
     };
 
     return (
@@ -68,6 +69,7 @@ export default function Enrollment({ onboarding, student }) {
                 onSubmit={submit}
                 submitLabel="Save Enrollment and Continue"
                 variant="immersive"
+                currentProfilePhotoUrl={student.profile_photo_url}
             />
         </PublicFlowLayout>
     );

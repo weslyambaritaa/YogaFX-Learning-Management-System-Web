@@ -25,7 +25,7 @@ class StudentProfileValidationRules
             ],
             'whatsapp' => ['required', 'string', 'max:50'],
             'preferred_certificate_picture' => ['nullable', 'string', 'max:2048'],
-            'profile_photo' => ['nullable', 'string', 'max:2048'],
+            'profile_photo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg', 'max:5120'],
             'instagram' => ['nullable', 'string', 'max:255'],
             'country' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date', 'before_or_equal:today'],

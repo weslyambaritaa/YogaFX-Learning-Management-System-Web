@@ -75,6 +75,7 @@ export default function StudentProfileForm({
     onSubmit,
     submitLabel = 'Save Changes',
     variant = 'default',
+    currentProfilePhotoUrl = null,
 }) {
     const isImmersive = variant === 'immersive';
     const genderOptions = [
@@ -294,48 +295,40 @@ export default function StudentProfileForm({
                     <div className="md:col-span-2">
                         <InputLabel
                             htmlFor="profile_photo"
-                            value="Profile Photo URL"
+                            value="Profile Photo (.jpg)"
                             className={labelClassName}
                         />
-                        <TextInput
+                        <input
                             id="profile_photo"
-                            className={`mt-1 block w-full ${inputClassName}`.trim()}
-                            value={data.profile_photo ?? ''}
-                            onChange={(e) => setData('profile_photo', e.target.value)}
+                            type="file"
+                            accept=".jpg,.jpeg,image/jpeg"
+                            className={`mt-1 block w-full rounded-md border border-gray-300 bg-white text-sm shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#d5462f] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#e2553d] ${isImmersive ? 'border-white/12 bg-white/5 text-white file:bg-[#d5462f]' : ''}`.trim()}
+                            onChange={(e) => setData('profile_photo', e.target.files?.[0] ?? null)}
                         />
                         <InputError
                             className={`mt-2 ${errorClassName}`.trim()}
                             message={errors.profile_photo}
                         />
+                        {currentProfilePhotoUrl && (
+                            <div className="mt-4 flex items-center gap-4">
+                                <img
+                                    src={currentProfilePhotoUrl}
+                                    alt="Current profile"
+                                    className="h-20 w-20 rounded-full border border-white/10 object-cover"
+                                />
+                                <p className={helperClassName}>
+                                    Current profile photo. Upload a new `.jpg`
+                                    file to replace it.
+                                </p>
+                            </div>
+                        )}
                         <p className={helperClassName}>
-                            Use a stable image URL or protected path reference
-                            that represents the student clearly.
+                            Upload a JPG profile photo. The file will be stored
+                            in Bunny Storage and reused in certificate
+                            generation.
                         </p>
                     </div>
 
-                    <div className="md:col-span-2">
-                        <InputLabel
-                            htmlFor="preferred_certificate_picture"
-                            value="Preferred Certificate Picture Reference"
-                            className={labelClassName}
-                        />
-                        <TextInput
-                            id="preferred_certificate_picture"
-                            className={`mt-1 block w-full ${inputClassName}`.trim()}
-                            value={data.preferred_certificate_picture ?? ''}
-                            onChange={(e) =>
-                                setData('preferred_certificate_picture', e.target.value)
-                            }
-                        />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.preferred_certificate_picture}
-                        />
-                        <p className={helperClassName}>
-                            This reference helps YogaFX keep certificate-related
-                            visuals aligned with the student profile.
-                        </p>
-                    </div>
                 </div>
             </section>
 

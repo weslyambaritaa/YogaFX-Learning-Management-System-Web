@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,8 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    use HandlesLocalUploads;
+
     /**
      * Display the user's profile form.
      */
@@ -27,8 +30,17 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
-        $user->fill($request->validated());
+        $validated = $request->validated();
+        unset($validated['profile_photo']);
+
+        $user->fill($validated);
         $user->syncDisplayName();
+
+        $user->profile_photo = $this->storeUploadedFileToBunny(
+            $request->file('profile_photo'),
+            'users/profile-photos',
+            $user->profile_photo,
+        );
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;

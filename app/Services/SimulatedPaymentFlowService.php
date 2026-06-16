@@ -323,6 +323,15 @@ class SimulatedPaymentFlowService
         );
     }
 
+    public function paymentSuccessUrl(OnboardingState $onboardingState): string
+    {
+        return URL::temporarySignedRoute(
+            'onboarding.payment-success.show',
+            now()->addDays(7),
+            ['onboardingState' => $onboardingState->id],
+        );
+    }
+
     public function enrollmentSubmitUrl(OnboardingState $onboardingState): string
     {
         return URL::temporarySignedRoute(
