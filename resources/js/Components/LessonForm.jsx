@@ -13,6 +13,7 @@ import {
 } from '@/Components/ui/dialog';
 import TextInput from '@/Components/TextInput';
 import { MAX_UPLOAD_SIZE_MB, validateUploadSize } from '@/lib/uploads';
+import { useEffect, useState } from 'react';
 
 export default function LessonForm({
     data,
@@ -31,6 +32,7 @@ export default function LessonForm({
     currentWorkbookPreview = null,
     currentAudioUrl = null,
 }) {
+    const [selectedThumbnailPreviewUrl, setSelectedThumbnailPreviewUrl] = useState(null);
     const maxUploadSizeBytes =
         uploadConstraints?.max_size_bytes ?? MAX_UPLOAD_SIZE_MB * 1024 * 1024;
     const maxUploadSizeLabel =
@@ -43,6 +45,19 @@ export default function LessonForm({
         uploadConstraints?.workbook_max_size_bytes ?? maxUploadSizeBytes;
     const workbookMaxUploadSizeLabel =
         uploadConstraints?.workbook_max_size_label ?? maxUploadSizeLabel;
+
+    useEffect(() => {
+        if (!(data.thumbnail instanceof File)) {
+            setSelectedThumbnailPreviewUrl(null);
+
+            return undefined;
+        }
+
+        const previewUrl = URL.createObjectURL(data.thumbnail);
+        setSelectedThumbnailPreviewUrl(previewUrl);
+
+        return () => URL.revokeObjectURL(previewUrl);
+    }, [data.thumbnail]);
 
     const handleFileChange = (field, label) => (event) => {
         const file = event.currentTarget.files?.[0] ?? null;
@@ -215,7 +230,24 @@ export default function LessonForm({
                         Bunny Storage.
                     </p>
                     <InputError className="mt-2" message={errors.thumbnail} />
-                    {currentThumbnailUrl && (
+                    {data.thumbnail instanceof File && (
+                        <p className="mt-3 text-xs text-gray-500">
+                            Selected file: {data.thumbnail.name}
+                        </p>
+                    )}
+                    {selectedThumbnailPreviewUrl && (
+                        <div className="mt-4">
+                            <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
+                                New thumbnail preview
+                            </p>
+                            <img
+                                src={selectedThumbnailPreviewUrl}
+                                alt="Selected lesson thumbnail preview"
+                                className="h-36 w-full rounded-lg object-cover md:w-64"
+                            />
+                        </div>
+                    )}
+                    {currentThumbnailUrl && !selectedThumbnailPreviewUrl && (
                         <img
                             src={currentThumbnailUrl}
                             alt="Current lesson thumbnail"

@@ -625,12 +625,12 @@ function StudentTopNavigation({
             <nav
                 className={[
                     isImmersive
-                        ? 'sticky top-0 z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl'
+                        ? 'sticky top-0 z-40 border-b border-white/10 bg-[linear-gradient(180deg,rgba(5,5,5,0.94),rgba(5,5,5,0.72))] backdrop-blur-2xl'
                         : 'border-b border-border bg-background',
                 ].join(' ')}
             >
-                <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
-                    <div className="flex min-w-0 items-center gap-3">
+                <div className="mx-auto flex min-h-24 max-w-[1400px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
+                    <div className="flex min-w-0 items-center gap-4">
                         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                             <SheetTrigger asChild>
                                 <Button
@@ -674,9 +674,11 @@ function StudentTopNavigation({
                                             asChild
                                             variant={isItemActive(item) ? 'secondary' : 'ghost'}
                                             className={[
-                                                'h-11 w-full justify-start rounded-xl px-3',
-                                                isImmersive && !isItemActive(item)
-                                                    ? 'text-white/78 hover:bg-white/10 hover:text-white'
+                                                'h-11 w-full justify-start rounded-xl px-3 text-sm',
+                                                isImmersive
+                                                    ? isItemActive(item)
+                                                        ? 'border border-white/12 bg-white text-black hover:bg-white'
+                                                        : 'text-white/78 hover:bg-white/10 hover:text-white'
                                                     : '',
                                             ].join(' ')}
                                         >
@@ -706,9 +708,11 @@ function StudentTopNavigation({
                                             asChild
                                             variant={isItemActive(item) ? 'secondary' : 'ghost'}
                                             className={[
-                                                'h-11 w-full justify-start rounded-xl px-3 opacity-100',
-                                                isImmersive && !isItemActive(item)
-                                                    ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
+                                                'h-11 w-full justify-start rounded-xl px-3 text-sm opacity-100',
+                                                isImmersive
+                                                    ? isItemActive(item)
+                                                        ? 'border border-white/12 bg-white text-black hover:bg-white'
+                                                        : 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
                                                     : '',
                                             ].join(' ')}
                                         >
@@ -725,9 +729,12 @@ function StudentTopNavigation({
                         </Sheet>
 
                         <div className="min-w-0">
+                            <div className="truncate text-[10px] font-semibold uppercase tracking-[0.32em] text-white/35">
+                                Streaming Yoga Education
+                            </div>
                             <div
                                 className={[
-                                    'truncate text-sm font-semibold',
+                                    'truncate text-base font-semibold tracking-[0.08em]',
                                     isImmersive ? 'text-white' : 'text-foreground',
                                 ].join(' ')}
                             >
@@ -735,34 +742,37 @@ function StudentTopNavigation({
                             </div>
                             <div
                                 className={[
-                                    'truncate text-xs',
+                                    'truncate text-xs uppercase tracking-[0.26em]',
                                     isImmersive
-                                        ? 'text-white/60'
+                                        ? 'text-white/48'
                                         : 'text-muted-foreground',
                                 ].join(' ')}
                             >
-                                Student Area
+                                Student Home
                             </div>
                         </div>
                     </div>
 
-                    <div className="hidden items-center gap-2 overflow-x-auto md:flex">
+                    <div className="hidden items-center gap-3 overflow-x-auto md:flex">
                         {studentNavigationItems.map((item) => (
                             <Button
                                 key={item.route}
                                 asChild
                                 variant={isItemActive(item) ? 'secondary' : 'ghost'}
-                                className={
-                                    isImmersive && !isItemActive(item)
-                                        ? 'text-white/78 hover:bg-white/10 hover:text-white'
-                                        : ''
-                                }
+                                className={[
+                                    'rounded-full px-5 text-sm font-medium',
+                                    isImmersive
+                                        ? isItemActive(item)
+                                            ? 'border border-white/12 bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.08)] hover:bg-white'
+                                            : 'text-white/74 hover:bg-white/10 hover:text-white'
+                                        : '',
+                                ].join(' ')}
                             >
                                 <Link href={route(item.route)}>{item.label}</Link>
                             </Button>
                         ))}
 
-                        <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
+                        <div className="mx-1 hidden h-6 w-px bg-white/10 lg:block" />
                         <div
                             className={[
                                 'hidden text-[11px] font-semibold uppercase tracking-[0.28em] lg:block',
@@ -778,8 +788,10 @@ function StudentTopNavigation({
                                 variant={isItemActive(item) ? 'secondary' : 'ghost'}
                                 className={[
                                     'rounded-full px-4 text-xs font-medium opacity-100',
-                                    isImmersive && !isItemActive(item)
-                                        ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
+                                    isImmersive
+                                        ? isItemActive(item)
+                                            ? 'border border-white/12 bg-white text-black hover:bg-white'
+                                            : 'border border-white/12 bg-white/[0.06] text-white/78 hover:bg-white/10 hover:text-white'
                                         : '',
                                 ].join(' ')}
                             >

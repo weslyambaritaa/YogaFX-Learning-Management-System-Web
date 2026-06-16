@@ -4,6 +4,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { MAX_UPLOAD_SIZE_MB, validateUploadSize } from '@/lib/uploads';
+import { useEffect, useState } from 'react';
 
 export default function ModuleForm({
     data,
@@ -17,6 +18,21 @@ export default function ModuleForm({
     submitLabel = 'Save Module',
     currentThumbnailUrl = null,
 }) {
+    const [selectedThumbnailPreviewUrl, setSelectedThumbnailPreviewUrl] = useState(null);
+
+    useEffect(() => {
+        if (!(data.thumbnail instanceof File)) {
+            setSelectedThumbnailPreviewUrl(null);
+
+            return undefined;
+        }
+
+        const previewUrl = URL.createObjectURL(data.thumbnail);
+        setSelectedThumbnailPreviewUrl(previewUrl);
+
+        return () => URL.revokeObjectURL(previewUrl);
+    }, [data.thumbnail]);
+
     const handleThumbnailChange = (event) => {
         const file = event.target.files?.[0] ?? null;
         const errorMessage = validateUploadSize(file, 'thumbnail');
@@ -34,7 +50,11 @@ export default function ModuleForm({
     };
 
     return (
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form
+            onSubmit={onSubmit}
+            encType="multipart/form-data"
+            className="space-y-6"
+        >
             <div className="grid gap-6 md:grid-cols-2">
                 <div>
                     <InputLabel htmlFor="title" value="Title" />
@@ -98,6 +118,7 @@ export default function ModuleForm({
                 <InputLabel htmlFor="thumbnail" value="Thumbnail" />
                 <input
                     id="thumbnail"
+                    name="thumbnail"
                     type="file"
                     accept="image/*"
                     onChange={handleThumbnailChange}
@@ -107,7 +128,24 @@ export default function ModuleForm({
                     Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.
                 </p>
                 <InputError className="mt-2" message={errors.thumbnail} />
-                {currentThumbnailUrl && (
+                {data.thumbnail instanceof File && (
+                    <p className="mt-3 text-xs text-gray-500">
+                        Selected file: {data.thumbnail.name}
+                    </p>
+                )}
+                {selectedThumbnailPreviewUrl && (
+                    <div className="mt-4">
+                        <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
+                            New thumbnail preview
+                        </p>
+                        <img
+                            src={selectedThumbnailPreviewUrl}
+                            alt="Selected module thumbnail preview"
+                            className="h-36 w-full rounded-lg object-cover md:w-64"
+                        />
+                    </div>
+                )}
+                {currentThumbnailUrl && !selectedThumbnailPreviewUrl && (
                     <img
                         src={currentThumbnailUrl}
                         alt="Current module thumbnail"

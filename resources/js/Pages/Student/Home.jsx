@@ -1,7 +1,7 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
-import { ChevronRight, Play, Search } from 'lucide-react';
+import { ChevronRight, Play } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 function formatDurationParts(totalSeconds) {
@@ -19,8 +19,51 @@ function formatDurationParts(totalSeconds) {
     return { hours, minutes, seconds };
 }
 
+function RowSection({ eyebrow, title, action = null, children }) {
+    return (
+        <section className="space-y-4">
+            <div className="flex items-end justify-between gap-4">
+                <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                        {eyebrow}
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                        {title}
+                    </h2>
+                </div>
+                {action}
+            </div>
+            {children}
+        </section>
+    );
+}
+
+function HorizontalRow({ children }) {
+    return (
+        <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {children}
+        </div>
+    );
+}
+
+function RowCard({ href = null, className = '', children }) {
+    const classes = [
+        'group relative block min-w-[280px] shrink-0 snap-start overflow-hidden rounded-[26px] border border-white/10 bg-[#202020] transition duration-300 hover:z-20 hover:scale-[1.03] hover:border-white/18 hover:shadow-[0_22px_60px_rgba(0,0,0,0.45)]',
+        className,
+    ].join(' ');
+
+    if (href) {
+        return (
+            <Link href={href} className={classes}>
+                {children}
+            </Link>
+        );
+    }
+
+    return <div className={classes}>{children}</div>;
+}
+
 export default function StudentHome({
-    homeStage,
     studentContext,
     accessTimeSummary,
     continueLearning,
@@ -34,14 +77,8 @@ export default function StudentHome({
     homeExperience,
 }) {
     const studentName = studentContext?.display_name ?? 'Student';
-    const fullName = studentContext?.full_name ?? studentName;
     const accessTier = studentContext?.access_tier ?? null;
     const tierLabel = accessTier?.name ?? 'Tier assignment pending';
-    const tierStatusLabel = accessTier
-        ? accessTier.is_active
-            ? 'Active access tier'
-            : 'Inactive access tier'
-        : 'No access tier assigned yet';
     const continueProgress = continueLearning?.progress_percentage ?? 0;
     const overallProgress = progressSummary?.overall_progress_percentage ?? 0;
     const currentSequenceLesson = sequentialAwareness?.current_lesson ?? null;
@@ -65,8 +102,22 @@ export default function StudentHome({
     const [runningAccessSeconds, setRunningAccessSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
     );
-    const heroPrimaryKind = homeExperience?.primary_cta_kind ?? 'link';
-    const heroSecondaryKind = 'link';
+    const heroPrimaryHref =
+        continueLearning?.cta_url ??
+        homeExperience?.primary_cta_url ??
+        route('modules.index');
+    const heroSecondaryHref =
+        continueLearning?.module?.url ??
+        homeExperience?.secondary_cta_url ??
+        route('modules.index');
+    const heroTitle =
+        continueLearning?.title ??
+        homeExperience?.hero_title ??
+        'Continue your YogaFX journey';
+    const heroEyebrow = continueLearning?.eyebrow ?? 'Featured Program';
+    const heroDescription = continueLearning?.module?.title
+        ? continueLearning.module.title
+        : continueLearning?.description ?? 'Return to your current YogaFX program.';
     const continueEngineLabel = homeExperience?.state === 'journey_complete'
         ? 'Next: certificate and resources'
         : homeExperience?.state === 'new_student'
@@ -153,206 +204,122 @@ export default function StudentHome({
         >
             <Head title="Home" />
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-4 pt-6 sm:px-6 lg:px-10">
-                <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#15110f] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(173,76,38,0.45),_transparent_30%),radial-gradient(circle_at_82%_18%,_rgba(245,158,11,0.12),_transparent_26%),linear-gradient(120deg,_rgba(255,255,255,0.05)_0%,_rgba(255,255,255,0)_40%),linear-gradient(180deg,_rgba(0,0,0,0.02)_0%,_rgba(0,0,0,0.58)_78%,_rgba(0,0,0,0.82)_100%)]" />
-                    <div className="absolute right-0 top-0 h-full w-[48%] bg-[radial-gradient(circle_at_center,_rgba(249,115,22,0.22),_transparent_42%),linear-gradient(180deg,_rgba(255,255,255,0.08),_rgba(255,255,255,0.01))]" />
+            <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[#141414] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+                {continueLearning?.thumbnail_url ? (
+                    <img
+                        src={continueLearning.thumbnail_url}
+                        alt={heroTitle}
+                        className="absolute inset-0 h-full w-full object-cover opacity-60"
+                    />
+                ) : (
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_24%,_rgba(214,90,52,0.24),_transparent_20%),linear-gradient(100deg,_#090909_0%,_#1a120f_44%,_#090909_100%)]" />
+                )}
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(0,0,0,0.12)_0%,_rgba(0,0,0,0.42)_36%,_rgba(0,0,0,0.9)_100%),linear-gradient(90deg,_rgba(0,0,0,0.94)_0%,_rgba(0,0,0,0.72)_30%,_rgba(0,0,0,0.25)_60%,_rgba(0,0,0,0.85)_100%)]" />
 
-                    <div className="relative grid min-h-[540px] gap-10 px-6 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-12 lg:py-12">
-                        <div className="flex flex-col justify-between gap-8">
-                            <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/65">
-                                <span>YogaFX Home</span>
-                                <span className="h-1 w-1 rounded-full bg-white/30" />
-                                <span>Phase {homeStage}</span>
-                                <span className="h-1 w-1 rounded-full bg-white/30" />
-                                <span>Premium Streaming Shell</span>
-                            </div>
+                <div className="relative mx-auto flex min-h-[80vh] max-w-[1400px] items-end px-4 pb-14 pt-24 sm:px-6 sm:pb-16 lg:min-h-[86vh] lg:px-10 lg:pb-20">
+                    <div className="max-w-3xl space-y-5">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.34em] text-[#f2d9c8]">
+                            {heroEyebrow}
+                        </p>
 
-                            <div className="max-w-3xl space-y-6">
-                                <div className="space-y-3">
-                                    <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#f2d9c8]">
-                                        Hi {studentName}, welcome back
+                        <h1 className="max-w-2xl text-5xl font-semibold tracking-[-0.05em] text-white sm:text-6xl xl:text-7xl">
+                            {heroTitle}
+                        </h1>
+
+                        <p className="max-w-md text-sm leading-7 text-white/68 sm:text-base">
+                            {heroDescription}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-3 pt-2">
+                            <Button
+                                asChild
+                                size="lg"
+                                className="rounded-full bg-[#d5462f] px-7 text-white shadow-[0_20px_50px_rgba(213,70,47,0.28)] hover:bg-[#e2553d]"
+                            >
+                                <Link href={heroPrimaryHref}>
+                                    <Play className="mr-2 size-4 fill-current" />
+                                    Continue Learning
+                                </Link>
+                            </Button>
+
+                            <Button
+                                asChild
+                                size="lg"
+                                variant="outline"
+                                className="rounded-full border-white/20 bg-white/5 px-7 text-white hover:bg-white/10 hover:text-white"
+                            >
+                                <Link href={heroSecondaryHref}>
+                                    Program Details
+                                </Link>
+                            </Button>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-white/68">
+                            {heroBadges.slice(0, 2).map((badge) => (
+                                <div
+                                    key={badge}
+                                    className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur"
+                                >
+                                    {badge}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-4 pt-8 sm:px-6 lg:px-10">
+                <RowSection
+                    eyebrow={continueLearning?.eyebrow ?? 'Continue Learning'}
+                    title="Continue Learning"
+                    action={
+                        <Button
+                            asChild
+                            variant="ghost"
+                            className="hidden rounded-full px-0 text-white/60 hover:bg-transparent hover:text-white md:inline-flex"
+                        >
+                            <Link href={route('modules.index')}>Browse Modules</Link>
+                        </Button>
+                    }
+                >
+                    <HorizontalRow>
+                        <RowCard
+                            href={continueLearning?.cta_url ?? route('modules.index')}
+                            className="min-w-[88vw] md:min-w-[760px] xl:min-w-[960px]"
+                        >
+                            <div className="relative aspect-video overflow-hidden">
+                                {continueLearning?.thumbnail_url ? (
+                                    <img
+                                        src={continueLearning.thumbnail_url}
+                                        alt={continueLearning?.title ?? 'Continue Learning'}
+                                        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
+                                    />
+                                ) : (
+                                    <div className="h-full w-full bg-[radial-gradient(circle_at_25%_22%,_rgba(214,90,52,0.44),_transparent_24%),linear-gradient(125deg,_#241613_0%,_#0f0f10_100%)]" />
+                                )}
+                                <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(0,0,0,0.08)_0%,_rgba(0,0,0,0.12)_38%,_rgba(0,0,0,0.88)_100%)]" />
+                                <div className="absolute left-4 top-4 rounded-full border border-white/14 bg-black/35 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/72 backdrop-blur">
+                                    {continueLearning?.status ?? 'Ready'}
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
+                                    <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+                                        {continueLearning?.module?.title ?? 'Featured Program'}
                                     </p>
-                                    <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl xl:text-6xl">
-                                        {homeExperience?.hero_title ??
-                                            'Your premium YogaFX learning home is now ready to carry your student identity.'}
-                                    </h1>
-                                </div>
-
-                                <p className="max-w-2xl text-sm leading-7 text-white/72 sm:text-base">
-                                    You are signed in as {fullName}.{' '}
-                                    {homeExperience?.hero_description ??
-                                        `Your Home experience is anchored to ${tierLabel.toLowerCase()} access and now has the core student context needed for the next learning-focused sections.`}
-                                </p>
-
-                                <div className="flex flex-wrap items-center gap-3 pt-2">
-                                    {heroPrimaryKind === 'download' ? (
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
-                                        >
-                                            <a href={homeExperience?.primary_cta_url ?? '#'}>
-                                                <Play className="mr-2 size-4 fill-current" />
-                                                {homeExperience?.primary_cta_label ??
-                                                    'Continue the Course'}
-                                            </a>
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
-                                        >
-                                            <Link href={homeExperience?.primary_cta_url ?? route('modules.index')}>
-                                                <Play className="mr-2 size-4 fill-current" />
-                                                {homeExperience?.primary_cta_label ??
-                                                    'Continue the Course'}
-                                            </Link>
-                                        </Button>
-                                    )}
-
-                                    {heroSecondaryKind === 'download' ? (
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            variant="outline"
-                                            className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
-                                        >
-                                            <a href={homeExperience?.secondary_cta_url ?? '#'}>
-                                                {homeExperience?.secondary_cta_label ??
-                                                    'Explore Modules'}
-                                            </a>
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            variant="outline"
-                                            className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
-                                        >
-                                            <Link href={homeExperience?.secondary_cta_url ?? route('modules.index')}>
-                                                {homeExperience?.secondary_cta_label ??
-                                                    'Explore Modules'}
-                                            </Link>
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
-                                {heroBadges.map((badge) => (
-                                    <div
-                                        key={badge}
-                                        className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur"
-                                    >
-                                        {badge}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex items-end justify-start lg:justify-end">
-                            <div className="w-full max-w-[280px] rounded-[28px] border border-white/10 bg-black/30 p-5 shadow-2xl backdrop-blur-md">
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.24em] text-white/55">
-                                            Total access time
-                                        </p>
-                                        <div className="text-3xl font-semibold tracking-[0.08em] text-white">
-                                            {`${runningAccessParts.hours}:${runningAccessParts.minutes}:${runningAccessParts.seconds}`}
-                                        </div>
-                                        <p className="text-sm text-white/58">
-                                            Cumulative student access time
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div>
-                                                <p className="text-xs uppercase tracking-[0.2em] text-white/55">
-                                                    Student Context
-                                                </p>
-                                                <p className="mt-1 text-sm font-medium text-white">
-                                                    {tierStatusLabel}
-                                                </p>
-                                            </div>
-                                            <Search className="size-4 text-white/60" />
-                                        </div>
-                                        <p className="mt-3 text-sm leading-6 text-white/60">
-                                            {accessTier
-                                                ? `${tierLabel} is attached to this student profile and ready to be used by the next Home sections.`
-                                                : 'This student can open Home safely, but content sections should keep using a no-tier fallback until access tier is assigned.'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {continueLearning?.eyebrow ?? 'Continue Watching'}
-                            </p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                {continueLearning?.state === 'resume'
-                                    ? 'Pick up where your learning paused'
-                                    : continueLearning?.state === 'start'
-                                      ? 'Start your first YogaFX lesson'
-                                      : 'Continue Learning will appear here'}
-                            </h2>
-                        </div>
-                        <span className="hidden text-sm text-white/45 md:inline">
-                            Phase 12 active
-                        </span>
-                    </div>
-
-                    <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
-                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-                            <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5">
-                                <div className="relative aspect-[16/8] overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]">
-                                    {continueLearning?.thumbnail_url && (
-                                        <img
-                                            src={continueLearning.thumbnail_url}
-                                            alt={continueLearning.title}
-                                            className="h-full w-full object-cover opacity-70"
-                                        />
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-                                    <div className="absolute left-4 top-4 rounded-full border border-white/12 bg-black/35 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/70 backdrop-blur">
-                                        {continueLearning?.status ?? 'Ready'}
-                                    </div>
-                                    {!continueLearning?.thumbnail_url && (
-                                        <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 backdrop-blur">
-                                            <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-                                                Visual placeholder
-                                            </p>
-                                            <p className="mt-2 text-sm font-medium text-white">
-                                                YogaFX lesson artwork is not attached yet.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <h3 className="text-lg font-medium text-white">
+                                    <h3 className="mt-2 max-w-xl text-2xl font-semibold text-white sm:text-3xl">
                                         {continueLearning?.title ?? 'Continue Learning'}
                                     </h3>
-                                    <p className="text-sm leading-6 text-white/60">
-                                        {continueLearning?.description ??
-                                            'Your current lesson will appear here once Phase 3 is active.'}
-                                    </p>
-                                    {continueLearning?.module && continueLearning?.lesson && (
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs uppercase tracking-[0.2em] text-white/45">
-                                            <span>{continueLearning.module.title}</span>
-                                            <span className="h-1 w-1 rounded-full bg-white/25" />
-                                            <span>
-                                                Lesson {continueLearning.lesson.sort_order}
-                                            </span>
-                                        </div>
-                                    )}
+                                    {continueLearning?.lesson?.sort_order ? (
+                                        <p className="mt-2 text-sm text-white/65">
+                                            Lesson {continueLearning.lesson.sort_order}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 p-5">
+                                <div className="flex items-center justify-between gap-3 text-sm text-white/60">
+                                    <span>Progress</span>
+                                    <span>{continueProgress}%</span>
                                 </div>
                                 <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                                     <div
@@ -361,147 +328,63 @@ export default function StudentHome({
                                     />
                                 </div>
                                 <div className="flex flex-wrap items-center gap-3">
-                                    <Button
-                                        asChild
-                                        className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
-                                    >
-                                        <Link href={continueLearning?.cta_url ?? route('modules.index')}>
-                                            {continueLearning?.state === 'resume' ? (
-                                                <Play className="mr-2 size-4 fill-current" />
-                                            ) : (
-                                                <ChevronRight className="mr-2 size-4" />
-                                            )}
-                                            {continueLearning?.cta_label ?? 'Browse Modules'}
-                                        </Link>
-                                    </Button>
-
-                                    {continueLearning?.module?.url && (
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                        >
-                                            <Link href={continueLearning.module.url}>
-                                                Open Module
-                                            </Link>
-                                        </Button>
-                                    )}
+                                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.22em] text-white/65">
+                                        {continueLearning?.cta_label ?? 'Continue Learning'}
+                                    </span>
+                                    {continueLearning?.module?.url ? (
+                                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.22em] text-white/48">
+                                            Program details available
+                                        </span>
+                                    ) : null}
                                 </div>
+                            </div>
+                        </RowCard>
+                    </HorizontalRow>
+                </RowSection>
+
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                                Program Metadata
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                Quiet details below the fold
+                            </h2>
+                        </div>
+                        <span className="hidden text-sm text-white/45 md:inline">
+                            Secondary context only
+                        </span>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-sm">
+                            <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">
+                                Total Access Time
+                            </p>
+                            <div className="mt-3 text-2xl font-semibold tracking-[0.08em] text-white">
+                                {`${runningAccessParts.hours}:${runningAccessParts.minutes}:${runningAccessParts.seconds}`}
                             </div>
                         </div>
 
-                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-                            <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.22em] text-white/50">
-                                            {sequentialAwareness?.eyebrow ?? 'Learning Sequence'}
-                                        </p>
-                                        <h3 className="text-xl font-semibold text-white">
-                                            {sequentialAwareness?.title ??
-                                                'Sequence awareness will appear here'}
-                                        </h3>
-                                        <p className="text-sm leading-6 text-white/60">
-                                            {sequentialAwareness?.description ??
-                                                'Home will explain the current lesson order here.'}
-                                        </p>
-                                    </div>
+                        <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-sm">
+                            <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">
+                                Student Context
+                            </p>
+                            <div className="mt-3 text-lg font-semibold text-white">
+                                {studentName}
+                            </div>
+                            <p className="mt-2 text-sm text-white/55">
+                                {accessTier ? 'Tier-enabled student profile' : 'No tier assigned yet'}
+                            </p>
+                        </div>
 
-                                    <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
-                                        <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
-                                            {sequentialAwareness?.status ?? 'Sequence guidance'}
-                                        </span>
-                                        <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
-                                            Guidance, not hard locking
-                                        </span>
-                                    </div>
-
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                        <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                                        Current lesson
-                                                    </p>
-                                                    <p className="mt-2 text-sm font-medium text-white">
-                                                        {currentSequenceLesson?.title ??
-                                                            'No current lesson yet'}
-                                                    </p>
-                                                </div>
-                                                <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
-                                                    {currentSequenceStatus}
-                                                </span>
-                                            </div>
-                                            <p className="mt-3 text-sm leading-6 text-white/58">
-                                                {currentSequenceLesson
-                                                    ? `Lesson ${currentSequenceLesson.sort_order} in ${currentSequenceLesson.module_title}`
-                                                    : 'The active lesson in the sequence will appear here.'}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
-                                            <div className="flex items-start justify-between gap-3">
-                                                <div>
-                                                    <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                                        Next lesson
-                                                    </p>
-                                                    <p className="mt-2 text-sm font-medium text-white">
-                                                        {nextSequenceLesson?.title ??
-                                                            'No further accessible lesson'}
-                                                    </p>
-                                                </div>
-                                                <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
-                                                    {nextSequenceStatus}
-                                                </span>
-                                            </div>
-                                            <p className="mt-3 text-sm leading-6 text-white/58">
-                                                {nextSequenceLesson
-                                                    ? `Lesson ${nextSequenceLesson.sort_order} in ${nextSequenceLesson.module_title}`
-                                                    : 'When the next lesson in sequence exists, Home will surface it here.'}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <div className="rounded-[20px] border border-white/10 bg-white/5 p-4">
-                                            <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                                Sequence rule
-                                            </p>
-                                            <p className="mt-3 text-sm font-medium text-white">
-                                                {sequentialAwareness?.sequence_rule?.label ??
-                                                    'Sequence guidance is not available yet.'}
-                                            </p>
-                                            <p className="mt-2 text-sm leading-6 text-white/58">
-                                                {sequentialAwareness?.sequence_rule?.detail ??
-                                                    'Home will explain the lesson order and next sequence rule here.'}
-                                            </p>
-                                        </div>
-
-                                        {(sequentialAwareness?.supporting_rules ?? []).map((rule) => (
-                                            <div
-                                                key={rule.label}
-                                                className="rounded-[20px] border border-white/10 bg-white/5 p-4"
-                                            >
-                                                <p className="text-sm font-medium text-white">
-                                                    {rule.label}
-                                                </p>
-                                                <p className="mt-2 text-sm leading-6 text-white/58">
-                                                    {rule.detail}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    disabled
-                                    className="justify-between rounded-full border border-white/12 bg-white/5 px-5 py-6 text-white/80 opacity-100 hover:bg-white/10 hover:text-white"
-                                >
-                                    {continueEngineLabel}
-                                    <ChevronRight className="size-4" />
-                                </Button>
+                        <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-sm">
+                            <p className="text-[11px] uppercase tracking-[0.22em] text-white/42">
+                                Active Access Tier
+                            </p>
+                            <div className="mt-3 text-lg font-semibold text-white">
+                                {tierLabel}
                             </div>
                         </div>
                     </div>
