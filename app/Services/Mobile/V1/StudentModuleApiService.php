@@ -11,11 +11,18 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\StudentModuleVisit;
 use App\Models\User;
+use App\Services\BunnyStreamService;
+use App\Services\Certificates\CertificateEligibilityService;
 use Illuminate\Support\Collection;
 
 class StudentModuleApiService
 {
     use BuildsProtectedMediaUrls;
+
+    public function __construct(
+        private readonly BunnyStreamService $bunnyStreamService,
+        private readonly CertificateEligibilityService $certificateEligibilityService,
+    ) {}
 
     /**
      * @return Collection<int, array<string, mixed>>
@@ -204,6 +211,155 @@ class StudentModuleApiService
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function moduleDetailForUser(User $user, int $moduleId): ?array
+    {
+        $accessTierId = $user->access_tier_id;
+
+        if (! $accessTierId) {
+            return null;
+        }
+
+        $modules = $this->accessibleModulesWithLessons($accessTierId);
+        /** @var Module|null $currentModule */
+        $currentModule = $modules->firstWhere('id', $moduleId);
+
+        if (! $currentModule) {
+            return null;
+        }
+
+        $resourceModuleVisitMap = $this->resourceModuleVisitMap($user->id, $modules->pluck('id'));
+        $lessonProgressMap = $this->lessonProgressMap(
+            $user->id,
+            $modules->flatMap(fn (Module $module) => $module->lessons->pluck('id')),
+        );
+        $completedAssessmentIds = $this->completedAssessmentIds(
+            $user->id,
+            $modules->flatMap(fn (Module $module) => $module->lessons->pluck('assessment_id'))->filter(),
+        );
+        $assignmentSubmissionMap = $this->assignmentSubmissionMap(
+            $user->id,
+            $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
+        );
+        $moduleAccessMap = $this->moduleAccessMap(
+            $modules,
+            $lessonProgressMap,
+            $completedAssessmentIds,
+            $assignmentSubmissionMap,
+            $resourceModuleVisitMap,
+        );
+        $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
+
+        if (! ($currentModuleAccess['is_visible'] ?? false)) {
+            return [
+                'id' => $currentModule->id,
+                'title' => $currentModule->title,
+                'slug' => $currentModule->url_slug,
+                'status' => 'locked',
+                'is_visible' => false,
+                'lock_reason' => 'Complete the previous module requirements before opening this module.',
+            ];
+        }
+
+        $lessonUnlockMap = $this->lessonUnlockMap($modules, $lessonProgressMap, $completedAssessmentIds);
+        $activeLessonId = $this->latestProgressLessonId($lessonProgressMap);
+        $lessons = $currentModule->lessons;
+        $completedLessons = $lessons->filter(
+            fn (Lesson $lesson) => $this->isLessonFullyComplete(
+                $lesson,
+                $lessonProgressMap->get($lesson->id),
+                $completedAssessmentIds,
+            )
+        )->count();
+
+        return [
+            'id' => $currentModule->id,
+            'title' => $currentModule->title,
+            'slug' => $currentModule->url_slug,
+            'description' => $currentModule->description,
+            'sort_order' => $currentModule->sort_order,
+            'lesson_count' => $lessons->count(),
+            'assignments_count' => $currentModule->assignments->count(),
+            'completed_lessons' => $completedLessons,
+            'progress_percentage' => $lessons->count() > 0
+                ? (int) round(($completedLessons / $lessons->count()) * 100)
+                : (($currentModuleAccess['is_complete'] ?? false) ? 100 : 0),
+            'show_progress' => $lessons->count() > 0,
+            'status' => $currentModuleAccess['status'] ?? 'available',
+            'is_visible' => true,
+            'is_complete' => (bool) ($currentModuleAccess['is_complete'] ?? false),
+            'certificate_enabled' => (bool) $currentModule->certificate_enabled,
+            'ebook_enabled' => (bool) $currentModule->ebook_enabled,
+            'video_lecturer_enabled' => (bool) $currentModule->video_lecturer_enabled,
+            'thumbnail_url' => $this->protectedMediaUrl(
+                'module',
+                $currentModule->id,
+                'thumbnail',
+                $currentModule->thumbnail,
+                versionSeed: $currentModule->updated_at,
+            ),
+            'lessons' => $lessons->map(fn (Lesson $lesson) => [
+                'id' => $lesson->id,
+                'title' => $lesson->title,
+                'sort_order' => $lesson->sort_order,
+                'has_workbook' => $lesson->workbook !== null,
+                'has_video' => $lesson->lesson_video_id !== null,
+                'has_audio' => $lesson->audio_url !== null,
+                'has_content' => $lesson->content !== null,
+                'is_locked' => ! ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false),
+                'lock_reason' => $lessonUnlockMap->get($lesson->id)['reason'] ?? null,
+                'status' => $this->isLessonFullyComplete(
+                    $lesson,
+                    $lessonProgressMap->get($lesson->id),
+                    $completedAssessmentIds,
+                )
+                    ? 'completed'
+                    : (! ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false)
+                        ? 'locked'
+                        : ($lesson->id === $activeLessonId ? 'active' : 'available')),
+                'progress_percentage' => (int) round((float) (optional($lessonProgressMap->get($lesson->id))->watch_progress ?? 0)),
+                'thumbnail_url' => $this->lessonThumbnailUrl($lesson, $currentModule),
+            ])->values()->all(),
+            'assignments' => $currentModule->assignments
+                ->map(function (Assignment $assignment) use ($assignmentSubmissionMap) {
+                    $submission = $assignmentSubmissionMap->get($assignment->id);
+
+                    return [
+                        'id' => $assignment->id,
+                        'title' => $assignment->title,
+                        'description' => $assignment->description,
+                        'sort_order' => $assignment->sort_order,
+                        'status' => $assignment->status,
+                        'submission_status' => $submission?->assignment_status,
+                        'submission_feedback' => $submission?->assignment_feedback,
+                        'submitted_at' => $submission?->submitted_at?->toDateTimeString(),
+                    ];
+                })
+                ->values()
+                ->all(),
+            'certificate_summary' => $currentModule->certificate_enabled
+                ? [
+                    'generated_items' => $this->certificateEligibilityService
+                        ->latestCertificatesByType($user, $this->certificateEligibilityService->summaryForStudent($user)['available_types'])
+                        ->sortByDesc(fn ($certificate) => sprintf(
+                            '%010d-%010d',
+                            $certificate->generated_at?->getTimestamp() ?? 0,
+                            $certificate->id,
+                        ))
+                        ->values()
+                        ->map(fn ($certificate) => [
+                            'id' => $certificate->id,
+                            'type_label' => $certificate->typeLabel(),
+                            'generated_at' => optional($certificate->generated_at)->toDateTimeString(),
+                        ])
+                        ->all(),
+                ]
+                : null,
+        ];
     }
 
     private function accessibleModulesWithLessons(?int $accessTierId): Collection
@@ -400,5 +556,80 @@ class StudentModuleApiService
             ))
             ->keys()
             ->first();
+    }
+
+    private function lessonUnlockMap(Collection $modules, Collection $lessonProgressMap, Collection $completedAssessmentIds): Collection
+    {
+        $orderedLessons = $modules->flatMap(fn (Module $module) => $module->lessons)->values();
+        $unlockMap = collect();
+
+        foreach ($orderedLessons as $index => $lesson) {
+            if ($index === 0) {
+                $unlockMap->put($lesson->id, [
+                    'is_unlocked' => true,
+                    'reason' => null,
+                ]);
+
+                continue;
+            }
+
+            $previousLesson = $orderedLessons[$index - 1];
+            $previousProgress = $lessonProgressMap->get($previousLesson->id);
+            $gate = $this->lessonAdvanceGate($previousLesson, $previousProgress, $completedAssessmentIds);
+
+            $unlockMap->put($lesson->id, $gate);
+        }
+
+        return $unlockMap;
+    }
+
+    private function lessonAdvanceGate(
+        Lesson $lesson,
+        ?LessonProgress $lessonProgress,
+        Collection $completedAssessmentIds,
+    ): array {
+        $watchProgress = (float) ($lessonProgress?->watch_progress ?? 0);
+
+        if ($lesson->lesson_video_id !== null && $watchProgress < 95) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Complete the lesson video to at least 95% before continuing.',
+            ];
+        }
+
+        if (
+            $lesson->assessment_id !== null
+            && $lesson->assessment?->status === 'live'
+            && $lesson->assessment?->is_active
+            && ! $completedAssessmentIds->contains((int) $lesson->assessment_id)
+        ) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Complete the lesson assessment before continuing.',
+            ];
+        }
+
+        return [
+            'is_unlocked' => true,
+            'reason' => null,
+        ];
+    }
+
+    private function lessonThumbnailUrl(Lesson $lesson, Module $module): ?string
+    {
+        return $this->protectedMediaUrl(
+            'lesson',
+            $lesson->id,
+            'thumbnail',
+            $lesson->thumbnail,
+            versionSeed: $lesson->updated_at,
+        ) ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
+            ?: $this->protectedMediaUrl(
+                'module',
+                $module->id,
+                'thumbnail',
+                $module->thumbnail,
+                versionSeed: $module->updated_at,
+            );
     }
 }
