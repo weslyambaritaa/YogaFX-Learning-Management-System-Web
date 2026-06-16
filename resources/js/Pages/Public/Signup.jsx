@@ -22,8 +22,8 @@ export default function Signup({ onboarding, student }) {
         <PublicFlowLayout
             title="Create Password"
             eyebrow="Final Sign Up"
-            heading="Create your final YogaFX password and enter the LMS."
-            description="Enrollment is complete. This last step turns the anti-limbo account into a normal student login and automatically sends you into the LMS with the purchased tier already attached."
+            heading="Create your final YogaFX password, then verify the code sent to your email."
+            description="Enrollment is complete. This last step prepares the final credential, then YogaFX sends an OTP code to the registered email before the LMS session is opened."
             aside={
                 <div className="space-y-5">
                     <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
@@ -43,7 +43,7 @@ export default function Signup({ onboarding, student }) {
                         </p>
                         <div className="mt-4 space-y-3 text-sm leading-6 text-white/62">
                             <p>Your password becomes the final credential for routine login.</p>
-                            <p>After submit, the flow auto-signs you into YogaFX LMS.</p>
+                            <p>After submit, YogaFX emails you a verification code before auto-login continues.</p>
                         </div>
                     </div>
                 </div>
@@ -99,7 +99,7 @@ export default function Signup({ onboarding, student }) {
 
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <p className="text-sm text-white/48">
-                        This is the final gate before auto-login to the student dashboard.
+                        This is the final credential step before email OTP verification and LMS access.
                     </p>
 
                     <Button
@@ -107,7 +107,7 @@ export default function Signup({ onboarding, student }) {
                         disabled={processing}
                         className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
                     >
-                        Create Password and Enter LMS
+                        Create Password and Send OTP
                     </Button>
                 </div>
             </form>

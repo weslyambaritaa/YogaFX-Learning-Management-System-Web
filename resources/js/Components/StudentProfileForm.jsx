@@ -2,6 +2,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { usePage } from '@inertiajs/react';
 
 function SelectField({
     id,
@@ -77,6 +78,9 @@ export default function StudentProfileForm({
     variant = 'default',
     currentProfilePhotoUrl = null,
 }) {
+    const { directory = {} } = usePage().props;
+    const countryOptions = directory.countries ?? [];
+    const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
     const isImmersive = variant === 'immersive';
     const genderOptions = [
         { value: 'female', label: 'Female' },
@@ -209,19 +213,34 @@ export default function StudentProfileForm({
 
                     <div>
                         <InputLabel
-                            htmlFor="whatsapp"
+                            htmlFor="whatsapp_number"
                             value="WhatsApp"
                             className={labelClassName}
                         />
-                        <TextInput
-                            id="whatsapp"
-                            className={`mt-1 block w-full ${inputClassName}`.trim()}
-                            value={data.whatsapp}
-                            onChange={(e) => setData('whatsapp', e.target.value)}
-                        />
+                        <div className="mt-1 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+                            <select
+                                id="whatsapp_country_code"
+                                value={data.whatsapp_country_code ?? '+62'}
+                                onChange={(e) => setData('whatsapp_country_code', e.target.value)}
+                                className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${selectClassName}`.trim()}
+                            >
+                                {phoneCountryCodeOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <TextInput
+                                id="whatsapp_number"
+                                className={`block w-full ${inputClassName}`.trim()}
+                                value={data.whatsapp_number ?? ''}
+                                onChange={(e) => setData('whatsapp_number', e.target.value)}
+                                placeholder="81234567890"
+                            />
+                        </div>
                         <InputError
                             className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.whatsapp}
+                            message={errors.whatsapp_number ?? errors.whatsapp_country_code ?? errors.whatsapp}
                         />
                     </div>
 
@@ -243,23 +262,28 @@ export default function StudentProfileForm({
                         />
                     </div>
 
-                    <div>
-                        <InputLabel
-                            htmlFor="country"
-                            value="Country"
-                            className={labelClassName}
-                        />
-                        <TextInput
-                            id="country"
-                            className={`mt-1 block w-full ${inputClassName}`.trim()}
-                            value={data.country}
-                            onChange={(e) => setData('country', e.target.value)}
-                        />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.country}
-                        />
-                    </div>
+                    <SelectField
+                        id="country"
+                        label="Country"
+                        value={data.country}
+                        onChange={(value) => {
+                            setData('country', value);
+
+                            const matchedCountry = countryOptions.find((option) => option.value === value);
+                            const matchedDialCode = phoneCountryCodeOptions.find((option) =>
+                                option.label.startsWith(`${matchedCountry?.label ?? ''} (`),
+                            );
+
+                            if (matchedDialCode && !data.whatsapp_number) {
+                                setData('whatsapp_country_code', matchedDialCode.value);
+                            }
+                        }}
+                        error={errors.country}
+                        options={countryOptions}
+                        labelClassName={labelClassName}
+                        selectClassName={selectClassName}
+                        errorClassName={errorClassName}
+                    />
 
                     <div>
                         <InputLabel

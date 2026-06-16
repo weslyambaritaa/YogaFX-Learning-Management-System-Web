@@ -25,7 +25,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'first_name',
     'last_name',
     'whatsapp',
-    'preferred_certificate_picture',
     'profile_photo',
     'instagram',
     'country',

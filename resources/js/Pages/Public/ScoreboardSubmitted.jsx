@@ -47,7 +47,7 @@ export default function ScoreboardSubmitted({ registration }) {
         >
             <div className="space-y-5">
                 <div className="rounded-[24px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm leading-6 text-emerald-50/92">
-                    Your pending registration is now stored in the database. In the full business flow, this signed checkout link is also the link that would be emailed to you.
+                    Your pending registration is now stored in the database, and this same signed checkout link has also been sent to your registered email.
                 </div>
 
                 <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">

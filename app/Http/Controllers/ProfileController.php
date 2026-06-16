@@ -31,7 +31,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $validated = $request->validated();
-        unset($validated['profile_photo']);
+        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
 
         $user->fill($validated);
         $user->syncDisplayName();

@@ -3,7 +3,7 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { Button } from '@/Components/ui/button';
 import PublicFlowLayout from '@/Layouts/PublicFlowLayout';
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 
 function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
@@ -13,11 +13,15 @@ function formatCurrency(amount) {
 }
 
 export default function Scoreboard({ accessTiers }) {
+    const { directory = {} } = usePage().props;
+    const countryOptions = directory.countries ?? [];
+    const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
     const { data, setData, post, processing, errors } = useForm({
         first_name: '',
         last_name: '',
         email: '',
-        phone: '',
+        phone_country_code: '+62',
+        phone_number: '',
         country: '',
         access_tier_id: accessTiers[0]?.id ?? '',
     });
@@ -128,26 +132,60 @@ export default function Scoreboard({ accessTiers }) {
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="phone" value="Mobile Phone" className="text-white/72" />
-                        <TextInput
-                            id="phone"
-                            value={data.phone}
-                            className="mt-2 block w-full border-white/12 bg-white/5 text-white placeholder:text-white/30"
-                            onChange={(event) => setData('phone', event.target.value)}
-                            required
-                        />
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.phone} />
+                        <InputLabel htmlFor="phone_number" value="Mobile Phone" className="text-white/72" />
+                        <div className="mt-2 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+                            <select
+                                id="phone_country_code"
+                                value={data.phone_country_code}
+                                onChange={(event) => setData('phone_country_code', event.target.value)}
+                                className="block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                required
+                            >
+                                {phoneCountryCodeOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <TextInput
+                                id="phone_number"
+                                value={data.phone_number}
+                                className="block w-full border-white/12 bg-white/5 text-white placeholder:text-white/30"
+                                onChange={(event) => setData('phone_number', event.target.value)}
+                                placeholder="81234567890"
+                                required
+                            />
+                        </div>
+                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.phone_number ?? errors.phone_country_code ?? errors.phone} />
                     </div>
 
                     <div>
                         <InputLabel htmlFor="country" value="Country" className="text-white/72" />
-                        <TextInput
+                        <select
                             id="country"
                             value={data.country}
-                            className="mt-2 block w-full border-white/12 bg-white/5 text-white placeholder:text-white/30"
-                            onChange={(event) => setData('country', event.target.value)}
+                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                            onChange={(event) => {
+                                const value = event.target.value;
+                                setData('country', value);
+
+                                const matchedDialCode = phoneCountryCodeOptions.find((option) =>
+                                    option.label.startsWith(`${value} (`),
+                                );
+
+                                if (matchedDialCode && !data.phone_number) {
+                                    setData('phone_country_code', matchedDialCode.value);
+                                }
+                            }}
                             required
-                        />
+                        >
+                            <option value="">Select a country</option>
+                            {countryOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
                         <InputError className="mt-2 text-[#ffb4a8]" message={errors.country} />
                     </div>
 

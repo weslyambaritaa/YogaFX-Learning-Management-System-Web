@@ -7,9 +7,10 @@ use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\EnrollmentUpdateRequest;
 use App\Http\Requests\SignupCompletionRequest;
 use App\Models\OnboardingState;
+use App\Services\EmailOtpChallengeService;
 use App\Services\SimulatedPaymentFlowService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,6 +21,7 @@ class OnboardingController extends Controller
 
     public function __construct(
         private readonly SimulatedPaymentFlowService $paymentFlow,
+        private readonly EmailOtpChallengeService $otpChallenges,
     ) {}
 
     public function showPaymentSuccess(OnboardingState $onboardingState): Response|RedirectResponse
@@ -77,7 +79,8 @@ class OnboardingController extends Controller
                 'last_name' => $user->last_name,
                 'email' => $user->email,
                 'whatsapp' => $user->whatsapp,
-                'preferred_certificate_picture' => $user->preferred_certificate_picture,
+                'whatsapp_country_code' => \App\Support\CountryDirectory::splitPhoneNumber($user->whatsapp, $user->country)['country_code'],
+                'whatsapp_number' => \App\Support\CountryDirectory::splitPhoneNumber($user->whatsapp, $user->country)['local_number'],
                 'profile_photo' => $user->profile_photo,
                 'profile_photo_url' => $this->protectedMediaUrl(
                     'user',
@@ -107,7 +110,7 @@ class OnboardingController extends Controller
         OnboardingState $onboardingState,
     ): RedirectResponse {
         $validated = $request->validated();
-        unset($validated['profile_photo']);
+        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
 
         $user = $onboardingState->user;
         $validated['profile_photo'] = $this->storeUploadedFileToBunny(
@@ -154,11 +157,14 @@ class OnboardingController extends Controller
         SignupCompletionRequest $request,
         OnboardingState $onboardingState,
     ): RedirectResponse {
-        $user = $this->paymentFlow->completeSignup($onboardingState, (string) $request->string('password'));
+        $onboardingState->loadMissing('user');
+        $challenge = $this->otpChallenges->createForSignup($onboardingState->user, [
+            'onboarding_state_id' => $onboardingState->id,
+            'password_hash' => Hash::make((string) $request->string('password')),
+        ]);
 
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->route('student.dashboard');
+        return redirect()->route('auth.otp.show', [
+            'token' => $challenge['token'],
+        ]);
     }
 }

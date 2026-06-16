@@ -17,6 +17,7 @@ use App\Models\Lesson;
 use App\Models\UserSession;
 use App\Models\User;
 use App\Services\StudentSessionTrackingService;
+use App\Support\CountryDirectory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\RedirectResponse;
@@ -94,7 +95,8 @@ class StudentController extends Controller
                 'last_name' => $student->last_name,
                 'email' => $student->email,
                 'whatsapp' => $student->whatsapp,
-                'preferred_certificate_picture' => $student->preferred_certificate_picture,
+                'whatsapp_country_code' => CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['country_code'],
+                'whatsapp_number' => CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['local_number'],
                 'profile_photo' => $student->profile_photo,
                 'profile_photo_url' => $this->protectedMediaUrl(
                     'user',
@@ -139,7 +141,7 @@ class StudentController extends Controller
         abort_unless($student->isStudent(), 404);
 
         $validated = $request->validated();
-        unset($validated['profile_photo']);
+        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
 
         $student->fill($validated);
         $student->syncDisplayName();
