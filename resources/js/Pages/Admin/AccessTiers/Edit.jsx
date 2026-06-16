@@ -7,6 +7,7 @@ export default function EditAccessTier({ accessTier, status }) {
         name: accessTier.name ?? '',
         slug: accessTier.slug ?? '',
         description: accessTier.description ?? '',
+        price_amount: accessTier.price_amount ?? '',
         is_active: accessTier.is_active ?? true,
     });
 

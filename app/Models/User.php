@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -116,6 +117,21 @@ class User extends Authenticatable
     public function certificates(): HasMany
     {
         return $this->hasMany(Certificate::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function paymentActivities(): HasMany
+    {
+        return $this->hasMany(PaymentActivity::class);
+    }
+
+    public function onboardingState(): HasOne
+    {
+        return $this->hasOne(OnboardingState::class);
     }
 
     public function studentModuleVisits(): HasMany

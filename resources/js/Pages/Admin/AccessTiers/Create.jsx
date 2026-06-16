@@ -7,6 +7,7 @@ export default function CreateAccessTier() {
         name: '',
         slug: '',
         description: '',
+        price_amount: '',
         is_active: true,
     });
 
