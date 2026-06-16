@@ -1,8 +1,19 @@
+import AdminSearchInput from '@/Components/admin/AdminSearchInput';
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { useDeferredValue, useState } from 'react';
 
 export default function EbooksIndex({ ebooks, status }) {
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const filteredEbooks = ebooks.filter((ebook) => [
+        ebook.title,
+        ...(ebook.access_tiers ?? []),
+        ebook.sort_order,
+    ].join(' ').toLowerCase().includes(normalizedSearch));
+
     return (
         <AuthenticatedLayout
             header={
@@ -42,6 +53,12 @@ export default function EbooksIndex({ ebooks, status }) {
                             Ebook has been deleted.
                         </div>
                     )}
+                    <AdminSearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search ebooks by title, tier, or order..."
+                        resultLabel={`${filteredEbooks.length} of ${ebooks.length} ebooks`}
+                    />
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -55,7 +72,13 @@ export default function EbooksIndex({ ebooks, status }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
-                                    {ebooks.map((ebook) => (
+                                    {filteredEbooks.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500">
+                                                No ebooks match your search.
+                                            </td>
+                                        </tr>
+                                    ) : filteredEbooks.map((ebook) => (
                                         <tr key={ebook.id}>
                                             <td className="px-4 py-3 font-medium text-gray-900">
                                                 {ebook.title}

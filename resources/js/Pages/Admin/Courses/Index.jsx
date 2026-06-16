@@ -1,8 +1,19 @@
+import AdminSearchInput from '@/Components/admin/AdminSearchInput';
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { useDeferredValue, useState } from 'react';
 
 export default function CoursesIndex({ courses, status }) {
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const filteredCourses = courses.filter((course) => [
+        course.title,
+        course.url_slug,
+        ...(course.access_tiers ?? []),
+    ].join(' ').toLowerCase().includes(normalizedSearch));
+
     return (
         <AuthenticatedLayout
             header={
@@ -42,6 +53,12 @@ export default function CoursesIndex({ courses, status }) {
                             Course has been deleted.
                         </div>
                     )}
+                    <AdminSearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search video lecturer entries by title, slug, or tier..."
+                        resultLabel={`${filteredCourses.length} of ${courses.length} entries`}
+                    />
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -53,7 +70,13 @@ export default function CoursesIndex({ courses, status }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
-                                    {courses.map((course) => (
+                                    {filteredCourses.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={3} className="px-4 py-10 text-center text-sm text-gray-500">
+                                                No video lecturer entries match your search.
+                                            </td>
+                                        </tr>
+                                    ) : filteredCourses.map((course) => (
                                         <tr key={course.id}>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-4">

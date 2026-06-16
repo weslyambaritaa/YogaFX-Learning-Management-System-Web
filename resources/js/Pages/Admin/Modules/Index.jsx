@@ -1,9 +1,23 @@
+import AdminSearchInput from '@/Components/admin/AdminSearchInput';
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useDeferredValue, useState } from 'react';
 
 export default function ModulesIndex({ modules, status }) {
     const errors = usePage().props.errors;
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const filteredModules = modules.filter((module) => [
+        module.title,
+        module.description,
+        module.url_slug,
+        ...(module.access_tiers ?? []),
+        module.certificate_enabled ? 'certificate checked' : 'certificate not checked',
+        module.ebook_enabled ? 'ebook checked' : 'ebook not checked',
+        module.video_lecturer_enabled ? 'video lecturer checked' : 'video lecturer not checked',
+    ].join(' ').toLowerCase().includes(normalizedSearch));
 
     return (
         <AuthenticatedLayout
@@ -50,6 +64,12 @@ export default function ModulesIndex({ modules, status }) {
                             {errors.module}
                         </div>
                     )}
+                    <AdminSearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search modules by title, slug, tier, or feature..."
+                        resultLabel={`${filteredModules.length} of ${modules.length} modules`}
+                    />
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -85,7 +105,13 @@ export default function ModulesIndex({ modules, status }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
-                                    {modules.map((module) => (
+                                    {filteredModules.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-500">
+                                                No modules match your search.
+                                            </td>
+                                        </tr>
+                                    ) : filteredModules.map((module) => (
                                         <tr key={module.id}>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-4">

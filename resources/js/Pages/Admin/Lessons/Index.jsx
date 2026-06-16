@@ -1,9 +1,23 @@
+import AdminSearchInput from '@/Components/admin/AdminSearchInput';
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useDeferredValue, useState } from 'react';
 
 export default function LessonsIndex({ lessons, status }) {
     const errors = usePage().props.errors;
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const filteredLessons = lessons.filter((lesson) => [
+        lesson.title,
+        lesson.module,
+        lesson.scoreboard,
+        ...(lesson.access_tiers ?? []),
+        lesson.has_workbook ? 'workbook' : '',
+        lesson.has_lesson_video ? 'lesson video' : '',
+        lesson.has_audio ? 'audio' : '',
+    ].join(' ').toLowerCase().includes(normalizedSearch));
 
     return (
         <AuthenticatedLayout
@@ -49,6 +63,12 @@ export default function LessonsIndex({ lessons, status }) {
                             {errors.lesson}
                         </div>
                     )}
+                    <AdminSearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search lessons by title, module, tier, or scoreboard..."
+                        resultLabel={`${filteredLessons.length} of ${lessons.length} lessons`}
+                    />
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -64,7 +84,13 @@ export default function LessonsIndex({ lessons, status }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
-                                    {lessons.map((lesson) => (
+                                    {filteredLessons.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-500">
+                                                No lessons match your search.
+                                            </td>
+                                        </tr>
+                                    ) : filteredLessons.map((lesson) => (
                                         <tr key={lesson.id}>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-4">

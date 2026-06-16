@@ -1,3 +1,4 @@
+import AdminSearchInput from '@/Components/admin/AdminSearchInput';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import {
@@ -9,6 +10,7 @@ import {
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 import { MoreHorizontal } from 'lucide-react';
+import { useDeferredValue, useState } from 'react';
 
 function PhotoCell({ student }) {
     if (student.profile_photo) {
@@ -181,6 +183,22 @@ function TierTable({ section }) {
 }
 
 export default function StudentProgressDirectory({ tierSections, status }) {
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const filteredSections = tierSections.map((section) => ({
+        ...section,
+        students: section.students.filter((student) => [
+            student.name,
+            section.label,
+            student.assignment_status,
+            student.registration_date,
+            `${student.progress_percentage}%`,
+        ].join(' ').toLowerCase().includes(normalizedSearch)),
+    }));
+    const totalStudents = tierSections.reduce((total, section) => total + section.students.length, 0);
+    const filteredStudentsCount = filteredSections.reduce((total, section) => total + section.students.length, 0);
+
     return (
         <AuthenticatedLayout
             header={
@@ -205,8 +223,14 @@ export default function StudentProgressDirectory({ tierSections, status }) {
                             Student profile has been updated.
                         </div>
                     )}
+                    <AdminSearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search student progress by student name, tier, assignment status, or progress..."
+                        resultLabel={`${filteredStudentsCount} of ${totalStudents} students`}
+                    />
 
-                    {tierSections.map((section) => (
+                    {filteredSections.map((section) => (
                         <TierTable key={section.slug} section={section} />
                     ))}
                 </div>

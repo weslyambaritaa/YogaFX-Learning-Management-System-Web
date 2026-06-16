@@ -1,7 +1,9 @@
+import AdminSearchInput from '@/Components/admin/AdminSearchInput';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { useDeferredValue, useState } from 'react';
 
 function PhotoCell({ student }) {
     if (student.profile_photo) {
@@ -22,6 +24,17 @@ function PhotoCell({ student }) {
 }
 
 export default function StudentsIndex({ students, status }) {
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const filteredStudents = students.filter((student) => [
+        student.name,
+        student.email,
+        student.access_tier_name,
+        student.is_active ? 'active' : 'inactive',
+        student.registration_date,
+    ].join(' ').toLowerCase().includes(normalizedSearch));
+
     return (
         <AuthenticatedLayout
             header={
@@ -45,6 +58,12 @@ export default function StudentsIndex({ students, status }) {
                             Student account has been deleted.
                         </div>
                     )}
+                    <AdminSearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search students by name, email, tier, or status..."
+                        resultLabel={`${filteredStudents.length} of ${students.length} students`}
+                    />
 
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="overflow-x-auto">
@@ -88,7 +107,7 @@ export default function StudentsIndex({ students, status }) {
                                             </td>
                                         </tr>
                                     ) : (
-                                        students.map((student) => (
+                                        filteredStudents.map((student) => (
                                             <tr key={student.id}>
                                                 <td className="px-4 py-4 text-slate-600">
                                                     {student.number}
