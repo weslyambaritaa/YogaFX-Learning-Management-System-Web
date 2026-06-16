@@ -6,6 +6,7 @@ use App\Http\Controllers\Mobile\V1\AssessmentController;
 use App\Http\Controllers\Mobile\V1\CertificateController;
 use App\Http\Controllers\Mobile\V1\DashboardController;
 use App\Http\Controllers\Mobile\V1\LessonController;
+use App\Http\Controllers\Mobile\V1\LessonMediaController;
 use App\Http\Controllers\Mobile\V1\MeController;
 use App\Http\Controllers\Mobile\V1\ModuleController;
 use App\Http\Controllers\Mobile\V1\ProfileController;
@@ -15,6 +16,12 @@ Route::prefix('mobile/v1')
     ->as('mobile.api.v1.')
     ->group(function (): void {
         Route::post('/auth/login', [AuthController::class, 'store'])->name('auth.login');
+        Route::get('/media/lessons/{lesson}/audio', [LessonMediaController::class, 'audio'])
+            ->middleware('signed')
+            ->name('lesson-media.audio');
+        Route::get('/media/lessons/{lesson}/workbook', [LessonMediaController::class, 'workbook'])
+            ->middleware('signed')
+            ->name('lesson-media.workbook');
 
         Route::middleware(['auth:sanctum', 'mobile.student'])->group(function (): void {
             Route::get('/me', MeController::class)->name('me.show');

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\BunnyStreamService;
 use App\Services\StudentLearningMilestoneEmailService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class StudentLessonApiService
@@ -84,24 +85,11 @@ class StudentLessonApiService
             'lock_reason' => null,
             'video' => $videoState,
             'audio' => [
-                'url' => $this->protectedMediaUrl(
-                    'lesson',
-                    $lesson->id,
-                    'audio_url',
-                    $lesson->audio_url,
-                    versionSeed: $lesson->updated_at,
-                ),
+                'url' => $this->mobileLessonAudioUrl($user, $lesson),
                 'is_available' => filled($lesson->audio_url),
             ],
             'workbook' => [
-                'url' => $this->protectedMediaUrl(
-                    'lesson',
-                    $lesson->id,
-                    'workbook',
-                    $lesson->workbook,
-                    download: true,
-                    versionSeed: $lesson->updated_at,
-                ),
+                'url' => $this->mobileLessonWorkbookUrl($user, $lesson),
                 'file_name' => $lesson->workbook ? basename((string) $lesson->workbook) : null,
                 'is_available' => filled($lesson->workbook),
             ],
@@ -315,6 +303,38 @@ class StudentLessonApiService
                     versionSeed: $module->updated_at,
                 )
                 : null);
+    }
+
+    private function mobileLessonAudioUrl(User $user, Lesson $lesson): ?string
+    {
+        if (! filled($lesson->audio_url)) {
+            return null;
+        }
+
+        return URL::temporarySignedRoute(
+            'mobile.api.v1.lesson-media.audio',
+            now()->addHour(),
+            [
+                'lesson' => $lesson->id,
+                'student' => $user->id,
+            ],
+        );
+    }
+
+    private function mobileLessonWorkbookUrl(User $user, Lesson $lesson): ?string
+    {
+        if (! filled($lesson->workbook)) {
+            return null;
+        }
+
+        return URL::temporarySignedRoute(
+            'mobile.api.v1.lesson-media.workbook',
+            now()->addHour(),
+            [
+                'lesson' => $lesson->id,
+                'student' => $user->id,
+            ],
+        );
     }
 
     private function accessibleModulesWithLessons(?int $accessTierId): Collection
