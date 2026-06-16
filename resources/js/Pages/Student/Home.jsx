@@ -35,7 +35,6 @@ export default function StudentHome({
 }) {
     const hasReloadedRef = useRef(false);
     const studentName = studentContext?.display_name ?? 'Student';
-    const fullName = studentContext?.full_name ?? studentName;
     const accessTier = studentContext?.access_tier ?? null;
     const tierLabel = accessTier?.name ?? 'Tier assignment pending';
     const tierStatusLabel = accessTier
@@ -82,7 +81,15 @@ export default function StudentHome({
     }, []);
 
     const heroPrimaryKind = homeExperience?.primary_cta_kind ?? 'link';
-    const heroSecondaryKind = 'link';
+    const heroSecondaryKind = homeExperience?.secondary_cta_kind ?? 'link';
+    const heroBackgroundImage = homeExperience?.hero_background_image_url;
+    const heroBackgroundStyle = heroBackgroundImage
+        ? {
+              backgroundImage: `linear-gradient(180deg, rgba(8,8,9,0.92) 0%, rgba(8,8,9,0.32) 40%, rgba(8,8,9,0.92) 100%), url(${heroBackgroundImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+          }
+        : undefined;
     const continueEngineLabel = homeExperience?.state === 'journey_complete'
         ? 'Next: certificate and resources'
         : homeExperience?.state === 'new_student'
@@ -124,6 +131,8 @@ export default function StudentHome({
             kind: certificateMilestone?.cta_kind === 'download' ? 'download' : 'link',
         },
     ];
+
+    const moduleTiles = availableModulesSection?.items ?? [];
 
     useEffect(() => {
         if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
@@ -170,136 +179,136 @@ export default function StudentHome({
             <Head title="Home" />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-4 pt-6 sm:px-6 lg:px-10">
-                <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#15110f] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(173,76,38,0.45),_transparent_30%),radial-gradient(circle_at_82%_18%,_rgba(245,158,11,0.12),_transparent_26%),linear-gradient(120deg,_rgba(255,255,255,0.05)_0%,_rgba(255,255,255,0)_40%),linear-gradient(180deg,_rgba(0,0,0,0.02)_0%,_rgba(0,0,0,0.58)_78%,_rgba(0,0,0,0.82)_100%)]" />
-                    <div className="absolute right-0 top-0 h-full w-[48%] bg-[radial-gradient(circle_at_center,_rgba(249,115,22,0.22),_transparent_42%),linear-gradient(180deg,_rgba(255,255,255,0.08),_rgba(255,255,255,0.01))]" />
+                <section
+                    className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#090707] shadow-[0_30px_120px_rgba(0,0,0,0.45)] min-h-[80vh]"
+                    style={heroBackgroundStyle}
+                >
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,_rgba(229,9,20,0.22),_transparent_24%),radial-gradient(circle_at_85%_25%,_rgba(255,255,255,0.08),_transparent_28%)]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-transparent" />
 
-                    <div className="relative grid min-h-[540px] gap-10 px-6 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-12 lg:py-12">
-                        <div className="flex flex-col justify-between gap-8">
-                            <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/65">
-                                <span>YogaFX Home</span>
-                                <span className="h-1 w-1 rounded-full bg-white/30" />
-                                <span>Phase {homeStage}</span>
-                                <span className="h-1 w-1 rounded-full bg-white/30" />
-                                <span>Premium Streaming Shell</span>
-                            </div>
+                    <div className="relative mx-auto flex min-h-[80vh] max-w-[1400px] items-end px-6 py-10 sm:px-8 lg:px-12 lg:py-14">
+                        <div className="grid w-full gap-10 lg:grid-cols-[minmax(0,1.4fr)_420px]">
+                            <div className="flex flex-col justify-end gap-8">
+                                <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/65">
+                                    <span>YogaFX Home</span>
+                                    <span className="h-1 w-1 rounded-full bg-white/30" />
+                                    <span>Phase {homeStage}</span>
+                                    <span className="h-1 w-1 rounded-full bg-white/30" />
+                                    <span>Premium Yoga Studio</span>
+                                </div>
 
-                            <div className="max-w-3xl space-y-6">
-                                <div className="space-y-3">
-                                    <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#f2d9c8]">
-                                        Hi {studentName}, welcome back
+                                <div className="space-y-6 max-w-3xl">
+                                    <div className="space-y-4">
+                                        <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
+                                            Hi {studentName}, your premium practice awaits
+                                        </p>
+                                        <h1 className="text-5xl font-semibold tracking-[-0.04em] text-white sm:text-6xl xl:text-7xl">
+                                            {homeExperience?.hero_title ??
+                                                'Discover your YogaFX training series with a cinematic home designed for flow.'}
+                                        </h1>
+                                    </div>
+
+                                    <p className="max-w-2xl text-base leading-8 text-white/70">
+                                        {homeExperience?.hero_description ??
+                                            `Your Home experience is anchored to ${tierLabel.toLowerCase()} access and now surfaces the next meaningful step in your training journey.`}
                                     </p>
-                                    <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl xl:text-6xl">
-                                        {homeExperience?.hero_title ??
-                                            'Your premium YogaFX learning home is now ready to carry your student identity.'}
-                                    </h1>
-                                </div>
 
-                                <p className="max-w-2xl text-sm leading-7 text-white/72 sm:text-base">
-                                    You are signed in as {fullName}.{' '}
-                                    {homeExperience?.hero_description ??
-                                        `Your Home experience is anchored to ${tierLabel.toLowerCase()} access and now has the core student context needed for the next learning-focused sections.`}
-                                </p>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        {heroPrimaryKind === 'download' ? (
+                                            <Button
+                                                asChild
+                                                size="lg"
+                                                className="rounded-full bg-[#E50914] px-6 text-white shadow-[0_18px_50px_rgba(229,9,20,0.35)] hover:bg-[#f41018]"
+                                            >
+                                                <a href={homeExperience?.primary_cta_url ?? '#'}>
+                                                    <Play className="mr-2 size-4 fill-current" />
+                                                    {homeExperience?.primary_cta_label ?? 'Continue the Course'}
+                                                </a>
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                asChild
+                                                size="lg"
+                                                className="rounded-full bg-[#E50914] px-6 text-white shadow-[0_18px_50px_rgba(229,9,20,0.35)] hover:bg-[#f41018]"
+                                            >
+                                                <Link href={homeExperience?.primary_cta_url ?? route('modules.index')}>
+                                                    <Play className="mr-2 size-4 fill-current" />
+                                                    {homeExperience?.primary_cta_label ?? 'Continue the Course'}
+                                                </Link>
+                                            </Button>
+                                        )}
 
-                                <div className="flex flex-wrap items-center gap-3 pt-2">
-                                    {heroPrimaryKind === 'download' ? (
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
-                                        >
-                                            <a href={homeExperience?.primary_cta_url ?? '#'}>
-                                                <Play className="mr-2 size-4 fill-current" />
-                                                {homeExperience?.primary_cta_label ??
-                                                    'Continue the Course'}
-                                            </a>
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
-                                        >
-                                            <Link href={homeExperience?.primary_cta_url ?? route('modules.index')}>
-                                                <Play className="mr-2 size-4 fill-current" />
-                                                {homeExperience?.primary_cta_label ??
-                                                    'Continue the Course'}
-                                            </Link>
-                                        </Button>
-                                    )}
-
-                                    {heroSecondaryKind === 'download' ? (
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            variant="outline"
-                                            className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
-                                        >
-                                            <a href={homeExperience?.secondary_cta_url ?? '#'}>
-                                                {homeExperience?.secondary_cta_label ??
-                                                    'Explore Modules'}
-                                            </a>
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            variant="outline"
-                                            className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
-                                        >
-                                            <Link href={homeExperience?.secondary_cta_url ?? route('modules.index')}>
-                                                {homeExperience?.secondary_cta_label ??
-                                                    'Explore Modules'}
-                                            </Link>
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
-                                {heroBadges.map((badge) => (
-                                    <div
-                                        key={badge}
-                                        className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur"
-                                    >
-                                        {badge}
+                                        {heroSecondaryKind === 'download' ? (
+                                            <Button
+                                                asChild
+                                                size="lg"
+                                                variant="outline"
+                                                className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
+                                            >
+                                                <a href={homeExperience?.secondary_cta_url ?? '#'}>
+                                                    {homeExperience?.secondary_cta_label ?? 'Explore Modules'}
+                                                </a>
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                asChild
+                                                size="lg"
+                                                variant="outline"
+                                                className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
+                                            >
+                                                <Link href={homeExperience?.secondary_cta_url ?? route('modules.index')}>
+                                                    {homeExperience?.secondary_cta_label ?? 'Explore Modules'}
+                                                </Link>
+                                            </Button>
+                                        )}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                </div>
 
-                        <div className="flex items-end justify-start lg:justify-end">
-                            <div className="w-full max-w-[280px] rounded-[28px] border border-white/10 bg-black/30 p-5 shadow-2xl backdrop-blur-md">
-                                <div className="space-y-6">
-                                    <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.24em] text-white/55">
-                                            Total access time
-                                        </p>
-                                        <div className="text-3xl font-semibold tracking-[0.08em] text-white">
-                                            {`${runningAccessParts.hours}:${runningAccessParts.minutes}:${runningAccessParts.seconds}`}
+                                <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
+                                    {heroBadges.map((badge) => (
+                                        <div
+                                            key={badge}
+                                            className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur"
+                                        >
+                                            {badge}
                                         </div>
-                                        <p className="text-sm text-white/58">
-                                            Cumulative student access time
-                                        </p>
-                                    </div>
+                                    ))}
+                                </div>
+                            </div>
 
-                                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div>
-                                                <p className="text-xs uppercase tracking-[0.2em] text-white/55">
-                                                    Student Context
-                                                </p>
-                                                <p className="mt-1 text-sm font-medium text-white">
-                                                    {tierStatusLabel}
-                                                </p>
+                            <div className="flex items-end justify-start lg:justify-end">
+                                <div className="w-full max-w-[320px] rounded-[28px] border border-white/10 bg-black/30 p-5 shadow-2xl backdrop-blur-md">
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <p className="text-xs uppercase tracking-[0.24em] text-white/55">
+                                                Total access time
+                                            </p>
+                                            <div className="text-3xl font-semibold tracking-[0.08em] text-white">
+                                                {`${runningAccessParts.hours}:${runningAccessParts.minutes}:${runningAccessParts.seconds}`}
                                             </div>
-                                            <Search className="size-4 text-white/60" />
+                                            <p className="text-sm text-white/58">
+                                                Cumulative student access time
+                                            </p>
                                         </div>
-                                        <p className="mt-3 text-sm leading-6 text-white/60">
-                                            {accessTier
-                                                ? `${tierLabel} is attached to this student profile and ready to be used by the next Home sections.`
-                                                : 'This student can open Home safely, but content sections should keep using a no-tier fallback until access tier is assigned.'}
-                                        </p>
+
+                                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="text-xs uppercase tracking-[0.2em] text-white/55">
+                                                        Student Context
+                                                    </p>
+                                                    <p className="mt-1 text-sm font-medium text-white">
+                                                        {tierStatusLabel}
+                                                    </p>
+                                                </div>
+                                                <Search className="size-4 text-white/60" />
+                                            </div>
+                                            <p className="mt-3 text-sm leading-6 text-white/60">
+                                                {accessTier
+                                                    ? `${tierLabel} is attached to this student profile and ready to be used by the next Home sections.`
+                                                    : 'This student can open Home safely, but content sections should keep using a no-tier fallback until access tier is assigned.'}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -328,48 +337,52 @@ export default function StudentHome({
 
                     <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
                         <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-                            <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5">
-                                <div className="relative aspect-[16/8] overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]">
-                                    {continueLearning?.thumbnail_url && (
+                            <div className="flex h-full flex-col gap-4 rounded-[28px] border border-white/8 bg-[#090909]/90 p-5 shadow-[0_30px_80px_rgba(0,0,0,0.24)]">
+                                <div className="relative overflow-hidden rounded-[24px] bg-[#111111]">
+                                    {continueLearning?.thumbnail_url ? (
                                         <img
                                             src={continueLearning.thumbnail_url}
                                             alt={continueLearning.title}
-                                            className="h-full w-full object-cover opacity-70"
+                                            className="h-full w-full min-h-[240px] object-cover transition duration-500"
                                         />
+                                    ) : (
+                                        <div className="flex min-h-[240px] items-center justify-center px-6 text-center text-white/60">
+                                            <div>
+                                                <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                                    Visual placeholder
+                                                </p>
+                                                <p className="mt-3 text-lg font-medium text-white/80">
+                                                    YogaFX lesson artwork is not attached yet.
+                                                </p>
+                                            </div>
+                                        </div>
                                     )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-                                    <div className="absolute left-4 top-4 rounded-full border border-white/12 bg-black/35 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/70 backdrop-blur">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/10 to-transparent" />
+                                    <div className="absolute left-5 top-5 rounded-full border border-white/12 bg-black/35 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/70 backdrop-blur">
                                         {continueLearning?.status ?? 'Ready'}
                                     </div>
-                                    {!continueLearning?.thumbnail_url && (
-                                        <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 backdrop-blur">
-                                            <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-                                                Visual placeholder
-                                            </p>
-                                            <p className="mt-2 text-sm font-medium text-white">
-                                                YogaFX lesson artwork is not attached yet.
-                                            </p>
-                                        </div>
-                                    )}
+                                    <div className="absolute inset-x-5 bottom-5">
+                                        <p className="text-xs uppercase tracking-[0.2em] text-white/50">
+                                            {continueLearning?.status ?? 'Ready'}
+                                        </p>
+                                        <h3 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+                                            {continueLearning?.title ?? 'Continue Learning'}
+                                        </h3>
+                                        <p className="mt-3 max-w-2xl text-sm leading-7 text-white/70">
+                                            {continueLearning?.description ??
+                                                'Your current lesson will appear here once Phase 3 is active.'}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <h3 className="text-lg font-medium text-white">
-                                        {continueLearning?.title ?? 'Continue Learning'}
-                                    </h3>
-                                    <p className="text-sm leading-6 text-white/60">
-                                        {continueLearning?.description ??
-                                            'Your current lesson will appear here once Phase 3 is active.'}
-                                    </p>
-                                    {continueLearning?.module && continueLearning?.lesson && (
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs uppercase tracking-[0.2em] text-white/45">
-                                            <span>{continueLearning.module.title}</span>
-                                            <span className="h-1 w-1 rounded-full bg-white/25" />
-                                            <span>
-                                                Lesson {continueLearning.lesson.sort_order}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
+
+                                {continueLearning?.module && continueLearning?.lesson && (
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs uppercase tracking-[0.2em] text-white/45">
+                                        <span>{continueLearning.module.title}</span>
+                                        <span className="h-1 w-1 rounded-full bg-white/25" />
+                                        <span>Lesson {continueLearning.lesson.sort_order}</span>
+                                    </div>
+                                )}
+
                                 <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                                     <div
                                         className="h-full rounded-full bg-[#d5462f] transition-all"
@@ -814,11 +827,11 @@ export default function StudentHome({
                             </div>
 
                             {availableModulesSection?.items?.length ? (
-                                <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
-                                    {availableModulesSection.items.map((module, index) => (
+                                <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
+                                    {moduleTiles.map((module, index) => (
                                         <div
                                             key={module.id}
-                                            className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15 md:min-w-0"
+                                            className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:border-white/15 hover:shadow-[0_25px_90px_rgba(0,0,0,0.25)] md:min-w-0"
                                         >
                                             <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
                                                 <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.4),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
@@ -1327,11 +1340,11 @@ export default function StudentHome({
                             </div>
 
                             {ebookResourcesSection?.items?.length ? (
-                                <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
+                                <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
                                     {ebookResourcesSection.items.map((ebook, index) => (
                                         <div
                                             key={ebook.id}
-                                            className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15 md:min-w-0"
+                                            className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:border-white/15 hover:shadow-[0_25px_90px_rgba(0,0,0,0.25)] md:min-w-0"
                                         >
                                             <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
                                                 <div className="relative aspect-[4/5] overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.45),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
@@ -1422,11 +1435,11 @@ export default function StudentHome({
                         </span>
                     </div>
 
-                    <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
                         {secondaryDiscoveryItems.map((item) => (
                             <div
                                 key={item.title}
-                                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm"
+                                className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm transition duration-300 hover:-translate-y-1 lg:min-w-0"
                             >
                                 <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
                                     <div className="space-y-3">
