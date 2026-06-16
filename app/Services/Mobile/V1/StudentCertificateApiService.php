@@ -7,10 +7,12 @@ use App\Models\User;
 use App\Services\BunnyStorageService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Support\BunnyAssetPath;
+use App\Support\MobileMediaPayload;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -115,6 +117,9 @@ class StudentCertificateApiService
      */
     private function certificatePayload(Certificate $certificate): array
     {
+        $openUrl = $this->signedCertificateRoute('mobile.api.v1.certificates.media.open', $certificate);
+        $downloadUrl = $this->signedCertificateRoute('mobile.api.v1.certificates.media.download', $certificate);
+
         return [
             'id' => $certificate->id,
             'type' => $certificate->certificate_type,
@@ -123,7 +128,26 @@ class StudentCertificateApiService
             'version' => $certificate->version,
             'generated_at' => $certificate->generated_at?->toIso8601String(),
             'generated_by' => $certificate->generator?->name,
-            'download_url' => route('mobile.api.v1.certificates.download', $certificate),
+            'download_url' => $downloadUrl,
+            'open_url' => $openUrl,
+            'file' => MobileMediaPayload::file(
+                openUrl: $openUrl,
+                downloadUrl: $downloadUrl,
+                previewUrl: $openUrl,
+                fileName: $certificate->file_name,
+                mimeType: 'application/pdf',
+                previewSupported: true,
+                previewMessage: null,
+                isAvailable: filled($certificate->file_path),
+            ),
         ];
+    }
+
+    private function signedCertificateRoute(string $routeName, Certificate $certificate): string
+    {
+        return URL::temporarySignedRoute($routeName, now()->addHour(), [
+            'certificate' => $certificate->id,
+            'student' => $certificate->user_id,
+        ]);
     }
 }
