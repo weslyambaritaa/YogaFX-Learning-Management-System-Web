@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Mobile\V1\AuthController;
+use App\Http\Controllers\Mobile\V1\DashboardController;
 use App\Http\Controllers\Mobile\V1\MeController;
+use App\Http\Controllers\Mobile\V1\ModuleController;
+use App\Http\Controllers\Mobile\V1\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('mobile/v1')
@@ -11,6 +14,9 @@ Route::prefix('mobile/v1')
 
         Route::middleware(['auth:sanctum', 'mobile.student'])->group(function (): void {
             Route::get('/me', MeController::class)->name('me.show');
+            Route::get('/dashboard', DashboardController::class)->name('dashboard.show');
+            Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+            Route::get('/profile', ProfileController::class)->name('profile.show');
         });
 
         Route::middleware('auth:sanctum')->group(function (): void {
