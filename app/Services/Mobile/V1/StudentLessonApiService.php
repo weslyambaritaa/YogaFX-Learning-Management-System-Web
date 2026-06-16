@@ -10,6 +10,7 @@ use App\Models\Module;
 use App\Models\User;
 use App\Services\BunnyStreamService;
 use App\Services\StudentLearningMilestoneEmailService;
+use App\Support\MobileMediaPayload;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -69,6 +70,9 @@ class StudentLessonApiService
         $nextLesson = $currentLessonIndex !== false
             ? $lessonNavigation->get($currentLessonIndex + 1)
             : null;
+        $audioOpenUrl = $this->mobileLessonAudioUrl($user, $lesson);
+        $workbookOpenUrl = $this->mobileLessonWorkbookOpenUrl($user, $lesson);
+        $workbookDownloadUrl = $this->mobileLessonWorkbookDownloadUrl($user, $lesson);
 
         return [
             'id' => $lesson->id,
@@ -85,13 +89,31 @@ class StudentLessonApiService
             'lock_reason' => null,
             'video' => $videoState,
             'audio' => [
-                'url' => $this->mobileLessonAudioUrl($user, $lesson),
+                'url' => $audioOpenUrl,
                 'is_available' => filled($lesson->audio_url),
+                'media' => MobileMediaPayload::stream(
+                    openUrl: $audioOpenUrl,
+                    downloadUrl: null,
+                    fileName: $lesson->audio_url ? basename((string) $lesson->audio_url) : null,
+                    mimeType: null,
+                    isAvailable: filled($lesson->audio_url),
+                ),
             ],
             'workbook' => [
-                'url' => $this->mobileLessonWorkbookUrl($user, $lesson),
+                'url' => $workbookOpenUrl,
+                'download_url' => $workbookDownloadUrl,
                 'file_name' => $lesson->workbook ? basename((string) $lesson->workbook) : null,
                 'is_available' => filled($lesson->workbook),
+                'file' => MobileMediaPayload::file(
+                    openUrl: $workbookOpenUrl,
+                    downloadUrl: $workbookDownloadUrl,
+                    previewUrl: $workbookOpenUrl,
+                    fileName: $lesson->workbook ? basename((string) $lesson->workbook) : null,
+                    mimeType: null,
+                    previewSupported: true,
+                    previewMessage: null,
+                    isAvailable: filled($lesson->workbook),
+                ),
             ],
             'progress' => [
                 'watch_progress' => (int) round((float) ($currentProgress?->watch_progress ?? 0)),
@@ -321,7 +343,7 @@ class StudentLessonApiService
         );
     }
 
-    private function mobileLessonWorkbookUrl(User $user, Lesson $lesson): ?string
+    private function mobileLessonWorkbookOpenUrl(User $user, Lesson $lesson): ?string
     {
         if (! filled($lesson->workbook)) {
             return null;
@@ -329,6 +351,22 @@ class StudentLessonApiService
 
         return URL::temporarySignedRoute(
             'mobile.api.v1.lesson-media.workbook',
+            now()->addHour(),
+            [
+                'lesson' => $lesson->id,
+                'student' => $user->id,
+            ],
+        );
+    }
+
+    private function mobileLessonWorkbookDownloadUrl(User $user, Lesson $lesson): ?string
+    {
+        if (! filled($lesson->workbook)) {
+            return null;
+        }
+
+        return URL::temporarySignedRoute(
+            'mobile.api.v1.lesson-media.workbook.download',
             now()->addHour(),
             [
                 'lesson' => $lesson->id,

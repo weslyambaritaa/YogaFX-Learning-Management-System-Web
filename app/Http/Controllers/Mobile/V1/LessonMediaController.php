@@ -50,6 +50,28 @@ class LessonMediaController extends Controller
             ],
         );
 
+        return $this->serveMediaPath((string) $lesson->workbook, false);
+    }
+
+    public function downloadWorkbook(Request $request, Lesson $lesson): Response|StreamedResponse|BinaryFileResponse
+    {
+        abort_unless($request->hasValidSignature(), 403);
+
+        $student = $this->resolveSignedStudent($request);
+        $this->authorizeStudentLessonMedia($student, $lesson);
+        abort_unless(filled($lesson->workbook), 404);
+
+        LessonProgress::query()->updateOrCreate(
+            [
+                'user_id' => $student->id,
+                'lesson_id' => $lesson->id,
+            ],
+            [
+                'is_workbook_downloaded' => true,
+                'workbook_downloaded_at' => now(),
+            ],
+        );
+
         return $this->serveMediaPath((string) $lesson->workbook, true);
     }
 
