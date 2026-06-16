@@ -2,6 +2,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
 
+
 export default function ScoreboardMetaForm({
     data,
     setData,

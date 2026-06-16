@@ -1,4 +1,4 @@
-import { Button } from '@/Components/ui/button';
+import { Button } from "@/Components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -7,20 +7,20 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
-} from '@/Components/ui/dialog';
-import { router } from '@inertiajs/react';
-import { useState } from 'react';
+} from "@/Components/ui/dialog";
+import { router } from "@inertiajs/react";
+import { useState } from "react";
 
 export default function DeleteConfirmationDialog({
     href = null,
     onConfirm = null,
     title,
     description,
-    triggerLabel = 'Delete',
+    triggerLabel = "Delete",
     trigger = null,
-    triggerClassName = 'text-sm font-medium text-rose-600 hover:text-rose-800',
+    triggerClassName = "text-sm font-medium text-rose-600 hover:text-rose-800",
     triggerDisabled = false,
-    confirmLabel = 'Yes, Delete',
+    confirmLabel = "Yes, Delete",
 }) {
     const [open, setOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -35,7 +35,6 @@ export default function DeleteConfirmationDialog({
 
         if (onConfirm) {
             onConfirm({ onFinish: finish });
-
             return;
         }
 
@@ -57,19 +56,12 @@ export default function DeleteConfirmationDialog({
                     </button>
                 )}
             </DialogTrigger>
-            <DialogContent
-                className="max-w-md border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl ring-1 ring-black/5"
-                overlayClassName="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
-            >
-                <DialogHeader className="gap-3 px-6 py-5">
-                    <DialogTitle className="text-lg font-semibold text-slate-950">
-                        {title}
-                    </DialogTitle>
-                    <DialogDescription className="text-sm leading-6 text-slate-600">
-                        {description}
-                    </DialogDescription>
+            <DialogContent showCloseButton={false}>
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                    <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
-                <DialogFooter className="rounded-b-xl border-slate-200 bg-slate-50/95 px-6 py-4">
+                <DialogFooter>
                     <Button
                         type="button"
                         variant="outline"
@@ -86,7 +78,7 @@ export default function DeleteConfirmationDialog({
                         disabled={processing}
                         className="bg-rose-600 text-white hover:bg-rose-700"
                     >
-                        {processing ? 'Deleting...' : confirmLabel}
+                        {processing ? "Deleting..." : confirmLabel}
                     </Button>
                 </DialogFooter>
             </DialogContent>
