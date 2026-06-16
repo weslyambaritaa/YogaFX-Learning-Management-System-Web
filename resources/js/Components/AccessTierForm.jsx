@@ -36,6 +36,20 @@ export default function AccessTierForm({
                     />
                     <InputError className="mt-2" message={errors.slug} />
                 </div>
+
+                <div>
+                    <InputLabel htmlFor="price_amount" value="Program Price" />
+                    <TextInput
+                        id="price_amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="mt-1 block w-full"
+                        value={data.price_amount}
+                        onChange={(event) => setData('price_amount', event.target.value)}
+                    />
+                    <InputError className="mt-2" message={errors.price_amount} />
+                </div>
             </div>
 
             <div>

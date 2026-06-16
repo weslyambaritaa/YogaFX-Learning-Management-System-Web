@@ -11,6 +11,7 @@ import {
     Download,
     X,
     ArrowRight,
+    Search, // Ditambahkan karena dipakai di StudentHome
 } from 'lucide-react';
 
 // ─── Onboarding ───────────────────────────────────────────────────────────────
@@ -86,6 +87,13 @@ function OnboardingOverlay({ onDone }) {
             </div>
         </div>
     );
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(Number(amount || 0));
 }
 
 // ─── Module Detail Modal ───────────────────────────────────────────────────────
@@ -339,9 +347,10 @@ function ModuleRow({ title, modules, onCardClick }) {
                 <div
                     ref={ref}
                     className="flex gap-4 overflow-x-auto pb-3 px-4 sm:px-6 lg:px-10 scroll-smooth"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
-                    {modules.map(m => <ModuleCard key={m.id} module={m} onClick={onCardClick} />)}
+                    {modules.map(module => (
+                        <ModuleCard key={module.id} module={module} onClick={onCardClick} />
+                    ))}
                 </div>
                 <button
                     onClick={() => scroll(1)}
@@ -354,258 +363,260 @@ function ModuleRow({ title, modules, onCardClick }) {
     );
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
-
-function HeroSection({ homeExperience, continueLearning, studentName, onInfoClick }) {
-    const isNew = homeExperience?.state === 'new_student' || homeExperience?.state === 'catalog_empty';
-    const thumbnail = continueLearning?.thumbnail_url ?? null;
-    const title = continueLearning?.title ?? homeExperience?.hero_title ?? 'Start your learning journey';
-    const description = continueLearning?.description ?? homeExperience?.hero_description ?? '';
-
-    // Always use continueLearning.cta_url — it points directly to lessons.show
-    const ctaLabel = continueLearning?.cta_label ?? homeExperience?.primary_cta_label ?? (isNew ? 'Start First Lesson' : 'Continue Learning');
-    const ctaUrl = continueLearning?.cta_url ?? homeExperience?.primary_cta_url ?? route('modules.index');
-
-    const progressPct = continueLearning?.progress_percentage ?? 0;
-    const moduleCtx = continueLearning?.module ?? null;
-    const lessonCtx = continueLearning?.lesson ?? null;
-
-    return (
-        <section className="relative min-h-[72vh] sm:min-h-[82vh] flex items-end overflow-hidden">
-            {thumbnail ? (
-                <img src={thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),radial-gradient(circle_at_78%_18%,rgba(245,158,11,0.10),transparent_26%),linear-gradient(160deg,#1e1210,#0a0908)]" />
-            )}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%),linear-gradient(to_top,rgba(0,0,0,0.96)_0%,rgba(0,0,0,0.38)_32%,transparent_62%)]" />
-
-            <div className="relative w-full px-4 pb-16 pt-24 sm:px-6 lg:px-10 lg:pb-24 max-w-[1400px] mx-auto">
-                <div className="max-w-2xl space-y-5">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-[#f2d9c8]">
-                        {isNew ? `Hello, ${studentName}` : `Welcome back, ${studentName}`}
-                    </p>
-
-                    <h1 className="text-4xl font-bold tracking-[-0.03em] text-white sm:text-5xl xl:text-6xl leading-[1.08]">
-                        {title}
-                    </h1>
-
-                    {description && (
-                        <p className="text-sm leading-7 text-white/65 sm:text-[15px] max-w-xl">{description}</p>
-                    )}
-
-                    {moduleCtx && lessonCtx && (
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.2em] text-white/45">
-                            <span>{moduleCtx.title}</span>
-                            <span className="h-1 w-1 rounded-full bg-white/25" />
-                            <span>Lesson {lessonCtx.sort_order}</span>
-                        </div>
-                    )}
-
-                    {!isNew && progressPct > 0 && (
-                        <div className="flex items-center gap-3 max-w-xs">
-                            <div className="flex-1 h-[3px] overflow-hidden rounded-full bg-white/20">
-                                <div className="h-full rounded-full bg-[#d5462f]" style={{ width: `${progressPct}%` }} />
-                            </div>
-                            <span className="text-[11px] text-white/45 shrink-0">{progressPct}%</span>
-                        </div>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-3 pt-1">
-                        {/* Primary CTA — goes directly to lessons.show */}
-                        <Link
-                            href={ctaUrl}
-                            className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-bold text-black hover:bg-white/90 transition shadow-lg"
-                        >
-                            <Play className="size-4 fill-black" />
-                            {ctaLabel}
-                        </Link>
-
-                        {onInfoClick && moduleCtx && (
-                            <button
-                                onClick={onInfoClick}
-                                className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-6 py-3 text-sm font-medium text-white hover:bg-white/18 transition backdrop-blur"
-                            >
-                                <Info className="size-4" />
-                                More Info
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </section>
-    );
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Student Home Component ───────────────────────────────────────────────────
 
 export default function StudentHome({
+    homeStage,
     studentContext,
+    accessTimeSummary,
     continueLearning,
     progressSummary,
+    nextStep,
+    sequentialAwareness,
     availableModulesSection,
     assignmentMilestone,
     certificateMilestone,
     ebookResourcesSection,
     homeExperience,
-    sequentialAwareness,
+    upgradeOptions = [],
+    status,
+    heroPrimaryKind,     // Ditambahkan dari destrukturisasi kode konflik
+    heroSecondaryKind,   // Ditambahkan dari destrukturisasi kode konflik
+    runningAccessParts = { hours: '00', minutes: '00', seconds: '00' } // Fallback default agar tidak crash
 }) {
     const hasReloadedRef = useRef(false);
     const studentName = studentContext?.display_name ?? 'Student';
-    const [showOnboarding, setShowOnboarding] = useState(false);
+    const fullName = studentContext?.full_name ?? studentName;
+    const accessTier = studentContext?.access_tier ?? null;
+    const tierLabel = accessTier?.name ?? 'Tier assignment pending';
+    const tierStatusLabel = accessTier
+        ? accessTier.is_active
+            ? 'Active access tier'
+            : 'Inactive access tier'
+        : 'No access tier assigned yet';
+    const continueProgress = continueLearning?.progress_percentage ?? 0;
+    const overallProgress = progressSummary?.overall_progress_percentage ?? 0;
+    const currentSequenceLesson = sequentialAwareness?.current_lesson ?? null;
+    const nextSequenceLesson = sequentialAwareness?.next_lesson ?? null;
+    
+    const currentSequenceStatus = currentSequenceLesson
+        ? currentSequenceLesson.is_done
+            ? 'Completed'
+            : currentSequenceLesson.watch_progress > 0
+              ? `${currentSequenceLesson.watch_progress}% watched`
+              : 'Not started yet'
+        : 'No current lesson';
+        
+    const nextSequenceStatus = nextSequenceLesson
+        ? currentSequenceLesson?.is_done
+            ? 'Ready next'
+            : 'Waiting in sequence'
+        : 'No next lesson';
+        
+    const heroBadges = homeExperience?.hero_badges ?? [
+        tierLabel,
+        'Learning momentum is active',
+    ];
+    
+    const [runningAccessSeconds, setRunningAccessSeconds] = useState(
+        accessTimeSummary?.running_total_access_duration_seconds ?? 0
+    );
+
+    // Placeholder untuk state modal jika dibutuhkan di component utama ini
     const [selectedModule, setSelectedModule] = useState(null);
 
-    useEffect(() => {
-        if (!localStorage.getItem(ONBOARDING_KEY)) setShowOnboarding(true);
-    }, []);
-
-    useEffect(() => {
-        if (hasReloadedRef.current) return;
-        hasReloadedRef.current = true;
-        router.reload({
-            only: ['availableModulesSection', 'progressSummary', 'homeExperience'],
-            preserveScroll: true,
-            preserveState: true,
-        });
-    }, []);
-
-    // Build a lesson lookup from sequentialAwareness so we can enrich module cards
-    // sequentialAwareness has current_lesson; we also have availableModulesSection items
-    const rawModules = availableModulesSection?.items ?? [];
-    const inProgress = rawModules.filter(m => m.status === 'active');
-    const others = rawModules.filter(m => m.status !== 'active');
-
-    // The "active" module id from continueLearning — used for "More Info" button
-    const activeModuleSlug = continueLearning?.module?.url_slug ?? null;
-    const heroModule = activeModuleSlug
-        ? rawModules.find(m => m.url_slug === activeModuleSlug) ?? null
-        : null;
-
-    // Build module with continue_url (direct to lesson) for modal CTA
-    // If the module is the active one, point to continueLearning.cta_url (lessons.show)
-    // Otherwise fall back to module page
-    const enrichModule = (m) => {
-        const isActive = m.url_slug === activeModuleSlug;
-        return {
-            ...m,
-            continue_url: isActive
-                ? (continueLearning?.cta_url ?? m.cta_url)
-                : m.cta_url,
-            // lessons will be empty from backend for now — shown gracefully
-            lessons: m.lessons ?? [],
-        };
-    };
-
-    const ebookItems = ebookResourcesSection?.items ?? [];
-
     return (
-        <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-20">
+        <AuthenticatedLayout>
             <Head title="Home" />
 
-            {showOnboarding && <OnboardingOverlay onDone={() => setShowOnboarding(false)} />}
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-4 pt-6 sm:px-6 lg:px-10">
+                <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#15110f] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,_rgba(173,76,38,0.45),_transparent_30%),radial-gradient(circle_at_82%_18%,_rgba(245,158,11,0.12),_transparent_26%),linear-gradient(120deg,_rgba(255,255,255,0.05)_0%,_rgba(255,255,255,0)_40%),linear-gradient(180deg,_rgba(0,0,0,0.02)_0%,_rgba(0,0,0,0.58)_78%,_rgba(0,0,0,0.82)_100%)]" />
+                    <div className="absolute right-0 top-0 h-full w-[48%] bg-[radial-gradient(circle_at_center,_rgba(249,115,22,0.22),_transparent_42%),linear-gradient(180deg,_rgba(255,255,255,0.08),_rgba(255,255,255,0.01))]" />
 
-            {selectedModule && (
-                <ModuleModal
-                    module={enrichModule(selectedModule)}
-                    onClose={() => setSelectedModule(null)}
-                />
-            )}
+                    <div className="relative grid min-h-[540px] gap-10 px-6 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-12 lg:py-12">
+                        <div className="flex flex-col justify-between gap-8">
+                            <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.24em] text-white/65">
+                                <span>YogaFX Home</span>
+                                <span className="h-1 w-1 rounded-full bg-white/30" />
+                                <span>Phase {homeStage}</span>
+                                <span className="h-1 w-1 rounded-full bg-white/30" />
+                                <span>Premium Streaming Shell</span>
+                            </div>
 
-            {/* Hero */}
-            <HeroSection
-                homeExperience={homeExperience}
-                continueLearning={continueLearning}
-                studentName={studentName}
-                onInfoClick={heroModule ? () => setSelectedModule(heroModule) : null}
-            />
+                            <div className="max-w-3xl space-y-6">
+                                <div className="space-y-3">
+                                    <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#f2d9c8]">
+                                        Hi {studentName}, welcome back
+                                    </p>
+                                    <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl xl:text-6xl">
+                                        {homeExperience?.hero_title ??
+                                            'Your premium YogaFX learning home is now ready to carry your student identity.'}
+                                    </h1>
+                                </div>
 
-            {/* Rows */}
-            <div className="relative z-10 -mt-10 space-y-10">
+                                <p className="max-w-2xl text-sm leading-7 text-white/72 sm:text-base">
+                                    You are signed in as {fullName}.{' '}
+                                    {homeExperience?.hero_description ??
+                                        `Your Home experience is anchored to ${tierLabel.toLowerCase()} access and now has the core student context needed for the next learning-focused sections.`}
+                                </p>
 
-                {inProgress.length > 0 && (
-                    <ModuleRow
-                        title="In Progress"
-                        modules={inProgress}
-                        onCardClick={setSelectedModule}
-                    />
+                                <div className="flex flex-wrap items-center gap-3 pt-2">
+                                    {heroPrimaryKind === 'download' ? (
+                                        <button
+                                            size="lg"
+                                            className="rounded-full bg-[#d5462f] px-6 py-3 text-sm font-medium text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d] transition flex items-center"
+                                        >
+                                            <a href={homeExperience?.primary_cta_url ?? '#'} className="flex items-center">
+                                                <Play className="mr-2 size-4 fill-current" />
+                                                {homeExperience?.primary_cta_label ?? 'Continue the Course'}
+                                            </a>
+                                        </button>
+                                    ) : (
+                                        <Link 
+                                            href={homeExperience?.primary_cta_url ?? route('modules.index')}
+                                            className="rounded-full bg-[#d5462f] px-6 py-3 text-sm font-medium text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d] transition flex items-center"
+                                        >
+                                            <Play className="mr-2 size-4 fill-current" />
+                                            {homeExperience?.primary_cta_label ?? 'Continue the Course'}
+                                        </Link>
+                                    )}
+
+                                    {heroSecondaryKind === 'download' ? (
+                                        <a 
+                                            href={homeExperience?.secondary_cta_url ?? '#'}
+                                            className="rounded-full border border-white/20 bg-white/5 px-6 py-3 text-sm font-medium text-white hover:bg-white/10 transition flex items-center"
+                                        >
+                                            {homeExperience?.secondary_cta_label ?? 'Explore Modules'}
+                                        </a>
+                                    ) : (
+                                        <Link 
+                                            href={homeExperience?.secondary_cta_url ?? route('modules.index')}
+                                            className="rounded-full border border-white/20 bg-white/5 px-6 py-3 text-sm font-medium text-white hover:bg-white/10 transition flex items-center"
+                                        >
+                                            {homeExperience?.secondary_cta_label ?? 'Explore Modules'}
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
+                                {heroBadges.map((badge) => (
+                                    <div
+                                        key={badge}
+                                        className="rounded-full border border-white/10 bg-black/20 px-4 py-2 backdrop-blur"
+                                    >
+                                        {badge}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex items-end justify-start lg:justify-end">
+                            <div className="w-full max-w-[280px] rounded-[28px] border border-white/10 bg-black/30 p-5 shadow-2xl backdrop-blur-md">
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <p className="text-xs uppercase tracking-[0.24em] text-white/55">
+                                            Total access time
+                                        </p>
+                                        <div className="text-3xl font-semibold tracking-[0.08em] text-white">
+                                            {`${runningAccessParts.hours}:${runningAccessParts.minutes}:${runningAccessParts.seconds}`}
+                                        </div>
+                                        <p className="text-sm text-white/58">
+                                            Cumulative student access time
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-xs uppercase tracking-[0.2em] text-white/55">
+                                                    Student Context
+                                                </p>
+                                                <p className="mt-1 text-sm font-medium text-white">
+                                                    {tierStatusLabel}
+                                                </p>
+                                            </div>
+                                            <Search className="size-4 text-white/60" />
+                                        </div>
+                                        <p className="mt-3 text-sm leading-6 text-white/60">
+                                            {accessTier
+                                                ? `${tierLabel} is attached to this student profile and ready to be used by the next Home sections.`
+                                                : 'This student can open Home safely, but content sections should keep using a no-tier fallback until access tier is assigned.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {status === 'upgrade-payment-success' && (
+                    <div className="rounded-[24px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
+                        Your simulated upgrade payment succeeded and your student tier has been updated.
+                    </div>
                 )}
 
-                <ModuleRow
-                    title={inProgress.length > 0 ? 'All Modules' : 'Start Here'}
-                    modules={others.length > 0 ? others : rawModules}
-                    onCardClick={setSelectedModule}
-                />
-
-                {/* Ebooks row */}
-                {ebookItems.length > 0 && (
+                {upgradeOptions.length > 0 && (
                     <section className="space-y-4">
-                        <div className="flex items-center justify-between px-4 sm:px-6 lg:px-10">
-                            <h2 className="text-base font-semibold text-white tracking-tight">Learning Resources</h2>
-                            <Link
-                                href={route('ebooks.index')}
-                                className="text-xs text-white/40 hover:text-white/70 transition flex items-center gap-1"
-                            >
-                                View All <ChevronRight className="size-3.5" />
-                            </Link>
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                    Upgrade Path
+                                </p>
+                                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                    Step into a higher YogaFX tier when you are ready
+                                </h2>
+                            </div>
+                            <span className="hidden text-sm text-white/45 md:inline">
+                                Simulated billing active
+                            </span>
                         </div>
-                        <div
-                            className="flex gap-4 overflow-x-auto pb-3 px-4 sm:px-6 lg:px-10"
-                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                        >
-                            {ebookItems.map(ebook => (
-                                <Link
-                                    key={ebook.id}
-                                    href={ebook.preview_url ?? route('ebooks.index')}
-                                    className="group shrink-0 w-[170px] rounded-[18px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/22"
+
+                        <div className="grid gap-4 lg:grid-cols-3">
+                            {upgradeOptions.map((option) => (
+                                <div
+                                    key={option.id}
+                                    className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm"
                                 >
-                                    <div className="relative aspect-[3/4] bg-[radial-gradient(circle_at_20%_18%,rgba(213,70,47,0.45),transparent_30%),linear-gradient(160deg,#2d1e18,#120f0e)] p-4 flex flex-col justify-between">
-                                        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/50">
-                                            <BookOpen className="size-3" />
-                                            Ebook
+                                    <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                                        <div className="space-y-3">
+                                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                                Upgrade target
+                                            </p>
+                                            <h3 className="text-2xl font-semibold text-white">
+                                                {option.name}
+                                            </h3>
+                                            <p className="text-sm leading-6 text-white/60">
+                                                Total tier price {formatCurrency(option.price_amount)}.
+                                                Your current journey reduces the amount due to {formatCurrency(option.amount_due)}.
+                                            </p>
                                         </div>
-                                        <h3 className="text-sm font-semibold text-white leading-tight line-clamp-3">{ebook.title}</h3>
+
+                                        <Link 
+                                            href={option.checkout_url}
+                                            className="rounded-full bg-[#d5462f] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#e2553d] transition flex items-center justify-center"
+                                        >
+                                            <ChevronRight className="mr-2 size-4" />
+                                            Upgrade to {option.name}
+                                        </Link>
                                     </div>
-                                    <div className="p-3">
-                                        <span className="text-xs text-[#d5462f] group-hover:text-[#e2553d] transition flex items-center gap-1">
-                                            Open Preview <ArrowRight className="size-3" />
-                                        </span>
-                                    </div>
-                                </Link>
+                                </div>
                             ))}
                         </div>
                     </section>
                 )}
 
-                {/* Empty state */}
-                {rawModules.length === 0 && (
-                    <div className="px-4 sm:px-6 lg:px-10">
-                        <div className="rounded-[28px] border border-white/8 bg-white/[0.02] px-8 py-16 text-center">
-                            <p className="text-sm text-white/45">No modules are available for your current access tier.</p>
-                            <p className="mt-2 text-xs text-white/25">Contact your administrator for more information.</p>
-                        </div>
-                    </div>
-                )}
+                {/* Bagian bawah halaman Home (Kategori baris modul dll) bisa ditaruh di sini */}
+                <ModuleRow 
+                    title="Available Modules" 
+                    modules={availableModulesSection?.modules} 
+                    onCardClick={(mod) => setSelectedModule(mod)} 
+                />
 
-                {/* Milestone strip */}
-                {(certificateMilestone?.state === 'download_available' || assignmentMilestone?.state === 'approved') && (
-                    <div className="px-4 sm:px-6 lg:px-10 pb-4">
-                        <div className="flex flex-wrap gap-3">
-                            {certificateMilestone?.state === 'download_available' && (
-                                <a
-                                    href={certificateMilestone.cta_url ?? '#'}
-                                    className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-5 py-2.5 text-xs font-medium text-emerald-300 hover:bg-emerald-400/15 transition"
-                                >
-                                    <Download className="size-3.5" />
-                                    {certificateMilestone.cta_label ?? 'Download Certificate'}
-                                </a>
-                            )}
-                            {assignmentMilestone?.state === 'approved' && (
-                                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-5 py-2.5 text-xs font-medium text-emerald-300">
-                                    <CheckCircle2 className="size-3.5" />
-                                    Assignment approved
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                {/* Render Modal jika ada module yang dipilih */}
+                {selectedModule && (
+                    <ModuleModal module={selectedModule} onClose={() => setSelectedModule(null)} />
                 )}
             </div>
         </AuthenticatedLayout>

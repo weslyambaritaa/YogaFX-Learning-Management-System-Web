@@ -2,11 +2,15 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Support\CountryDirectory;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    use BuildsProtectedMediaUrls;
+
     /**
      * The root template that is loaded on the first page visit.
      *
@@ -50,8 +54,16 @@ class HandleInertiaRequests extends Middleware
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
                     'whatsapp' => $user->whatsapp,
-                    'preferred_certificate_picture' => $user->preferred_certificate_picture,
-                    'profile_photo' => $user->profile_photo,
+                    'whatsapp_country_code' => CountryDirectory::splitPhoneNumber($user->whatsapp, $user->country)['country_code'],
+                    'whatsapp_number' => CountryDirectory::splitPhoneNumber($user->whatsapp, $user->country)['local_number'],
+                    'profile_photo' => $this->protectedMediaUrl(
+                        'user',
+                        $user->id,
+                        'profile_photo',
+                        $user->profile_photo,
+                        versionSeed: $user->updated_at,
+                    ),
+                    'profile_photo_path' => $user->profile_photo,
                     'instagram' => $user->instagram,
                     'country' => $user->country,
                     'birth_date' => optional($user->birth_date)->toDateString(),
@@ -66,6 +78,10 @@ class HandleInertiaRequests extends Middleware
                     'how_did_you_find_us' => $user->how_did_you_find_us,
                     'profile_is_complete' => $user->hasCompletedStudentProfile(),
                 ] : null,
+            ],
+            'directory' => [
+                'countries' => CountryDirectory::countryOptions(),
+                'phone_country_codes' => CountryDirectory::phoneCountryCodeOptions(),
             ],
         ];
     }

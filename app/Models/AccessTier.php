@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'description', 'is_active'])]
+#[Fillable(['name', 'slug', 'description', 'price_amount', 'is_active'])]
 class AccessTier extends Model
 {
     /** @use HasFactory<AccessTierFactory> */
@@ -28,6 +28,7 @@ class AccessTier extends Model
     {
         return [
             'is_active' => 'boolean',
+            'price_amount' => 'decimal:2',
         ];
     }
 
