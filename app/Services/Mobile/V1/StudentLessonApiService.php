@@ -9,6 +9,7 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
 use App\Services\BunnyStreamService;
+use App\Services\StudentLearningMilestoneEmailService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -18,6 +19,7 @@ class StudentLessonApiService
 
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
+        private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
     ) {}
 
     /**
@@ -162,6 +164,58 @@ class StudentLessonApiService
                 'is_unlocked' => (bool) ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false),
                 'lock_reason' => $lessonUnlockMap->get($nextLesson->id)['reason'] ?? null,
             ] : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function updateProgressForUser(User $user, Lesson $lesson, float $incomingProgress): ?array
+    {
+        $detail = $this->lessonDetailForUser($user, $lesson);
+
+        if (! $detail || ($detail['is_locked'] ?? false)) {
+            return $detail;
+        }
+
+        $incomingProgress = round($incomingProgress, 2);
+        $existingProgress = (float) LessonProgress::query()
+            ->where('user_id', $user->id)
+            ->where('lesson_id', $lesson->id)
+            ->value('watch_progress');
+
+        $watchProgress = max($existingProgress, $incomingProgress);
+        $hasCompletedAssessment = $lesson->assessment_id !== null
+            && $lesson->assessment?->status === 'live'
+            && $lesson->assessment?->is_active
+            && AssessmentAttempt::query()
+                ->where('assessment_id', $lesson->assessment_id)
+                ->where('user_id', $user->id)
+                ->where('status', AssessmentAttempt::STATUS_COMPLETED)
+                ->exists();
+        $isDone = $watchProgress >= 95 && (! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live');
+
+        $lessonProgress = LessonProgress::query()->updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'lesson_id' => $lesson->id,
+            ],
+            [
+                'watch_progress' => $watchProgress,
+                'video_completed_at' => $isDone ? now() : null,
+                'is_done' => $isDone,
+                'completed_at' => $isDone ? now() : null,
+            ],
+        );
+
+        if ($isDone) {
+            $this->studentLearningMilestoneEmailService->syncLessonMilestones($user, $lesson);
+        }
+
+        return [
+            'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
+            'is_done' => (bool) $lessonProgress->is_done,
+            'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
         ];
     }
 
