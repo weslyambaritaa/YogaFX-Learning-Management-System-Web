@@ -7,6 +7,7 @@ export default function EditAccessTier({ accessTier, status }) {
         name: accessTier.name ?? '',
         slug: accessTier.slug ?? '',
         description: accessTier.description ?? '',
+        thumbnail: null,
         price_amount: accessTier.price_amount ?? '',
         is_active: accessTier.is_active ?? true,
     });
@@ -14,7 +15,9 @@ export default function EditAccessTier({ accessTier, status }) {
     const submit = (event) => {
         event.preventDefault();
 
-        patch(route('admin.access-tiers.update', accessTier.id));
+        patch(route('admin.access-tiers.update', accessTier.id), {
+            forceFormData: true,
+        });
     };
 
     return (
@@ -89,6 +92,7 @@ export default function EditAccessTier({ accessTier, status }) {
                             processing={processing}
                             onSubmit={submit}
                             submitLabel="Save Access Tier"
+                            currentThumbnailUrl={accessTier.thumbnail_url}
                         />
                     </div>
                 </div>

@@ -37,6 +37,7 @@ Dokumen ini mencerminkan **scope aktual yang sudah diimplementasikan** di reposi
 - reset password
 - redirect berdasarkan role
 - profile completion gate untuk student
+- admin self-service account profile edit
 
 ### 3.2 User & Tier Foundation
 - profile student
@@ -81,6 +82,7 @@ Dokumen ini mencerminkan **scope aktual yang sudah diimplementasikan** di reposi
 
 ### 4.1 Admin
 Admin bertanggung jawab untuk:
+- mengelola akun admin sendiri dari profile menu
 - mengelola tier
 - mengelola modules
 - mengelola lessons
@@ -131,12 +133,16 @@ Aturan implementasi saat ini:
 - admin harus dapat mengedit profile student
 - profile saat ini mencakup data personal, yoga background, preferred certificate picture, dan `profile_photo`
 
-### 6.3 Access Tier
+### 6.3 Admin Account Profile
+- admin harus dapat membuka profile dari user menu di topbar
+- admin harus dapat memperbarui first name, last name, email, dan password sendiri
+### 6.4 Access Tier
 - admin harus dapat membuat, mengedit, dan menghapus tier jika belum dipakai student
+- admin harus dapat mengunggah thumbnail untuk access tier
 - tier dapat di-nonaktifkan dengan `is_active`
 - student memiliki tepat satu `access_tier_id`
 
-### 6.4 Module, Lesson, Ebook, Course
+### 6.5 Module, Lesson, Ebook, Course
 - admin harus dapat melakukan CRUD
 - module, lesson, dan ebook memakai multi-tier access
 - course memakai single-tier access
@@ -144,12 +150,12 @@ Aturan implementasi saat ini:
 - lesson dapat memiliki workbook, video, audio, content, dan `assessment_id` nullable
 - `sort_order` module, lesson, dan ebook dibuat otomatis
 
-### 6.5 Content Access
+### 6.6 Content Access
 - student hanya boleh melihat konten yang sesuai tier
 - lesson hanya boleh dibuka jika tier lesson dan tier module sama-sama mengizinkan student
 - media file harus dilayani melalui protected route
 
-### 6.6 Student Progress Admin
+### 6.7 Student Progress Admin
 - admin melihat daftar student dibagi per tier:
   - Masterclass
   - Online
@@ -161,17 +167,17 @@ Aturan implementasi saat ini:
   - Assignment
   - Certificate
 
-### 6.7 Completed Lesson
+### 6.8 Completed Lesson
 - admin dapat melihat daftar lesson yang sudah complete
 - admin dapat reset lesson progress dengan konfirmasi
 
-### 6.8 Assignment Admin Operations
+### 6.9 Assignment Admin Operations
 - admin dapat mengubah status assignment
 - admin dapat menyimpan feedback
 - admin dapat mengirim email manual dari halaman assignment
 - admin dapat menghapus video assignment dengan konfirmasi
 
-### 6.9 Certificate Admin Operations
+### 6.10 Certificate Admin Operations
 - admin dapat generate certificate
 - admin dapat recreate certificate
 - admin dapat download certificate
@@ -181,7 +187,7 @@ Aturan implementasi saat ini:
   - Bikram Yoga Certificate
   - Yoga Alliance Certification
 
-### 6.10 Email Notification
+### 6.11 Email Notification
 - sistem harus mendukung 10 notification type:
   - `module_completion`
   - `assignment_review`
@@ -201,12 +207,12 @@ Aturan implementasi saat ini:
   - send test
 - semua email test dan automated harus dicatat ke email logs
 
-### 6.11 Upload Rules
+### 6.12 Upload Rules
 - semua upload file yang relevan dibatasi maksimal 10 MB
 - validasi size dilakukan di frontend dan backend
 - file oversized tidak boleh disimpan
 
-### 6.12 Ebook Preview
+### 6.13 Ebook Preview
 - ebook harus dibuka dulu di halaman preview jika format mendukung
 - download menjadi aksi eksplisit yang terpisah
 

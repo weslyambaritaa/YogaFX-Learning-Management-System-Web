@@ -18,6 +18,7 @@ Gunakan dokumen ini sebagai pintu masuk sebelum membaca PRD, User Flow, ERD, IA,
 Implementasi aktif saat ini sudah mencakup domain berikut:
 - authentication foundation
 - student profile foundation
+- admin account profile foundation
 - access tier management
 - admin learning content CRUD
 - student content catalog dasar
@@ -63,8 +64,13 @@ Catatan:
 - admin dapat edit profile student dari route Student Progress
 - field `profile_photo` sudah tersedia, tetapi saat ini masih berupa string URL/path, belum upload file khusus profile photo
 
-### 2.3 Access Tier Management
+### 2.3 Admin Account Profile
+- admin dapat membuka profile dari user menu kanan atas
+- admin dapat mengubah first name, last name, email, dan password sendiri
+- nama admin di topbar mengikuti data akun admin yang tersimpan
+### 2.4 Access Tier Management
 - CRUD tier admin
+- upload thumbnail tier admin
 - assign tier ke student
 - seed default `Starter Kit`, `Online`, `Master Class`
 - status aktif tier menggunakan `is_active`
@@ -73,7 +79,7 @@ Catatan:
 - implementasi delete tier saat ini masih hard delete jika tier belum dipakai oleh user
 - jika tier sudah dipakai oleh user, delete ditolak
 
-### 2.4 Learning Content
+### 2.5 Learning Content
 - admin CRUD Modules
 - admin CRUD Lessons
 - admin CRUD Ebooks
@@ -92,7 +98,7 @@ Keputusan terbaru yang aktif:
 - setelah create/update berhasil, admin diarahkan kembali ke halaman list
 - aksi delete pada CRUD terkait memakai dialog konfirmasi
 
-### 2.5 Student Content Catalog
+### 2.6 Student Content Catalog
 - student dashboard dasar
 - daftar module sesuai tier
 - detail module dan daftar lesson sesuai tier
@@ -106,7 +112,7 @@ Catatan:
 - assessment masih placeholder nullable di lesson
 - student assignment page dan student certificate page belum ada
 
-### 2.6 Student Progress Admin
+### 2.7 Student Progress Admin
 - menu utama `Student Progress` di admin
 - halaman index langsung menampilkan 3 tabel berdasarkan tier:
   - Masterclass
@@ -141,7 +147,7 @@ Area detail aktif:
   - download certificate
   - delete certificate
 
-### 2.7 Email Notification
+### 2.8 Email Notification
 - menu Email di sidebar admin
 - 10 child menu:
   - Module Completion
@@ -173,6 +179,7 @@ Area detail aktif:
 
 ### 3.1 Upload Constraint
 Semua upload file yang relevan saat ini dibatasi maksimal 10 MB:
+- access tier thumbnail
 - module thumbnail
 - lesson thumbnail
 - lesson workbook

@@ -45,6 +45,7 @@ Sudah mencakup:
 - student profile completion
 - student self-edit profile
 - admin edit student profile
+- admin self-edit account profile
 - profile completeness gate
 
 ### Phase 3 - Tier Management Foundation
@@ -52,6 +53,7 @@ Status: **completed**
 
 Sudah mencakup:
 - access tier CRUD
+- access tier thumbnail upload
 - tier assignment ke student
 - default tier seeds
 - tier display di admin dan student
@@ -211,6 +213,7 @@ Build order:
 ### 7.3 Access Tiers
 - [x] create tier
 - [x] edit tier
+- [x] upload tier thumbnail
 - [x] assign tier ke student
 - [x] seed default tier
 
