@@ -60,7 +60,7 @@ export default function AccessTierForm({
                     rows="4"
                     value={data.description}
                     onChange={(event) => setData('description', event.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
                 <InputError className="mt-2" message={errors.description} />
             </div>
@@ -98,7 +98,7 @@ export default function AccessTierForm({
                     onChange={(event) =>
                         setData('is_active', event.target.value === '1')
                     }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 >
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
