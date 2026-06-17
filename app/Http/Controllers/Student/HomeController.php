@@ -6,10 +6,16 @@ use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\AccessTier;
 use App\Models\AssignmentSubmission;
+use App\Models\Assignment;
 use App\Models\Certificate;
 use App\Models\Ebook;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Models\StudentModuleVisit;
+use App\Services\BunnyStorageService;
+use App\Services\Certificates\CertificateEligibilityService;
+use App\Services\StudentSessionTrackingService;
+use App\Support\BunnyAssetPath;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -20,6 +26,12 @@ use Inertia\Response;
 class HomeController extends Controller
 {
     use BuildsProtectedMediaUrls;
+
+    public function __construct(
+        private readonly StudentSessionTrackingService $sessionTrackingService,
+        private readonly CertificateEligibilityService $certificateEligibilityService,
+        private readonly BunnyStorageService $bunnyStorage,
+    ) {}
 
     public function index(Request $request): Response|RedirectResponse
     {
@@ -63,6 +75,9 @@ class HomeController extends Controller
                     'is_active' => $tier->is_active,
                 ] : null,
             ],
+            'accessTimeSummary' => $user
+                ? $this->sessionTrackingService->summaryForUser($user)
+                : null,
             'continueLearning' => $continueLearning,
             'progressSummary' => $progressSummary,
             'nextStep' => $nextStep,
@@ -80,6 +95,14 @@ class HomeController extends Controller
         $user = $request->user();
 
         abort_unless($user?->isStudent() && $certificate->user_id === $user->id, 404);
+
+        if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
+            $url = $this->bunnyStorage->url($certificate->file_path);
+            abort_unless(filled($url), 404);
+
+            return redirect()->away($url);
+        }
+
         abort_unless(Storage::disk('local')->exists($certificate->file_path), 404);
 
         return Storage::disk('local')->download($certificate->file_path, $certificate->file_name);
@@ -96,6 +119,10 @@ class HomeController extends Controller
             ->with([
                 'lessons' => fn ($query) => $query
                     ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
+                    ->orderBy('sort_order')
+                    ->orderBy('title'),
+                'assignments' => fn ($query) => $query
+                    ->where('status', Assignment::STATUS_LIVE)
                     ->orderBy('sort_order')
                     ->orderBy('title'),
             ])
@@ -481,9 +508,7 @@ class HomeController extends Controller
     protected function buildAvailableModulesSection(Request $request, Collection $availableModules): array
     {
         $user = $request->user();
-        $moduleCollection = $availableModules
-            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
-            ->values();
+        $moduleCollection = $availableModules->values();
 
         if (! $user || ! $user->access_tier_id) {
             return [
@@ -506,7 +531,7 @@ class HomeController extends Controller
                 'state' => 'empty',
                 'eyebrow' => 'Available Modules',
                 'title' => 'No module is available in this tier yet.',
-                'description' => 'Home is ready to show a premium module catalog, but there are no accessible modules with lessons for the current student tier yet.',
+                'description' => 'Home is ready to show a premium module catalog, but there are no accessible modules for the current student tier yet.',
                 'items' => [],
                 'summary' => [
                     'total' => 0,
@@ -521,15 +546,23 @@ class HomeController extends Controller
             $user->id,
             $moduleCollection->flatMap(fn (Module $module) => $module->lessons->pluck('id')),
         );
+        $resourceModuleVisitMap = $this->resourceModuleVisitMap(
+            $user->id,
+            $moduleCollection->pluck('id'),
+        );
         $activeLessonId = $this->latestProgressLessonId($user->id, $lessonProgressMap);
 
-        $items = $moduleCollection->map(function (Module $module) use ($activeLessonId, $lessonProgressMap) {
+        $items = $moduleCollection->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $resourceModuleVisitMap) {
             $totalLessons = $module->lessons->count();
             $completedLessons = $module->lessons
                 ->filter(fn ($lesson) => (bool) optional($lessonProgressMap->get($lesson->id))->is_done)
                 ->count();
+            $isResourceOnlyModule = $totalLessons === 0
+                && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty();
+            $isVisitedResourceModule = $isResourceOnlyModule
+                && $resourceModuleVisitMap->has($module->id);
             $isActive = $module->lessons->contains(fn ($lesson) => $lesson->id === $activeLessonId);
-            $status = $totalLessons > 0 && $completedLessons === $totalLessons
+            $status = $isVisitedResourceModule || ($totalLessons > 0 && $completedLessons === $totalLessons)
                 ? 'completed'
                 : ($isActive ? 'active' : 'available');
             $statusLabel = match ($status) {
@@ -544,10 +577,12 @@ class HomeController extends Controller
                 'url_slug' => $module->url_slug,
                 'sort_order' => $module->sort_order,
                 'lesson_count' => $totalLessons,
+                'assignments_count' => $module->assignments->count(),
                 'completed_lessons' => $completedLessons,
                 'progress_percentage' => $totalLessons > 0
                     ? (int) round(($completedLessons / $totalLessons) * 100)
-                    : 0,
+                    : ($isVisitedResourceModule ? 100 : 0),
+                'show_progress' => $totalLessons > 0,
                 'status' => $status,
                 'status_label' => $statusLabel,
                 'cta_label' => match ($status) {
@@ -579,6 +614,22 @@ class HomeController extends Controller
                 'available' => $items->where('status', 'available')->count(),
             ],
         ];
+    }
+
+    protected function resourceModuleVisitMap(?int $userId, iterable $moduleIds): Collection
+    {
+        $moduleIds = collect($moduleIds)->filter()->values();
+
+        if (! $userId || $moduleIds->isEmpty()) {
+            return collect();
+        }
+
+        return StudentModuleVisit::query()
+            ->where('user_id', $userId)
+            ->whereIn('module_id', $moduleIds)
+            ->pluck('module_id')
+            ->map(fn ($moduleId) => (int) $moduleId)
+            ->flip();
     }
 
     protected function buildSequentialAwareness(Request $request, Collection $availableModules, array $continueLearning): array
@@ -766,14 +817,25 @@ class HomeController extends Controller
             ];
         }
 
-        if ($tier->slug !== AccessTier::SLUG_ONLINE) {
+        $requiredAssignments = Module::query()
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user->access_tier_id))
+            ->with([
+                'assignments' => fn ($query) => $query
+                    ->where('status', Assignment::STATUS_LIVE)
+                    ->orderBy('sort_order')
+                    ->orderBy('title'),
+            ])
+            ->get(['id'])
+            ->flatMap(fn (Module $module) => $module->assignments)
+            ->unique('id')
+            ->values();
+
+        if ($requiredAssignments->isEmpty()) {
             return [
                 'state' => 'not_available',
                 'eyebrow' => 'Assignment Milestone',
                 'title' => 'Assignment is not included in your current tier.',
-                'description' => $tier->slug === AccessTier::SLUG_MASTER_CLASS
-                    ? 'Your current YogaFX path emphasizes premium lesson access and certificate journey without the assignment milestone.'
-                    : 'Starter Kit keeps the journey lighter, so assignment milestone is intentionally not part of this tier.',
+                'description' => 'No live assignment is attached to the active tier yet, so assignment milestone is not part of the current path.',
                 'status' => 'Not available for your tier',
                 'eligibility_label' => 'Unavailable in '.($tier->name ?? 'current tier'),
                 'cta_label' => 'Browse Modules',
@@ -791,33 +853,44 @@ class HomeController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $requiredAssignmentIds = $requiredAssignments
+            ->pluck('id')
+            ->map(fn ($assignmentId) => (int) $assignmentId)
+            ->values();
+
         $submittedEntries = $submissions
-            ->filter(fn (AssignmentSubmission $submission) => filled($submission->assignment_video))
+            ->filter(fn (AssignmentSubmission $submission) => $requiredAssignmentIds->contains((int) $submission->assignment_id))
+            ->filter(fn (AssignmentSubmission $submission) => filled($submission->assignment_video) || filled($submission->submitted_at))
+            ->unique('assignment_id')
             ->values();
 
         $latestFeedback = $submissions
             ->first(fn (AssignmentSubmission $submission) => filled($submission->assignment_feedback));
 
-        $standingSubmission = $submittedEntries
-            ->first(fn (AssignmentSubmission $submission) => str($submission->assignment_type)->lower()->contains('standing'));
-        $floorSubmission = $submittedEntries
-            ->first(fn (AssignmentSubmission $submission) => str($submission->assignment_type)->lower()->contains('floor'));
-        $legacySubmission = $submittedEntries
-            ->first(fn (AssignmentSubmission $submission) => str($submission->assignment_type)->lower()->value() === 'graduation_video');
+        $submittedAssignmentLookup = $submittedEntries
+            ->pluck('assignment_id')
+            ->map(fn ($assignmentId) => (int) $assignmentId)
+            ->flip();
 
-        $hasStanding = (bool) $standingSubmission;
-        $hasFloor = (bool) $floorSubmission;
-        $hasLegacy = (bool) $legacySubmission;
-        $hasCompletePackage = $hasLegacy || ($hasStanding && $hasFloor);
+        $hasCompletePackage = $requiredAssignments->isNotEmpty()
+            && $requiredAssignments->every(
+                fn (Assignment $assignment) => $submittedAssignmentLookup->has((int) $assignment->id)
+            );
 
-        $relevantSubmissions = $hasLegacy
-            ? collect([$legacySubmission])->filter()
-            : collect([$standingSubmission, $floorSubmission])->filter();
+        $relevantSubmissions = $submittedEntries;
 
         $hasRejected = $relevantSubmissions
             ->contains(fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_REJECTED);
         $hasPendingReview = $relevantSubmissions
-            ->contains(fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_PENDING_REVIEW);
+            ->contains(fn (AssignmentSubmission $submission) => in_array(
+                $submission->assignment_status,
+                [
+                    AssignmentSubmission::STATUS_PENDING_REVIEW,
+                    AssignmentSubmission::STATUS_SUBMITTED,
+                    AssignmentSubmission::STATUS_UNDER_REVIEW,
+                ],
+                true,
+            ));
         $hasApproved = $relevantSubmissions->isNotEmpty()
             && $relevantSubmissions->every(
                 fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_APPROVED
@@ -845,28 +918,19 @@ class HomeController extends Controller
         }
 
         $checklist = collect([
-            [
-                'label' => 'Full Standing Dialog',
-                'status' => $hasStanding ? 'Submitted' : 'Pending',
-                'detail' => $hasStanding
-                    ? 'Standing dialog submission is already recorded for this student.'
-                    : 'Standing dialog submission has not been recorded yet.',
-            ],
-            [
-                'label' => 'Full Floor Dialog',
-                'status' => $hasFloor ? 'Submitted' : 'Pending',
-                'detail' => $hasFloor
-                    ? 'Floor dialog submission is already recorded for this student.'
-                    : 'Floor dialog submission has not been recorded yet.',
-            ],
-            [
-                'label' => 'Legacy graduation video',
-                'status' => $hasLegacy ? 'On record' : 'Not used',
-                'detail' => $hasLegacy
-                    ? 'A legacy graduation video exists, so Home treats the assignment package as already submitted.'
-                    : 'No legacy graduation video is attached to this student record.',
-            ],
-        ])->values();
+        ])->concat(
+            $requiredAssignments->map(function (Assignment $assignment) use ($submittedAssignmentLookup) {
+                $isSubmitted = $submittedAssignmentLookup->has((int) $assignment->id);
+
+                return [
+                    'label' => $assignment->title,
+                    'status' => $isSubmitted ? 'Submitted' : 'Pending',
+                    'detail' => $isSubmitted
+                        ? $assignment->title.' submission is already recorded for this student.'
+                        : $assignment->title.' submission has not been recorded yet.',
+                ];
+            })
+        )->values();
 
         $payload = [
             'state' => $state,
@@ -883,13 +947,13 @@ class HomeController extends Controller
                 'status' => str($latestFeedback->assignment_status)->replace('_', ' ')->title()->value(),
             ] : null,
             'latest_submission_at' => optional($latestSubmittedAt)->format('Y-m-d H:i'),
-            'support_note' => 'Student-side assignment submission page is still not active, so this milestone currently reflects assignment data that already exists in YogaFX and keeps CTA on safe learning routes.',
+            'support_note' => 'Student assignment submission is now handled from the student learning area, while Home keeps reflecting the latest submission and review state as a milestone.',
         ];
 
         return match ($state) {
             'not_started' => array_merge($payload, [
                 'title' => 'Assignment milestone is waiting for your first submission.',
-                'description' => 'You are in the Online tier, so assignment belongs to your journey. Home can already show the milestone, even though the dedicated student submission page is not active yet.',
+                'description' => 'You are in the Online tier, so assignment belongs to your journey. Home keeps the milestone visible until your first submission is uploaded from the student learning area.',
                 'status' => 'Not started',
                 'cta_label' => $learningCta['label'],
             ]),
@@ -924,7 +988,6 @@ class HomeController extends Controller
     protected function buildCertificateMilestone(Request $request, array $progressSummary, array $continueLearning): array
     {
         $user = $request->user();
-        $tier = $user?->accessTier;
         $learningCta = [
             'label' => (($continueLearning['state'] ?? null) === 'resume')
                 ? 'Continue Learning'
@@ -933,114 +996,101 @@ class HomeController extends Controller
             'kind' => 'link',
         ];
 
-        if (! $user || ! $tier) {
+        if (! $user || ! $user->accessTier) {
             return [
                 'state' => 'empty',
                 'eyebrow' => 'Certificate Milestone',
                 'title' => 'Certificate milestone will appear here.',
-                'description' => 'Home needs an active student access tier before it can explain whether certificate belongs to this YogaFX journey.',
+                'description' => 'Home needs an active student access tier before it can explain certificate readiness.',
                 'status' => 'Awaiting access tier',
                 'eligibility_label' => 'Tier eligibility unknown',
                 'cta_label' => 'Open Profile',
                 'cta_url' => route('profile.edit'),
                 'cta_kind' => 'link',
                 'milestones' => [],
+                'generated_certificates' => [],
                 'latest_certificate' => null,
-                'support_note' => 'Student certificate page is still not active, so Home surfaces certificate status directly inside the dashboard.',
+                'support_note' => 'Certificate downloads only appear after admin generation and remain bound to your own account.',
             ];
         }
 
-        if ($tier->slug === AccessTier::SLUG_STARTER_KIT) {
-            return [
-                'state' => 'not_available',
-                'eyebrow' => 'Certificate Milestone',
-                'title' => 'Certificate is not included in your current tier.',
-                'description' => 'Starter Kit focuses on a lighter YogaFX path, so certificate milestone is intentionally not part of this membership level.',
-                'status' => 'Not available for your tier',
-                'eligibility_label' => 'Unavailable in '.($tier->name ?? 'current tier'),
-                'cta_label' => 'Browse Modules',
-                'cta_url' => route('modules.index'),
-                'cta_kind' => 'link',
-                'milestones' => [],
-                'latest_certificate' => null,
-                'support_note' => 'Home still keeps the certificate milestone visible so students understand what belongs to the current tier and what does not.',
-            ];
-        }
+        $summary = $this->certificateEligibilityService->summaryForStudent($user);
+        $generatedCertificates = $this->certificateEligibilityService
+            ->latestCertificatesByType($user, $summary['available_types'])
+            ->sortByDesc(fn (Certificate $certificate) => sprintf(
+                '%010d-%010d',
+                $certificate->generated_at?->getTimestamp() ?? 0,
+                $certificate->id,
+            ))
+            ->values();
 
-        $certificateRecords = Certificate::query()
-            ->where('user_id', $user->id)
-            ->latest('generated_at')
-            ->latest('id')
-            ->get();
-
-        $latestCertificate = $certificateRecords->first();
-        $overallProgress = (int) ($progressSummary['overall_progress_percentage'] ?? 0);
-        $currentPathCompleted = $overallProgress === 100;
-        $hasCertificate = (bool) $latestCertificate;
-
-        $state = $hasCertificate
+        $latestCertificate = $generatedCertificates->first();
+        $hasGeneratedCertificate = $generatedCertificates->isNotEmpty();
+        $state = $hasGeneratedCertificate
             ? 'download_available'
-            : ($currentPathCompleted ? 'ready' : 'in_progress');
+            : ($summary['learning_eligible'] ? 'ready' : 'in_progress');
 
-        $milestones = collect([
-            [
+        $milestones = collect($summary['requirements'])
+            ->map(fn (array $item) => [
+                'label' => $item['label'],
+                'status' => $item['status'],
+                'detail' => $item['total'] === 0
+                    ? $item['label'].' is not required for this certificate path.'
+                    : sprintf('%d of %d required %s completed.', $item['completed'], $item['total'], strtolower($item['label'])),
+            ])
+            ->prepend([
                 'label' => 'Tier entitlement',
-                'status' => 'Eligible',
-                'detail' => 'This tier is eligible for certificate milestone under the current YogaFX rules.',
-            ],
-            [
-                'label' => 'Learning path progress',
-                'status' => $currentPathCompleted ? 'Completed' : "{$overallProgress}% complete",
-                'detail' => $currentPathCompleted
-                    ? 'Your currently accessible learning path has reached full completion.'
-                    : 'Certificate momentum keeps following the completed lessons in your current accessible path.',
-            ],
-            [
-                'label' => 'Certificate record',
-                'status' => $hasCertificate ? 'Available' : 'Not generated yet',
-                'detail' => $hasCertificate
-                    ? 'At least one certificate record already exists for this student.'
-                    : 'No generated certificate record exists yet in YogaFX.',
-            ],
-        ])->values();
+                'status' => count($summary['available_types']) > 0 ? 'Included' : 'Unavailable',
+                'detail' => count($summary['available_types']) > 0
+                    ? 'Your active tier includes certificate access based on the current YogaFX rules.'
+                    : 'Your active tier does not have a certificate mapping yet.',
+            ])
+            ->values();
 
         $payload = [
             'state' => $state,
             'eyebrow' => 'Certificate Milestone',
             'title' => 'Certificate milestone is active for your YogaFX path.',
-            'description' => 'Home keeps certificate visible as a major milestone, while staying honest about the fact that student-side certificate browsing is not a separate page yet.',
-            'status' => 'Certificate tracked',
-            'eligibility_label' => 'Included in '.($tier->name ?? 'eligible tier'),
+            'description' => 'Home keeps certificate status visible while only exposing PDFs that have already been generated for your account.',
+            'status' => $hasGeneratedCertificate ? 'Generated' : ($summary['learning_eligible'] ? 'Eligible' : 'Not Eligible'),
+            'eligibility_label' => 'Included in '.($summary['tier']['name'] ?? 'current tier'),
             'cta_label' => $learningCta['label'],
             'cta_url' => $learningCta['url'],
             'cta_kind' => $learningCta['kind'],
             'milestones' => $milestones,
+            'generated_certificates' => $generatedCertificates
+                ->map(fn (Certificate $certificate) => [
+                    'id' => $certificate->id,
+                    'type_label' => $certificate->typeLabel(),
+                    'generated_at' => optional($certificate->generated_at)->format('Y-m-d H:i'),
+                    'download_url' => route('student.certificates.download', $certificate),
+                ])
+                ->all(),
             'latest_certificate' => $latestCertificate ? [
                 'type_label' => $latestCertificate->typeLabel(),
-                'version' => $latestCertificate->version,
                 'generated_at' => optional($latestCertificate->generated_at)->format('Y-m-d H:i'),
                 'download_url' => route('student.certificates.download', $latestCertificate),
             ] : null,
-            'support_note' => 'Home shows certificate status inside the dashboard first. A dedicated student certificate page is still not part of the active product scope.',
+            'support_note' => 'Student certificate access is download-only, server-side ownership protected, and limited to files that admin has already generated.',
         ];
 
         return match ($state) {
             'in_progress' => array_merge($payload, [
                 'title' => 'Your certificate milestone is still in progress.',
-                'description' => 'Certificate belongs to this tier, but the current accessible learning path is not complete yet. Home keeps the milestone visible so the end goal stays clear.',
-                'status' => 'In progress',
+                'description' => $summary['message'],
+                'status' => 'Not Eligible',
             ]),
             'ready' => array_merge($payload, [
-                'title' => 'Your certificate looks ready from the learning side.',
-                'description' => 'Home sees a completed accessible learning path, but no generated certificate record exists yet. This means the milestone is ready from progress perspective and still waiting for certificate generation.',
-                'status' => 'Ready for generation',
+                'title' => 'Your certificate is eligible and waiting for admin generation.',
+                'description' => 'All relevant learning flow is completed, but no certificate PDF has been generated yet.',
+                'status' => 'Eligible',
                 'cta_label' => 'Review Modules',
                 'cta_url' => route('modules.index'),
             ]),
             'download_available' => array_merge($payload, [
-                'title' => 'Your latest certificate is ready to download.',
-                'description' => 'YogaFX already has a generated certificate record for this student, so Home can surface it directly as a milestone without sending you into a separate certificate page.',
-                'status' => 'Download available',
+                'title' => 'Your generated certificate PDF is ready to download.',
+                'description' => 'Only certificates that already exist as stored PDFs are shown here, and each download stays tied to your own account.',
+                'status' => 'Generated',
                 'cta_label' => 'Download Latest Certificate',
                 'cta_url' => route('student.certificates.download', $latestCertificate),
                 'cta_kind' => 'download',

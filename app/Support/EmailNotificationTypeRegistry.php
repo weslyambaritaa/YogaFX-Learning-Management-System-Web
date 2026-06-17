@@ -63,6 +63,7 @@ class EmailNotificationTypeRegistry
                     '{{ user_name }}',
                     '{{ user_email }}',
                     '{{ assignment_type }}',
+                    '{{ dashboard_url }}',
                 ],
             ],
             [
@@ -114,6 +115,8 @@ class EmailNotificationTypeRegistry
                     '{{ user_name }}',
                     '{{ user_email }}',
                     '{{ reset_url }}',
+                    '{{ password_change_url }}',
+                    '{{ otp_code }}',
                     '{{ reset_expiry_minutes }}',
                     '{{ login_url }}',
                 ],
@@ -148,8 +151,8 @@ class EmailNotificationTypeRegistry
             [
                 'value' => self::REMINDER,
                 'label' => 'Reminder',
-                'description' => 'Re-engage students who have stopped working on lessons for one week.',
-                'trigger' => 'Triggered by a scheduled reminder job when a student has no lesson activity for 7 days.',
+                'description' => 'Re-engage students who have stopped working on lessons for the current inactivity test window.',
+                'trigger' => 'Triggered by a scheduled reminder job when a student has no lesson activity for 3 hours.',
                 'merge_tags' => [
                     '{{ user_name }}',
                     '{{ user_email }}',

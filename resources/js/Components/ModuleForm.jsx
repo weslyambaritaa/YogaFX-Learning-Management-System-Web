@@ -60,6 +60,96 @@ export default function ModuleForm({
                 </div>
             </div>
 
+            <div className="max-w-xs">
+                <InputLabel htmlFor="sort_order" value="Order" />
+                <TextInput
+                    id="sort_order"
+                    type="number"
+                    min="1"
+                    className="mt-1 block w-full"
+                    value={data.sort_order ?? ''}
+                    onChange={(event) => setData('sort_order', event.target.value)}
+                />
+                <InputError className="mt-2" message={errors.sort_order} />
+            </div>
+
+            <label className="flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3">
+                <input
+                    type="checkbox"
+                    checked={Boolean(data.certificate_enabled)}
+                    onChange={(event) =>
+                        setData('certificate_enabled', event.target.checked)
+                    }
+                    className="mt-1 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                />
+                <div>
+                    <div className="text-sm font-medium text-gray-900">
+                        Enable certificate on this module
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">
+                        If checked, students can download their generated certificates
+                        from this module page.
+                    </p>
+                </div>
+            </label>
+            <InputError className="mt-2" message={errors.certificate_enabled} />
+
+            <label className="flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3">
+                <input
+                    type="checkbox"
+                    checked={Boolean(data.ebook_enabled)}
+                    onChange={(event) =>
+                        setData('ebook_enabled', event.target.checked)
+                    }
+                    className="mt-1 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                />
+                <div>
+                    <div className="text-sm font-medium text-gray-900">
+                        Enable ebooks on this module
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">
+                        If checked, students will see all ebook entries from the ebook
+                        CRUD that match their access tier when opening this module.
+                    </p>
+                </div>
+            </label>
+            <InputError className="mt-2" message={errors.ebook_enabled} />
+
+            <label className="flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3">
+                <input
+                    type="checkbox"
+                    checked={Boolean(data.video_lecturer_enabled)}
+                    onChange={(event) =>
+                        setData('video_lecturer_enabled', event.target.checked)
+                    }
+                    className="mt-1 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                />
+                <div>
+                    <div className="text-sm font-medium text-gray-900">
+                        Enable video lecturer on this module
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">
+                        If checked, students will see all video lecturer entries from the
+                        course CRUD that match their access tier when opening this module.
+                    </p>
+                </div>
+            </label>
+            <InputError className="mt-2" message={errors.video_lecturer_enabled} />
+
+            <div>
+                <InputLabel htmlFor="description" value="Description" />
+                <textarea
+                    id="description"
+                    rows="5"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    value={data.description ?? ''}
+                    onChange={(event) =>
+                        setData('description', event.target.value)
+                    }
+                />
+                <InputError className="mt-2" message={errors.description} />
+            </div>
+
             <AccessTierMultiSelect
                 value={data.access_tier_ids}
                 onChange={(value) => setData('access_tier_ids', value)}

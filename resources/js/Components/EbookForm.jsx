@@ -3,7 +3,11 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { MAX_UPLOAD_SIZE_MB, validateUploadSize } from '@/lib/uploads';
+import { validateUploadSize } from '@/lib/uploads';
+
+const EBOOK_MAX_UPLOAD_SIZE_MB = 100;
+const EBOOK_MAX_UPLOAD_SIZE_BYTES = EBOOK_MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+const EBOOK_MAX_UPLOAD_SIZE_LABEL = `${EBOOK_MAX_UPLOAD_SIZE_MB} MB`;
 
 export default function EbookForm({
     data,
@@ -19,7 +23,10 @@ export default function EbookForm({
 }) {
     const handleFileChange = (event) => {
         const file = event.target.files?.[0] ?? null;
-        const errorMessage = validateUploadSize(file, 'ebook file');
+        const errorMessage = validateUploadSize(file, 'ebook file', {
+            maxUploadSizeBytes: EBOOK_MAX_UPLOAD_SIZE_BYTES,
+            maxUploadSizeLabel: EBOOK_MAX_UPLOAD_SIZE_LABEL,
+        });
 
         if (errorMessage) {
             setError?.('file', errorMessage);
@@ -64,7 +71,7 @@ export default function EbookForm({
                     className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                 />
                 <p className="mt-2 text-xs text-gray-500">
-                    Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.
+                    Maximum file size: {EBOOK_MAX_UPLOAD_SIZE_LABEL}.
                 </p>
                 <InputError className="mt-2" message={errors.file} />
                 {currentFileUrl && (

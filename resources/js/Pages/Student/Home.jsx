@@ -1,11 +1,28 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ChevronRight, Play, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+
+function formatDurationParts(totalSeconds) {
+    const safeSeconds = Math.max(0, Number(totalSeconds || 0));
+    const hours = Math.floor(safeSeconds / 3600)
+        .toString()
+        .padStart(2, '0');
+    const minutes = Math.floor((safeSeconds % 3600) / 60)
+        .toString()
+        .padStart(2, '0');
+    const seconds = Math.floor(safeSeconds % 60)
+        .toString()
+        .padStart(2, '0');
+
+    return { hours, minutes, seconds };
+}
 
 export default function StudentHome({
     homeStage,
     studentContext,
+    accessTimeSummary,
     continueLearning,
     progressSummary,
     nextStep,
@@ -16,6 +33,7 @@ export default function StudentHome({
     ebookResourcesSection,
     homeExperience,
 }) {
+    const hasReloadedRef = useRef(false);
     const studentName = studentContext?.display_name ?? 'Student';
     const fullName = studentContext?.full_name ?? studentName;
     const accessTier = studentContext?.access_tier ?? null;
@@ -45,6 +63,24 @@ export default function StudentHome({
         tierLabel,
         'Learning momentum is active',
     ];
+    const [runningAccessSeconds, setRunningAccessSeconds] = useState(
+        accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+    );
+
+    useEffect(() => {
+        if (hasReloadedRef.current) {
+            return;
+        }
+
+        hasReloadedRef.current = true;
+
+        router.reload({
+            only: ['availableModulesSection', 'progressSummary', 'nextStep', 'certificateMilestone', 'homeExperience'],
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }, []);
+
     const heroPrimaryKind = homeExperience?.primary_cta_kind ?? 'link';
     const heroSecondaryKind = 'link';
     const continueEngineLabel = homeExperience?.state === 'journey_complete'
@@ -88,6 +124,43 @@ export default function StudentHome({
             kind: certificateMilestone?.cta_kind === 'download' ? 'download' : 'link',
         },
     ];
+
+    useEffect(() => {
+        if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
+            setRunningAccessSeconds(
+                accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+            );
+
+            return undefined;
+        }
+
+        const updateTimer = () => {
+            const loginAt = new Date(
+                accessTimeSummary.active_session_login_at,
+            ).getTime();
+            const elapsed = Math.max(
+                0,
+                Math.floor((Date.now() - loginAt) / 1000),
+            );
+
+            setRunningAccessSeconds(
+                (accessTimeSummary.total_access_duration_seconds ?? 0) + elapsed,
+            );
+        };
+
+        updateTimer();
+
+        const interval = window.setInterval(updateTimer, 1000);
+
+        return () => window.clearInterval(interval);
+    }, [
+        accessTimeSummary?.active_session_login_at,
+        accessTimeSummary?.currently_active,
+        accessTimeSummary?.running_total_access_duration_seconds,
+        accessTimeSummary?.total_access_duration_seconds,
+    ]);
+
+    const runningAccessParts = formatDurationParts(runningAccessSeconds);
 
     return (
         <AuthenticatedLayout
@@ -200,13 +273,13 @@ export default function StudentHome({
                                 <div className="space-y-6">
                                     <div className="space-y-2">
                                         <p className="text-xs uppercase tracking-[0.24em] text-white/55">
-                                            {homeExperience?.highlight_label ?? 'Running Total'}
+                                            Total access time
                                         </p>
                                         <div className="text-3xl font-semibold tracking-[0.08em] text-white">
-                                            {homeExperience?.highlight_value ?? '132:65:06'}
+                                            {`${runningAccessParts.hours}:${runningAccessParts.minutes}:${runningAccessParts.seconds}`}
                                         </div>
                                         <p className="text-sm text-white/58">
-                                            {homeExperience?.highlight_caption ?? 'Login Time'}
+                                            Cumulative student access time
                                         </p>
                                     </div>
 
@@ -788,7 +861,9 @@ export default function StudentHome({
                                                     </div>
                                                     <div className="absolute bottom-4 left-4 right-4">
                                                         <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-                                                            {module.lesson_count} lessons
+                                                            {module.lesson_count > 0
+                                                                ? `${module.lesson_count} lessons`
+                                                                : 'Resource module'}
                                                         </p>
                                                         <h3 className="mt-2 text-xl font-semibold leading-tight text-white">
                                                             {module.title}
@@ -796,27 +871,37 @@ export default function StudentHome({
                                                     </div>
                                                 </div>
 
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center justify-between gap-3 text-sm text-white/55">
-                                                        <span>
-                                                            {module.completed_lessons} of {module.lesson_count} lessons completed
-                                                        </span>
-                                                        <span>{module.progress_percentage}%</span>
-                                                    </div>
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-between gap-3 text-sm text-white/55">
+                                                            <span>
+                                                            {module.lesson_count > 0
+                                                                ? `${module.completed_lessons} of ${module.lesson_count} lessons completed`
+                                                                : (module.assignments_count ?? 0) > 0
+                                                                  ? 'Assignment review is required before this module can be cleared'
+                                                                : module.status === 'completed'
+                                                                  ? 'Opened and completed in your journey'
+                                                                  : 'Open this module once to complete it'}
+                                                            </span>
+                                                            {module.show_progress ? (
+                                                                <span>{module.progress_percentage}%</span>
+                                                            ) : null}
+                                                        </div>
 
-                                                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                                                        <div
-                                                            className={[
-                                                                'h-full rounded-full transition-all',
-                                                                module.status === 'completed'
-                                                                    ? 'bg-emerald-400'
-                                                                    : 'bg-[#d5462f]',
-                                                            ].join(' ')}
-                                                            style={{
-                                                                width: `${module.progress_percentage}%`,
-                                                            }}
-                                                        />
-                                                    </div>
+                                                    {module.show_progress ? (
+                                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                            <div
+                                                                className={[
+                                                                    'h-full rounded-full transition-all',
+                                                                    module.status === 'completed'
+                                                                        ? 'bg-emerald-400'
+                                                                        : 'bg-[#d5462f]',
+                                                                ].join(' ')}
+                                                                style={{
+                                                                    width: `${module.progress_percentage}%`,
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : null}
 
                                                     <div className="flex items-center justify-between gap-3">
                                                         <p className="text-sm leading-6 text-white/58">
@@ -1049,9 +1134,7 @@ export default function StudentHome({
                                                     ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-200'
                                                     : certificateMilestone?.state === 'ready'
                                                       ? 'border-amber-300/30 bg-amber-300/15 text-amber-100'
-                                                      : certificateMilestone?.state === 'not_available'
-                                                        ? 'border-white/15 bg-black/25 text-white/65'
-                                                        : 'border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]',
+                                                      : 'border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]',
                                             ].join(' ')}
                                         >
                                             {certificateMilestone?.status ?? 'Certificate tracked'}
@@ -1132,24 +1215,48 @@ export default function StudentHome({
                                             Certificate context
                                         </p>
                                         <h3 className="text-xl font-semibold text-white">
-                                            Home makes certificate status visible without needing a
-                                            dedicated page
+                                            Your generated certificate PDFs appear here
                                         </h3>
                                     </div>
 
                                     <div className="rounded-[22px] border border-white/10 bg-white/5 p-4">
                                         <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                            Latest certificate
+                                            Available downloads
                                         </p>
-                                        <p className="mt-3 text-sm font-medium text-white">
-                                            {certificateMilestone?.latest_certificate?.type_label ??
-                                                'No generated certificate yet'}
-                                        </p>
-                                        <p className="mt-2 text-sm leading-6 text-white/60">
-                                            {certificateMilestone?.latest_certificate
-                                                ? `Version ${certificateMilestone.latest_certificate.version}, generated ${certificateMilestone.latest_certificate.generated_at}`
-                                                : 'When YogaFX generates a certificate record, the latest file details will appear here.'}
-                                        </p>
+                                        {(certificateMilestone?.generated_certificates ?? []).length ===
+                                        0 ? (
+                                            <p className="mt-3 text-sm leading-6 text-white/60">
+                                                No certificate PDF has been generated for your
+                                                account yet.
+                                            </p>
+                                        ) : (
+                                            <div className="mt-3 space-y-3">
+                                                {(certificateMilestone?.generated_certificates ??
+                                                    []).map((certificate) => (
+                                                    <div
+                                                        key={certificate.id}
+                                                        className="rounded-2xl border border-white/10 bg-black/20 p-3"
+                                                    >
+                                                        <p className="text-sm font-medium text-white">
+                                                            {certificate.type_label}
+                                                        </p>
+                                                        <p className="mt-1 text-sm text-white/60">
+                                                            Generated {certificate.generated_at}
+                                                        </p>
+                                                        <Button
+                                                            asChild
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="mt-3 rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                        >
+                                                            <a href={certificate.download_url}>
+                                                                Download PDF
+                                                            </a>
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

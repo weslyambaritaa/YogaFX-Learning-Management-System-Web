@@ -51,8 +51,8 @@ class AccessTier extends Model
         return $this->belongsToMany(Ebook::class, 'access_tier_ebook')->withTimestamps();
     }
 
-    public function courses(): HasMany
+    public function courses(): BelongsToMany
     {
-        return $this->hasMany(Course::class);
+        return $this->belongsToMany(Course::class, 'access_tier_course')->withTimestamps();
     }
 }

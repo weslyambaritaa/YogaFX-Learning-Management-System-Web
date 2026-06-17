@@ -47,4 +47,9 @@ class AssessmentAnswer extends Model
     {
         return $this->belongsTo(QuestionOption::class, 'question_option_id');
     }
+
+    public function questionOption(): BelongsTo
+    {
+        return $this->option();
+    }
 }

@@ -7,13 +7,18 @@ use App\Events\EmailNotifications\ResetPasswordRequested;
 use App\Mail\TemplatedNotificationMail;
 use App\Models\EmailLog;
 use App\Models\EmailTemplate;
+use App\Models\Module;
 use App\Models\User;
+use App\Support\EmailNotificationTemplateDefaults;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
+use RuntimeException;
 
 class EmailNotificationService
 {
+    private const EMAIL_PLACEHOLDER_PATTERN = '/{{\s*([\w_]+)\s*}}|(?<!{){\s*([\w_]+)\s*}(?!})/';
+
     public function findOrCreateTemplate(string $notificationType): EmailTemplate
     {
         return EmailTemplate::query()->firstOrCreate(
@@ -32,23 +37,95 @@ class EmailNotificationService
             ->first();
     }
 
-    public function sendTest(string $notificationType, string $sendTo): void
+    /**
+     * @return array{status: string, tone: string, message: string}
+     */
+    public function sendTest(string $notificationType, string $sendTo, ?int $moduleId = null): array
     {
-        $template = $this->findOrCreateTemplate($notificationType);
-        $payload = $this->samplePayloadFor($notificationType, $sendTo);
+        $template = $this->preparedTemplate($notificationType);
+        $payload = $this->samplePayloadFor($notificationType, $sendTo, $moduleId);
+        $delivery = [
+            'recipient_type' => 'test',
+            'recipient_email' => $sendTo,
+            'subject' => '',
+            'body' => '',
+            'variant_label' => 'Test Email',
+        ];
 
-        foreach ($this->buildDeliveries($template, $payload, $sendTo, true) as $delivery) {
-            $this->deliver(
+        try {
+            $delivery = $this->buildTestDelivery($template, $payload, $sendTo);
+            $mailer = $this->activeSendTestMailer();
+
+            if ($mailer['transport'] !== 'smtp') {
+                $this->storeLog(
+                    template: $template,
+                    notificationType: $notificationType,
+                    subject: $delivery['subject'],
+                    body: $delivery['body'],
+                    recipientEmail: $sendTo,
+                    recipientType: $delivery['recipient_type'],
+                    status: 'not_sent',
+                    referenceType: 'test',
+                    referenceId: null,
+                    errorMessage: $mailer['message'],
+                );
+
+                return [
+                    'status' => 'email-template-test-not-sent',
+                    'tone' => 'warning',
+                    'message' => $mailer['message'],
+                ];
+            }
+
+            Mail::mailer($mailer['name'])
+                ->to($sendTo)
+                ->send(new TemplatedNotificationMail(
+                    $delivery['subject'],
+                    $delivery['body'],
+                    $delivery['variant_label'],
+                ));
+
+            $this->storeLog(
                 template: $template,
                 notificationType: $notificationType,
                 subject: $delivery['subject'],
                 body: $delivery['body'],
                 recipientEmail: $sendTo,
                 recipientType: $delivery['recipient_type'],
+                status: 'sent',
                 referenceType: 'test',
                 referenceId: null,
-                variantLabel: $delivery['variant_label'],
             );
+
+            return [
+                'status' => 'email-template-test-sent',
+                'tone' => 'success',
+                'message' => sprintf(
+                    'Test email sent successfully to %s using the active SMTP mailer.',
+                    $sendTo,
+                ),
+            ];
+        } catch (Throwable $throwable) {
+            $this->storeLog(
+                template: $template,
+                notificationType: $notificationType,
+                subject: $delivery['subject'],
+                body: $delivery['body'],
+                recipientEmail: $sendTo,
+                recipientType: $delivery['recipient_type'],
+                status: 'failed',
+                referenceType: 'test',
+                referenceId: null,
+                errorMessage: $throwable->getMessage(),
+            );
+
+            return [
+                'status' => 'email-template-test-failed',
+                'tone' => 'error',
+                'message' => $throwable instanceof RuntimeException
+                    ? $throwable->getMessage()
+                    : 'SMTP delivery failed: '.$throwable->getMessage(),
+            ];
         }
     }
 
@@ -58,11 +135,9 @@ class EmailNotificationService
         ?string $referenceType = null,
         ?int $referenceId = null,
     ): void {
-        $template = EmailTemplate::query()
-            ->where('notification_type', $notificationType)
-            ->first();
+        $template = $this->preparedTemplate($notificationType);
 
-        if (! $template || ! $template->is_enabled) {
+        if (! $template->is_enabled) {
             return;
         }
 
@@ -81,9 +156,38 @@ class EmailNotificationService
         }
     }
 
+    public function sendAssignmentApprovedNotification(
+        array $payload,
+        ?string $referenceType = null,
+        ?int $referenceId = null,
+    ): void {
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED);
+
+        $recipientEmail = (string) ($payload['user_email'] ?? '');
+
+        if ($recipientEmail === '') {
+            return;
+        }
+
+        $subject = $this->render((string) $template->subject_user, $payload);
+        $body = $this->render((string) $template->body_user, $payload);
+
+        $this->deliver(
+            template: $template,
+            notificationType: EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED,
+            subject: $subject,
+            body: $body,
+            recipientEmail: $recipientEmail,
+            recipientType: 'user',
+            referenceType: $referenceType,
+            referenceId: $referenceId,
+            variantLabel: 'User Email',
+        );
+    }
+
     public function shouldHandlePasswordResetTemplate(): bool
     {
-        $template = $this->findTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
 
         return $template instanceof EmailTemplate
             && $template->is_enabled
@@ -108,15 +212,59 @@ class EmailNotificationService
         ], 'user', $user->id));
     }
 
+    public function sendStudentPasswordChangeRequested(
+        User $user,
+        string $changePasswordUrl,
+        string $otpCode,
+        int $expiresInMinutes,
+    ): void {
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
+        $payload = [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'reset_url' => $changePasswordUrl,
+            'password_change_url' => $changePasswordUrl,
+            'otp_code' => $otpCode,
+            'reset_expiry_minutes' => (string) $expiresInMinutes,
+            'login_url' => route('login'),
+        ];
+
+        $deliveries = $this->buildDeliveries($template, $payload);
+
+        foreach ($deliveries as $delivery) {
+            $body = $delivery['body'];
+
+            if ($delivery['recipient_type'] === 'user') {
+                $body = $this->ensurePasswordChangeVerificationBlock(
+                    $body,
+                    (string) $template->body_user,
+                    $payload,
+                );
+            }
+
+            $this->deliver(
+                template: $template,
+                notificationType: EmailNotificationTypeRegistry::RESET_PASSWORD,
+                subject: $delivery['subject'],
+                body: $body,
+                recipientEmail: $delivery['recipient_email'],
+                recipientType: $delivery['recipient_type'],
+                referenceType: 'student_password_change',
+                referenceId: $user->id,
+                variantLabel: $delivery['variant_label'],
+            );
+        }
+    }
+
     public function sendInactivityReminders(): int
     {
-        $template = $this->findTemplate(EmailNotificationTypeRegistry::REMINDER);
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::REMINDER);
 
-        if (! $template || ! $template->is_enabled) {
+        if (! $template->is_enabled) {
             return 0;
         }
 
-        $threshold = now()->subDays(7);
+        $threshold = now()->subHours(3);
         $sentCount = 0;
 
         User::query()
@@ -148,14 +296,14 @@ class EmailNotificationService
                     return;
                 }
 
-                $inactiveDays = (string) $lastProgressUpdate->diffInDays(now());
+                $inactiveHours = max($lastProgressUpdate->diffInHours(now()), 3);
 
                 event(new ReminderTriggered([
                     'user_name' => $user->name,
                     'user_email' => $user->email,
-                    'last_activity_date' => $lastProgressUpdate->toDateString(),
-                    'inactive_days' => $inactiveDays,
-                    'dashboard_url' => route('dashboard'),
+                    'last_activity_date' => $lastProgressUpdate->toDateTimeString(),
+                    'inactive_days' => (string) $inactiveHours,
+                    'dashboard_url' => route('student.dashboard'),
                     'login_url' => route('login'),
                 ], 'user', $user->id));
 
@@ -183,8 +331,8 @@ class EmailNotificationService
 
     public function render(string $content, array $payload): string
     {
-        return preg_replace_callback('/{{\s*([\w_]+)\s*}}/', function (array $matches) use ($payload) {
-            $key = $matches[1] ?? '';
+        return preg_replace_callback(self::EMAIL_PLACEHOLDER_PATTERN, function (array $matches) use ($payload) {
+            $key = $matches[1] !== '' ? $matches[1] : ($matches[2] ?? '');
 
             return (string) ($payload[$key] ?? '');
         }, $content) ?? $content;
@@ -238,6 +386,31 @@ class EmailNotificationService
             ->all();
     }
 
+    private function preparedTemplate(string $notificationType): EmailTemplate
+    {
+        $template = $this->findOrCreateTemplate($notificationType);
+        $defaults = EmailNotificationTemplateDefaults::for($notificationType);
+        $hasChanges = false;
+
+        foreach (['subject_user', 'body_user', 'subject_admin', 'body_admin'] as $field) {
+            if (! filled($template->{$field}) && filled($defaults[$field] ?? null)) {
+                $template->{$field} = $defaults[$field];
+                $hasChanges = true;
+            }
+        }
+
+        if (($defaults['auto_enable'] ?? false) && ! $template->is_enabled) {
+            $template->is_enabled = true;
+            $hasChanges = true;
+        }
+
+        if ($hasChanges) {
+            $template->save();
+        }
+
+        return $template;
+    }
+
     private function deliver(
         EmailTemplate $template,
         string $notificationType,
@@ -278,9 +451,146 @@ class EmailNotificationService
                 referenceId: $referenceId,
                 errorMessage: $throwable->getMessage(),
             );
-
-            throw $throwable;
+            report($throwable);
         }
+    }
+
+    /**
+     * @return array{recipient_type: string, recipient_email: string, subject: string, body: string, variant_label: string}
+     */
+    private function buildTestDelivery(
+        EmailTemplate $template,
+        array $payload,
+        string $sendTo,
+    ): array {
+        if (filled($template->subject_user) && filled($template->body_user)) {
+            return [
+                'recipient_type' => 'test_user',
+                'recipient_email' => $sendTo,
+                'subject' => $this->renderStrict((string) $template->subject_user, $payload, 'user subject'),
+                'body' => $this->renderStrict((string) $template->body_user, $payload, 'user body'),
+                'variant_label' => 'User Email',
+            ];
+        }
+
+        if (filled($template->subject_admin) && filled($template->body_admin)) {
+            return [
+                'recipient_type' => 'test_admin',
+                'recipient_email' => $sendTo,
+                'subject' => $this->renderStrict((string) $template->subject_admin, $payload, 'admin subject'),
+                'body' => $this->renderStrict((string) $template->body_admin, $payload, 'admin body'),
+                'variant_label' => 'Admin Email',
+            ];
+        }
+
+        throw new RuntimeException(
+            'The active template is incomplete. Fill at least one full email variant before sending a test.',
+        );
+    }
+
+    private function renderStrict(string $content, array $payload, string $context): string
+    {
+        $missingKeys = $this->missingMergeTags($content, $payload);
+
+        if ($missingKeys !== []) {
+            throw new RuntimeException(sprintf(
+                'The %s could not be rendered because test data is missing for: %s.',
+                $context,
+                implode(', ', $missingKeys),
+            ));
+        }
+
+        return $this->render($content, $payload);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function missingMergeTags(string $content, array $payload): array
+    {
+        return collect($this->extractPlaceholderKeys($content))
+            ->unique()
+            ->filter(function (string $key) use ($payload): bool {
+                if (! array_key_exists($key, $payload)) {
+                    return true;
+                }
+
+                $value = $payload[$key];
+
+                return $value === null || $value === '';
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extractPlaceholderKeys(string $content): array
+    {
+        preg_match_all(self::EMAIL_PLACEHOLDER_PATTERN, $content, $matches, PREG_SET_ORDER);
+
+        return collect($matches)
+            ->map(function (array $match): ?string {
+                $key = $match[1] !== '' ? $match[1] : ($match[2] ?? '');
+
+                return is_string($key) && $key !== '' ? $key : null;
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{name: string, transport: string, message: string}
+     */
+    private function activeSendTestMailer(): array
+    {
+        $mailerName = (string) config('mail.default', '');
+        $transport = (string) config("mail.mailers.{$mailerName}.transport", '');
+
+        if ($mailerName === '' || $transport === '') {
+            return [
+                'name' => $mailerName,
+                'transport' => $transport,
+                'message' => 'The active mailer is not configured correctly. Please check your mail configuration.',
+            ];
+        }
+
+        if ($transport !== 'smtp') {
+            return [
+                'name' => $mailerName,
+                'transport' => $transport,
+                'message' => sprintf(
+                    'The active mailer is set to "%s" (%s), so no real SMTP test email was sent. Set MAIL_MAILER=smtp to send a real test email.',
+                    $mailerName,
+                    $transport,
+                ),
+            ];
+        }
+
+        $missingConfig = collect([
+            'MAIL_HOST' => config("mail.mailers.{$mailerName}.host"),
+            'MAIL_PORT' => config("mail.mailers.{$mailerName}.port"),
+            'MAIL_FROM_ADDRESS' => config('mail.from.address'),
+        ])->filter(fn (mixed $value) => ! filled($value))
+            ->keys()
+            ->values()
+            ->all();
+
+        if ($missingConfig !== []) {
+            return [
+                'name' => $mailerName,
+                'transport' => $transport,
+                'message' => 'SMTP configuration is incomplete. Missing: '.implode(', ', $missingConfig).'.',
+            ];
+        }
+
+        return [
+            'name' => $mailerName,
+            'transport' => $transport,
+            'message' => '',
+        ];
     }
 
     private function storeLog(
@@ -310,21 +620,58 @@ class EmailNotificationService
         ]);
     }
 
-    private function samplePayloadFor(string $notificationType, string $sendTo): array
+    private function ensurePasswordChangeVerificationBlock(
+        string $renderedBody,
+        string $templateBody,
+        array $payload,
+    ): string {
+        $sections = [];
+
+        if (
+            ! str_contains($templateBody, 'otp_code')
+            && filled($payload['otp_code'] ?? null)
+        ) {
+            $sections[] = '<p>Your one-time password code: <strong>'.e((string) $payload['otp_code']).'</strong></p>';
+        }
+
+        if (
+            ! str_contains($templateBody, 'password_change_url')
+            && ! str_contains($templateBody, 'reset_url')
+            && filled($payload['password_change_url'] ?? null)
+        ) {
+            $url = (string) $payload['password_change_url'];
+            $escapedUrl = e($url);
+            $sections[] = '<p>Continue here to change your password: <a href="'.$escapedUrl.'">'.$escapedUrl.'</a></p>';
+        }
+
+        if ($sections === []) {
+            return $renderedBody;
+        }
+
+        return $renderedBody.implode('', $sections);
+    }
+
+    private function samplePayloadFor(string $notificationType, string $sendTo, ?int $moduleId = null): array
     {
+        $selectedModule = $moduleId !== null
+            ? Module::query()->find($moduleId, ['id', 'title'])
+            : null;
+
         $base = [
             'notification_type' => $notificationType,
-            'user_name' => 'YogaFX Sample Student',
+            'app_name' => config('app.name', 'YogaFX LMS'),
+            'user_name' => 'Test Student',
             'user_email' => $sendTo,
             'admin_email' => config('mail.from.address'),
             'assignment_type' => 'Standing & Floor',
             'feedback' => 'Please improve lighting and camera angle on the re-upload.',
-            'module_title' => 'Foundational Breath Module',
+            'lesson_title' => 'Sample Lesson',
+            'module_title' => $selectedModule?->title ?? 'Sample Module',
             'completion_date' => now()->format('Y-m-d H:i'),
             'module_progress' => '100%',
             'course_progress' => '67%',
             'study_time' => '3 hours 25 minutes',
-            'certificate_type' => 'Bikram Yoga Certificate',
+            'certificate_type' => 'YogaFX Certificate',
             'certificate_file_name' => 'sample-certificate.pdf',
             'access_tier' => 'master_class',
             'access_tier_label' => 'Masterclass',
@@ -337,15 +684,15 @@ class EmailNotificationService
                 'auth.passwords.'.config('auth.defaults.passwords').'.expire',
                 60,
             ),
-            'assessment_title' => 'Foundational Breathing Assessment',
-            'assessment_score' => '92',
+            'assessment_title' => 'Sample Assessment',
+            'assessment_score' => '85',
             'completed_at' => now()->format('Y-m-d H:i'),
-            'result_url' => route('dashboard'),
+            'result_url' => route('student.dashboard'),
             'course_title' => 'YogaFX Core Journey',
             'completion_date' => now()->toDateString(),
             'last_activity_date' => now()->subDays(8)->toDateString(),
             'inactive_days' => '8',
-            'dashboard_url' => route('dashboard'),
+            'dashboard_url' => route('student.dashboard'),
             'login_url' => route('login'),
         ];
 

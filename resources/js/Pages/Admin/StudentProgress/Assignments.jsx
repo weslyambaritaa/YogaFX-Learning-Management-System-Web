@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
 const statusMessages = {
     'student-progress-assignment-saved': 'Assignment has been saved.',
     'student-progress-assignment-email-sent': 'Assignment email has been sent.',
-    'student-progress-assignment-video-deleted': 'Assignment video has been deleted.',
+    'student-progress-assignment-video-deleted': 'Assignment submission data has been deleted.',
 };
 
 function AssignmentStatusBadge({ status }) {
@@ -241,16 +241,15 @@ export default function Assignments({
                                                 Send Email
                                             </Button>
                                             <DeleteConfirmationDialog
-                                                title="Delete assignment video?"
-                                                description="This will remove the submitted video reference from this assignment."
+                                                title="Delete assignment submission?"
+                                                description="This will remove the student submission data for this assignment, including the video, status, feedback, and related review information."
                                                 trigger={
                                                     <Button
                                                         type="button"
                                                         size="sm"
                                                         variant="destructive"
-                                                        disabled={!assignment.video}
                                                     >
-                                                        Delete Video
+                                                        Delete Assignment
                                                     </Button>
                                                 }
                                                 onConfirm={({ onFinish }) =>
@@ -259,7 +258,7 @@ export default function Assignments({
                                                         onFinish,
                                                     )
                                                 }
-                                                confirmLabel="Delete Video"
+                                                confirmLabel="Delete Assignment"
                                             />
                                         </div>
                                     </TableCell>

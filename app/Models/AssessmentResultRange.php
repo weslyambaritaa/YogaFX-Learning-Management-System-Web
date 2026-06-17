@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MaintainsSequentialSortOrder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AssessmentResultRange extends Model
 {
     use HasFactory;
+    use MaintainsSequentialSortOrder;
 
     protected function casts(): array
     {
@@ -37,5 +39,10 @@ class AssessmentResultRange extends Model
     public function attempts(): HasMany
     {
         return $this->hasMany(AssessmentAttempt::class, 'result_range_id');
+    }
+
+    protected function sortOrderScopeColumns(): array
+    {
+        return ['assessment_id'];
     }
 }

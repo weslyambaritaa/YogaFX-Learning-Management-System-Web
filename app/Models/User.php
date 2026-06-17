@@ -10,14 +10,16 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Auth\Notifications\ResetPassword as ResetPasswordNotification;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'name',
     'role',
+    'is_active',
     'access_tier_id',
+    'total_access_duration_seconds',
     'email',
     'password',
     'first_name',
@@ -42,7 +44,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
     public const ROLE_STUDENT = 'student';
@@ -75,7 +77,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
+            'is_active' => 'boolean',
             'hours_per_week' => 'integer',
+            'total_access_duration_seconds' => 'integer',
             'password' => 'hashed',
         ];
     }
@@ -105,9 +109,19 @@ class User extends Authenticatable
         return $this->hasMany(AssessmentProgress::class);
     }
 
+    public function userSessions(): HasMany
+    {
+        return $this->hasMany(UserSession::class);
+    }
+
     public function certificates(): HasMany
     {
         return $this->hasMany(Certificate::class);
+    }
+
+    public function studentModuleVisits(): HasMany
+    {
+        return $this->hasMany(StudentModuleVisit::class);
     }
 
     public function isAdmin(): bool
@@ -118,6 +132,19 @@ class User extends Authenticatable
     public function isStudent(): bool
     {
         return $this->role === self::ROLE_STUDENT;
+    }
+
+    public function isStudentAccountActive(): bool
+    {
+        if (! $this->isStudent()) {
+            return true;
+        }
+
+        if (! array_key_exists('is_active', $this->getAttributes())) {
+            return true;
+        }
+
+        return (bool) $this->getAttribute('is_active');
     }
 
     public function hasRole(string ...$roles): bool
@@ -136,6 +163,10 @@ class User extends Authenticatable
 
     public function postLoginRouteName(): string
     {
+        if ($this->isStudent() && ! $this->isStudentAccountActive()) {
+            return 'student.inactive';
+        }
+
         if ($this->isStudent() && ! $this->hasCompletedStudentProfile()) {
             return 'profile.edit';
         }
@@ -174,14 +205,6 @@ class User extends Authenticatable
 
     public function sendPasswordResetNotification($token): void
     {
-        $emailNotificationService = app(EmailNotificationService::class);
-
-        if ($emailNotificationService->shouldHandlePasswordResetTemplate()) {
-            $emailNotificationService->sendPasswordResetRequested($this, $token);
-
-            return;
-        }
-
-        $this->notify(new ResetPasswordNotification($token));
+        app(EmailNotificationService::class)->sendPasswordResetRequested($this, $token);
     }
 }

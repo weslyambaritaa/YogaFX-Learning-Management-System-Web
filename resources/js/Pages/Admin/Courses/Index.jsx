@@ -48,7 +48,7 @@ export default function CoursesIndex({ courses, status }) {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Course</th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Tier</th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">Access Tiers</th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">Action</th>
                                     </tr>
                                 </thead>
@@ -72,7 +72,11 @@ export default function CoursesIndex({ courses, status }) {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-gray-700">{course.access_tier}</td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {(course.access_tiers ?? []).length
+                                                    ? course.access_tiers.join(', ')
+                                                    : '-'}
+                                            </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-4">
                                                     <Link

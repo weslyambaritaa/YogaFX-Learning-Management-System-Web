@@ -1,8 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import StudentProfileForm from '@/Components/StudentProfileForm';
 import { Button } from '@/Components/ui/button';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { CheckCircle2, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { CheckCircle2, ChevronRight, KeyRound, ShieldCheck } from 'lucide-react';
 
 export default function Edit({ status }) {
     const user = usePage().props.auth.user;
@@ -29,11 +29,16 @@ export default function Edit({ status }) {
         why_yogafx: user.why_yogafx ?? '',
         how_did_you_find_us: user.how_did_you_find_us ?? '',
     });
-
     const submit = (e) => {
         e.preventDefault();
 
         patch(route('profile.update'));
+    };
+
+    const requestPasswordChange = () => {
+        router.post(route('profile.password.request'), {}, {
+            preserveScroll: true,
+        });
     };
 
     return (
@@ -152,6 +157,12 @@ export default function Edit({ status }) {
                     </div>
                 )}
 
+                {status === 'student-password-change-email-sent' && (
+                    <div className="rounded-[24px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
+                        We sent a password change email to your student inbox. Open it to get the OTP code and secure link for your next step.
+                    </div>
+                )}
+
                 <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-6 lg:p-8">
                     <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="space-y-2">
@@ -184,6 +195,65 @@ export default function Edit({ status }) {
                             submitLabel="Save Profile"
                             variant="immersive"
                         />
+                    </div>
+                </section>
+
+                <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-6 lg:p-8">
+                    <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="space-y-2">
+                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                Security
+                            </p>
+                            <h2 className="text-3xl font-semibold tracking-tight text-white">
+                                Change your password safely
+                            </h2>
+                            <p className="max-w-2xl text-sm leading-7 text-white/60">
+                                Start a student-only password change request from
+                                here. YogaFX will send an email to your student
+                                inbox with a secure link and OTP code, then you can
+                                set a new password from that flow.
+                            </p>
+                        </div>
+
+                        <div className="rounded-full border border-white/12 bg-black/20 px-4 py-2 text-sm text-white/62">
+                            Email verification required
+                        </div>
+                    </div>
+
+                    <div className="rounded-[28px] border border-white/10 bg-[#100d0c] p-5 sm:p-6">
+                        <div className="mb-6 flex items-start gap-4">
+                            <div className="rounded-full border border-white/10 bg-white/5 p-3">
+                                <KeyRound className="size-5 text-[#ffd7cf]" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-xl font-semibold text-white">
+                                    Request password change
+                                </h3>
+                                <p className="max-w-2xl text-sm leading-7 text-white/60">
+                                    Use the button below to start the secure student
+                                    password-change flow. The email will contain the
+                                    OTP code and the direct link that opens the final
+                                    password form.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="max-w-2xl text-sm leading-7 text-white/48">
+                                This profile flow is intentionally separate from
+                                forgot/reset password so the student can trigger a
+                                secure change request directly from the signed-in
+                                experience.
+                            </p>
+
+                            <Button
+                                type="button"
+                                onClick={requestPasswordChange}
+                                className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                            >
+                                Change Password
+                            </Button>
+                        </div>
                     </div>
                 </section>
 

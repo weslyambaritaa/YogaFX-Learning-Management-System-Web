@@ -15,4 +15,4 @@ Artisan::command('email-notifications:send-reminders', function (EmailNotificati
     $this->info("Reminder notifications sent: {$sentCount}");
 })->purpose('Send reminder email notifications to inactive students');
 
-Schedule::command('email-notifications:send-reminders')->daily();
+Schedule::command('email-notifications:send-reminders')->hourly();

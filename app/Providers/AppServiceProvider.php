@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
                 'access_tier' => $user->accessTier?->slug,
                 'access_tier_label' => $user->accessTier?->name,
                 'registration_date' => optional($user->created_at)->toDateString() ?? now()->toDateString(),
-                'dashboard_url' => route('dashboard'),
+                'dashboard_url' => route('student.dashboard'),
                 'login_url' => route('login'),
             ], 'user', $user->id));
         });

@@ -6,7 +6,7 @@ export default function CreateCourse({ accessTiers }) {
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         title: '',
         url_slug: '',
-        access_tier_id: '',
+        access_tier_ids: [],
         description: '',
         thumbnail: null,
         video: '',

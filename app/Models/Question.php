@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MaintainsSequentialSortOrder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -45,6 +46,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Question extends Model
 {
     use HasFactory;
+    use MaintainsSequentialSortOrder;
 
     public const TYPE_YES_NO_MAYBE = 'yes_no_maybe';
     public const TYPE_MULTIPLE_CHOICE_CHECKBOXES = 'multiple_choice_checkboxes';
@@ -129,5 +131,10 @@ class Question extends Model
     public function isInfoScreen(): bool
     {
         return $this->question_type === self::TYPE_INFO_SCREEN;
+    }
+
+    protected function sortOrderScopeColumns(): array
+    {
+        return ['assessment_id'];
     }
 }

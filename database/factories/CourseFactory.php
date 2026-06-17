@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Models\AccessTier;
 use App\Models\Course;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -26,10 +25,9 @@ class CourseFactory extends Factory
         return [
             'title' => Str::title($title),
             'url_slug' => Str::slug($title),
-            'access_tier_id' => AccessTier::factory(),
             'description' => fake()->paragraph(),
             'thumbnail' => 'courses/default-thumbnail.jpg',
-            'video' => fake()->url(),
+            'video' => (string) fake()->uuid(),
         ];
     }
 }

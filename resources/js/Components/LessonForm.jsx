@@ -29,23 +29,51 @@ export default function LessonForm({
     submitLabel = 'Save Lesson',
     currentThumbnailUrl = null,
     currentWorkbookPreview = null,
+    currentAudioUrl = null,
 }) {
     const maxUploadSizeBytes =
         uploadConstraints?.max_size_bytes ?? MAX_UPLOAD_SIZE_MB * 1024 * 1024;
     const maxUploadSizeLabel =
         uploadConstraints?.max_size_label ?? `${MAX_UPLOAD_SIZE_MB} MB`;
+    const audioMaxUploadSizeBytes =
+        uploadConstraints?.audio_max_size_bytes ?? maxUploadSizeBytes;
+    const audioMaxUploadSizeLabel =
+        uploadConstraints?.audio_max_size_label ?? maxUploadSizeLabel;
+    const workbookMaxUploadSizeBytes =
+        uploadConstraints?.workbook_max_size_bytes ?? maxUploadSizeBytes;
+    const workbookMaxUploadSizeLabel =
+        uploadConstraints?.workbook_max_size_label ?? maxUploadSizeLabel;
 
     const handleFileChange = (field, label) => (event) => {
-        const file = event.target.files?.[0] ?? null;
+        const file = event.currentTarget.files?.[0] ?? null;
+
+        if (file !== null && !(file instanceof File)) {
+            setError?.(field, `The ${label} must be uploaded as a valid file.`);
+            setData(field, null);
+            event.currentTarget.value = '';
+
+            return;
+        }
+
+        const isAudioField = field === 'audio';
+        const isWorkbookField = field === 'workbook';
         const errorMessage = validateUploadSize(file, label, {
-            maxUploadSizeBytes,
-            maxUploadSizeLabel,
+            maxUploadSizeBytes: isAudioField
+                ? audioMaxUploadSizeBytes
+                : isWorkbookField
+                  ? workbookMaxUploadSizeBytes
+                  : maxUploadSizeBytes,
+            maxUploadSizeLabel: isAudioField
+                ? audioMaxUploadSizeLabel
+                : isWorkbookField
+                  ? workbookMaxUploadSizeLabel
+                  : maxUploadSizeLabel,
         });
 
         if (errorMessage) {
             setError?.(field, errorMessage);
             setData(field, null);
-            event.target.value = '';
+            event.currentTarget.value = '';
 
             return;
         }
@@ -55,7 +83,7 @@ export default function LessonForm({
     };
 
     return (
-        <form onSubmit={onSubmit} className="space-y-6">
+        <form onSubmit={onSubmit} encType="multipart/form-data" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
                 <div>
                     <InputLabel htmlFor="title" value="Title" />
@@ -103,7 +131,8 @@ export default function LessonForm({
                     <option value="">No scoreboard linked</option>
                     {scoreboards.map((scoreboard) => (
                         <option key={scoreboard.id} value={scoreboard.id}>
-                            {scoreboard.title} ({scoreboard.status}{scoreboard.is_active ? ', active' : ', inactive'})
+                            {scoreboard.title} ({scoreboard.status}
+                            {scoreboard.is_active ? ', active' : ', inactive'})
                         </option>
                     ))}
                 </select>
@@ -119,25 +148,42 @@ export default function LessonForm({
 
             <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                    <InputLabel htmlFor="video" value="Video URL / Reference" />
+                    <InputLabel htmlFor="lesson_video_id" value="Lesson Video ID" />
                     <TextInput
-                        id="video"
+                        id="lesson_video_id"
                         className="mt-1 block w-full"
-                        value={data.video ?? ''}
-                        onChange={(event) => setData('video', event.target.value)}
+                        value={data.lesson_video_id ?? ''}
+                        onChange={(event) => setData('lesson_video_id', event.target.value)}
                     />
-                    <InputError className="mt-2" message={errors.video} />
+                    <p className="mt-2 text-xs text-gray-500">
+                        Paste only the Bunny Stream video GUID from the same Bunny library
+                        used by this environment. Full video URLs, playlist URLs, and non-Bunny
+                        links are rejected.
+                    </p>
+                    <InputError className="mt-2" message={errors.lesson_video_id} />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="audio" value="Audio URL / Reference" />
-                    <TextInput
+                    <InputLabel htmlFor="audio" value="Audio File (.mp3)" />
+                    <input
                         id="audio"
-                        className="mt-1 block w-full"
-                        value={data.audio ?? ''}
-                        onChange={(event) => setData('audio', event.target.value)}
+                        name="audio"
+                        type="file"
+                        accept=".mp3,audio/mpeg"
+                        onChange={handleFileChange('audio', 'audio file')}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                     />
+                    <p className="mt-2 text-xs text-gray-500">
+                        Upload an MP3 file. Audio is stored in Bunny Storage and rendered as a
+                        separate player on the student lesson page. Maximum file size:{' '}
+                        {audioMaxUploadSizeLabel}.
+                    </p>
                     <InputError className="mt-2" message={errors.audio} />
+                    {currentAudioUrl && (
+                        <audio controls src={currentAudioUrl} className="mt-4 w-full">
+                            Your browser does not support the audio element.
+                        </audio>
+                    )}
                 </div>
             </div>
 
@@ -158,13 +204,15 @@ export default function LessonForm({
                     <InputLabel htmlFor="thumbnail" value="Thumbnail" />
                     <input
                         id="thumbnail"
+                        name="thumbnail"
                         type="file"
                         accept="image/*,.svg,.svgz,.webp,.avif,.heic,.heif"
                         onChange={handleFileChange('thumbnail', 'thumbnail')}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                     />
                     <p className="mt-2 text-xs text-gray-500">
-                        Maximum file size: {maxUploadSizeLabel}.
+                        Maximum file size: {maxUploadSizeLabel}. Uploaded assets are sent to
+                        Bunny Storage.
                     </p>
                     <InputError className="mt-2" message={errors.thumbnail} />
                     {currentThumbnailUrl && (
@@ -180,13 +228,15 @@ export default function LessonForm({
                     <InputLabel htmlFor="workbook" value="Workbook File" />
                     <input
                         id="workbook"
+                        name="workbook"
                         type="file"
                         accept=".pdf,.doc,.docx"
                         onChange={handleFileChange('workbook', 'workbook file')}
                         className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
                     />
                     <p className="mt-2 text-xs text-gray-500">
-                        Maximum file size: {maxUploadSizeLabel}.
+                        Maximum file size: {workbookMaxUploadSizeLabel}. Workbook files are stored in
+                        Bunny Storage.
                     </p>
                     <InputError className="mt-2" message={errors.workbook} />
                     {currentWorkbookPreview && (
@@ -221,7 +271,7 @@ export default function LessonForm({
 
                                     <Button asChild>
                                         <a href={currentWorkbookPreview.download_url}>
-                                            Download Workbook
+                                            Open Workbook Asset
                                         </a>
                                     </Button>
                                 </div>

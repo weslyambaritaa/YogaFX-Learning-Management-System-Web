@@ -2,9 +2,14 @@ import LessonForm from '@/Components/LessonForm';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function EditLesson({ lesson, accessTiers, modules, scoreboards, status }) {
-    const { data, setData, patch, processing, errors } = useForm({
-export default function EditLesson({ lesson, accessTiers, modules, uploadConstraints, status }) {
+export default function EditLesson({
+    lesson,
+    accessTiers,
+    modules,
+    scoreboards,
+    uploadConstraints,
+    status,
+}) {
     const { data, setData, patch, processing, errors, setError, clearErrors } = useForm({
         module_id: lesson.module_id ?? '',
         access_tier_ids: lesson.access_tier_ids ?? [],
@@ -12,8 +17,8 @@ export default function EditLesson({ lesson, accessTiers, modules, uploadConstra
         title: lesson.title ?? '',
         thumbnail: null,
         workbook: null,
-        video: lesson.video ?? '',
-        audio: lesson.audio ?? '',
+        audio: null,
+        lesson_video_id: lesson.lesson_video_id ?? '',
         content: lesson.content ?? '',
     });
 
@@ -67,6 +72,7 @@ export default function EditLesson({ lesson, accessTiers, modules, uploadConstra
                             submitLabel="Save Lesson"
                             currentThumbnailUrl={lesson.thumbnail_url}
                             currentWorkbookPreview={lesson.workbook_preview}
+                            currentAudioUrl={lesson.audio_preview_url}
                         />
                     </div>
                 </div>
