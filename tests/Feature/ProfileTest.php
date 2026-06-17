@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AccessTier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -75,6 +76,46 @@ class ProfileTest extends TestCase
         $response->assertSee($student->name);
     }
 
+    public function test_admin_profile_page_is_displayed(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.profile.edit'))
+            ->assertOk();
+    }
+
+    public function test_admin_can_update_their_profile_and_password(): void
+    {
+        $admin = User::factory()->admin()->create([
+            'first_name' => 'Old',
+            'last_name' => 'Admin',
+            'email' => 'old-admin@example.com',
+            'password' => Hash::make('old-password'),
+        ]);
+
+        $response = $this->actingAs($admin)->patch(route('admin.profile.update'), [
+            'first_name' => 'Wesly',
+            'last_name' => 'Ambarita',
+            'email' => 'weslyambarita4@gmail.com',
+            'current_password' => 'old-password',
+            'password' => 'weslyambarita4',
+            'password_confirmation' => 'weslyambarita4',
+        ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('admin.profile.edit'));
+
+        $admin->refresh();
+
+        $this->assertSame('Wesly Ambarita', $admin->name);
+        $this->assertSame('Wesly', $admin->first_name);
+        $this->assertSame('Ambarita', $admin->last_name);
+        $this->assertSame('weslyambarita4@gmail.com', $admin->email);
+        $this->assertTrue(Hash::check('weslyambarita4', $admin->password));
+    }
+
     public function test_admin_can_update_student_profile(): void
     {
         $admin = User::factory()->admin()->create();
@@ -130,6 +171,10 @@ class ProfileTest extends TestCase
 
         $this->actingAs($student)
             ->get(route('admin.student-progress.students.edit', $otherStudent))
+            ->assertForbidden();
+
+        $this->actingAs($student)
+            ->get(route('admin.profile.edit'))
             ->assertForbidden();
     }
 }

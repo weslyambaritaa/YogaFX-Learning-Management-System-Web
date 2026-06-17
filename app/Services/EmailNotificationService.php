@@ -7,17 +7,21 @@ use App\Events\EmailNotifications\ResetPasswordRequested;
 use App\Mail\TemplatedNotificationMail;
 use App\Models\EmailLog;
 use App\Models\EmailTemplate;
+use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
+use App\Models\UserSession;
 use App\Support\EmailNotificationTemplateDefaults;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 use RuntimeException;
 
 class EmailNotificationService
 {
     private const EMAIL_PLACEHOLDER_PATTERN = '/{{\s*([\w_]+)\s*}}|(?<!{){\s*([\w_]+)\s*}(?!})/';
+    private const REMINDER_INACTIVITY_THRESHOLD_HOURS = 1;
 
     public function findOrCreateTemplate(string $notificationType): EmailTemplate
     {
@@ -163,26 +167,23 @@ class EmailNotificationService
     ): void {
         $template = $this->preparedTemplate(EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED);
 
-        $recipientEmail = (string) ($payload['user_email'] ?? '');
-
-        if ($recipientEmail === '') {
+        if (! $template->is_enabled) {
             return;
         }
 
-        $subject = $this->render((string) $template->subject_user, $payload);
-        $body = $this->render((string) $template->body_user, $payload);
-
-        $this->deliver(
-            template: $template,
-            notificationType: EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED,
-            subject: $subject,
-            body: $body,
-            recipientEmail: $recipientEmail,
-            recipientType: 'user',
-            referenceType: $referenceType,
-            referenceId: $referenceId,
-            variantLabel: 'User Email',
-        );
+        foreach ($this->buildDeliveries($template, $payload) as $delivery) {
+            $this->deliver(
+                template: $template,
+                notificationType: EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED,
+                subject: $delivery['subject'],
+                body: $delivery['body'],
+                recipientEmail: $delivery['recipient_email'],
+                recipientType: $delivery['recipient_type'],
+                referenceType: $referenceType,
+                referenceId: $referenceId,
+                variantLabel: $delivery['variant_label'],
+            );
+        }
     }
 
     public function shouldHandlePasswordResetTemplate(): bool
@@ -264,23 +265,21 @@ class EmailNotificationService
             return 0;
         }
 
-        $threshold = now()->subHours(3);
+        $threshold = now()->subHours(self::REMINDER_INACTIVITY_THRESHOLD_HOURS);
         $sentCount = 0;
 
         User::query()
             ->where('role', User::ROLE_STUDENT)
             ->whereNotNull('access_tier_id')
-            ->with(['lessonProgresses' => fn ($query) => $query
-                ->select('id', 'user_id', 'updated_at')
-                ->orderByDesc('updated_at')])
-            ->whereHas('lessonProgresses')
             ->get()
             ->each(function (User $user) use ($threshold, &$sentCount): void {
-                $lastProgressUpdate = optional(
-                    $user->lessonProgresses->sortByDesc('updated_at')->first(),
-                )->updated_at;
+                if ($this->studentHasCompletedAccessibleCourse($user)) {
+                    return;
+                }
 
-                if (! $lastProgressUpdate || $lastProgressUpdate->gt($threshold)) {
+                $lastLoginAt = $this->latestStudentLoginAt($user);
+
+                if (! $lastLoginAt || $lastLoginAt->gt($threshold)) {
                     return;
                 }
 
@@ -296,12 +295,12 @@ class EmailNotificationService
                     return;
                 }
 
-                $inactiveHours = max($lastProgressUpdate->diffInHours(now()), 3);
+                $inactiveHours = max($lastLoginAt->diffInHours(now()), self::REMINDER_INACTIVITY_THRESHOLD_HOURS);
 
                 event(new ReminderTriggered([
                     'user_name' => $user->name,
                     'user_email' => $user->email,
-                    'last_activity_date' => $lastProgressUpdate->toDateTimeString(),
+                    'last_activity_date' => $lastLoginAt->toDateTimeString(),
                     'inactive_days' => (string) $inactiveHours,
                     'dashboard_url' => route('student.dashboard'),
                     'login_url' => route('login'),
@@ -699,5 +698,68 @@ class EmailNotificationService
         $base['notification_type'] = $notificationType;
 
         return $base;
+    }
+
+    private function latestStudentLoginAt(User $user)
+    {
+        if ($this->studentSessionSchemaReady()) {
+            $latestSession = UserSession::query()
+                ->where('user_id', $user->id)
+                ->orderByDesc('login_at')
+                ->first(['login_at']);
+
+            if ($latestSession?->login_at) {
+                return $latestSession->login_at;
+            }
+        }
+
+        return $user->created_at;
+    }
+
+    private function studentHasCompletedAccessibleCourse(User $user): bool
+    {
+        if ($user->access_tier_id === null) {
+            return false;
+        }
+
+        $accessibleModules = Module::query()
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user->access_tier_id))
+            ->with([
+                'lessons' => fn ($query) => $query
+                    ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $user->access_tier_id))
+                    ->orderBy('sort_order')
+                    ->orderBy('title'),
+            ])
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get(['id']);
+
+        $modulesWithLessons = $accessibleModules
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->values();
+
+        if ($modulesWithLessons->isEmpty()) {
+            return false;
+        }
+
+        $completedLessonIds = LessonProgress::query()
+            ->where('user_id', $user->id)
+            ->where('is_done', true)
+            ->whereIn('lesson_id', $modulesWithLessons->flatMap(fn (Module $module) => $module->lessons->pluck('id')))
+            ->pluck('lesson_id')
+            ->map(fn ($lessonId) => (int) $lessonId)
+            ->unique()
+            ->flip();
+
+        return $modulesWithLessons->every(
+            fn (Module $module) => $module->lessons->every(
+                fn ($lesson) => $completedLessonIds->has((int) $lesson->id),
+            ),
+        );
+    }
+
+    private function studentSessionSchemaReady(): bool
+    {
+        return Schema::hasTable('user_sessions');
     }
 }
