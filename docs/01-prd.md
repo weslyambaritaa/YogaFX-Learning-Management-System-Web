@@ -206,6 +206,7 @@ Aturan implementasi saat ini:
   - user subject/body
   - send test
 - semua email test dan automated harus dicatat ke email logs
+- reminder harus memakai inactivity login student dan hanya berlaku untuk student yang belum complete seluruh perjalanan module tier-nya
 
 ### 6.12 Upload Rules
 - semua upload file yang relevan dibatasi maksimal 10 MB

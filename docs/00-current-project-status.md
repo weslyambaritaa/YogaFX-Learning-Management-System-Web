@@ -173,6 +173,11 @@ Area detail aktif:
 - email logs tersimpan ke database
 - reminder memiliki scheduler harian
 
+Catatan reminder aktif:
+- reminder memakai inactivity login student, bukan update lesson progress
+- reminder hanya dikirim ke student yang belum menyelesaikan seluruh module yang bisa diakses tier-nya
+- threshold testing saat ini 1 jam dan implementasi disiapkan agar mudah diubah
+
 ---
 
 ## 3. Keputusan Teknis Penting Yang Sudah Aktif
