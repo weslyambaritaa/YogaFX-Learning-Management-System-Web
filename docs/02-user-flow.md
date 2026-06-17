@@ -145,6 +145,13 @@ Student dashboard saat ini masih berupa halaman foundation, belum final premium 
 - user menu
 - logout
 
+### 8.1 Admin Account Profile
+1. Admin menekan user menu di kanan atas.
+2. Admin memilih `Profile`.
+3. Sistem membuka halaman profile admin.
+4. Admin dapat memperbarui first name, last name, email, dan password.
+5. Setelah save berhasil, sistem tetap berada di halaman profile admin dengan flash success message.
+
 ---
 
 ## 9. Admin Content Management Flow
@@ -167,6 +174,7 @@ Student dashboard saat ini masih berupa halaman foundation, belum final premium 
    - jika valid dan diperbolehkan, data dihapus
 
 ### Current Rules
+- access tier dapat memiliki thumbnail
 - module, lesson, dan ebook memakai multi-tier access
 - course memakai single-tier access
 - lesson tier harus subset dari tier module induk

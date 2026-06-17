@@ -45,5 +45,33 @@ class StudentUserSeeder extends Seeder
                 'how_did_you_find_us' => 'Instagram',
             ],
         );
+
+        User::query()->updateOrCreate(
+            ['email' => 'student2@yogafx.test'],
+            [
+                'name' => 'YogaFX Student Two',
+                'role' => User::ROLE_STUDENT,
+                'access_tier_id' => $onlineTierId,
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+                'first_name' => 'YogaFX',
+                'last_name' => 'Student Two',
+                'whatsapp' => '081234567891',
+                'preferred_certificate_picture' => null,
+                'profile_photo' => null,
+                'instagram' => '@yogafxstudent2',
+                'country' => 'Indonesia',
+                'birth_date' => '1999-01-01',
+                'gender' => 'prefer_not_to_say',
+                'practicing_yoga_for' => '1-3 years',
+                'yoga_sequence_experience' => 'Beginner',
+                'hours_per_week' => 4,
+                'current_fitness_level' => 'Intermediate',
+                'flexibility_rating' => 'Moderate',
+                'motivation' => 'Improve yoga consistency and deepen practice.',
+                'why_yogafx' => 'To study in a structured YogaFX learning path.',
+                'how_did_you_find_us' => 'Instagram',
+            ],
+        );
     }
 }

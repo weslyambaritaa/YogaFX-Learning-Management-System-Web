@@ -63,6 +63,7 @@ Pola UI yang sudah aktif dan harus dipertahankan:
 - redirect ke list page setelah create/update berhasil
 - helper text pada field upload
 - error message dekat dengan field terkait
+- preview thumbnail saat file visual sudah tersedia
 
 ---
 

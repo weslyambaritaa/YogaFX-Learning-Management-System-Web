@@ -64,7 +64,7 @@ export default function AssignmentForm({
                         id="status"
                         value={data.status}
                         onChange={(event) => setData('status', event.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     >
                         {assignmentStatuses.map((status) => (
                             <option key={status.value} value={status.value}>

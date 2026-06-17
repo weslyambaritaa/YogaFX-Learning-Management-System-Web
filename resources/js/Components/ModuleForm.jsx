@@ -141,7 +141,7 @@ export default function ModuleForm({
                 <textarea
                     id="description"
                     rows="5"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     value={data.description ?? ''}
                     onChange={(event) =>
                         setData('description', event.target.value)

@@ -79,6 +79,7 @@ Key fields:
 - `name`
 - `slug`
 - `description`
+- `thumbnail`
 - `is_active`
 
 Relationships:
@@ -336,6 +337,7 @@ erDiagram
         string name
         string slug
         text description
+        string thumbnail
         boolean is_active
     }
 

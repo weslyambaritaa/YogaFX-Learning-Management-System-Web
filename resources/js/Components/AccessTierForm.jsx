@@ -10,6 +10,7 @@ export default function AccessTierForm({
     processing,
     onSubmit,
     submitLabel = 'Save Access Tier',
+    currentThumbnailUrl = null,
 }) {
     return (
         <form onSubmit={onSubmit} className="space-y-6">
@@ -36,6 +37,20 @@ export default function AccessTierForm({
                     />
                     <InputError className="mt-2" message={errors.slug} />
                 </div>
+
+                <div>
+                    <InputLabel htmlFor="price_amount" value="Program Price" />
+                    <TextInput
+                        id="price_amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="mt-1 block w-full"
+                        value={data.price_amount}
+                        onChange={(event) => setData('price_amount', event.target.value)}
+                    />
+                    <InputError className="mt-2" message={errors.price_amount} />
+                </div>
             </div>
 
             <div>
@@ -45,9 +60,34 @@ export default function AccessTierForm({
                     rows="4"
                     value={data.description}
                     onChange={(event) => setData('description', event.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
                 <InputError className="mt-2" message={errors.description} />
+            </div>
+
+            <div>
+                <InputLabel htmlFor="thumbnail" value="Thumbnail" />
+                <input
+                    id="thumbnail"
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setData('thumbnail', event.target.files?.[0] ?? null)}
+                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                    Upload an image thumbnail up to 10 MB for this access tier.
+                </p>
+                <InputError className="mt-2" message={errors.thumbnail} />
+
+                {currentThumbnailUrl && (
+                    <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                        <img
+                            src={currentThumbnailUrl}
+                            alt="Current access tier thumbnail"
+                            className="h-44 w-full object-cover"
+                        />
+                    </div>
+                )}
             </div>
 
             <div>
@@ -58,7 +98,7 @@ export default function AccessTierForm({
                     onChange={(event) =>
                         setData('is_active', event.target.value === '1')
                     }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 >
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>

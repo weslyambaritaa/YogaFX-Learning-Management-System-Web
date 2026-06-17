@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AssignmentSubmission;
+use App\Models\AccessTier;
 use App\Models\Assessment;
 use App\Models\AssessmentDesign;
 use App\Models\Course;
@@ -74,6 +75,12 @@ class ContentFileController extends Controller
             ],
             'course' => [
                 'model' => Course::class,
+                'fields' => [
+                    'thumbnail' => ['download' => false],
+                ],
+            ],
+            'access-tier' => [
+                'model' => AccessTier::class,
                 'fields' => [
                     'thumbnail' => ['download' => false],
                 ],

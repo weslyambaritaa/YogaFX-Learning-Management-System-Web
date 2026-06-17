@@ -13,9 +13,9 @@ export default function Edit({ status }) {
         first_name: user.first_name ?? '',
         last_name: user.last_name ?? '',
         email: user.email ?? '',
-        whatsapp: user.whatsapp ?? '',
-        preferred_certificate_picture: user.preferred_certificate_picture ?? '',
-        profile_photo: user.profile_photo ?? '',
+        whatsapp_country_code: user.whatsapp_country_code ?? '+62',
+        whatsapp_number: user.whatsapp_number ?? '',
+        profile_photo: null,
         instagram: user.instagram ?? '',
         country: user.country ?? '',
         birth_date: user.birth_date ?? '',
@@ -32,7 +32,9 @@ export default function Edit({ status }) {
     const submit = (e) => {
         e.preventDefault();
 
-        patch(route('profile.update'));
+        patch(route('profile.update'), {
+            forceFormData: true,
+        });
     };
 
     const requestPasswordChange = () => {
@@ -194,6 +196,7 @@ export default function Edit({ status }) {
                             onSubmit={submit}
                             submitLabel="Save Profile"
                             variant="immersive"
+                            currentProfilePhotoUrl={user.profile_photo}
                         />
                     </div>
                 </section>

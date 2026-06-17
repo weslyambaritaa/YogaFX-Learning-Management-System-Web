@@ -26,6 +26,8 @@ class AccessTierFactory extends Factory
             'name' => Str::title($name),
             'slug' => Str::slug($name, '_'),
             'description' => fake()->sentence(),
+            'thumbnail' => null,
+            'price_amount' => fake()->randomFloat(2, 49, 999),
             'is_active' => true,
         ];
     }

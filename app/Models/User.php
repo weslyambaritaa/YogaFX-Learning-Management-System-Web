@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -24,7 +26,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'first_name',
     'last_name',
     'whatsapp',
-    'preferred_certificate_picture',
     'profile_photo',
     'instagram',
     'country',
@@ -43,7 +44,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
     public const ROLE_STUDENT = 'student';
@@ -116,6 +117,21 @@ class User extends Authenticatable
     public function certificates(): HasMany
     {
         return $this->hasMany(Certificate::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function paymentActivities(): HasMany
+    {
+        return $this->hasMany(PaymentActivity::class);
+    }
+
+    public function onboardingState(): HasOne
+    {
+        return $this->hasOne(OnboardingState::class);
     }
 
     public function studentModuleVisits(): HasMany

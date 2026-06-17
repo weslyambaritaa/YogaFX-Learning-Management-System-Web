@@ -9,6 +9,7 @@ use App\Support\BunnyAssetPath;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -37,9 +38,11 @@ class CertificateGeneratorService
         $templateBytes = $this->loadTemplateBytes($template);
         $renderedImagePath = $this->renderCertificateTemplate(
             $templateBytes,
+            $student,
             $studentName,
             $template['placement'] ?? [],
             $template['date_placement'] ?? [],
+            $template['profile_photo_placement'] ?? [],
             $timestamp,
         );
         $pdfBinary = $this->buildPdfFromRenderedImage($renderedImagePath);
@@ -90,9 +93,11 @@ class CertificateGeneratorService
 
     private function renderCertificateTemplate(
         string $templateBytes,
+        User $student,
         string $studentName,
         array $placement,
         array $datePlacement,
+        array $profilePhotoPlacement,
         Carbon $generatedAt,
     ): string
     {
@@ -113,6 +118,10 @@ class CertificateGeneratorService
             );
         }
 
+        if ($profilePhotoPlacement !== [] && filled($student->profile_photo)) {
+            $this->drawCircularProfilePhoto($image, $student, $profilePhotoPlacement);
+        }
+
         $outputPath = storage_path('app/tmp/'.Str::uuid()->toString().'.jpg');
         $outputDirectory = dirname($outputPath);
 
@@ -124,6 +133,104 @@ class CertificateGeneratorService
         imagedestroy($image);
 
         return $outputPath;
+    }
+
+    private function drawCircularProfilePhoto($certificateImage, User $student, array $placement): void
+    {
+        $photoBytes = $this->loadProfilePhotoBytes((string) $student->profile_photo);
+
+        if ($photoBytes === null) {
+            return;
+        }
+
+        $source = imagecreatefromstring($photoBytes);
+
+        if (! $source) {
+            return;
+        }
+
+        $diameter = max(40, (int) ($placement['diameter'] ?? 180));
+        $borderWidth = max(0, (int) ($placement['border_width'] ?? 6));
+        $canvasSize = $diameter + ($borderWidth * 2);
+
+        $canvas = imagecreatetruecolor($canvasSize, $canvasSize);
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefill($canvas, 0, 0, $transparent);
+
+        $resized = imagecreatetruecolor($diameter, $diameter);
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        imagefill($resized, 0, 0, $transparent);
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $square = min($sourceWidth, $sourceHeight);
+        $sourceX = (int) floor(($sourceWidth - $square) / 2);
+        $sourceY = (int) floor(($sourceHeight - $square) / 2);
+
+        imagecopyresampled(
+            $resized,
+            $source,
+            0,
+            0,
+            $sourceX,
+            $sourceY,
+            $diameter,
+            $diameter,
+            $square,
+            $square,
+        );
+
+        $radius = $diameter / 2;
+
+        for ($x = 0; $x < $diameter; $x++) {
+            for ($y = 0; $y < $diameter; $y++) {
+                $dx = $x - $radius;
+                $dy = $y - $radius;
+
+                if (($dx * $dx) + ($dy * $dy) > ($radius * $radius)) {
+                    imagesetpixel($resized, $x, $y, $transparent);
+                }
+            }
+        }
+
+        imagecopy($canvas, $resized, $borderWidth, $borderWidth, 0, 0, $diameter, $diameter);
+
+        $borderColorRgb = $this->parseHexColor((string) ($placement['border_color'] ?? '#FFFFFF'));
+        $borderColor = imagecolorallocate(
+            $canvas,
+            $borderColorRgb['red'],
+            $borderColorRgb['green'],
+            $borderColorRgb['blue'],
+        );
+
+        imagealphablending($canvas, true);
+
+        for ($i = 0; $i < $borderWidth; $i++) {
+            imageellipse(
+                $canvas,
+                (int) round($canvasSize / 2),
+                (int) round($canvasSize / 2),
+                $diameter + ($borderWidth * 2) - (2 * $i) - 1,
+                $diameter + ($borderWidth * 2) - (2 * $i) - 1,
+                $borderColor,
+            );
+        }
+
+        $certificateWidth = imagesx($certificateImage);
+        $x = isset($placement['x'])
+            ? (int) $placement['x']
+            : max(0, $certificateWidth - (int) ($placement['right'] ?? 100) - $canvasSize);
+        $y = (int) ($placement['top'] ?? ($placement['y'] ?? 100));
+
+        imagecopy($certificateImage, $canvas, $x, $y, 0, 0, $canvasSize, $canvasSize);
+
+        imagedestroy($source);
+        imagedestroy($resized);
+        imagedestroy($canvas);
     }
 
     private function drawText($image, string $text, array $placement, string $errorMessage): void
@@ -262,6 +369,45 @@ class CertificateGeneratorService
         $dompdf->render();
 
         return $dompdf->output();
+    }
+
+    private function loadProfilePhotoBytes(string $path): ?string
+    {
+        if ($path === '') {
+            return null;
+        }
+
+        if (BunnyAssetPath::isBunnyPath($path)) {
+            $url = $this->bunnyStorage->url($path);
+
+            if (! filled($url)) {
+                return null;
+            }
+
+            $response = Http::timeout(30)->get($url);
+
+            return $response->successful() && $response->body() !== ''
+                ? $response->body()
+                : null;
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $response = Http::timeout(30)->get($path);
+
+            return $response->successful() && $response->body() !== ''
+                ? $response->body()
+                : null;
+        }
+
+        if (Storage::disk('local')->exists($path)) {
+            $contents = Storage::disk('local')->get($path);
+
+            return $contents !== ''
+                ? $contents
+                : null;
+        }
+
+        return null;
     }
 
     private function resolveFontPath(string $fontFamily): string
