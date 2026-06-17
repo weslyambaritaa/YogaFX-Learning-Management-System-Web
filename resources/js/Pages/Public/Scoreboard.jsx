@@ -37,44 +37,44 @@ export default function Scoreboard({ accessTiers }) {
     return (
         <PublicFlowLayout
             title="Scoreboard"
-            eyebrow="Scoreboard Entry"
-            heading="Start your YogaFX journey with a calm, guided first step."
+            heading="Start your YogaFX journey with a calm, guided first step"
             description="This scoreboard captures your starting identity and the program you want to join, then hands you into the simulated checkout flow without turning the experience into a school-style registration portal."
             aside={
                 <div className="space-y-6">
+                    {/* What Happens Next */}
                     <div>
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/46">
+                        <p className="text-sm font-semibold text-gray-900">
                             What happens next
                         </p>
                         <div className="mt-4 space-y-3">
                             {[
-                                'We save your pending registration.',
-                                'We generate a signed checkout link for the selected tier.',
-                                'You continue into simulated payment, then onboarding, then final sign up.',
+                                '1. We save your pending registration.',
+                                '2. We generate a signed checkout link for the selected tier.',
+                                '3. Proceed to secure payment, onboarding, and final sign-up.',
                             ].map((item) => (
-                                <div
-                                    key={item}
-                                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-white/66"
-                                >
+                                <p key={item} className="text-sm leading-6 text-gray-700">
                                     {item}
-                                </div>
+                                </p>
                             ))}
                         </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/46">
-                            Selected program
-                        </p>
+                    {/* Selected Program */}
+                    <div className="rounded-[10px] border border-gray-200 bg-gray-900 p-5">
+                        <div className="flex justify-end">
+                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
+                                Selected program
+                            </p>
+                        </div>
                         {selectedTier ? (
-                            <div className="mt-4 space-y-3">
+                            <div className="mt-7 space-y-3">
                                 <div className="text-2xl font-semibold text-white">
                                     {selectedTier.name}
                                 </div>
-                                <p className="text-sm leading-6 text-white/60">
+                                <p className="text-sm leading-6 text-white/70">
                                     {selectedTier.description}
                                 </p>
-                                <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/72">
+                                <div className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white">
                                     {formatCurrency(selectedTier.price_amount)}
                                 </div>
                                 {!selectedTierHasPrice && (
@@ -95,50 +95,50 @@ export default function Scoreboard({ accessTiers }) {
             <form onSubmit={submit} className="space-y-6">
                 <div className="grid gap-5 md:grid-cols-2">
                     <div>
-                        <InputLabel htmlFor="first_name" value="First Name" className="text-white/72" />
+                        <InputLabel htmlFor="first_name" value="First Name" className="text-gray-700" />
                         <TextInput
                             id="first_name"
                             value={data.first_name}
-                            className="mt-2 block w-full border-white/12 bg-white/5 text-white placeholder:text-white/30"
+                            className="mt-2 block w-full"
                             onChange={(event) => setData('first_name', event.target.value)}
                             required
                         />
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.first_name} />
+                        <InputError className="mt-2" message={errors.first_name} />
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="last_name" value="Last Name" className="text-white/72" />
+                        <InputLabel htmlFor="last_name" value="Last Name" className="text-gray-700" />
                         <TextInput
                             id="last_name"
                             value={data.last_name}
-                            className="mt-2 block w-full border-white/12 bg-white/5 text-white placeholder:text-white/30"
+                            className="mt-2 block w-full"
                             onChange={(event) => setData('last_name', event.target.value)}
                             required
                         />
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.last_name} />
+                        <InputError className="mt-2" message={errors.last_name} />
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="email" value="Email" className="text-white/72" />
+                        <InputLabel htmlFor="email" value="Email" className="text-gray-700" />
                         <TextInput
                             id="email"
                             type="email"
                             value={data.email}
-                            className="mt-2 block w-full border-white/12 bg-white/5 text-white placeholder:text-white/30"
+                            className="mt-2 block w-full"
                             onChange={(event) => setData('email', event.target.value)}
                             required
                         />
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.email} />
+                        <InputError className="mt-2" message={errors.email} />
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="phone_number" value="Mobile Phone" className="text-white/72" />
+                        <InputLabel htmlFor="phone_number" value="Mobile Phone" className="text-gray-700" />
                         <div className="mt-2 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
                             <select
                                 id="phone_country_code"
                                 value={data.phone_country_code}
                                 onChange={(event) => setData('phone_country_code', event.target.value)}
-                                className="block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                className="block w-full rounded-md border border-gray-300 bg-white text-gray-900 focus:border-red-500 focus:ring-red-500"
                                 required
                             >
                                 {phoneCountryCodeOptions.map((option) => (
@@ -150,21 +150,21 @@ export default function Scoreboard({ accessTiers }) {
                             <TextInput
                                 id="phone_number"
                                 value={data.phone_number}
-                                className="block w-full border-white/12 bg-white/5 text-white placeholder:text-white/30"
+                                className="block w-full"
                                 onChange={(event) => setData('phone_number', event.target.value)}
                                 placeholder="81234567890"
                                 required
                             />
                         </div>
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.phone_number ?? errors.phone_country_code ?? errors.phone} />
+                        <InputError className="mt-2" message={errors.phone_number ?? errors.phone_country_code ?? errors.phone} />
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="country" value="Country" className="text-white/72" />
+                        <InputLabel htmlFor="country" value="Country" className="text-gray-700" />
                         <select
                             id="country"
                             value={data.country}
-                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                            className="mt-2 block w-full rounded-md border border-gray-300 bg-white text-gray-900 focus:border-red-500 focus:ring-red-500"
                             onChange={(event) => {
                                 const value = event.target.value;
                                 setData('country', value);
@@ -186,16 +186,16 @@ export default function Scoreboard({ accessTiers }) {
                                 </option>
                             ))}
                         </select>
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.country} />
+                        <InputError className="mt-2" message={errors.country} />
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="access_tier_id" value="Program / Tier" className="text-white/72" />
+                        <InputLabel htmlFor="access_tier_id" value="Program / Tier" className="text-gray-700" />
                         <select
                             id="access_tier_id"
                             value={data.access_tier_id}
                             onChange={(event) => setData('access_tier_id', event.target.value)}
-                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                            className="mt-2 block w-full rounded-md border border-gray-300 bg-white text-gray-900 focus:border-red-500 focus:ring-red-500"
                             required
                         >
                             {accessTiers.map((tier) => (
@@ -206,19 +206,19 @@ export default function Scoreboard({ accessTiers }) {
                                 </option>
                             ))}
                         </select>
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.access_tier_id} />
+                        <InputError className="mt-2" message={errors.access_tier_id} />
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-black/20 px-5 py-4">
-                    <p className="max-w-2xl text-sm leading-6 text-white/56">
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-[10px] border border-gray-300 bg-gray-300 px-5 py-4">
+                    <p className="max-w-2xl text-sm leading-6 text-gray-600">
                         This step only creates your pending registration. Your LMS account does not exist yet until simulated payment succeeds.
                     </p>
 
                     <Button
                         type="submit"
                         disabled={processing || accessTiers.length === 0 || !selectedTierHasPrice}
-                        className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                        className="rounded-md bg-red-600 px-6 text-white hover:bg-red-700"
                     >
                         {selectedTierHasPrice
                             ? 'Continue to Checkout'

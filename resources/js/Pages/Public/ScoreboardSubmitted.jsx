@@ -12,16 +12,18 @@ export default function ScoreboardSubmitted({ registration }) {
     return (
         <PublicFlowLayout
             title="Registration Saved"
-            eyebrow="Pending Registration Created"
-            heading="Your YogaFX checkout link is ready."
+            heading="Your YogaFX checkout link is ready"
             description="We saved your lead registration as a pending record. The next step is the signed checkout flow that keeps the selected tier and amount stable."
             aside={
                 <div className="space-y-5">
-                    <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/46">
-                            Registration snapshot
-                        </p>
-                        <div className="mt-4 space-y-2 text-sm text-white/68">
+                    {/* Registration Snapshot — card gelap, teks putih */}
+                    <div className="rounded-[10px] border border-gray-200 bg-gray-900 p-5">
+                        <div className="flex justify-end">
+                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
+                                Registration snapshot
+                            </p>
+                        </div>
+                        <div className="mt-7 space-y-2 text-sm text-white">
                             <p>{registration.full_name}</p>
                             <p>{registration.email}</p>
                             <p>{registration.phone}</p>
@@ -29,15 +31,18 @@ export default function ScoreboardSubmitted({ registration }) {
                         </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/46">
-                            Selected tier
-                        </p>
-                        <div className="mt-4">
+                    {/* Selected Tier — card gelap, teks putih */}
+                    <div className="rounded-[10px] border border-gray-200 bg-gray-900 p-5">
+                        <div className="flex justify-end">
+                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
+                                Selected tier
+                            </p>
+                        </div>
+                        <div className="mt-7">
                             <p className="text-2xl font-semibold text-white">
                                 {registration.access_tier.name}
                             </p>
-                            <p className="mt-2 text-sm text-white/60">
+                            <p className="mt-2 text-sm text-white">
                                 {formatCurrency(registration.amount)}
                             </p>
                         </div>
@@ -46,18 +51,20 @@ export default function ScoreboardSubmitted({ registration }) {
             }
         >
             <div className="space-y-5">
-                <div className="rounded-[24px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm leading-6 text-emerald-50/92">
+                {/* Info box hijau */}
+                <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm leading-6 text-emerald-800">
                     Your pending registration is now stored in the database, and this same signed checkout link has also been sent to your registered email.
                 </div>
 
-                <div className="rounded-[24px] border border-white/10 bg-black/20 p-5">
-                    <p className="text-sm leading-7 text-white/60">
+                {/* Box abu + tombol */}
+                <div className="rounded-[10px] border border-gray-300 bg-gray-300 p-5">
+                    <p className="text-sm leading-7 text-gray-600">
                         Continue when you are ready. The signed checkout link preserves the selected tier and keeps this lead inside the correct payment journey.
                     </p>
                     <div className="mt-5 flex flex-wrap gap-3">
                         <Button
                             asChild
-                            className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                            className="rounded-md bg-red-600 px-6 text-white hover:bg-red-700"
                         >
                             <a href={registration.checkout_url}>Open Signed Checkout</a>
                         </Button>
