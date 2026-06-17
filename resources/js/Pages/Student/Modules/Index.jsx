@@ -73,29 +73,21 @@ export default function StudentModulesIndex({ modules }) {
                             </p>
                         </div>
 
-                        <div className="grid gap-3 sm:grid-cols-3">
-                            <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
+                                <div className="text-sm uppercase tracking-[0.2em] text-white/45">
                                     Modules
                                 </div>
-                                <div className="mt-2 text-3xl font-semibold text-white">
+                                <div className="mt-3 text-5xl font-semibold text-white">
                                     {modules.length}
                                 </div>
                             </div>
-                            <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+                            <div className="rounded-2xl border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
+                                <div className="text-sm uppercase tracking-[0.2em] text-white/45">
                                     Completed
                                 </div>
-                                <div className="mt-2 text-3xl font-semibold text-white">
+                                <div className="mt-3 text-5xl font-semibold text-white">
                                     {modules.filter((module) => module.status === 'completed').length}
-                                </div>
-                            </div>
-                            <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                    Active
-                                </div>
-                                <div className="mt-2 text-3xl font-semibold text-white">
-                                    {modules.filter((module) => module.status === 'active').length}
                                 </div>
                             </div>
                         </div>

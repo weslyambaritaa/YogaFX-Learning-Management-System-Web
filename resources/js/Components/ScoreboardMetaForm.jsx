@@ -211,12 +211,12 @@ export default function ScoreboardMetaForm({
 
             <div className="flex justify-end">
                 <Button
-    type="submit"
-    disabled={processing}
-    className="bg-red-600 text-white hover:bg-red-700"
->
-    {submitLabel}
-</Button>
+            type="submit"
+            disabled={processing}
+            className="bg-red-600 text-white hover:bg-red-700"
+        >
+            {submitLabel}
+        </Button>
             </div>
         </form>
     );
