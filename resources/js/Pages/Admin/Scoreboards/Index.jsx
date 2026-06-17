@@ -26,7 +26,10 @@ export default function ScoreboardsIndex({ scoreboards, status }) {
                             Manage the assessment list, preview student flow, and review submitted results without changing the existing layout structure.
                         </p>
                     </div>
-                    <Button asChild>
+                    <Button
+                        asChild
+                        className="border border-gray-900 bg-gray-900 text-white hover:bg-gray-700"
+                    >
                         <Link href={route('admin.scoreboards.create')}>
                             Create Assessment
                         </Link>

@@ -696,12 +696,14 @@ function StudentTopNavigation({
                                         <Button
                                             key={item.route}
                                             asChild
-                                            variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                            variant="ghost"
                                             className={[
                                                 'h-11 w-full justify-start rounded-xl px-3',
-                                                isImmersive && !isItemActive(item)
-                                                    ? 'text-white/78 hover:bg-white/10 hover:text-white'
-                                                    : '',
+                                                isItemActive(item)
+                                                    ? 'text-[#ff5a3c] hover:text-[#ff5a3c] hover:bg-[#ff5a3c]/10'
+                                                    : (isImmersive
+                                                        ? 'text-white/78 hover:bg-white/10 hover:text-white'
+                                                        : ''),
                                             ].join(' ')}
                                         >
                                             <Link
@@ -728,12 +730,14 @@ function StudentTopNavigation({
                                         <Button
                                             key={item.label}
                                             asChild
-                                            variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                            variant="ghost"
                                             className={[
                                                 'h-11 w-full justify-start rounded-xl px-3 opacity-100',
-                                                isImmersive && !isItemActive(item)
-                                                    ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
-                                                    : '',
+                                                isItemActive(item)
+                                                    ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
+                                                    : (isImmersive
+                                                        ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
+                                                        : ''),
                                             ].join(' ')}
                                         >
                                             <Link
@@ -762,11 +766,13 @@ function StudentTopNavigation({
                             <Button
                                 key={item.route}
                                 asChild
-                                variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                variant="ghost"
                                 className={
-                                    isImmersive && !isItemActive(item)
-                                        ? 'text-white/78 hover:bg-white/10 hover:text-white'
-                                        : ''
+                                    isItemActive(item)
+                                        ? 'text-[#ff5a3c] hover:text-[#ff5a3c] hover:bg-[#ff5a3c]/10'
+                                        : (isImmersive
+                                            ? 'text-white/78 hover:bg-white/10 hover:text-white'
+                                            : '')
                                 }
                             >
                                 <Link href={route(item.route)}>{item.label}</Link>
@@ -786,12 +792,14 @@ function StudentTopNavigation({
                             <Button
                                 key={item.label}
                                 asChild
-                                variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                variant="ghost"
                                 className={[
                                     'rounded-full px-4 text-xs font-medium opacity-100',
-                                    isImmersive && !isItemActive(item)
-                                        ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
-                                        : '',
+                                    isItemActive(item)
+                                        ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
+                                        : (isImmersive
+                                            ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
+                                            : ''),
                                 ].join(' ')}
                             >
                                 <Link href={route(item.route)}>{item.label}</Link>

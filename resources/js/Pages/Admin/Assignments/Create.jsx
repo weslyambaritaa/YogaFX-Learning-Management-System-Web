@@ -1,6 +1,7 @@
 import AssignmentForm from '@/Components/AssignmentForm';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { ClipboardList } from 'lucide-react';
 
 export default function CreateAssignment({ module, assignmentStatuses, nextSortOrder }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -20,17 +21,19 @@ export default function CreateAssignment({ module, assignmentStatuses, nextSortO
         <AuthenticatedLayout
             header={
                 <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            Create Assignment
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Add a new assignment inside module {module.title}.
-                        </p>
+                    <div className="flex items-center gap-3">
+                        <div className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
+                            <ClipboardList className="size-4 text-slate-500" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-semibold leading-tight text-slate-800">Create Assignment</h2>
+                            <p className="text-xs text-slate-500">Add a new assignment inside module {module.title}.</p>
+                        </div>
                     </div>
+                    {/* Back — outline button hitam, bukan link biru */}
                     <Link
                         href={route('admin.modules.assignments.index', module.id)}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                        className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 transition whitespace-nowrap"
                     >
                         Back to Assignments
                     </Link>
@@ -38,9 +41,9 @@ export default function CreateAssignment({ module, assignmentStatuses, nextSortO
             }
         >
             <Head title="Create Assignment" />
-            <div className="py-12">
+            <div className="py-10">
                 <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                    <div className="rounded-lg bg-white p-6 shadow-sm">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                         <AssignmentForm
                             data={data}
                             setData={setData}

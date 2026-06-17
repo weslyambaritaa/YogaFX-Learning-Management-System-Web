@@ -9,7 +9,6 @@ use App\Models\AssignmentSubmission;
 use App\Models\Assignment;
 use App\Models\Certificate;
 use App\Models\Ebook;
-use App\Models\PaymentActivity;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\StudentModuleVisit;
@@ -88,8 +87,6 @@ class HomeController extends Controller
             'certificateMilestone' => $certificateMilestone,
             'ebookResourcesSection' => $ebookResourcesSection,
             'homeExperience' => $homeExperience,
-            'upgradeOptions' => $this->buildUpgradeOptions($request),
-            'status' => session('status'),
         ]);
     }
 
@@ -594,16 +591,29 @@ class HomeController extends Controller
                     default => 'Open Module',
                 },
                 'cta_url' => route('modules.show', $module->url_slug),
-                'thumbnail_url' => $this->protectedMediaUrl(
+                    'thumbnail_url' => $this->protectedMediaUrl(
                     'module',
                     $module->id,
                     'thumbnail',
                     $module->thumbnail,
                     versionSeed: $module->updated_at,
                 ),
-            ];
+                'lessons' => $module->lessons->map(fn ($lesson) => [
+                    'id'                  => $lesson->id,
+                    'title'               => $lesson->title,
+                    'sort_order'          => $lesson->sort_order,
+                    'url'                 => route('lessons.show', $lesson),
+                    'status'              => isset($lessonProgressMap[$lesson->id])
+                                                ? ($lessonProgressMap[$lesson->id]->is_done ? 'completed' : 'available')
+                                                : 'available',
+                    'progress_percentage' => isset($lessonProgressMap[$lesson->id])
+                                                ? (int) round((float) $lessonProgressMap[$lesson->id]->watch_progress)
+                                                : 0,
+                ])->values()->toArray(),
+            ];  // <-- penutup array return
         })->values();
 
+        
         return [
             'state' => 'ready',
             'eyebrow' => 'Available Modules',
@@ -1309,40 +1319,6 @@ class HomeController extends Controller
         }
 
         return $defaultState;
-    }
-
-    protected function buildUpgradeOptions(Request $request): array
-    {
-        $user = $request->user();
-        $currentTier = $user?->accessTier;
-
-        if (! $user || ! $user->isStudent() || ! $currentTier) {
-            return [];
-        }
-
-        $currentPrice = (float) $currentTier->price_amount;
-        $totalPaid = (float) PaymentActivity::query()
-            ->where('user_id', $user->id)
-            ->where('status', PaymentActivity::STATUS_SUCCESS)
-            ->sum('amount');
-
-        return AccessTier::query()
-            ->where('is_active', true)
-            ->where('price_amount', '>', $currentPrice)
-            ->orderBy('price_amount')
-            ->orderBy('name')
-            ->get()
-            ->map(fn (AccessTier $tier) => [
-                'id' => $tier->id,
-                'name' => $tier->name,
-                'slug' => $tier->slug,
-                'price_amount' => (float) $tier->price_amount,
-                'amount_due' => max(0, round((float) $tier->price_amount - $totalPaid, 2)),
-                'checkout_url' => route('student.upgrades.show', $tier),
-            ])
-            ->filter(fn (array $tier) => $tier['amount_due'] > 0)
-            ->values()
-            ->all();
     }
 
     protected function lessonProgressMap(?int $userId, iterable $lessonIds): Collection

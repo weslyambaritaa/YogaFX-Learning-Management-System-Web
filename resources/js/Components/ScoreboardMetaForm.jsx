@@ -23,6 +23,7 @@ export default function ScoreboardMetaForm({
                         value={data.title}
                         onChange={(event) => setData('title', event.target.value)}
                         placeholder="Morning Readiness Scoreboard"
+                        className="focus-visible:border-gray-900 focus-visible:ring-gray-900/20"
                     />
                     {errors.title && (
                         <p className="text-sm text-rose-600">{errors.title}</p>
@@ -35,6 +36,7 @@ export default function ScoreboardMetaForm({
                         value={data.slug}
                         onChange={(event) => setData('slug', event.target.value)}
                         placeholder="morning-readiness-scoreboard"
+                        className="focus-visible:border-gray-900 focus-visible:ring-gray-900/20"
                     />
                     {errors.slug && <p className="text-sm text-rose-600">{errors.slug}</p>}
                 </div>
@@ -46,7 +48,7 @@ export default function ScoreboardMetaForm({
                     value={data.description}
                     onChange={(event) => setData('description', event.target.value)}
                     placeholder="Describe the assessment experience and intended outcome."
-                    className="min-h-28"
+                    className="min-h-28 focus-visible:border-gray-900 focus-visible:ring-gray-900/20"
                 />
                 {errors.description && (
                     <p className="text-sm text-rose-600">{errors.description}</p>
@@ -84,6 +86,7 @@ export default function ScoreboardMetaForm({
                             setData('duration_minutes', event.target.value)
                         }
                         placeholder="15"
+                        className="focus-visible:border-gray-900 focus-visible:ring-gray-900/20"
                     />
                     {errors.duration_minutes && (
                         <p className="text-sm text-rose-600">
@@ -207,9 +210,13 @@ export default function ScoreboardMetaForm({
             </div>
 
             <div className="flex justify-end">
-                <Button type="submit" disabled={processing}>
-                    {submitLabel}
-                </Button>
+                <Button
+    type="submit"
+    disabled={processing}
+    className="bg-red-600 text-white hover:bg-red-700"
+>
+    {submitLabel}
+</Button>
             </div>
         </form>
     );
