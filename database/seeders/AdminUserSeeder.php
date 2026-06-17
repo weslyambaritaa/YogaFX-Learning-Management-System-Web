@@ -8,16 +8,17 @@ use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
+    /**
+     * Seed the application's database.
+     */
     public function run(): void
     {
         User::query()->updateOrCreate(
-            ['email' => 'rahelhbn@gmail.com'],
+            ['email' => 'admin@yogafx.test'],
             [
-                'name' => 'Rahel Hasibuan',
-                'first_name' => 'Rahel',
-                'last_name' => 'Hasibuan',
+                'name' => 'YogaFX Admin',
                 'role' => User::ROLE_ADMIN,
-                'password' => Hash::make('rahelcantik123'),
+                'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ],
         );

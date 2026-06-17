@@ -245,6 +245,7 @@ const adminPageTitles = {
     'admin.student-progress.certificates.show': 'Certificate',
     'admin.students.index': 'Students',
     'admin.students.edit': 'Student Detail',
+    'admin.profile.edit': 'Profile',
     'admin.dialogs.edit': 'Dialog',
     'admin.email-notifications.index': 'Email Notification',
     'admin.email-notifications.show': 'Email Notification',
@@ -277,6 +278,7 @@ function UserMenu({ user, isImmersive = false }) {
     };
 
     const isStudent = user?.role === 'student';
+    const isAdmin = user?.role === 'admin';
     const displayName = user?.first_name || user?.name || 'Student';
 
     return (
@@ -321,6 +323,11 @@ function UserMenu({ user, isImmersive = false }) {
                 {isStudent && (
                     <DropdownMenuItem asChild>
                         <Link href={route('profile.edit')}>Profile</Link>
+                    </DropdownMenuItem>
+                )}
+                {isAdmin && (
+                    <DropdownMenuItem asChild>
+                        <Link href={route('admin.profile.edit')}>Profile</Link>
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuItem

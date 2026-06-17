@@ -67,6 +67,9 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                            Thumbnail
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Tier
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
@@ -89,6 +92,19 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                 <tbody className="divide-y divide-gray-100 bg-white">
                                     {accessTiers.map((accessTier) => (
                                         <tr key={accessTier.id}>
+                                            <td className="px-4 py-3">
+                                                {accessTier.thumbnail_url ? (
+                                                    <img
+                                                        src={accessTier.thumbnail_url}
+                                                        alt={accessTier.name}
+                                                        className="h-14 w-20 rounded-md object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-14 w-20 items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-[11px] uppercase tracking-[0.18em] text-gray-400">
+                                                        No image
+                                                    </div>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3">
                                                 <div className="font-medium text-gray-900">
                                                     {accessTier.name}

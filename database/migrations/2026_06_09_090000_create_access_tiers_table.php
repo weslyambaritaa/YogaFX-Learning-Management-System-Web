@@ -11,6 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('access_tiers')) {
+            Schema::table('access_tiers', function (Blueprint $table) {
+                if (! Schema::hasColumn('access_tiers', 'slug')) {
+                    $table->string('slug')->unique()->after('name');
+                }
+
+                if (! Schema::hasColumn('access_tiers', 'is_active')) {
+                    $table->boolean('is_active')->default(true)->index()->after('description');
+                }
+            });
+
+            return;
+        }
+
         Schema::create('access_tiers', function (Blueprint $table) {
             $table->id();
             $table->string('name');

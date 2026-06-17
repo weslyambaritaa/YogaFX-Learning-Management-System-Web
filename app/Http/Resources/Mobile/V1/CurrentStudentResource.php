@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Resources\Mobile\V1;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class CurrentStudentResource extends JsonResource
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'role' => $this->role,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'profile_completed' => $this->hasCompletedStudentProfile(),
+            'access_tier' => $this->accessTier
+                ? [
+                    'id' => $this->accessTier->id,
+                    'name' => $this->accessTier->name,
+                    'slug' => $this->accessTier->slug,
+                ]
+                : null,
+        ];
+    }
+}

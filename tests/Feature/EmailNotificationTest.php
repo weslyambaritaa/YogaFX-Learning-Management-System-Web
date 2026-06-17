@@ -15,6 +15,7 @@ use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
+use App\Models\UserSession;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -228,6 +229,45 @@ class EmailNotificationTest extends TestCase
         ]);
     }
 
+    public function test_assignment_approved_notification_also_sends_to_admin_recipients(): void
+    {
+        Mail::fake();
+
+        [$admin, $student, $assignment] = $this->createAssignmentContext();
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED,
+            'notification_name' => 'Assignments Approved',
+            'is_enabled' => true,
+            'admin_recipients' => 'approved-admin@yogafx.test',
+            'subject_user' => 'Assignment approved',
+            'body_user' => 'Dashboard {{ dashboard_url }}',
+            'subject_admin' => 'Assignment approved for {{ user_email }}',
+            'body_admin' => '{{ assignment_type }} approved',
+        ]);
+
+        $this->actingAs($admin)->patch(
+            route('admin.student-progress.assignments.update', [
+                'student' => $student,
+                'assignmentSubmission' => $assignment,
+            ]),
+            [
+                'assignment_status' => AssignmentSubmission::STATUS_APPROVED,
+                'assignment_feedback' => 'Approved and complete.',
+            ],
+        )->assertRedirect();
+
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED,
+            'reference_type' => 'assignment_submission',
+            'reference_id' => $assignment->id,
+            'recipient_type' => 'admin',
+            'recipient_email' => 'approved-admin@yogafx.test',
+            'status' => 'sent',
+        ]);
+    }
+
     public function test_registered_event_triggers_signup_notification(): void
     {
         Mail::fake();
@@ -367,24 +407,64 @@ class EmailNotificationTest extends TestCase
             'access_tier_id' => $tier->id,
             'email' => 'inactive@yogafx.test',
             'name' => 'Inactive Student',
+            'created_at' => now()->subHours(3),
         ]);
 
         $activeStudent = User::factory()->student()->create([
             'access_tier_id' => $tier->id,
             'email' => 'active@yogafx.test',
             'name' => 'Active Student',
+            'created_at' => now()->subHours(3),
         ]);
 
+        $completedStudent = User::factory()->student()->create([
+            'access_tier_id' => $tier->id,
+            'email' => 'completed@yogafx.test',
+            'name' => 'Completed Student',
+            'created_at' => now()->subHours(3),
+        ]);
+
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
         LessonProgress::factory()->create([
+            'user_id' => $completedStudent->id,
+            'lesson_id' => $lesson->id,
+            'is_done' => true,
+            'completed_at' => now()->subHours(2),
+        ]);
+
+        UserSession::query()->create([
             'user_id' => $inactiveStudent->id,
-            'updated_at' => now()->subDays(8),
-            'completed_at' => now()->subDays(8),
+            'session_id' => 'inactive-session',
+            'login_at' => now()->subHours(2),
+            'last_activity_at' => now()->subHours(2),
+            'logout_at' => now()->subHours(2),
+            'session_duration_seconds' => 120,
+            'is_active' => false,
         ]);
 
-        LessonProgress::factory()->create([
+        UserSession::query()->create([
             'user_id' => $activeStudent->id,
-            'updated_at' => now()->subDays(2),
-            'completed_at' => now()->subDays(2),
+            'session_id' => 'active-session',
+            'login_at' => now()->subMinutes(20),
+            'last_activity_at' => now()->subMinutes(5),
+            'is_active' => true,
+        ]);
+
+        UserSession::query()->create([
+            'user_id' => $completedStudent->id,
+            'session_id' => 'completed-session',
+            'login_at' => now()->subHours(2),
+            'last_activity_at' => now()->subHours(2),
+            'logout_at' => now()->subHours(2),
+            'session_duration_seconds' => 180,
+            'is_active' => false,
         ]);
 
         EmailTemplate::factory()->create([
@@ -412,6 +492,10 @@ class EmailNotificationTest extends TestCase
         $this->assertDatabaseMissing('email_logs', [
             'notification_type' => EmailNotificationTypeRegistry::REMINDER,
             'reference_id' => $activeStudent->id,
+        ]);
+        $this->assertDatabaseMissing('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::REMINDER,
+            'reference_id' => $completedStudent->id,
         ]);
 
         Mail::fake();
