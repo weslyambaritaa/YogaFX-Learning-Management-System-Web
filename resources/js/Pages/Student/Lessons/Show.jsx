@@ -363,7 +363,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         >
             <Head title={lesson.title} />
 
-            <div className="mx-auto grid max-w-[1400px] gap-8 px-4 pt-8 sm:px-6 lg:grid-cols-[minmax(0,1.75fr)_360px] lg:px-10">
+                
+                <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
                 <section className="space-y-6">
                     <div className="space-y-4">
                         <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
@@ -593,7 +594,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                     </div>
                 </section>
 
-                <aside className="space-y-5">
+                <section className="space-y-5">
                     <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
                         <p className="text-xs uppercase tracking-[0.22em] text-white/45">
                             Progress
@@ -641,7 +642,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     className="block rounded-[22px] border border-white/10 bg-black/18 p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
                                     >
                                         <div className="flex items-start gap-4">
-                                            <div className="h-20 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/5">
+                                            <div className="h-24 w-40 shrink-0 overflow-hidden rounded-2xl bg-white/5">
                                                 {item.thumbnail_url ? (
                                                     <img
                                                         src={item.thumbnail_url}
@@ -700,7 +701,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             </div>
                         </div>
                     </div>
-                </aside>
+                </section>
             </div>
         </AuthenticatedLayout>
     );

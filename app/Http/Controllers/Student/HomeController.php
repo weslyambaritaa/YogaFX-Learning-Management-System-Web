@@ -13,6 +13,7 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\StudentModuleVisit;
 use App\Services\BunnyStorageService;
+use App\Services\CertificateDownloadTrackingService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\StudentSessionTrackingService;
 use App\Support\BunnyAssetPath;
@@ -31,6 +32,7 @@ class HomeController extends Controller
         private readonly StudentSessionTrackingService $sessionTrackingService,
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly BunnyStorageService $bunnyStorage,
+        private readonly CertificateDownloadTrackingService $certificateDownloadTrackingService,
     ) {}
 
     public function index(Request $request): Response|RedirectResponse
@@ -95,6 +97,8 @@ class HomeController extends Controller
         $user = $request->user();
 
         abort_unless($user?->isStudent() && $certificate->user_id === $user->id, 404);
+
+        $this->certificateDownloadTrackingService->record($user, $certificate);
 
         if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
             $url = $this->bunnyStorage->url($certificate->file_path);
@@ -569,10 +573,29 @@ class HomeController extends Controller
                     default => 'Open Module',
                 },
                 'cta_url' => route('modules.show', $module->url_slug),
-                'thumbnail_url' => $this->moduleThumbnailUrl($module),
-            ];
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                    'module',
+                    $module->id,
+                    'thumbnail',
+                    $module->thumbnail,
+                    versionSeed: $module->updated_at,
+                ),
+                'lessons' => $module->lessons->map(fn ($lesson) => [
+                    'id'                  => $lesson->id,
+                    'title'               => $lesson->title,
+                    'sort_order'          => $lesson->sort_order,
+                    'url'                 => route('lessons.show', $lesson),
+                    'status'              => isset($lessonProgressMap[$lesson->id])
+                                                ? ($lessonProgressMap[$lesson->id]->is_done ? 'completed' : 'available')
+                                                : 'available',
+                    'progress_percentage' => isset($lessonProgressMap[$lesson->id])
+                                                ? (int) round((float) $lessonProgressMap[$lesson->id]->watch_progress)
+                                                : 0,
+                ])->values()->toArray(),
+            ];  // <-- penutup array return
         })->values();
 
+        
         return [
             'state' => 'ready',
             'eyebrow' => 'Available Modules',
@@ -1332,4 +1355,5 @@ class HomeController extends Controller
             versionSeed: $lesson->updated_at,
         ) ?: ($module ? $this->moduleThumbnailUrl($module) : null);
     }
+}
 }

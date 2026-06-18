@@ -40,7 +40,7 @@ export default function ModuleForm({
                     <InputLabel htmlFor="title" value="Title" />
                     <TextInput
                         id="title"
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                         value={data.title}
                         onChange={(event) => setData('title', event.target.value)}
                         isFocused
@@ -52,7 +52,7 @@ export default function ModuleForm({
                     <InputLabel htmlFor="url_slug" value="URL Slug" />
                     <TextInput
                         id="url_slug"
-                        className="mt-1 block w-full"
+                        className="mt-1 block w-full border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                         value={data.url_slug}
                         onChange={(event) => setData('url_slug', event.target.value)}
                     />
@@ -66,7 +66,7 @@ export default function ModuleForm({
                     id="sort_order"
                     type="number"
                     min="1"
-                    className="mt-1 block w-full"
+                    className="mt-1 block w-full border-gray-300 focus:border-gray-900 focus:ring-gray-900"
                     value={data.sort_order ?? ''}
                     onChange={(event) => setData('sort_order', event.target.value)}
                 />
@@ -141,7 +141,7 @@ export default function ModuleForm({
                 <textarea
                     id="description"
                     rows="5"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-900 focus:ring-gray-900"
                     value={data.description ?? ''}
                     onChange={(event) =>
                         setData('description', event.target.value)
@@ -164,7 +164,7 @@ export default function ModuleForm({
                     type="file"
                     accept="image/*"
                     onChange={handleThumbnailChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-gray-900"
                 />
                 <p className="mt-2 text-xs text-gray-500">
                     Maximum file size: {MAX_UPLOAD_SIZE_MB} MB.

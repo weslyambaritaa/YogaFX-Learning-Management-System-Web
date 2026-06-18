@@ -17,7 +17,7 @@ const statusConfig = {
     active: {
         icon: PlayCircle,
         label: 'Continue Learning',
-        className: 'text-[#f15b3a]',
+        className: 'text-[#DB202C]',
     },
     available: {
         icon: PlayCircle,
@@ -56,7 +56,7 @@ export default function StudentModulesIndex({ modules }) {
             <Head title="Modules" />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
-                <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#110f0f] px-6 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:px-8 lg:px-10">
+                <section className="relative overflow-hidden rounded-[10px] border border-white/10 bg-[#110f0f] px-6 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:px-8 lg:px-10">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,_rgba(196,91,49,0.32),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.05)_0%,_rgba(255,255,255,0)_36%),linear-gradient(180deg,_rgba(12,10,10,0.22)_0%,_rgba(12,10,10,0.82)_100%)]" />
                     <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                         <div className="max-w-3xl space-y-4">
@@ -73,29 +73,21 @@ export default function StudentModulesIndex({ modules }) {
                             </p>
                         </div>
 
-                        <div className="grid gap-3 sm:grid-cols-3">
-                            <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="rounded-[10px] border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
+                                <div className="text-sm uppercase tracking-[0.2em] text-white/45">
                                     Modules
                                 </div>
-                                <div className="mt-2 text-3xl font-semibold text-white">
+                                <div className="mt-3 text-5xl font-semibold text-white">
                                     {modules.length}
                                 </div>
                             </div>
-                            <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+                            <div className="rounded-[10px] border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
+                                <div className="text-sm uppercase tracking-[0.2em] text-white/45">
                                     Completed
                                 </div>
-                                <div className="mt-2 text-3xl font-semibold text-white">
+                                <div className="mt-3 text-5xl font-semibold text-white">
                                     {modules.filter((module) => module.status === 'completed').length}
-                                </div>
-                            </div>
-                            <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 backdrop-blur">
-                                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                    Active
-                                </div>
-                                <div className="mt-2 text-3xl font-semibold text-white">
-                                    {modules.filter((module) => module.status === 'active').length}
                                 </div>
                             </div>
                         </div>
@@ -127,10 +119,10 @@ export default function StudentModulesIndex({ modules }) {
                                 <ModuleCardTag
                                     key={module.id}
                                     {...(module.url ? { href: module.url } : {})}
-                                    className="group relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
+                                    className="group relative overflow-hidden rounded-[10px] border border-white/10 bg-white/[0.04] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
                                 >
                                     <div className="grid gap-4 md:grid-cols-[42%_1fr]">
-                                        <div className="relative overflow-hidden rounded-[24px] bg-[#1a1513]">
+                                        <div className="relative overflow-hidden rounded-[4px] bg-[#1a1513]">
                                             {module.thumbnail_url ? (
                                                 <img
                                                     src={module.thumbnail_url}
@@ -175,15 +167,15 @@ export default function StudentModulesIndex({ modules }) {
                                             </div>
 
                                             <div className="space-y-4">
-                                                {module.show_progress ? (
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-white/40">
+                                               {module.show_progress ? (
+                                                <div className="space-y-1">
+                                                        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-white/40">
                                                             <span>Progress</span>
                                                             <span>{module.progress_percentage}%</span>
                                                         </div>
-                                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                        <div className="h-[3px] overflow-hidden rounded-[10px] bg-white/15">
                                                             <div
-                                                                className="h-full rounded-full bg-[#f15b3a]"
+                                                                className="h-full rounded-[10px] bg-[#DB202C]"
                                                                 style={{ width: `${module.progress_percentage}%` }}
                                                             />
                                                         </div>
@@ -203,7 +195,7 @@ export default function StudentModulesIndex({ modules }) {
                     </div>
 
                     {modules.length === 0 && (
-                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] px-6 py-10 text-center text-white/62">
+                        <div className="rounded-[10px] border border-white/10 bg-white/[0.04] px-6 py-10 text-center text-white/62">
                             No modules are available for your current access tier yet.
                         </div>
                     )}
@@ -212,3 +204,4 @@ export default function StudentModulesIndex({ modules }) {
         </AuthenticatedLayout>
     );
 }
+

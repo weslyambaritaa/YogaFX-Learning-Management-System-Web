@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminStudentUpdateRequest;
 use App\Models\AccessTier;
@@ -10,21 +12,30 @@ use App\Models\AssessmentAttempt;
 use App\Models\AssessmentProgress;
 use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
+use App\Models\CertificateDownloadEvent;
 use App\Models\LessonProgress;
 use App\Models\Lesson;
+use App\Models\StudentModuleVisit;
 use App\Models\UserSession;
 use App\Models\User;
+use App\Services\BunnyStorageService;
 use App\Services\StudentSessionTrackingService;
+use App\Support\CountryDirectory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StudentController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+    use HandlesLocalUploads;
+
     public function __construct(
         private readonly StudentSessionTrackingService $sessionTrackingService,
+        private readonly BunnyStorageService $bunnyStorage,
     ) {}
 
     public function studentsIndex(): Response
@@ -49,7 +60,13 @@ class StudentController extends Controller
                 'number' => $index + 1,
                 'name' => $student->name ?: trim("{$student->first_name} {$student->last_name}"),
                 'email' => $student->email,
-                'profile_photo' => $student->profile_photo,
+                'profile_photo' => $this->protectedMediaUrl(
+                    'user',
+                    $student->id,
+                    'profile_photo',
+                    $student->profile_photo,
+                    versionSeed: $student->updated_at,
+                ),
                 'profile_initials' => $this->initialsFor($student),
                 'access_tier_name' => $student->accessTier?->name ?? 'Not assigned',
                 'is_active' => (bool) $student->is_active,
@@ -83,8 +100,16 @@ class StudentController extends Controller
                 'last_name' => $student->last_name,
                 'email' => $student->email,
                 'whatsapp' => $student->whatsapp,
-                'preferred_certificate_picture' => $student->preferred_certificate_picture,
+                'whatsapp_country_code' => CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['country_code'],
+                'whatsapp_number' => CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['local_number'],
                 'profile_photo' => $student->profile_photo,
+                'profile_photo_url' => $this->protectedMediaUrl(
+                    'user',
+                    $student->id,
+                    'profile_photo',
+                    $student->profile_photo,
+                    versionSeed: $student->updated_at,
+                ),
                 'instagram' => $student->instagram,
                 'country' => $student->country,
                 'birth_date' => optional($student->birth_date)->toDateString(),
@@ -120,8 +145,17 @@ class StudentController extends Controller
     {
         abort_unless($student->isStudent(), 404);
 
-        $student->fill($request->validated());
+        $validated = $request->validated();
+        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+
+        $student->fill($validated);
         $student->syncDisplayName();
+
+        $student->profile_photo = $this->storeUploadedFileToBunny(
+            $request->file('profile_photo'),
+            'users/profile-photos',
+            $student->profile_photo,
+        );
 
         if ($student->isDirty('email')) {
             $student->email_verified_at = null;
@@ -155,9 +189,10 @@ class StudentController extends Controller
     {
         abort_unless($student->isStudent(), 404);
 
-        DB::transaction(function () use ($student) {
-            $this->resetAllLearningProgress($student);
+        $deletedAssignmentMediaPaths = DB::transaction(function () use ($student) {
+            return $this->resetAllLearningProgress($student);
         });
+        $this->deleteAssignmentMediaPaths($deletedAssignmentMediaPaths);
 
         return redirect()
             ->route('admin.students.edit', $student)
@@ -170,14 +205,15 @@ class StudentController extends Controller
 
         abort_unless(in_array($scope, ['video', 'assessment', 'lesson', 'module'], true), 404);
 
-        DB::transaction(function () use ($student, $scope) {
-            match ($scope) {
+        $deletedAssignmentMediaPaths = DB::transaction(function () use ($student, $scope) {
+            return match ($scope) {
                 'video' => $this->resetVideoProgress($student),
                 'assessment' => $this->resetAssessmentProgress($student),
                 'lesson' => $this->resetLessonProgress($student),
                 'module' => $this->resetModuleProgress($student),
             };
         });
+        $this->deleteAssignmentMediaPaths($deletedAssignmentMediaPaths);
 
         return redirect()
             ->route('admin.students.edit', $student)
@@ -241,13 +277,15 @@ class StudentController extends Controller
             ->implode('');
     }
 
-    private function resetAllLearningProgress(User $student): void
+    private function resetAllLearningProgress(User $student): Collection
     {
         $this->resetAssessmentProgress($student);
         $this->resetLessonProgress($student);
+
+        return $this->resetNonLessonModuleProgress($student);
     }
 
-    private function resetVideoProgress(User $student): void
+    private function resetVideoProgress(User $student): Collection
     {
         LessonProgress::query()
             ->where('user_id', $student->id)
@@ -257,9 +295,11 @@ class StudentController extends Controller
                 'is_done' => false,
                 'completed_at' => null,
             ]);
+
+        return collect();
     }
 
-    private function resetAssessmentProgress(User $student): void
+    private function resetAssessmentProgress(User $student): Collection
     {
         $attemptIds = AssessmentAttempt::query()
             ->where('user_id', $student->id)
@@ -287,16 +327,45 @@ class StudentController extends Controller
                     'completed_at' => null,
                 ]);
         }
+
+        return collect();
     }
 
-    private function resetLessonProgress(User $student): void
+    private function resetLessonProgress(User $student): Collection
     {
         LessonProgress::query()->where('user_id', $student->id)->delete();
+
+        return collect();
     }
 
-    private function resetModuleProgress(User $student): void
+    private function resetModuleProgress(User $student): Collection
     {
         $this->resetAssessmentProgress($student);
         $this->resetLessonProgress($student);
+
+        return $this->resetNonLessonModuleProgress($student);
+    }
+
+    private function resetNonLessonModuleProgress(User $student): Collection
+    {
+        $assignmentMediaPaths = AssignmentSubmission::query()
+            ->where('user_id', $student->id)
+            ->pluck('assignment_video')
+            ->filter()
+            ->unique()
+            ->values();
+
+        AssignmentSubmission::query()->where('user_id', $student->id)->delete();
+        StudentModuleVisit::query()->where('user_id', $student->id)->delete();
+        CertificateDownloadEvent::query()->where('user_id', $student->id)->delete();
+
+        return $assignmentMediaPaths;
+    }
+
+    private function deleteAssignmentMediaPaths(Collection $paths): void
+    {
+        $paths
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->each(fn (string $path) => $this->bunnyStorage->delete($path));
     }
 }

@@ -339,7 +339,7 @@ export default function EmailNotificationShow({
                                                 event.target.value,
                                             )
                                         }
-                                        placeholder="admin@yogafx.test, ops@yogafx.test"
+                                        placeholder="manager@example.com, ops@example.com"
                                         className="min-h-24"
                                     />
                                     <p className="text-xs text-slate-500">

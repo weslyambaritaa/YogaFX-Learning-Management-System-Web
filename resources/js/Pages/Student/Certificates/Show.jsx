@@ -4,7 +4,8 @@ import { Head, Link } from '@inertiajs/react';
 import { Award, ChevronRight, Download, Lock } from 'lucide-react';
 
 export default function StudentCertificateShow({ module, certificate }) {
-    const isDownloadReady = certificate?.state === 'download_available';
+    const isDownloadReady = certificate?.state === 'download_available' || certificate?.state === 'downloaded';
+    const generatedCertificates = certificate?.generated_certificates ?? [];
 
     return (
         <AuthenticatedLayout
@@ -45,8 +46,8 @@ export default function StudentCertificateShow({ module, certificate }) {
                             <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
                                 {certificate?.eligibility_label ?? 'Certificate access'}
                             </div>
-                            <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
-                                {isDownloadReady ? 'Download available' : 'Waiting for certificate file'}
+                                <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
+                                {isDownloadReady ? 'Certificates available' : 'Waiting for certificate file'}
                             </div>
                         </div>
                     </div>
@@ -72,18 +73,20 @@ export default function StudentCertificateShow({ module, certificate }) {
                             <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="space-y-2">
-                                        <p className="text-xs uppercase tracking-[0.2em] text-white/45">
-                                            Latest certificate
-                                        </p>
-                                        <h3 className="text-xl font-semibold text-white">
-                                            {certificate?.latest_certificate?.type_label ?? 'No generated certificate yet'}
-                                        </h3>
-                                        <p className="text-sm leading-6 text-white/58">
-                                            {certificate?.latest_certificate
-                                                ? `Version ${certificate.latest_certificate.version}, generated ${certificate.latest_certificate.generated_at}`
-                                                : 'The certificate module is open because your student journey has reached certificate readiness, but there is no generated certificate file yet.'}
-                                        </p>
-                                    </div>
+                                <p className="text-xs uppercase tracking-[0.2em] text-white/45">
+                                    Certificate library
+                                </p>
+                                <h3 className="text-xl font-semibold text-white">
+                                    {generatedCertificates.length
+                                        ? `${generatedCertificates.length} certificate${generatedCertificates.length > 1 ? 's' : ''} available`
+                                        : 'No generated certificate yet'}
+                                </h3>
+                                <p className="text-sm leading-6 text-white/58">
+                                    {certificate?.latest_certificate
+                                                ? `Latest: ${certificate.latest_certificate.type_label}, version ${certificate.latest_certificate.version}, generated ${certificate.latest_certificate.generated_at}`
+                                                : 'The certificate module is open because your assignment approvals have reached certificate readiness, but there is no generated certificate file yet.'}
+                                </p>
+                            </div>
 
                                     <div className="rounded-full border border-white/12 bg-black/25 p-3 text-white/70">
                                         {isDownloadReady ? (
@@ -92,9 +95,40 @@ export default function StudentCertificateShow({ module, certificate }) {
                                             <Lock className="size-5" />
                                         )}
                                     </div>
-                                </div>
+                            </div>
 
-                                <div className="mt-6 flex flex-wrap gap-3">
+                            {generatedCertificates.length ? (
+                                <div className="space-y-3">
+                                    {generatedCertificates.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-white/10 bg-black/20 px-4 py-4"
+                                        >
+                                            <div>
+                                                <p className="text-sm font-semibold text-white">
+                                                    {item.type_label}
+                                                </p>
+                                                <p className="mt-1 text-xs leading-6 text-white/55">
+                                                    Version {item.version}, generated {item.generated_at}
+                                                </p>
+                                            </div>
+
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                            >
+                                                <a href={item.download_url}>
+                                                    <Download className="mr-2 size-4" />
+                                                    Download
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : null}
+
+                            <div className="mt-6 flex flex-wrap gap-3">
                                     {certificate?.cta_kind === 'download' ? (
                                         <Button
                                             asChild
@@ -149,8 +183,8 @@ export default function StudentCertificateShow({ module, certificate }) {
                                 </p>
                                 <p className="mt-3 text-sm leading-6 text-white/58">
                                     {isDownloadReady
-                                        ? 'Download the latest certificate from here whenever you need it. This module now acts as the student certificate destination.'
-                                        : 'Your certificate milestone is visible because your learning journey is ready. If the file is not here yet, the next step is certificate generation from the admin side.'}
+                                        ? 'This module now acts as your certificate library. Download any generated certificate listed here whenever you need it.'
+                                        : 'Your certificate milestone is visible because your assignment approvals are ready. If the files are not here yet, the next step is certificate generation from the admin side.'}
                                 </p>
                             </div>
                         </div>

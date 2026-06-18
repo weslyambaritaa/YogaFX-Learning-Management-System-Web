@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Mail\StudentProgressActionMail;
 use App\Models\AccessTier;
+use App\Models\CertificateDownloadEvent;
 use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Models\StudentModuleVisit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -126,6 +128,75 @@ class StudentProgressTest extends TestCase
             'id' => $progress->id,
             'is_done' => false,
             'is_workbook_downloaded' => false,
+        ]);
+    }
+
+    public function test_admin_reset_student_progress_clears_non_lesson_module_completion_sources(): void
+    {
+        [$admin, $student, $lesson] = $this->createStudentProgressContext();
+
+        LessonProgress::factory()->create([
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+        ]);
+
+        $assignmentModule = Module::factory()->create([
+            'title' => 'Assignment Reset Module',
+            'url_slug' => 'assignment-reset-module',
+        ]);
+        $resourceModule = Module::factory()->create([
+            'title' => 'Ebook Reset Module',
+            'url_slug' => 'ebook-reset-module',
+            'ebook_enabled' => true,
+        ]);
+        $certificateModule = Module::factory()->create([
+            'title' => 'Certificate Reset Module',
+            'url_slug' => 'certificate-reset-module',
+            'certificate_enabled' => true,
+        ]);
+
+        AssignmentSubmission::factory()->create([
+            'user_id' => $student->id,
+            'assignment_id' => null,
+            'assignment_type' => 'graduation_video',
+            'assignment_video' => 'https://example.com/reset-video.mp4',
+            'assignment_status' => AssignmentSubmission::STATUS_APPROVED,
+        ]);
+
+        StudentModuleVisit::query()->create([
+            'user_id' => $student->id,
+            'module_id' => $resourceModule->id,
+            'opened_at' => now(),
+        ]);
+
+        CertificateDownloadEvent::query()->create([
+            'user_id' => $student->id,
+            'module_id' => $certificateModule->id,
+            'certificate_id' => null,
+            'downloaded_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)->post(
+            route('admin.students.reset-progress', $student),
+        );
+
+        $response->assertRedirect(route('admin.students.edit', $student));
+
+        $this->assertDatabaseMissing('lesson_progress', [
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+        ]);
+        $this->assertDatabaseMissing('assignment_submissions', [
+            'user_id' => $student->id,
+            'assignment_type' => 'graduation_video',
+        ]);
+        $this->assertDatabaseMissing('student_module_visits', [
+            'user_id' => $student->id,
+            'module_id' => $resourceModule->id,
+        ]);
+        $this->assertDatabaseMissing('certificate_download_events', [
+            'user_id' => $student->id,
+            'module_id' => $certificateModule->id,
         ]);
     }
 

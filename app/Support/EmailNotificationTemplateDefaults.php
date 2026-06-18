@@ -20,9 +20,10 @@ class EmailNotificationTemplateDefaults
                 'subject_user' => 'Welcome to YogaFX, {user_name}',
                 'body_user' => implode('', [
                     '<p>Hi {user_name},</p>',
-                    '<p>Welcome to YogaFX. Your account is ready and your learning journey can start now.</p>',
+                    '<p>Welcome to YogaFX. Your payment is complete and your account continuation is ready.</p>',
                     '<p>Your access tier: <strong>{access_tier_label}</strong></p>',
-                    '<p>Open your dashboard here: <a href="{dashboard_url}">{dashboard_url}</a></p>',
+                    '<p>Continue your enrollment here: <a href="{continuation_url}">{continuation_url}</a></p>',
+                    '<p>After enrollment and final password creation, you will enter your dashboard normally.</p>',
                 ]),
                 'auto_enable' => true,
             ],

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\AccessTier;
+use App\Support\UploadConstraints;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
@@ -43,7 +44,17 @@ class AccessTierRequest extends FormRequest
                 Rule::unique(AccessTier::class, 'slug')->ignore($accessTier?->id),
             ],
             'description' => ['required', 'string', 'max:2000'],
+            'thumbnail' => ['nullable', 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
+            'price' => ['required', 'numeric', 'min:0'],
+            'currency_code' => ['required', 'string', Rule::in(AccessTier::CURRENCY_OPTIONS)],
             'is_active' => ['required', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'thumbnail.max' => 'The thumbnail must not be larger than '.UploadConstraints::labelFromMb(UploadConstraints::MAX_FILE_SIZE_MB).'.',
         ];
     }
 }

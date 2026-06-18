@@ -5,6 +5,7 @@ namespace App\Services\Mobile\V1;
 use App\Models\Certificate;
 use App\Models\User;
 use App\Services\BunnyStorageService;
+use App\Services\CertificateDownloadTrackingService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Support\BunnyAssetPath;
 use App\Support\MobileMediaPayload;
@@ -20,6 +21,7 @@ class StudentCertificateApiService
     public function __construct(
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly BunnyStorageService $bunnyStorageService,
+        private readonly CertificateDownloadTrackingService $certificateDownloadTrackingService,
     ) {}
 
     /**
@@ -74,6 +76,8 @@ class StudentCertificateApiService
         if ($certificate->user_id !== $user->id) {
             return null;
         }
+
+        $this->certificateDownloadTrackingService->record($user, $certificate);
 
         if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
             $url = $this->bunnyStorageService->url($certificate->file_path);

@@ -25,12 +25,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
-        if ($this->app->bound('yogafx.email-notification-events-registered')) {
-            return;
-        }
-
-        $this->app->instance('yogafx.email-notification-events-registered', true);
-
+        // Bridge Laravel's built-in Registered event into the app-specific
+        // signup notification event. The downstream email listeners are
+        // discovered automatically by Laravel and should not be registered
+        // manually here, otherwise automated notifications fire twice.
         Event::listen(Registered::class, function (Registered $event): void {
             $user = $event->user;
 
@@ -41,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
                 'access_tier' => $user->accessTier?->slug,
                 'access_tier_label' => $user->accessTier?->name,
                 'registration_date' => optional($user->created_at)->toDateString() ?? now()->toDateString(),
+                'continuation_url' => route('student.dashboard'),
                 'dashboard_url' => route('student.dashboard'),
                 'login_url' => route('login'),
             ], 'user', $user->id));
