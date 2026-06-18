@@ -38,7 +38,8 @@ class AccessTierTest extends TestCase
             'slug' => 'master_class',
             'description' => 'Advanced tier for premium learning access.',
             'thumbnail' => UploadedFile::fake()->image('master-class.jpg'),
-            'price_amount' => 199,
+            'price' => 199,
+            'currency_code' => 'GBP',
             'is_active' => true,
         ]);
 
@@ -46,7 +47,8 @@ class AccessTierTest extends TestCase
         $this->assertDatabaseHas('access_tiers', [
             'name' => 'Master Class',
             'slug' => 'master_class',
-            'price_amount' => 199,
+            'price' => 199,
+            'currency_code' => 'GBP',
             'is_active' => true,
         ]);
 
@@ -65,7 +67,8 @@ class AccessTierTest extends TestCase
             'slug' => 'starter_kit',
             'thumbnail' => UploadedFile::fake()->image('starter-old.jpg')
                 ->store('access-tiers/thumbnails', 'local'),
-            'price_amount' => 59,
+            'price' => 59,
+            'currency_code' => 'IDR',
             'is_active' => true,
         ]);
 
@@ -76,7 +79,8 @@ class AccessTierTest extends TestCase
             'slug' => 'starter_kit_updated',
             'description' => 'Updated starter tier description.',
             'thumbnail' => UploadedFile::fake()->image('starter-new.jpg'),
-            'price_amount' => 79,
+            'price' => 79,
+            'currency_code' => 'EUR',
             'is_active' => false,
         ]);
 
@@ -86,7 +90,8 @@ class AccessTierTest extends TestCase
             'id' => $accessTier->id,
             'name' => 'Starter Kit Updated',
             'slug' => 'starter_kit_updated',
-            'price_amount' => 79,
+            'price' => 79,
+            'currency_code' => 'EUR',
             'is_active' => false,
         ]);
 

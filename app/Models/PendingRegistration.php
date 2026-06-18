@@ -48,11 +48,6 @@ class PendingRegistration extends Model
         return $this->hasMany(Invoice::class);
     }
 
-    public function paymentActivities(): HasMany
-    {
-        return $this->hasMany(PaymentActivity::class);
-    }
-
     public function onboardingState(): HasOne
     {
         return $this->hasOne(OnboardingState::class);

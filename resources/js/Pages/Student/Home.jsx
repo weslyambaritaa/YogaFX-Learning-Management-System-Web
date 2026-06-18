@@ -1,5 +1,6 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatCurrency } from '@/lib/currency';
 import { Head, Link, router } from '@inertiajs/react';
 import { ChevronRight, Play, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -17,13 +18,6 @@ function formatDurationParts(totalSeconds) {
         .padStart(2, '0');
 
     return { hours, minutes, seconds };
-}
-
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(Number(amount || 0));
 }
 
 export default function StudentHome({
@@ -353,8 +347,8 @@ export default function StudentHome({
                                                 {option.name}
                                             </h3>
                                             <p className="text-sm leading-6 text-white/60">
-                                                Total tier price {formatCurrency(option.price_amount)}.
-                                                Your current journey reduces the amount due to {formatCurrency(option.amount_due)}.
+                                                Total tier price {formatCurrency(option.price, option.currency_code)}.
+                                                Your current journey reduces the amount due to {formatCurrency(option.amount_due, option.currency_code)}.
                                             </p>
                                         </div>
 

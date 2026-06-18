@@ -2,20 +2,14 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import { Button } from '@/Components/ui/button';
 import PublicFlowLayout from '@/Layouts/PublicFlowLayout';
+import { formatCurrency } from '@/lib/currency';
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(Number(amount || 0));
-}
-
 export default function Checkout({ checkout }) {
     const { data, setData, post, processing, errors } = useForm({
-        payment_type: 'pay_in_full',
-        payment_method: 'paypal_credit_card',
+        payment_type: 'pay_full',
+        payment_method: 'paypal',
     });
     const [isSimulating, setIsSimulating] = useState(false);
 
@@ -53,7 +47,7 @@ export default function Checkout({ checkout }) {
                                 {checkout.access_tier.name}
                             </p>
                             <p className="mt-2 text-sm text-white">
-                                {formatCurrency(checkout.amount)}
+                                {formatCurrency(checkout.amount, checkout.currency_code)}
                             </p>
                         </div>
                     </div>
@@ -66,7 +60,7 @@ export default function Checkout({ checkout }) {
                             </p>
                         </div>
                         <div className="mt-4 space-y-3 text-sm leading-6 text-white/80">
-                            <p>Invoice and payment activity are created when you click Pay Now.</p>
+                            <p>Invoice and payment records are created when you click Pay Now.</p>
                             <p>The payment result is simulated as success after a short loading state.</p>
                             <p>Successful payment immediately opens anti-limbo onboarding continuation.</p>
                         </div>
@@ -83,7 +77,7 @@ export default function Checkout({ checkout }) {
                         ['Email', checkout.email],
                         ['Mobile Phone', checkout.phone],
                         ['Country', checkout.country],
-                        ['Amount', formatCurrency(checkout.amount)],
+                        ['Amount', formatCurrency(checkout.amount, checkout.currency_code)],
                     ].map(([label, value]) => (
                         <div key={label}>
                             <InputLabel value={label} className="text-gray-700" />
@@ -106,11 +100,11 @@ export default function Checkout({ checkout }) {
                             onChange={(event) => setData('payment_type', event.target.value)}
                             className="mt-2 block w-full rounded-md border border-gray-300 bg-white text-gray-900 focus:border-gray-900 focus:ring-gray-900"
                         >
-                            <option value="pay_in_full">
-                                Pay in Full - {formatCurrency(checkout.amount)}
+                            <option value="pay_full">
+                                Pay in Full - {formatCurrency(checkout.amount, checkout.currency_code)}
                             </option>
-                            <option value="pay_in_4_installments">
-                                Pay in 4 Installments - {formatCurrency(installmentAmount)} today
+                            <option value="installment">
+                                Pay in 4 Installments - {formatCurrency(installmentAmount, checkout.currency_code)} today
                             </option>
                         </select>
                         <InputError className="mt-2" message={errors.payment_type} />
@@ -124,7 +118,7 @@ export default function Checkout({ checkout }) {
                             onChange={(event) => setData('payment_method', event.target.value)}
                             className="mt-2 block w-full rounded-md border border-gray-300 bg-white text-gray-900 focus:border-gray-900 focus:ring-gray-900"
                         >
-                            <option value="paypal_credit_card">PayPal / Credit Card</option>
+                            <option value="paypal">PayPal</option>
                             <option value="bank_transfer">Bank Transfer</option>
                         </select>
                         <InputError className="mt-2" message={errors.payment_method} />
@@ -134,8 +128,8 @@ export default function Checkout({ checkout }) {
                 {/* Info box abu */}
                 <div className="rounded-[15px] border border-gray-300 bg-gray-300 px-5 py-4">
                     <p className="text-sm leading-6 text-gray-700">
-                        {data.payment_type === 'pay_in_4_installments'
-                            ? `The first simulated payment records ${formatCurrency(installmentAmount)} now and leaves the remaining balance on the invoice as installment.`
+                        {data.payment_type === 'installment'
+                            ? `The first simulated payment records ${formatCurrency(installmentAmount, checkout.currency_code)} now and leaves the remaining balance on the invoice as installment.`
                             : 'The simulated payment records the full amount and closes the invoice as paid in full.'}
                     </p>
                 </div>

@@ -21,7 +21,7 @@ class LeadRegistrationController extends Controller
         return Inertia::render('Public/Scoreboard', [
             'accessTiers' => AccessTier::query()
                 ->where('is_active', true)
-                ->orderBy('price_amount')
+                ->orderBy('price')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (AccessTier $accessTier) => [
@@ -29,7 +29,8 @@ class LeadRegistrationController extends Controller
                     'name' => $accessTier->name,
                     'slug' => $accessTier->slug,
                     'description' => $accessTier->description,
-                    'price_amount' => (float) $accessTier->price_amount,
+                    'price' => (float) $accessTier->price,
+                    'currency_code' => $accessTier->currency_code,
                 ]),
         ]);
     }
@@ -59,6 +60,8 @@ class LeadRegistrationController extends Controller
                     'id' => $pendingRegistration->accessTier->id,
                     'name' => $pendingRegistration->accessTier->name,
                     'slug' => $pendingRegistration->accessTier->slug,
+                    'price' => (float) $pendingRegistration->accessTier->price,
+                    'currency_code' => $pendingRegistration->accessTier->currency_code,
                 ],
             ],
         ]);

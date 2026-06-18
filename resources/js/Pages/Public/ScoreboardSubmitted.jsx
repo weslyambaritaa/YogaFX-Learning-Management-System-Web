@@ -1,12 +1,6 @@
 import { Button } from '@/Components/ui/button';
 import PublicFlowLayout from '@/Layouts/PublicFlowLayout';
-
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(Number(amount || 0));
-}
+import { formatCurrency } from '@/lib/currency';
 
 export default function ScoreboardSubmitted({ registration }) {
     return (
@@ -43,7 +37,10 @@ export default function ScoreboardSubmitted({ registration }) {
                                 {registration.access_tier.name}
                             </p>
                             <p className="mt-2 text-sm text-white">
-                                {formatCurrency(registration.amount)}
+                                {formatCurrency(
+                                    registration.access_tier.price ?? registration.amount,
+                                    registration.access_tier.currency_code,
+                                )}
                             </p>
                         </div>
                     </div>

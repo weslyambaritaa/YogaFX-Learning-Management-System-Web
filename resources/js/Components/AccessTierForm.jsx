@@ -2,6 +2,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { formatCurrency } from '@/lib/currency';
 
 export default function AccessTierForm({
     data,
@@ -39,17 +40,33 @@ export default function AccessTierForm({
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="price_amount" value="Program Price" />
+                    <InputLabel htmlFor="price" value="Program Price" />
                     <TextInput
-                        id="price_amount"
+                        id="price"
                         type="number"
                         min="0"
                         step="0.01"
                         className="mt-1 block w-full"
-                        value={data.price_amount}
-                        onChange={(event) => setData('price_amount', event.target.value)}
+                        value={data.price}
+                        onChange={(event) => setData('price', event.target.value)}
                     />
-                    <InputError className="mt-2" message={errors.price_amount} />
+                    <InputError className="mt-2" message={errors.price} />
+                </div>
+
+                <div>
+                    <InputLabel htmlFor="currency_code" value="Currency" />
+                    <select
+                        id="currency_code"
+                        value={data.currency_code}
+                        onChange={(event) => setData('currency_code', event.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                    >
+                        <option value="IDR">Indonesian Rupiah (IDR)</option>
+                        <option value="USD">US Dollar (USD)</option>
+                        <option value="GBP">British Pound (GBP)</option>
+                        <option value="EUR">Euro (EUR)</option>
+                    </select>
+                    <InputError className="mt-2" message={errors.currency_code} />
                 </div>
             </div>
 
@@ -108,6 +125,9 @@ export default function AccessTierForm({
 
             <div className="flex items-center gap-4">
                 <PrimaryButton disabled={processing}>{submitLabel}</PrimaryButton>
+                <p className="text-sm text-gray-500">
+                    Preview: {formatCurrency(data.price, data.currency_code)}
+                </p>
             </div>
         </form>
     );

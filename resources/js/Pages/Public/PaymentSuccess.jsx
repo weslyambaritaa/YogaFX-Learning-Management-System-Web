@@ -58,7 +58,7 @@ export default function PaymentSuccess({ onboarding, student }) {
                                 Payment success confirmed
                             </p>
                             <p className="mt-2 text-sm leading-6 text-emerald-700">
-                                Invoice and payment activity have been created, your anti-limbo continuation is active, and we are moving you to enrollment now.
+                                Invoice and payment records have been created, your anti-limbo continuation is active, and we are moving you to enrollment now.
                             </p>
                         </div>
                     </div>

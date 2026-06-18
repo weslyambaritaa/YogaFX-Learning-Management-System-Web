@@ -18,7 +18,8 @@ class AccessTierSeeder extends Seeder
                 'slug' => AccessTier::SLUG_STARTER_KIT,
                 'description' => 'Entry-level access tier for students who need a lighter starting point.',
                 'thumbnail' => null,
-                'price_amount' => 0,
+                'price' => 0,
+                'currency_code' => AccessTier::CURRENCY_IDR,
                 'is_active' => true,
             ],
             [
@@ -26,7 +27,8 @@ class AccessTierSeeder extends Seeder
                 'slug' => AccessTier::SLUG_ONLINE,
                 'description' => 'Core online learning tier with full structured access for eligible students.',
                 'thumbnail' => null,
-                'price_amount' => 0,
+                'price' => 0,
+                'currency_code' => AccessTier::CURRENCY_IDR,
                 'is_active' => true,
             ],
             [
@@ -34,9 +36,10 @@ class AccessTierSeeder extends Seeder
                 'slug' => AccessTier::SLUG_MASTER_CLASS,
                 'description' => 'Advanced learning tier for premium master class access.',
                 'thumbnail' => null,
-                'price_amount' => 0,
+                'price' => 0,
+                'currency_code' => AccessTier::CURRENCY_IDR,
                 'is_active' => true,
             ],
-        ], ['slug'], ['name', 'description', 'thumbnail', 'price_amount', 'is_active']);
+        ], ['slug'], ['name', 'description', 'thumbnail', 'price', 'currency_code', 'is_active']);
     }
 }

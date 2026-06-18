@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\AssessmentAttempt;
+use App\Models\CertificateDownloadEvent;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
@@ -49,11 +50,13 @@ class StudentModuleApiService
             $user->id,
             $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
         );
+        $certificateDownloadMap = $this->certificateDownloadMap($user->id, $modules->pluck('id'));
         $moduleAccessMap = $this->moduleAccessMap(
             $modules,
             $lessonProgressMap,
             $completedAssessmentIds,
             $assignmentSubmissionMap,
+            $certificateDownloadMap,
             $resourceModuleVisitMap,
         );
         $activeLessonId = $this->latestProgressLessonId($lessonProgressMap);
@@ -245,11 +248,13 @@ class StudentModuleApiService
             $user->id,
             $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
         );
+        $certificateDownloadMap = $this->certificateDownloadMap($user->id, $modules->pluck('id'));
         $moduleAccessMap = $this->moduleAccessMap(
             $modules,
             $lessonProgressMap,
             $completedAssessmentIds,
             $assignmentSubmissionMap,
+            $certificateDownloadMap,
             $resourceModuleVisitMap,
         );
         $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
@@ -388,6 +393,7 @@ class StudentModuleApiService
         Collection $lessonProgressMap,
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
+        Collection $certificateDownloadMap,
         Collection $resourceModuleVisitMap,
     ): Collection {
         $accessMap = collect();
@@ -399,6 +405,7 @@ class StudentModuleApiService
                 $lessonProgressMap,
                 $completedAssessmentIds,
                 $assignmentSubmissionMap,
+                $certificateDownloadMap,
                 $resourceModuleVisitMap,
             );
 
@@ -422,34 +429,37 @@ class StudentModuleApiService
         Collection $lessonProgressMap,
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
+        Collection $certificateDownloadMap,
         Collection $resourceModuleVisitMap,
     ): bool {
         $liveAssignments = $module->assignments->where('status', Assignment::STATUS_LIVE);
 
-        if ($module->lessons->isEmpty() && $liveAssignments->isEmpty()) {
+        if ($module->lessons->isNotEmpty()) {
+            return $module->lessons->every(
+                fn (Lesson $lesson) => $this->isLessonFullyComplete(
+                    $lesson,
+                    $lessonProgressMap->get($lesson->id),
+                    $completedAssessmentIds,
+                ),
+            );
+        }
+
+        if ($liveAssignments->isNotEmpty()) {
+            return $liveAssignments
+                ->every(fn (Assignment $assignment) => $this->isAssignmentComplete(
+                    $assignmentSubmissionMap->get($assignment->id),
+                ));
+        }
+
+        if ($this->isCertificateDownloadModule($module)) {
+            return $certificateDownloadMap->has($module->id);
+        }
+
+        if ($this->isOpenOnceResourceModule($module)) {
             return $resourceModuleVisitMap->has($module->id);
         }
 
-        $hasTrackableContent = $module->lessons->isNotEmpty() || $liveAssignments->isNotEmpty();
-
-        if (! $hasTrackableContent) {
-            return false;
-        }
-
-        $allLessonsComplete = $module->lessons->every(
-            fn (Lesson $lesson) => $this->isLessonFullyComplete(
-                $lesson,
-                $lessonProgressMap->get($lesson->id),
-                $completedAssessmentIds,
-            ),
-        );
-
-        $allAssignmentsComplete = $liveAssignments
-            ->every(fn (Assignment $assignment) => $this->isAssignmentComplete(
-                $assignmentSubmissionMap->get($assignment->id),
-            ));
-
-        return $allLessonsComplete && $allAssignmentsComplete;
+        return false;
     }
 
     private function isLessonFullyComplete(
@@ -474,7 +484,7 @@ class StudentModuleApiService
 
     private function isAssignmentComplete(?AssignmentSubmission $submission): bool
     {
-        return $submission?->assignment_status === AssignmentSubmission::STATUS_APPROVED;
+        return $submission !== null;
     }
 
     private function assignmentSubmissionMap(?int $userId, iterable $assignmentIds): Collection
@@ -540,6 +550,37 @@ class StudentModuleApiService
             ->pluck('module_id')
             ->map(fn ($moduleId) => (int) $moduleId)
             ->flip();
+    }
+
+    private function certificateDownloadMap(?int $userId, iterable $moduleIds): Collection
+    {
+        $moduleIds = collect($moduleIds)->filter()->values();
+
+        if (! $userId || $moduleIds->isEmpty()) {
+            return collect();
+        }
+
+        return CertificateDownloadEvent::query()
+            ->where('user_id', $userId)
+            ->whereIn('module_id', $moduleIds)
+            ->pluck('module_id')
+            ->map(fn ($moduleId) => (int) $moduleId)
+            ->flip();
+    }
+
+    private function isCertificateDownloadModule(Module $module): bool
+    {
+        return $module->lessons->isEmpty()
+            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty()
+            && (bool) $module->certificate_enabled;
+    }
+
+    private function isOpenOnceResourceModule(Module $module): bool
+    {
+        return $module->lessons->isEmpty()
+            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty()
+            && ! $this->isCertificateDownloadModule($module)
+            && ((bool) $module->ebook_enabled || (bool) $module->video_lecturer_enabled);
     }
 
     private function latestProgressLessonId(Collection $lessonProgressMap): ?int

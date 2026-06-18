@@ -8,7 +8,8 @@ export default function CreateAccessTier() {
         slug: '',
         description: '',
         thumbnail: null,
-        price_amount: '',
+        price: '',
+        currency_code: 'IDR',
         is_active: true,
     });
 

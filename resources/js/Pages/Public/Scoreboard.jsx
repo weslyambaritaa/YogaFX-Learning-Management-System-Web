@@ -3,14 +3,8 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { Button } from '@/Components/ui/button';
 import PublicFlowLayout from '@/Layouts/PublicFlowLayout';
+import { formatCurrency } from '@/lib/currency';
 import { useForm, usePage } from '@inertiajs/react';
-
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(Number(amount || 0));
-}
 
 export default function Scoreboard({ accessTiers }) {
     const { directory = {} } = usePage().props;
@@ -27,7 +21,7 @@ export default function Scoreboard({ accessTiers }) {
     });
 
     const selectedTier = accessTiers.find((tier) => String(tier.id) === String(data.access_tier_id)) ?? null;
-    const selectedTierHasPrice = Number(selectedTier?.price_amount ?? 0) > 0;
+    const selectedTierHasPrice = Number(selectedTier?.price ?? 0) > 0;
 
     const submit = (event) => {
         event.preventDefault();
@@ -75,7 +69,7 @@ export default function Scoreboard({ accessTiers }) {
                                     {selectedTier.description}
                                 </p>
                                 <div className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white">
-                                    {formatCurrency(selectedTier.price_amount)}
+                                    {formatCurrency(selectedTier.price, selectedTier.currency_code)}
                                 </div>
                                 {!selectedTierHasPrice && (
                                     <div className="rounded-2xl border border-amber-300/15 bg-[linear-gradient(160deg,rgba(217,119,6,0.16),rgba(255,255,255,0.03))] px-4 py-3 text-sm leading-6 text-amber-50/90">
@@ -200,8 +194,8 @@ export default function Scoreboard({ accessTiers }) {
                         >
                             {accessTiers.map((tier) => (
                                 <option key={tier.id} value={tier.id}>
-                                    {tier.name} - {Number(tier.price_amount) > 0
-                                        ? formatCurrency(tier.price_amount)
+                                    {tier.name} - {Number(tier.price) > 0
+                                        ? formatCurrency(tier.price, tier.currency_code)
                                         : 'Price not set yet'}
                                 </option>
                             ))}

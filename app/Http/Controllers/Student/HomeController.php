@@ -9,11 +9,12 @@ use App\Models\AssignmentSubmission;
 use App\Models\Assignment;
 use App\Models\Certificate;
 use App\Models\Ebook;
-use App\Models\PaymentActivity;
+use App\Models\Payment;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\StudentModuleVisit;
 use App\Services\BunnyStorageService;
+use App\Services\CertificateDownloadTrackingService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\StudentSessionTrackingService;
 use App\Support\BunnyAssetPath;
@@ -32,6 +33,7 @@ class HomeController extends Controller
         private readonly StudentSessionTrackingService $sessionTrackingService,
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly BunnyStorageService $bunnyStorage,
+        private readonly CertificateDownloadTrackingService $certificateDownloadTrackingService,
     ) {}
 
     public function index(Request $request): Response|RedirectResponse
@@ -98,6 +100,8 @@ class HomeController extends Controller
         $user = $request->user();
 
         abort_unless($user?->isStudent() && $certificate->user_id === $user->id, 404);
+
+        $this->certificateDownloadTrackingService->record($user, $certificate);
 
         if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
             $url = $this->bunnyStorage->url($certificate->file_path);
@@ -1320,24 +1324,26 @@ class HomeController extends Controller
             return [];
         }
 
-        $currentPrice = (float) $currentTier->price_amount;
-        $totalPaid = (float) PaymentActivity::query()
-            ->where('user_id', $user->id)
-            ->where('status', PaymentActivity::STATUS_SUCCESS)
-            ->sum('amount');
+        $currentPrice = (float) $currentTier->price;
+        $totalPaid = (float) Payment::query()
+            ->whereHas('invoice', fn ($query) => $query->where('user_id', $user->id))
+            ->where('status', Payment::STATUS_SUCCESS)
+            ->sum('amount_paid');
 
         return AccessTier::query()
             ->where('is_active', true)
-            ->where('price_amount', '>', $currentPrice)
-            ->orderBy('price_amount')
+            ->where('price', '>', $currentPrice)
+            ->orderBy('price')
             ->orderBy('name')
             ->get()
             ->map(fn (AccessTier $tier) => [
                 'id' => $tier->id,
                 'name' => $tier->name,
                 'slug' => $tier->slug,
-                'price_amount' => (float) $tier->price_amount,
-                'amount_due' => max(0, round((float) $tier->price_amount - $totalPaid, 2)),
+                'price' => (float) $tier->price,
+                'price_amount' => (float) $tier->price,
+                'currency_code' => $tier->currency_code,
+                'amount_due' => max(0, round((float) $tier->price - $totalPaid, 2)),
                 'checkout_url' => route('student.upgrades.show', $tier),
             ])
             ->filter(fn (array $tier) => $tier['amount_due'] > 0)

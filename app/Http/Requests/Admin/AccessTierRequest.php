@@ -45,7 +45,8 @@ class AccessTierRequest extends FormRequest
             ],
             'description' => ['required', 'string', 'max:2000'],
             'thumbnail' => ['nullable', 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
-            'price_amount' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'currency_code' => ['required', 'string', Rule::in(AccessTier::CURRENCY_OPTIONS)],
             'is_active' => ['required', 'boolean'],
         ];
     }
