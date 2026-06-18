@@ -1356,4 +1356,3 @@ class HomeController extends Controller
         ) ?: ($module ? $this->moduleThumbnailUrl($module) : null);
     }
 }
-}

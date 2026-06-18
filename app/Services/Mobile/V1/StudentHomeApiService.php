@@ -9,6 +9,7 @@ use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Services\BunnyStreamService;
 use App\Services\BunnyStorageService;
 use App\Services\Certificates\CertificateEligibilityService;
+use App\Services\CertificateDownloadTrackingService; // 1. Pastikan class ini di-import
 use App\Services\StudentSessionTrackingService;
 use Illuminate\Http\Request;
 
@@ -22,11 +23,13 @@ class StudentHomeApiService extends HomeController
         StudentSessionTrackingService $sessionTrackingService,
         CertificateEligibilityService $certificateEligibilityService,
         BunnyStorageService $bunnyStorage,
+        CertificateDownloadTrackingService $certificateDownloadTrackingService
     ) {
         parent::__construct(
             $sessionTrackingService,
             $certificateEligibilityService,
             $bunnyStorage,
+            $certificateDownloadTrackingService
         );
     }
 
