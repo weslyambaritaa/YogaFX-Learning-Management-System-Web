@@ -1,14 +1,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatCurrency } from '@/lib/currency';
 import { Head, Link, usePage } from '@inertiajs/react';
 
 export default function AccessTiersIndex({ accessTiers, status }) {
     const errors = usePage().props.errors;
-
-    const formatCurrency = (amount) =>
-        new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-        }).format(Number(amount || 0));
 
     return (
         <AuthenticatedLayout
@@ -117,7 +112,7 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                                 {accessTier.slug}
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">
-                                                {formatCurrency(accessTier.price_amount)}
+                                                {formatCurrency(accessTier.price, accessTier.currency_code)}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span

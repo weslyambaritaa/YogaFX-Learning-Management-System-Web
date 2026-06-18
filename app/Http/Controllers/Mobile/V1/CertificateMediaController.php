@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\User;
 use App\Services\BunnyStorageService;
+use App\Services\CertificateDownloadTrackingService;
 use App\Support\BunnyAssetPath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +18,7 @@ class CertificateMediaController extends Controller
 {
     public function __construct(
         private readonly BunnyStorageService $bunnyStorageService,
+        private readonly CertificateDownloadTrackingService $certificateDownloadTrackingService,
     ) {}
 
     public function open(Request $request, Certificate $certificate): Response|StreamedResponse|BinaryFileResponse
@@ -35,6 +37,8 @@ class CertificateMediaController extends Controller
 
         $student = $this->resolveSignedStudent($request);
         abort_unless($certificate->user_id === $student->id, 403);
+
+        $this->certificateDownloadTrackingService->record($student, $certificate);
 
         return $this->serveCertificate((string) $certificate->file_path, (string) $certificate->file_name, true);
     }

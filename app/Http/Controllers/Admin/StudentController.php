@@ -12,15 +12,19 @@ use App\Models\AssessmentAttempt;
 use App\Models\AssessmentProgress;
 use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
+use App\Models\CertificateDownloadEvent;
 use App\Models\LessonProgress;
 use App\Models\Lesson;
+use App\Models\StudentModuleVisit;
 use App\Models\UserSession;
 use App\Models\User;
+use App\Services\BunnyStorageService;
 use App\Services\StudentSessionTrackingService;
 use App\Support\CountryDirectory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,6 +35,7 @@ class StudentController extends Controller
 
     public function __construct(
         private readonly StudentSessionTrackingService $sessionTrackingService,
+        private readonly BunnyStorageService $bunnyStorage,
     ) {}
 
     public function studentsIndex(): Response
@@ -184,9 +189,10 @@ class StudentController extends Controller
     {
         abort_unless($student->isStudent(), 404);
 
-        DB::transaction(function () use ($student) {
-            $this->resetAllLearningProgress($student);
+        $deletedAssignmentMediaPaths = DB::transaction(function () use ($student) {
+            return $this->resetAllLearningProgress($student);
         });
+        $this->deleteAssignmentMediaPaths($deletedAssignmentMediaPaths);
 
         return redirect()
             ->route('admin.students.edit', $student)
@@ -199,14 +205,15 @@ class StudentController extends Controller
 
         abort_unless(in_array($scope, ['video', 'assessment', 'lesson', 'module'], true), 404);
 
-        DB::transaction(function () use ($student, $scope) {
-            match ($scope) {
+        $deletedAssignmentMediaPaths = DB::transaction(function () use ($student, $scope) {
+            return match ($scope) {
                 'video' => $this->resetVideoProgress($student),
                 'assessment' => $this->resetAssessmentProgress($student),
                 'lesson' => $this->resetLessonProgress($student),
                 'module' => $this->resetModuleProgress($student),
             };
         });
+        $this->deleteAssignmentMediaPaths($deletedAssignmentMediaPaths);
 
         return redirect()
             ->route('admin.students.edit', $student)
@@ -270,13 +277,15 @@ class StudentController extends Controller
             ->implode('');
     }
 
-    private function resetAllLearningProgress(User $student): void
+    private function resetAllLearningProgress(User $student): Collection
     {
         $this->resetAssessmentProgress($student);
         $this->resetLessonProgress($student);
+
+        return $this->resetNonLessonModuleProgress($student);
     }
 
-    private function resetVideoProgress(User $student): void
+    private function resetVideoProgress(User $student): Collection
     {
         LessonProgress::query()
             ->where('user_id', $student->id)
@@ -286,9 +295,11 @@ class StudentController extends Controller
                 'is_done' => false,
                 'completed_at' => null,
             ]);
+
+        return collect();
     }
 
-    private function resetAssessmentProgress(User $student): void
+    private function resetAssessmentProgress(User $student): Collection
     {
         $attemptIds = AssessmentAttempt::query()
             ->where('user_id', $student->id)
@@ -316,16 +327,45 @@ class StudentController extends Controller
                     'completed_at' => null,
                 ]);
         }
+
+        return collect();
     }
 
-    private function resetLessonProgress(User $student): void
+    private function resetLessonProgress(User $student): Collection
     {
         LessonProgress::query()->where('user_id', $student->id)->delete();
+
+        return collect();
     }
 
-    private function resetModuleProgress(User $student): void
+    private function resetModuleProgress(User $student): Collection
     {
         $this->resetAssessmentProgress($student);
         $this->resetLessonProgress($student);
+
+        return $this->resetNonLessonModuleProgress($student);
+    }
+
+    private function resetNonLessonModuleProgress(User $student): Collection
+    {
+        $assignmentMediaPaths = AssignmentSubmission::query()
+            ->where('user_id', $student->id)
+            ->pluck('assignment_video')
+            ->filter()
+            ->unique()
+            ->values();
+
+        AssignmentSubmission::query()->where('user_id', $student->id)->delete();
+        StudentModuleVisit::query()->where('user_id', $student->id)->delete();
+        CertificateDownloadEvent::query()->where('user_id', $student->id)->delete();
+
+        return $assignmentMediaPaths;
+    }
+
+    private function deleteAssignmentMediaPaths(Collection $paths): void
+    {
+        $paths
+            ->filter(fn ($path) => is_string($path) && $path !== '')
+            ->each(fn (string $path) => $this->bunnyStorage->delete($path));
     }
 }

@@ -1,19 +1,13 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatCurrency } from '@/lib/currency';
 import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(Number(amount || 0));
-}
-
 export default function UpgradeCheckout({ upgrade }) {
     const { data, setData, post, processing, errors } = useForm({
-        payment_type: 'pay_in_full',
-        payment_method: 'paypal_credit_card',
+        payment_type: 'pay_full',
+        payment_method: 'paypal',
     });
     const [isSimulating, setIsSimulating] = useState(false);
 
@@ -62,11 +56,11 @@ export default function UpgradeCheckout({ upgrade }) {
                                             onChange={(event) => setData('payment_type', event.target.value)}
                                             className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
                                         >
-                                            <option value="pay_in_full">
-                                                Pay in Full - {formatCurrency(upgrade.amount_due)}
+                                            <option value="pay_full">
+                                                Pay in Full - {formatCurrency(upgrade.amount_due, upgrade.target_tier.currency_code)}
                                             </option>
-                                            <option value="pay_in_4_installments">
-                                                Pay in 4 Installments - {formatCurrency(installmentAmount)} today
+                                            <option value="installment">
+                                                Pay in 4 Installments - {formatCurrency(installmentAmount, upgrade.target_tier.currency_code)} today
                                             </option>
                                         </select>
                                         {errors.payment_type && (
@@ -83,7 +77,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                             onChange={(event) => setData('payment_method', event.target.value)}
                                             className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
                                         >
-                                            <option value="paypal_credit_card">PayPal / Credit Card</option>
+                                            <option value="paypal">PayPal</option>
                                             <option value="bank_transfer">Bank Transfer</option>
                                         </select>
                                         {errors.payment_method && (
@@ -117,7 +111,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                     <div className="mt-4 space-y-2 text-sm text-white/66">
                                         <p>Current tier: {upgrade.current_tier?.name ?? 'None'}</p>
                                         <p>Target tier: {upgrade.target_tier.name}</p>
-                                        <p>Already paid: {formatCurrency(upgrade.total_paid)}</p>
+                                        <p>Already paid: {formatCurrency(upgrade.total_paid, upgrade.target_tier.currency_code)}</p>
                                     </div>
                                 </div>
 
@@ -126,7 +120,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                         Amount due now
                                     </p>
                                     <div className="mt-4 text-3xl font-semibold text-white">
-                                        {formatCurrency(upgrade.amount_due)}
+                                        {formatCurrency(upgrade.amount_due, upgrade.target_tier.currency_code)}
                                     </div>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
                                         Prorated from the target program price minus the total amount already paid in your current journey.

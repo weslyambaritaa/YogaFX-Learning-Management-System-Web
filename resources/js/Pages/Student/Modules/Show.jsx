@@ -423,15 +423,13 @@ export default function StudentModuleShow({ module }) {
                                             ) : null}
 
                                             {course.video?.is_ready && course.video?.hls_url ? (
-                                                <a
-                                                    href={course.video.hls_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
+                                                <Link
+                                                    href={route('courses.show', course.url_slug)}
                                                     className="inline-flex items-center gap-2 rounded-full bg-[#d5462f] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#e2553d]"
                                                 >
                                                     Open Video
                                                     <ArrowRight className="size-4" />
-                                                </a>
+                                                </Link>
                                             ) : (
                                                 <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/60">
                                                     Video Not Ready

@@ -8,7 +8,8 @@ export default function EditAccessTier({ accessTier, status }) {
         slug: accessTier.slug ?? '',
         description: accessTier.description ?? '',
         thumbnail: null,
-        price_amount: accessTier.price_amount ?? '',
+        price: accessTier.price ?? '',
+        currency_code: accessTier.currency_code ?? 'IDR',
         is_active: accessTier.is_active ?? true,
     });
 

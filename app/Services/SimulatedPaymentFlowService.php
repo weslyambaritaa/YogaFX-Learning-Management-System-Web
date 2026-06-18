@@ -6,7 +6,7 @@ use App\Mail\TemplatedNotificationMail;
 use App\Models\AccessTier;
 use App\Models\Invoice;
 use App\Models\OnboardingState;
-use App\Models\PaymentActivity;
+use App\Models\Payment;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Support\EmailNotificationTypeRegistry;
@@ -38,7 +38,7 @@ class SimulatedPaymentFlowService
             'email' => Str::lower((string) $attributes['email']),
             'phone' => $attributes['phone'],
             'country' => $attributes['country'],
-            'amount_snapshot' => $accessTier->price_amount,
+            'amount_snapshot' => $accessTier->price,
             'status' => PendingRegistration::STATUS_CREATED,
         ]);
 
@@ -62,21 +62,26 @@ class SimulatedPaymentFlowService
 
     /**
      * @param  array{payment_type: string, payment_method: string}  $attributes
-     * @return array{invoice: Invoice, payment_activity: PaymentActivity, onboarding_state: OnboardingState}
+     * @return array{invoice: Invoice, payment: Payment, onboarding_state: OnboardingState}
      */
     public function processInitialPayment(PendingRegistration $pendingRegistration, array $attributes): array
     {
         return DB::transaction(function () use ($pendingRegistration, $attributes): array {
             $pendingRegistration->loadMissing('accessTier', 'onboardingState.user');
+            $accessTier = $pendingRegistration->accessTier()->firstOrFail();
+            $currentTierAmount = (float) $accessTier->price;
+            $currencyCode = $accessTier->currency_code;
 
             if ($pendingRegistration->status === PendingRegistration::STATUS_COMPLETED) {
                 abort(409, 'This registration flow is already completed.');
             }
 
             if ($pendingRegistration->status === PendingRegistration::STATUS_PAYMENT_SUCCESS && $pendingRegistration->onboardingState) {
+                $invoice = $pendingRegistration->invoices()->latest('id')->firstOrFail();
+
                 return [
-                    'invoice' => $pendingRegistration->invoices()->latest('id')->firstOrFail(),
-                    'payment_activity' => $pendingRegistration->paymentActivities()->latest('id')->firstOrFail(),
+                    'invoice' => $invoice,
+                    'payment' => $invoice->payments()->latest('id')->firstOrFail(),
                     'onboarding_state' => $pendingRegistration->onboardingState,
                 ];
             }
@@ -85,38 +90,41 @@ class SimulatedPaymentFlowService
                 'invoice_number' => $this->nextInvoiceNumber(),
                 'pending_registration_id' => $pendingRegistration->id,
                 'access_tier_id' => $pendingRegistration->access_tier_id,
-                'context' => Invoice::CONTEXT_INITIAL,
+                'type' => Invoice::TYPE_INITIAL,
                 'payment_type' => $attributes['payment_type'],
-                'total_amount' => $pendingRegistration->amount_snapshot,
-                'balance_amount' => $pendingRegistration->amount_snapshot,
+                'total_amount' => $currentTierAmount,
+                'balance_due' => $currentTierAmount,
+                'currency_code' => $currencyCode,
                 'status' => Invoice::STATUS_PENDING,
                 'issued_at' => now(),
             ]);
 
             $paymentAmount = $this->initialPaymentAmount(
-                totalAmount: (float) $pendingRegistration->amount_snapshot,
+                totalAmount: $currentTierAmount,
                 paymentType: $attributes['payment_type'],
             );
 
-            $paymentActivity = PaymentActivity::query()->create([
+            $payment = Payment::query()->create([
                 'invoice_id' => $invoice->id,
-                'pending_registration_id' => $pendingRegistration->id,
-                'reference_code' => $this->nextPaymentReference(),
+                'payment_reference' => $this->nextPaymentReference(),
                 'payment_type' => $attributes['payment_type'],
                 'payment_method' => $attributes['payment_method'],
-                'amount' => $paymentAmount,
-                'status' => PaymentActivity::STATUS_SUCCESS,
-                'processed_at' => now(),
-                'meta' => [
-                    'mode' => 'simulated',
-                ],
+                'amount_paid' => $paymentAmount,
+                'currency_code' => $currencyCode,
+                'status' => Payment::STATUS_PENDING,
+                'notes' => 'Simulated payment flow.',
             ]);
 
-            $remainingBalance = max(0, round((float) $pendingRegistration->amount_snapshot - $paymentAmount, 2));
+            $payment->forceFill([
+                'status' => Payment::STATUS_SUCCESS,
+                'notes' => 'Simulated payment flow succeeded.',
+            ])->save();
+
+            $remainingBalance = max(0, round($currentTierAmount - $paymentAmount, 2));
 
             $invoice->forceFill([
-                'balance_amount' => $remainingBalance,
-                'status' => $remainingBalance === 0.0
+                'balance_due' => $remainingBalance,
+                'status' => $remainingBalance <= 0
                     ? Invoice::STATUS_PAID_FULL
                     : Invoice::STATUS_INSTALLMENT,
                 'paid_at' => now(),
@@ -139,10 +147,6 @@ class SimulatedPaymentFlowService
                 'user_id' => $user->id,
             ])->save();
 
-            $paymentActivity->forceFill([
-                'user_id' => $user->id,
-            ])->save();
-
             $onboardingState = OnboardingState::query()->create([
                 'pending_registration_id' => $pendingRegistration->id,
                 'user_id' => $user->id,
@@ -159,7 +163,7 @@ class SimulatedPaymentFlowService
 
             return [
                 'invoice' => $invoice->fresh(),
-                'payment_activity' => $paymentActivity->fresh(),
+                'payment' => $payment->fresh(),
                 'onboarding_state' => $onboardingState->fresh(['user', 'pendingRegistration.accessTier']),
             ];
         });
@@ -218,20 +222,20 @@ class SimulatedPaymentFlowService
 
     /**
      * @param  array{payment_type: string, payment_method: string}  $attributes
-     * @return array{invoice: Invoice, payment_activity: PaymentActivity, amount_due: float}
+     * @return array{invoice: Invoice, payment: Payment, amount_due: float}
      */
     public function processUpgrade(User $user, AccessTier $targetTier, array $attributes): array
     {
         return DB::transaction(function () use ($user, $targetTier, $attributes): array {
-            $currentPrice = (float) ($user->accessTier?->price_amount ?? 0);
-            $targetPrice = (float) $targetTier->price_amount;
+            $currentPrice = (float) ($user->accessTier?->price ?? 0);
+            $targetPrice = (float) $targetTier->price;
 
             abort_if($targetPrice <= $currentPrice, 422, 'Only higher tiers can be selected for upgrade.');
 
-            $totalPaid = (float) PaymentActivity::query()
-                ->where('user_id', $user->id)
-                ->where('status', PaymentActivity::STATUS_SUCCESS)
-                ->sum('amount');
+            $totalPaid = (float) Payment::query()
+                ->whereHas('invoice', fn ($query) => $query->where('user_id', $user->id))
+                ->where('status', Payment::STATUS_SUCCESS)
+                ->sum('amount_paid');
 
             $amountDue = max(0, round($targetPrice - $totalPaid, 2));
             abort_if($amountDue <= 0, 422, 'No additional upgrade payment is required for this tier.');
@@ -240,10 +244,11 @@ class SimulatedPaymentFlowService
                 'invoice_number' => $this->nextInvoiceNumber(),
                 'user_id' => $user->id,
                 'access_tier_id' => $targetTier->id,
-                'context' => Invoice::CONTEXT_UPGRADE,
+                'type' => Invoice::TYPE_UPGRADE,
                 'payment_type' => $attributes['payment_type'],
                 'total_amount' => $amountDue,
-                'balance_amount' => $amountDue,
+                'balance_due' => $amountDue,
+                'currency_code' => $targetTier->currency_code,
                 'status' => Invoice::STATUS_PENDING,
                 'issued_at' => now(),
             ]);
@@ -253,26 +258,27 @@ class SimulatedPaymentFlowService
                 paymentType: $attributes['payment_type'],
             );
 
-            $paymentActivity = PaymentActivity::query()->create([
+            $payment = Payment::query()->create([
                 'invoice_id' => $invoice->id,
-                'user_id' => $user->id,
-                'reference_code' => $this->nextPaymentReference(),
+                'payment_reference' => $this->nextPaymentReference(),
                 'payment_type' => $attributes['payment_type'],
                 'payment_method' => $attributes['payment_method'],
-                'amount' => $paymentAmount,
-                'status' => PaymentActivity::STATUS_SUCCESS,
-                'processed_at' => now(),
-                'meta' => [
-                    'mode' => 'simulated',
-                    'upgrade_from_tier_id' => $user->access_tier_id,
-                ],
+                'amount_paid' => $paymentAmount,
+                'currency_code' => $targetTier->currency_code,
+                'status' => Payment::STATUS_PENDING,
+                'notes' => 'Simulated upgrade payment.',
             ]);
+
+            $payment->forceFill([
+                'status' => Payment::STATUS_SUCCESS,
+                'notes' => 'Simulated upgrade payment succeeded.',
+            ])->save();
 
             $remainingBalance = max(0, round($amountDue - $paymentAmount, 2));
 
             $invoice->forceFill([
-                'balance_amount' => $remainingBalance,
-                'status' => $remainingBalance === 0.0
+                'balance_due' => $remainingBalance,
+                'status' => $remainingBalance <= 0
                     ? Invoice::STATUS_PAID_FULL
                     : Invoice::STATUS_INSTALLMENT,
                 'paid_at' => now(),
@@ -284,7 +290,7 @@ class SimulatedPaymentFlowService
 
             return [
                 'invoice' => $invoice->fresh(),
-                'payment_activity' => $paymentActivity->fresh(),
+                'payment' => $payment->fresh(),
                 'amount_due' => $amountDue,
             ];
         });
@@ -406,7 +412,7 @@ class SimulatedPaymentFlowService
             '<p>Hi '.e($pendingRegistration->fullName()).',</p>',
             '<p>Thank you for starting your YogaFX journey.</p>',
             '<p>Your selected tier: <strong>'.e($pendingRegistration->accessTier->name).'</strong></p>',
-            '<p>Your current amount: <strong>'.e(number_format((float) $pendingRegistration->amount_snapshot, 2)).'</strong></p>',
+            '<p>Your current amount: <strong>'.e($pendingRegistration->accessTier->currency_code.' '.number_format((float) $pendingRegistration->accessTier->price, 2)).'</strong></p>',
             '<p>Continue to your signed checkout here: <a href="'.e($checkoutUrl).'">'.e($checkoutUrl).'</a></p>',
         ]);
 
