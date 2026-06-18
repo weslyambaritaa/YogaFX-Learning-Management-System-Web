@@ -300,8 +300,11 @@ export default function Scoreboard({ accessTiers }) {
                                     className="bg-gray-900 text-white"
                                 >
                                     {tier.name} -{" "}
-                                    {Number(tier.price_amount) > 0
-                                        ? formatCurrency(tier.price_amount)
+                                    {Number(tier.price) > 0
+                                        ? formatCurrency(
+                                              tier.price,
+                                              tier.currency_code,
+                                          )
                                         : "Price not set yet"}
                                 </option>
                             ))}
