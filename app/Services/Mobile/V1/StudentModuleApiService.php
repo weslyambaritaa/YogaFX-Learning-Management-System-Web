@@ -594,9 +594,15 @@ class StudentModuleApiService
 
     private function isCertificateDownloadModule(Module $module): bool
     {
-        return $module->lessons->isEmpty()
+        // Check if it matches the designated slug
+        $isSlugMatch = $module->url_slug === self::CERTIFICATE_DOWNLOAD_SLUG;
+
+        // Check if it's implicitly a certificate module (no lessons/assignments, but certificate enabled)
+        $isImplicitMatch = $module->lessons->isEmpty()
             && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty()
             && (bool) $module->certificate_enabled;
+
+        return $isSlugMatch || $isImplicitMatch;
     }
 
     private function isOpenOnceResourceModule(Module $module): bool
@@ -766,10 +772,10 @@ class StudentModuleApiService
             ->all();
     }
 
-    private function isCertificateDownloadModule(Module $module): bool
-    {
-        return $module->url_slug === self::CERTIFICATE_DOWNLOAD_SLUG;
-    }
+    // private function isCertificateDownloadModule(Module $module): bool
+    // {
+    //     return $module->url_slug === self::CERTIFICATE_DOWNLOAD_SLUG;
+    // }
 
     private function certificateAccessState(
         User $user,
