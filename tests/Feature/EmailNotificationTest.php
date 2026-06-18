@@ -514,7 +514,7 @@ class EmailNotificationTest extends TestCase
         ]);
     }
 
-    public function test_reminder_command_sends_notification_once_for_inactive_students(): void
+    public function test_reminder_command_sends_notification_once_for_students_who_have_been_logged_out_for_ten_minutes(): void
     {
         Mail::fake();
 
@@ -562,9 +562,9 @@ class EmailNotificationTest extends TestCase
         UserSession::query()->create([
             'user_id' => $inactiveStudent->id,
             'session_id' => 'inactive-session',
-            'login_at' => now()->subHours(2),
-            'last_activity_at' => now()->subHours(2),
-            'logout_at' => now()->subHours(2),
+            'login_at' => now()->subMinutes(20),
+            'last_activity_at' => now()->subMinutes(20),
+            'logout_at' => now()->subMinutes(20),
             'session_duration_seconds' => 120,
             'is_active' => false,
         ]);
@@ -573,16 +573,16 @@ class EmailNotificationTest extends TestCase
             'user_id' => $activeStudent->id,
             'session_id' => 'active-session',
             'login_at' => now()->subMinutes(20),
-            'last_activity_at' => now()->subMinutes(5),
+            'last_activity_at' => now()->subMinute(),
             'is_active' => true,
         ]);
 
         UserSession::query()->create([
             'user_id' => $completedStudent->id,
             'session_id' => 'completed-session',
-            'login_at' => now()->subHours(2),
-            'last_activity_at' => now()->subHours(2),
-            'logout_at' => now()->subHours(2),
+            'login_at' => now()->subMinutes(20),
+            'last_activity_at' => now()->subMinutes(20),
+            'logout_at' => now()->subMinutes(20),
             'session_duration_seconds' => 180,
             'is_active' => false,
         ]);

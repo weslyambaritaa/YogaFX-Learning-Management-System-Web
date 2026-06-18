@@ -21,7 +21,7 @@ use RuntimeException;
 class EmailNotificationService
 {
     private const EMAIL_PLACEHOLDER_PATTERN = '/{{\s*([\w_]+)\s*}}|(?<!{){\s*([\w_]+)\s*}(?!})/';
-    private const REMINDER_INACTIVITY_THRESHOLD_HOURS = 1;
+    private const REMINDER_INACTIVITY_THRESHOLD_MINUTES = 10;
 
     public function findOrCreateTemplate(string $notificationType): EmailTemplate
     {
@@ -277,7 +277,7 @@ class EmailNotificationService
             return 0;
         }
 
-        $threshold = now()->subHours(self::REMINDER_INACTIVITY_THRESHOLD_HOURS);
+        $threshold = now()->subMinutes(self::REMINDER_INACTIVITY_THRESHOLD_MINUTES);
         $sentCount = 0;
 
         User::query()
@@ -285,7 +285,15 @@ class EmailNotificationService
             ->whereNotNull('access_tier_id')
             ->get()
             ->each(function (User $user) use ($threshold, &$sentCount): void {
+                if ($this->studentHasActiveSession($user)) {
+                    return;
+                }
+
                 if ($this->studentHasCompletedAccessibleCourse($user)) {
+                    return;
+                }
+
+                if ($this->studentHasActiveSession($user)) {
                     return;
                 }
 
@@ -307,13 +315,13 @@ class EmailNotificationService
                     return;
                 }
 
-                $inactiveHours = max($lastLoginAt->diffInHours(now()), self::REMINDER_INACTIVITY_THRESHOLD_HOURS);
+                $inactiveMinutes = max($lastLoginAt->diffInMinutes(now()), self::REMINDER_INACTIVITY_THRESHOLD_MINUTES);
 
                 event(new ReminderTriggered([
                     'user_name' => $user->name,
                     'user_email' => $user->email,
                     'last_activity_date' => $lastLoginAt->toDateTimeString(),
-                    'inactive_days' => (string) $inactiveHours,
+                    'inactive_days' => (string) $inactiveMinutes,
                     'dashboard_url' => route('student.dashboard'),
                     'login_url' => route('login'),
                 ], 'user', $user->id));
@@ -740,6 +748,18 @@ class EmailNotificationService
         }
 
         return $user->created_at;
+    }
+
+    private function studentHasActiveSession(User $user): bool
+    {
+        if (! $this->studentSessionSchemaReady()) {
+            return false;
+        }
+
+        return UserSession::query()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->exists();
     }
 
     private function studentHasCompletedAccessibleCourse(User $user): bool
