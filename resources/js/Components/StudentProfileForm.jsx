@@ -2,7 +2,6 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { Button } from '@/Components/ui/button';
 import { usePage } from '@inertiajs/react';
 
 function SelectField({
@@ -14,7 +13,6 @@ function SelectField({
     options,
     labelClassName = '',
     selectClassName = '',
-    optionClassName = '',
     errorClassName = '',
 }) {
     return (
@@ -29,9 +27,9 @@ function SelectField({
                     selectClassName,
                 ].join(' ')}
             >
-                <option value="" className={optionClassName}>Select an option</option>
+                <option value="">Select an option</option>
                 {options.map((option) => (
-                    <option key={option.value} value={option.value} className={optionClassName}>
+                    <option key={option.value} value={option.value}>
                         {option.label}
                     </option>
                 ))}
@@ -83,8 +81,7 @@ export default function StudentProfileForm({
     const { directory = {} } = usePage().props;
     const countryOptions = directory.countries ?? [];
     const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
-    const isImmersive = variant === 'immersive' || variant === 'scoreboard';
-    const isScoreboard = variant === 'scoreboard';
+    const isImmersive = variant === 'immersive';
 
     const genderOptions = [
         { value: 'female', label: 'Female' },
@@ -123,28 +120,19 @@ export default function StudentProfileForm({
     const descriptionClassName = isImmersive
         ? 'mt-1 text-sm leading-6 text-white/58'
         : 'mt-1 text-sm text-gray-600';
-    const labelClassName = isScoreboard
-        ? 'text-white/80'
-        : isImmersive
-            ? 'text-xs uppercase tracking-[0.18em] text-white/62'
-            : '';
-    const inputClassName = isScoreboard
-        ? 'border-white/20 bg-white/10 text-white placeholder:text-white/30 focus:border-white focus:ring-white'
-        : isImmersive
-            ? 'border-white/12 bg-white/5 text-white placeholder:text-white/32 focus:border-[#d5462f] focus:ring-[#d5462f] [color-scheme:dark]'
-            : '';
-    const selectClassName = isScoreboard
-        ? 'border-white/20 bg-white/10 text-white focus:border-white focus:ring-white'
-        : isImmersive
-            ? 'border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]'
-            : '';
-    const optionClassName = isScoreboard ? 'bg-gray-900 text-white' : '';
-    const textareaClassName = isScoreboard
-        ? 'border-white/20 bg-white/10 text-white placeholder:text-white/30 focus:border-white focus:ring-white'
-        : isImmersive
-            ? 'border-white/12 bg-white/5 text-white placeholder:text-white/32 focus:border-[#d5462f] focus:ring-[#d5462f]'
-            : '';
-    const errorClassName = isScoreboard ? 'text-red-400' : isImmersive ? 'text-[#ffb4a8]' : '';
+    const labelClassName = isImmersive
+        ? 'text-xs uppercase tracking-[0.18em] text-white/62'
+        : '';
+    const inputClassName = isImmersive
+        ? 'border-white/12 bg-white/5 text-white placeholder:text-white/32 focus:border-[#d5462f] focus:ring-[#d5462f] [color-scheme:dark]'
+        : '';
+    const selectClassName = isImmersive
+        ? 'border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]'
+        : '';
+    const textareaClassName = isImmersive
+        ? 'border-white/12 bg-white/5 text-white placeholder:text-white/32 focus:border-[#d5462f] focus:ring-[#d5462f]'
+        : '';
+    const errorClassName = isImmersive ? 'text-[#ffb4a8]' : '';
     const helperClassName = isImmersive
         ? 'mt-2 text-xs leading-5 text-white/42'
         : 'mt-2 text-xs leading-5 text-gray-500';
@@ -210,7 +198,7 @@ export default function StudentProfileForm({
                                 className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black ${selectClassName}`.trim()}
                             >
                                 {phoneCountryCodeOptions.map((option) => (
-                                    <option key={option.value} value={option.value} className={optionClassName}>
+                                    <option key={option.value} value={option.value}>
                                         {option.label}
                                     </option>
                                 ))}
@@ -258,7 +246,6 @@ export default function StudentProfileForm({
                         options={countryOptions}
                         labelClassName={labelClassName}
                         selectClassName={selectClassName}
-                        optionClassName={optionClassName}
                         errorClassName={errorClassName}
                     />
 
@@ -283,7 +270,6 @@ export default function StudentProfileForm({
                         options={genderOptions}
                         labelClassName={labelClassName}
                         selectClassName={selectClassName}
-                        optionClassName={optionClassName}
                         errorClassName={errorClassName}
                     />
 
@@ -339,7 +325,6 @@ export default function StudentProfileForm({
                         options={experienceOptions}
                         labelClassName={labelClassName}
                         selectClassName={selectClassName}
-                        optionClassName={optionClassName}
                         errorClassName={errorClassName}
                     />
                     <SelectField
@@ -351,7 +336,6 @@ export default function StudentProfileForm({
                         options={sequenceOptions}
                         labelClassName={labelClassName}
                         selectClassName={selectClassName}
-                        optionClassName={optionClassName}
                         errorClassName={errorClassName}
                     />
                     <div>
@@ -376,7 +360,6 @@ export default function StudentProfileForm({
                         options={fitnessOptions}
                         labelClassName={labelClassName}
                         selectClassName={selectClassName}
-                        optionClassName={optionClassName}
                         errorClassName={errorClassName}
                     />
                     <SelectField
@@ -388,7 +371,6 @@ export default function StudentProfileForm({
                         options={flexibilityOptions}
                         labelClassName={labelClassName}
                         selectClassName={selectClassName}
-                        optionClassName={optionClassName}
                         errorClassName={errorClassName}
                     />
                 </div>
@@ -437,19 +419,9 @@ export default function StudentProfileForm({
             </section>
 
             <div className="flex items-center gap-4">
-                {isScoreboard ? (
-                    <Button
-                        type="submit"
-                        disabled={processing}
-                        className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
-                    >
-                        {submitLabel}
-                    </Button>
-                ) : (
-                    <PrimaryButton disabled={processing} className={submitButtonClassName}>
-                        {submitLabel}
-                    </PrimaryButton>
-                )}
+                <PrimaryButton disabled={processing} className={submitButtonClassName}>
+                    {submitLabel}
+                </PrimaryButton>
             </div>
         </form>
     );

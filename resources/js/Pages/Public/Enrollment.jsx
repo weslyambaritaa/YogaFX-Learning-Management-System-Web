@@ -37,15 +37,15 @@ export default function Enrollment({ onboarding, student }) {
             heading="Complete your YogaFX enrollment before creating your final password"
             description="Your payment has already succeeded, your base account already exists, and this step now fills the full profile required before sign up and LMS access are allowed."
             aside={
-                <div className="space-y-6">
+                <div className="space-y-5">
                     {/* Current state card */}
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
+                    <div className="rounded-[10px] border border-gray-200 bg-gray-900 p-5">
                         <div className="flex justify-end">
                             <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
                                 Current state
                             </p>
                         </div>
-                        <div className="mt-7 space-y-3 text-sm leading-6 text-white/70">
+                        <div className="mt-7 space-y-2 text-sm text-white">
                             <p>Payment status: success</p>
                             <p>Onboarding status: {onboarding.status}</p>
                             <p>Tier access: {onboarding.access_tier.name}</p>
@@ -53,13 +53,13 @@ export default function Enrollment({ onboarding, student }) {
                     </div>
 
                     {/* Why this step card */}
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
+                    <div className="rounded-[10px] border border-gray-200 bg-gray-900 p-5">
                         <div className="flex justify-end">
                             <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
                                 Why this step comes first
                             </p>
                         </div>
-                        <div className="mt-7 space-y-3 text-sm leading-6 text-white/70">
+                        <div className="mt-7 space-y-3 text-sm leading-6 text-white/80">
                             <p>Enrollment captures the real profile data before final login credentials are created.</p>
                             <p>This prevents incomplete student accounts from entering LMS directly.</p>
                         </div>
@@ -74,7 +74,7 @@ export default function Enrollment({ onboarding, student }) {
                 processing={processing}
                 onSubmit={submit}
                 submitLabel="Save Enrollment and Continue"
-                variant="scoreboard"
+                variant="light"
                 currentProfilePhotoUrl={student.profile_photo_url}
             />
         </PublicFlowLayout>
