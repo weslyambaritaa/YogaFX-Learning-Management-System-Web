@@ -6,9 +6,9 @@ use App\Models\Ebook;
 use App\Models\User;
 use App\Support\BunnyAssetPath;
 use App\Support\MobileMediaPayload;
+use App\Support\MobileSignedUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 
 class StudentEbookApiService
 {
@@ -116,7 +116,7 @@ class StudentEbookApiService
 
     private function signedEbookRoute(string $routeName, User $user, Ebook $ebook): string
     {
-        return URL::temporarySignedRoute($routeName, now()->addHour(), [
+        return MobileSignedUrl::temporarySignedRoute($routeName, now()->addHour(), [
             'ebook' => $ebook->id,
             'student' => $user->id,
         ]);

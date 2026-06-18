@@ -14,6 +14,7 @@ use App\Models\Module;
 use App\Models\Question;
 use App\Models\QuestionOption;
 use App\Models\User;
+use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Services\StudentLearningMilestoneEmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -22,6 +23,7 @@ use Illuminate\Validation\ValidationException;
 class StudentAssessmentApiService
 {
     use BuildsProtectedMediaUrls;
+    use BuildsMobileSignedContentImageUrls;
 
     public function __construct(
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
@@ -57,9 +59,16 @@ class StudentAssessmentApiService
                 'duration_minutes' => $lesson->assessment->duration_minutes,
                 'show_progress_bar' => $lesson->assessment->show_progress_bar,
                 'allow_back_navigation' => $lesson->assessment->allow_back_navigation,
-                'thumbnail_url' => $lesson->assessment->thumbnail
-                    ? route('media.show', ['entity' => 'assessment', 'id' => $lesson->assessment->id, 'field' => 'thumbnail'])
-                    : null,
+                'thumbnail_url' => $this->publicMobileMediaUrl($lesson->assessment->thumbnail)
+                    ?: ($lesson->assessment->thumbnail
+                        ? $this->protectedMediaUrl(
+                            'assessment',
+                            $lesson->assessment->id,
+                            'thumbnail',
+                            $lesson->assessment->thumbnail,
+                            versionSeed: $lesson->assessment->updated_at,
+                        )
+                        : null),
             ],
             'eligibility' => [
                 'is_unlocked' => $this->isAssessmentUnlocked($lesson, $progress),

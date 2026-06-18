@@ -7,6 +7,7 @@ use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\User;
 use App\Services\BunnyStorageService;
+use App\Support\MobileSignedUrl;
 use App\Support\BunnyAssetPath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +23,7 @@ class LessonMediaController extends Controller
 
     public function audio(Request $request, Lesson $lesson): Response|StreamedResponse
     {
-        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
 
         $student = $this->resolveSignedStudent($request);
         $this->authorizeStudentLessonMedia($student, $lesson);
@@ -33,7 +34,7 @@ class LessonMediaController extends Controller
 
     public function workbook(Request $request, Lesson $lesson): Response|StreamedResponse|BinaryFileResponse
     {
-        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
 
         $student = $this->resolveSignedStudent($request);
         $this->authorizeStudentLessonMedia($student, $lesson);
@@ -55,7 +56,7 @@ class LessonMediaController extends Controller
 
     public function downloadWorkbook(Request $request, Lesson $lesson): Response|StreamedResponse|BinaryFileResponse
     {
-        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
 
         $student = $this->resolveSignedStudent($request);
         $this->authorizeStudentLessonMedia($student, $lesson);
