@@ -285,6 +285,10 @@ class EmailNotificationService
             ->whereNotNull('access_tier_id')
             ->get()
             ->each(function (User $user) use ($threshold, &$sentCount): void {
+                if ($this->studentHasActiveSession($user)) {
+                    return;
+                }
+
                 if ($this->studentHasCompletedAccessibleCourse($user)) {
                     return;
                 }
