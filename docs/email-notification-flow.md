@@ -167,7 +167,12 @@ Dipicu oleh command terjadwal:
 
 Scheduler:
 - dijalankan harian melalui `routes/console.php`
-- mengecek student yang tidak memiliki aktivitas lesson progress selama 7 hari
+- mengecek student yang tidak login selama threshold inactivity aktif
+- hanya mengirim ke student yang belum complete seluruh perjalanan module yang bisa diakses tier-nya
+
+Catatan implementasi aktif:
+- threshold testing saat ini 1 jam
+- implementasi disiapkan agar threshold mudah diubah ke 1 minggu
 
 ---
 

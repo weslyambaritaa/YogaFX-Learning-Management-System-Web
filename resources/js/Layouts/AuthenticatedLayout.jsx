@@ -245,6 +245,7 @@ const adminPageTitles = {
     'admin.student-progress.certificates.show': 'Certificate',
     'admin.students.index': 'Students',
     'admin.students.edit': 'Student Detail',
+    'admin.profile.edit': 'Profile',
     'admin.dialogs.edit': 'Dialog',
     'admin.email-notifications.index': 'Email Notification',
     'admin.email-notifications.show': 'Email Notification',
@@ -252,6 +253,11 @@ const adminPageTitles = {
     'admin.access-tiers.create': 'Create Access Tier',
     'admin.access-tiers.edit': 'Edit Access Tier',
 };
+
+// Admin logo: https://yogafx.b-cdn.net/content/yogafx.png
+// Student logo: https://yogafx.b-cdn.net/content/Logo%20YogAFX.png
+const ADMIN_LOGO_URL = 'https://yogafx.b-cdn.net/content/yogafx.png';
+const STUDENT_LOGO_URL = 'https://yogafx.b-cdn.net/content/Logo%20YogAFX.png';
 
 function getUserInitials(user) {
     const baseName = [user?.first_name, user?.last_name]
@@ -272,6 +278,7 @@ function UserMenu({ user, isImmersive = false }) {
     };
 
     const isStudent = user?.role === 'student';
+    const isAdmin = user?.role === 'admin';
     const displayName = user?.first_name || user?.name || 'Student';
 
     return (
@@ -316,6 +323,11 @@ function UserMenu({ user, isImmersive = false }) {
                 {isStudent && (
                     <DropdownMenuItem asChild>
                         <Link href={route('profile.edit')}>Profile</Link>
+                    </DropdownMenuItem>
+                )}
+                {isAdmin && (
+                    <DropdownMenuItem asChild>
+                        <Link href={route('admin.profile.edit')}>Profile</Link>
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
@@ -464,26 +476,13 @@ function AdminSidebar({
                 collapsed ? 'lg:w-24' : 'lg:w-72',
             ].join(' ')}
         >
-            <div className="flex h-16 items-center px-4">
-                {!collapsed ? (
-                    <div className="flex items-center gap-2">
-                        <img
-                            src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
-                            alt="YogaFX"
-                            className="h-8 w-auto object-contain shrink-0"
-                        />
-                        <div>
-                            <div className="text-sm font-semibold text-foreground">YogaFX LMS</div>
-                            <div className="text-xs text-muted-foreground">Admin Console</div>
-                        </div>
-                    </div>
-                ) : (
-                    <img
-                        src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
-                        alt="YogaFX"
-                        className="mx-auto h-8 w-auto object-contain"
-                    />
-                )}
+            {/* Admin logo — tanpa teks */}
+            <div className="flex h-16 items-center justify-center px-4">
+                <img
+                    src={ADMIN_LOGO_URL}
+                    alt="YogaFX Admin"
+                    className="h-9 w-auto object-contain"
+                />
             </div>
 
             <Separator />
@@ -550,14 +549,11 @@ function AdminMobileSidebar({
             <SheetContent side="left" className="w-[85vw] max-w-80 p-0" showCloseButton={false}>
                 <SheetHeader className="border-b border-border">
                     <SheetTitle>
-                        <div className="flex items-center gap-2">
-                            <img
-                                src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
-                                alt="YogaFX"
-                                className="h-7 w-auto object-contain"
-                            />
-                            YogaFX LMS
-                        </div>
+                        <img
+                            src={ADMIN_LOGO_URL}
+                            alt="YogaFX Admin"
+                            className="h-8 w-auto object-contain"
+                        />
                     </SheetTitle>
                     <SheetDescription>Admin navigation</SheetDescription>
                 </SheetHeader>
@@ -653,7 +649,7 @@ function StudentTopNavigation({
                 ].join(' ')}
             >
                 <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
-                    {/* LEFT: logo + mobile menu */}
+                    {/* LEFT: student logo + mobile menu */}
                     <div className="flex min-w-0 items-center gap-3">
                         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                             <SheetTrigger asChild>
@@ -752,9 +748,9 @@ function StudentTopNavigation({
                             </SheetContent>
                         </Sheet>
 
-                        {/* Logo only — no brand text */}
+                        {/* Student logo only */}
                         <img
-                            src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
+                            src={STUDENT_LOGO_URL}
                             alt="YogaFX"
                             className="h-10 w-auto object-contain shrink-0"
                         />

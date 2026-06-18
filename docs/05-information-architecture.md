@@ -80,12 +80,16 @@ Topbar hanya berisi:
 - user menu
 - logout action
 
+### 5.4 Admin Account Access
+- `Profile` tersedia dari user menu di topbar kanan atas
+
 ---
 
 ## 6. Admin Pages
 
 ### 6.1 Dashboard
 - Admin Dashboard
+- Admin Profile
 
 ### 6.2 Tier Management
 - Access Tiers Index

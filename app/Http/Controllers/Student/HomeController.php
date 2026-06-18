@@ -13,6 +13,7 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\StudentModuleVisit;
 use App\Services\BunnyStorageService;
+use App\Services\CertificateDownloadTrackingService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\StudentSessionTrackingService;
 use App\Support\BunnyAssetPath;
@@ -31,6 +32,7 @@ class HomeController extends Controller
         private readonly StudentSessionTrackingService $sessionTrackingService,
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly BunnyStorageService $bunnyStorage,
+        private readonly CertificateDownloadTrackingService $certificateDownloadTrackingService,
     ) {}
 
     public function index(Request $request): Response|RedirectResponse
@@ -95,6 +97,8 @@ class HomeController extends Controller
         $user = $request->user();
 
         abort_unless($user?->isStudent() && $certificate->user_id === $user->id, 404);
+
+        $this->certificateDownloadTrackingService->record($user, $certificate);
 
         if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
             $url = $this->bunnyStorage->url($certificate->file_path);

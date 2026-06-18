@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AccessTierRequest;
 use App\Models\AccessTier;
@@ -11,6 +13,9 @@ use Inertia\Response;
 
 class AccessTierController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+    use HandlesLocalUploads;
+
     public function index(): Response
     {
         return Inertia::render('Admin/AccessTiers/Index', [
@@ -24,7 +29,15 @@ class AccessTierController extends Controller
                     'name' => $accessTier->name,
                     'slug' => $accessTier->slug,
                     'description' => $accessTier->description,
-                    'price_amount' => (float) $accessTier->price_amount,
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'access-tier',
+                        $accessTier->id,
+                        'thumbnail',
+                        $accessTier->thumbnail,
+                        versionSeed: $accessTier->updated_at,
+                    ),
+                    'price' => (float) $accessTier->price,
+                    'currency_code' => $accessTier->currency_code,
                     'is_active' => $accessTier->is_active,
                     'users_count' => $accessTier->users_count,
                 ]),
@@ -39,7 +52,13 @@ class AccessTierController extends Controller
 
     public function store(AccessTierRequest $request): RedirectResponse
     {
-        AccessTier::query()->create($request->validated());
+        $data = $request->validated();
+        $data['thumbnail'] = $this->storeUploadedFile(
+            $request->file('thumbnail'),
+            'access-tiers/thumbnails',
+        );
+
+        AccessTier::query()->create($data);
 
         return redirect()
             ->route('admin.access-tiers.index')
@@ -56,7 +75,15 @@ class AccessTierController extends Controller
                 'name' => $accessTier->name,
                 'slug' => $accessTier->slug,
                 'description' => $accessTier->description,
-                'price_amount' => (float) $accessTier->price_amount,
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'access-tier',
+                    $accessTier->id,
+                    'thumbnail',
+                    $accessTier->thumbnail,
+                    versionSeed: $accessTier->updated_at,
+                ),
+                'price' => (float) $accessTier->price,
+                'currency_code' => $accessTier->currency_code,
                 'is_active' => $accessTier->is_active,
                 'users_count' => $accessTier->users_count,
             ],
@@ -66,7 +93,14 @@ class AccessTierController extends Controller
 
     public function update(AccessTierRequest $request, AccessTier $accessTier): RedirectResponse
     {
-        $accessTier->update($request->validated());
+        $data = $request->validated();
+        $data['thumbnail'] = $this->storeUploadedFile(
+            $request->file('thumbnail'),
+            'access-tiers/thumbnails',
+            $accessTier->thumbnail,
+        );
+
+        $accessTier->update($data);
 
         return redirect()
             ->route('admin.access-tiers.index')
@@ -83,6 +117,7 @@ class AccessTierController extends Controller
                 ]);
         }
 
+        $this->deleteUploadedFile($accessTier->thumbnail);
         $accessTier->delete();
 
         return redirect()

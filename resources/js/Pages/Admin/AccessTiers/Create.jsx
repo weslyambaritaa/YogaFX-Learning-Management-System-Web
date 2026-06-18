@@ -7,14 +7,18 @@ export default function CreateAccessTier() {
         name: '',
         slug: '',
         description: '',
-        price_amount: '',
+        thumbnail: null,
+        price: '',
+        currency_code: 'IDR',
         is_active: true,
     });
 
     const submit = (event) => {
         event.preventDefault();
 
-        post(route('admin.access-tiers.store'));
+        post(route('admin.access-tiers.store'), {
+            forceFormData: true,
+        });
     };
 
     return (
@@ -51,6 +55,7 @@ export default function CreateAccessTier() {
                             processing={processing}
                             onSubmit={submit}
                             submitLabel="Create Access Tier"
+                            currentThumbnailUrl={null}
                         />
                     </div>
                 </div>

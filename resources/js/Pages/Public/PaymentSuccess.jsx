@@ -21,11 +21,12 @@ export default function PaymentSuccess({ onboarding, student }) {
             description="Simulated payment has been recorded as successful, your YogaFX base account has already been created, and the flow will now continue into enrollment."
             aside={
                 <div className="space-y-5">
-                    <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/46">
+                    {/* Payment result card */}
+                    <div className="rounded-[24px] border border-gray-200 bg-gray-900 p-5">
+                        <p className="text-sm font-semibold text-white">
                             Payment result
                         </p>
-                        <div className="mt-4 space-y-2 text-sm text-white/66">
+                        <div className="mt-4 space-y-2 text-sm text-white">
                             <p>Student: {student.name}</p>
                             <p>Email: {student.email}</p>
                             <p>Tier: {onboarding.access_tier.name}</p>
@@ -33,11 +34,12 @@ export default function PaymentSuccess({ onboarding, student }) {
                         </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/46">
+                    {/* Next step card */}
+                    <div className="rounded-[24px] border border-gray-200 bg-gray-900 p-5">
+                        <p className="text-sm font-semibold text-white">
                             Next step
                         </p>
-                        <p className="mt-4 text-sm leading-6 text-white/62">
+                        <p className="mt-4 text-sm leading-6 text-white/80">
                             Enrollment comes next, then final password creation, then LMS access.
                         </p>
                     </div>
@@ -45,30 +47,32 @@ export default function PaymentSuccess({ onboarding, student }) {
             }
         >
             <div className="space-y-5">
-                <div className="rounded-[28px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-5 text-emerald-50/92">
+                {/* Success info box hijau */}
+                <div className="rounded-[16px] border border-emerald-200 bg-emerald-50 px-5 py-5 text-emerald-800">
                     <div className="flex items-start gap-4">
-                        <div className="rounded-full border border-white/10 bg-white/10 p-2">
-                            <CheckCircle2 className="size-6" />
+                        <div className="rounded-full border border-emerald-300 bg-emerald-100 p-2">
+                            <CheckCircle2 className="size-5 text-emerald-700" />
                         </div>
                         <div>
-                            <p className="text-lg font-semibold">
+                            <p className="text-sm font-semibold">
                                 Payment success confirmed
                             </p>
-                            <p className="mt-2 text-sm leading-6">
-                                Invoice and payment activity have been created, your anti-limbo continuation is active, and we are moving you to enrollment now.
+                            <p className="mt-2 text-sm leading-6 text-emerald-700">
+                                Invoice and payment records have been created, your anti-limbo continuation is active, and we are moving you to enrollment now.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-[24px] border border-white/10 bg-black/20 px-5 py-4">
-                    <p className="text-sm text-white/54">
+                {/* Box abu + tombol */}
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-[15px] border border-gray-300 bg-gray-300 px-5 py-4">
+                    <p className="text-sm text-gray-600">
                         Redirecting to enrollment automatically...
                     </p>
 
                     <Button
                         asChild
-                        className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                        className="rounded-md bg-red-600 px-6 text-white hover:bg-red-700"
                     >
                         <Link href={onboarding.continue_url}>Continue to Enrollment</Link>
                     </Button>

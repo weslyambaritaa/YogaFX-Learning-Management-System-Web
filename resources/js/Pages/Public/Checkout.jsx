@@ -2,20 +2,14 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import { Button } from '@/Components/ui/button';
 import PublicFlowLayout from '@/Layouts/PublicFlowLayout';
+import { formatCurrency } from '@/lib/currency';
 import { useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(Number(amount || 0));
-}
-
 export default function Checkout({ checkout }) {
     const { data, setData, post, processing, errors } = useForm({
-        payment_type: 'pay_in_full',
-        payment_method: 'paypal_credit_card',
+        payment_type: 'pay_full',
+        payment_method: 'paypal',
     });
     const [isSimulating, setIsSimulating] = useState(false);
 
@@ -37,31 +31,36 @@ export default function Checkout({ checkout }) {
     return (
         <PublicFlowLayout
             title="Checkout"
-            eyebrow="Signed Checkout"
             heading="Review your details, choose how to pay, and continue into YogaFX."
             description="This checkout still looks and behaves like a real payment step, but the actual payment result for this phase is simulated internally so the business flow can be built without a live gateway."
             aside={
                 <div className="space-y-5">
-                    <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/46">
-                            Program
-                        </p>
+                    {/* Program card */}
+                    <div className="rounded-[24px] border border-gray-200 bg-gray-900 p-5">
+                        <div className="flex justify-end">
+                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
+                                Program
+                            </p>
+                        </div>
                         <div className="mt-4">
                             <p className="text-2xl font-semibold text-white">
                                 {checkout.access_tier.name}
                             </p>
-                            <p className="mt-2 text-sm text-white/60">
-                                {formatCurrency(checkout.amount)}
+                            <p className="mt-2 text-sm text-white">
+                                {formatCurrency(checkout.amount, checkout.currency_code)}
                             </p>
                         </div>
                     </div>
 
-                    <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/46">
-                            Payment behavior
-                        </p>
-                        <div className="mt-4 space-y-3 text-sm leading-6 text-white/62">
-                            <p>Invoice and payment activity are created when you click Pay Now.</p>
+                    {/* Payment behavior card */}
+                    <div className="rounded-[24px] border border-gray-200 bg-gray-900 p-5">
+                        <div className="flex justify-end">
+                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
+                                Payment behavior
+                            </p>
+                        </div>
+                        <div className="mt-4 space-y-3 text-sm leading-6 text-white/80">
+                            <p>Invoice and payment records are created when you click Pay Now.</p>
                             <p>The payment result is simulated as success after a short loading state.</p>
                             <p>Successful payment immediately opens anti-limbo onboarding continuation.</p>
                         </div>
@@ -70,6 +69,7 @@ export default function Checkout({ checkout }) {
             }
         >
             <form onSubmit={payNow} className="space-y-6">
+                {/* Input fields — style terang */}
                 <div className="grid gap-5 md:grid-cols-2">
                     {[
                         ['First Name', checkout.first_name],
@@ -77,70 +77,73 @@ export default function Checkout({ checkout }) {
                         ['Email', checkout.email],
                         ['Mobile Phone', checkout.phone],
                         ['Country', checkout.country],
-                        ['Amount', formatCurrency(checkout.amount)],
+                        ['Amount', formatCurrency(checkout.amount, checkout.currency_code)],
                     ].map(([label, value]) => (
                         <div key={label}>
-                            <InputLabel value={label} className="text-white/72" />
+                            <InputLabel value={label} className="text-gray-700" />
                             <input
                                 value={value}
                                 disabled
-                                className="mt-2 block w-full rounded-md border border-white/12 bg-white/5 px-3 py-2 text-white/72"
+                                className="mt-2 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-700"
                             />
                         </div>
                     ))}
                 </div>
 
+                {/* Select dropdowns — style terang */}
                 <div className="grid gap-5 md:grid-cols-2">
                     <div>
-                        <InputLabel htmlFor="payment_type" value="Payment Type" className="text-white/72" />
+                        <InputLabel htmlFor="payment_type" value="Payment Type" className="text-gray-700" />
                         <select
                             id="payment_type"
                             value={data.payment_type}
                             onChange={(event) => setData('payment_type', event.target.value)}
-                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                            className="mt-2 block w-full rounded-md border border-gray-300 bg-white text-gray-900 focus:border-gray-900 focus:ring-gray-900"
                         >
-                            <option value="pay_in_full">
-                                Pay in Full - {formatCurrency(checkout.amount)}
+                            <option value="pay_full">
+                                Pay in Full - {formatCurrency(checkout.amount, checkout.currency_code)}
                             </option>
-                            <option value="pay_in_4_installments">
-                                Pay in 4 Installments - {formatCurrency(installmentAmount)} today
+                            <option value="installment">
+                                Pay in 4 Installments - {formatCurrency(installmentAmount, checkout.currency_code)} today
                             </option>
                         </select>
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.payment_type} />
+                        <InputError className="mt-2" message={errors.payment_type} />
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="payment_method" value="Payment Method" className="text-white/72" />
+                        <InputLabel htmlFor="payment_method" value="Payment Method" className="text-gray-700" />
                         <select
                             id="payment_method"
                             value={data.payment_method}
                             onChange={(event) => setData('payment_method', event.target.value)}
-                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                            className="mt-2 block w-full rounded-md border border-gray-300 bg-white text-gray-900 focus:border-gray-900 focus:ring-gray-900"
                         >
-                            <option value="paypal_credit_card">PayPal / Credit Card</option>
+                            <option value="paypal">PayPal</option>
                             <option value="bank_transfer">Bank Transfer</option>
                         </select>
-                        <InputError className="mt-2 text-[#ffb4a8]" message={errors.payment_method} />
+                        <InputError className="mt-2" message={errors.payment_method} />
                     </div>
                 </div>
 
-                <div className="rounded-[24px] border border-white/10 bg-black/20 px-5 py-4">
-                    <p className="text-sm leading-6 text-white/58">
-                        {data.payment_type === 'pay_in_4_installments'
-                            ? `The first simulated payment records ${formatCurrency(installmentAmount)} now and leaves the remaining balance on the invoice as installment.`
+                {/* Info box abu */}
+                <div className="rounded-[15px] border border-gray-300 bg-gray-300 px-5 py-4">
+                    <p className="text-sm leading-6 text-gray-700">
+                        {data.payment_type === 'installment'
+                            ? `The first simulated payment records ${formatCurrency(installmentAmount, checkout.currency_code)} now and leaves the remaining balance on the invoice as installment.`
                             : 'The simulated payment records the full amount and closes the invoice as paid in full.'}
                     </p>
                 </div>
 
+                {/* Footer + tombol */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                    <p className="text-sm text-white/48">
+                    <p className="text-sm text-gray-500">
                         Signed route validated. Amount and tier are locked to this pending registration.
                     </p>
 
                     <Button
                         type="submit"
                         disabled={processing || isSimulating}
-                        className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                        className="rounded-md bg-red-600 px-6 text-white hover:bg-red-700"
                     >
                         {isSimulating ? 'Processing payment...' : 'Pay Now'}
                     </Button>

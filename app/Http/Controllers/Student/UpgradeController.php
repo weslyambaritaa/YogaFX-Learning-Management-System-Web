@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpgradePaymentRequest;
 use App\Models\AccessTier;
-use App\Models\PaymentActivity;
+use App\Models\Payment;
 use App\Services\SimulatedPaymentFlowService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -22,14 +22,14 @@ class UpgradeController extends Controller
         $user = request()->user();
         abort_unless($user && $user->isStudent(), 403);
 
-        $currentPrice = (float) ($user->accessTier?->price_amount ?? 0);
-        $targetPrice = (float) $accessTier->price_amount;
+        $currentPrice = (float) ($user->accessTier?->price ?? 0);
+        $targetPrice = (float) $accessTier->price;
         abort_if(! $accessTier->is_active || $targetPrice <= $currentPrice, 404);
 
-        $totalPaid = (float) PaymentActivity::query()
-            ->where('user_id', $user->id)
-            ->where('status', PaymentActivity::STATUS_SUCCESS)
-            ->sum('amount');
+        $totalPaid = (float) Payment::query()
+            ->whereHas('invoice', fn ($query) => $query->where('user_id', $user->id))
+            ->where('status', Payment::STATUS_SUCCESS)
+            ->sum('amount_paid');
 
         $amountDue = max(0, round($targetPrice - $totalPaid, 2));
 
@@ -42,13 +42,15 @@ class UpgradeController extends Controller
                     'id' => $user->accessTier->id,
                     'name' => $user->accessTier->name,
                     'slug' => $user->accessTier->slug,
-                    'price_amount' => (float) $user->accessTier->price_amount,
+                    'price' => (float) $user->accessTier->price,
+                    'currency_code' => $user->accessTier->currency_code,
                 ] : null,
                 'target_tier' => [
                     'id' => $accessTier->id,
                     'name' => $accessTier->name,
                     'slug' => $accessTier->slug,
-                    'price_amount' => $targetPrice,
+                    'price' => $targetPrice,
+                    'currency_code' => $accessTier->currency_code,
                 ],
             ],
         ]);

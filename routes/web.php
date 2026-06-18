@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccessTierController;
+use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AssignmentController as AdminAssignmentController;
 use App\Http\Controllers\Admin\AssessmentPreviewController;
 use App\Http\Controllers\Admin\AssessmentResultController;
@@ -102,6 +103,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
+        Route::get('/courses/{course:url_slug}', [CourseCatalogController::class, 'show'])->name('courses.show');
         Route::get('/upgrades/{accessTier}', [UpgradeController::class, 'show'])->name('student.upgrades.show');
         Route::post('/upgrades/{accessTier}', [UpgradeController::class, 'pay'])->name('student.upgrades.pay');
     });
@@ -110,6 +112,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/password/change', [ProfilePasswordController::class, 'update'])->name('profile.password.change.update');
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
+
         Route::get('/access-tiers', [AccessTierController::class, 'index'])->name('access-tiers.index');
         Route::get('/access-tiers/create', [AccessTierController::class, 'create'])->name('access-tiers.create');
         Route::post('/access-tiers', [AccessTierController::class, 'store'])->name('access-tiers.store');

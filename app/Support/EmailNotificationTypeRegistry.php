@@ -153,7 +153,7 @@ class EmailNotificationTypeRegistry
                 'value' => self::REMINDER,
                 'label' => 'Reminder',
                 'description' => 'Re-engage students who have stopped working on lessons for the current inactivity test window.',
-                'trigger' => 'Triggered by a scheduled reminder job when a student has no lesson activity for 3 hours.',
+                'trigger' => 'Triggered by a scheduled reminder job when a student has not logged in for 1 hour and has not completed their accessible learning path.',
                 'merge_tags' => [
                     '{{ user_name }}',
                     '{{ user_email }}',

@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatCurrency } from '@/lib/currency';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import {

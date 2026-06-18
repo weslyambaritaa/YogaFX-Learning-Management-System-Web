@@ -23,7 +23,7 @@ function SelectField({
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value)}
                 className={[
-                    'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                    'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black',
                     selectClassName,
                 ].join(' ')}
             >
@@ -59,7 +59,7 @@ function TextAreaField({
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value)}
                 className={[
-                    'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500',
+                    'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black',
                     textareaClassName,
                 ].join(' ')}
             />
@@ -82,32 +82,29 @@ export default function StudentProfileForm({
     const countryOptions = directory.countries ?? [];
     const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
     const isImmersive = variant === 'immersive';
+
     const genderOptions = [
         { value: 'female', label: 'Female' },
         { value: 'male', label: 'Male' },
         { value: 'non_binary', label: 'Non-binary' },
         { value: 'prefer_not_to_say', label: 'Prefer not to say' },
     ];
-
     const experienceOptions = [
         { value: 'less_than_1_year', label: 'Less than 1 year' },
         { value: '1-3 years', label: '1-3 years' },
         { value: '3-5 years', label: '3-5 years' },
         { value: '5+ years', label: '5+ years' },
     ];
-
     const sequenceOptions = [
         { value: 'Beginner', label: 'Beginner' },
         { value: 'Intermediate', label: 'Intermediate' },
         { value: 'Advanced', label: 'Advanced' },
     ];
-
     const fitnessOptions = [
         { value: 'Beginner', label: 'Beginner' },
         { value: 'Intermediate', label: 'Intermediate' },
         { value: 'Advanced', label: 'Advanced' },
     ];
-
     const flexibilityOptions = [
         { value: 'Low', label: 'Low' },
         { value: 'Moderate', label: 'Moderate' },
@@ -139,9 +136,11 @@ export default function StudentProfileForm({
     const helperClassName = isImmersive
         ? 'mt-2 text-xs leading-5 text-white/42'
         : 'mt-2 text-xs leading-5 text-gray-500';
+
+    // Tombol: hapus uppercase, rounded-full → rounded-md, font normal
     const submitButtonClassName = isImmersive
-        ? 'rounded-full border-0 bg-[#d5462f] px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white hover:bg-[#e2553d] focus:bg-[#e2553d] focus:ring-[#d5462f] active:bg-[#c63f29]'
-        : '';
+        ? 'rounded-md border-0 bg-[#d5462f] px-6 py-3 text-sm font-semibold normal-case tracking-normal text-white hover:bg-[#e2553d] focus:bg-[#e2553d] focus:ring-[#d5462f] active:bg-[#c63f29]'
+        : 'rounded-md normal-case tracking-normal';
 
     return (
         <form onSubmit={onSubmit} className="space-y-8">
@@ -149,18 +148,13 @@ export default function StudentProfileForm({
                 <div>
                     <h3 className={titleClassName}>Personal Identity</h3>
                     <p className={descriptionClassName}>
-                        Complete the student profile data needed for onboarding
-                        and future learning operations.
+                        Complete the student profile data needed for onboarding and future learning operations.
                     </p>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
                     <div>
-                        <InputLabel
-                            htmlFor="first_name"
-                            value="First Name"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="first_name" value="First Name" className={labelClassName} />
                         <TextInput
                             id="first_name"
                             className={`mt-1 block w-full ${inputClassName}`.trim()}
@@ -168,36 +162,22 @@ export default function StudentProfileForm({
                             onChange={(e) => setData('first_name', e.target.value)}
                             isFocused
                         />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.first_name}
-                        />
+                        <InputError className={`mt-2 ${errorClassName}`.trim()} message={errors.first_name} />
                     </div>
 
                     <div>
-                        <InputLabel
-                            htmlFor="last_name"
-                            value="Last Name"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="last_name" value="Last Name" className={labelClassName} />
                         <TextInput
                             id="last_name"
                             className={`mt-1 block w-full ${inputClassName}`.trim()}
                             value={data.last_name}
                             onChange={(e) => setData('last_name', e.target.value)}
                         />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.last_name}
-                        />
+                        <InputError className={`mt-2 ${errorClassName}`.trim()} message={errors.last_name} />
                     </div>
 
                     <div>
-                        <InputLabel
-                            htmlFor="email"
-                            value="Email"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="email" value="Email" className={labelClassName} />
                         <TextInput
                             id="email"
                             type="email"
@@ -205,24 +185,17 @@ export default function StudentProfileForm({
                             value={data.email}
                             onChange={(e) => setData('email', e.target.value)}
                         />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.email}
-                        />
+                        <InputError className={`mt-2 ${errorClassName}`.trim()} message={errors.email} />
                     </div>
 
                     <div>
-                        <InputLabel
-                            htmlFor="whatsapp_number"
-                            value="WhatsApp"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="whatsapp_number" value="WhatsApp" className={labelClassName} />
                         <div className="mt-1 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
                             <select
                                 id="whatsapp_country_code"
                                 value={data.whatsapp_country_code ?? '+62'}
                                 onChange={(e) => setData('whatsapp_country_code', e.target.value)}
-                                className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${selectClassName}`.trim()}
+                                className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black ${selectClassName}`.trim()}
                             >
                                 {phoneCountryCodeOptions.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -245,21 +218,14 @@ export default function StudentProfileForm({
                     </div>
 
                     <div>
-                        <InputLabel
-                            htmlFor="instagram"
-                            value="Instagram"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="instagram" value="Instagram" className={labelClassName} />
                         <TextInput
                             id="instagram"
                             className={`mt-1 block w-full ${inputClassName}`.trim()}
                             value={data.instagram ?? ''}
                             onChange={(e) => setData('instagram', e.target.value)}
                         />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.instagram}
-                        />
+                        <InputError className={`mt-2 ${errorClassName}`.trim()} message={errors.instagram} />
                     </div>
 
                     <SelectField
@@ -268,12 +234,10 @@ export default function StudentProfileForm({
                         value={data.country}
                         onChange={(value) => {
                             setData('country', value);
-
                             const matchedCountry = countryOptions.find((option) => option.value === value);
                             const matchedDialCode = phoneCountryCodeOptions.find((option) =>
                                 option.label.startsWith(`${matchedCountry?.label ?? ''} (`),
                             );
-
                             if (matchedDialCode && !data.whatsapp_number) {
                                 setData('whatsapp_country_code', matchedDialCode.value);
                             }
@@ -286,11 +250,7 @@ export default function StudentProfileForm({
                     />
 
                     <div>
-                        <InputLabel
-                            htmlFor="birth_date"
-                            value="Birth Date"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="birth_date" value="Birth Date" className={labelClassName} />
                         <TextInput
                             id="birth_date"
                             type="date"
@@ -298,10 +258,7 @@ export default function StudentProfileForm({
                             value={data.birth_date ?? ''}
                             onChange={(e) => setData('birth_date', e.target.value)}
                         />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.birth_date}
-                        />
+                        <InputError className={`mt-2 ${errorClassName}`.trim()} message={errors.birth_date} />
                     </div>
 
                     <SelectField
@@ -316,23 +273,21 @@ export default function StudentProfileForm({
                         errorClassName={errorClassName}
                     />
 
+                    {/* Profile Photo — tombol Choose File kotak, bukan pill */}
                     <div className="md:col-span-2">
-                        <InputLabel
-                            htmlFor="profile_photo"
-                            value="Profile Photo (.jpg)"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="profile_photo" value="Profile Photo (.jpg)" className={labelClassName} />
                         <input
                             id="profile_photo"
                             type="file"
                             accept=".jpg,.jpeg,image/jpeg"
-                            className={`mt-1 block w-full rounded-md border border-gray-300 bg-white text-sm shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#d5462f] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#e2553d] ${isImmersive ? 'border-white/12 bg-white/5 text-white file:bg-[#d5462f]' : ''}`.trim()}
+                            className={[
+                                'mt-1 block w-full rounded-md border border-gray-300 bg-white text-sm shadow-sm',
+                                'file:mr-4 file:rounded-md file:border-0 file:bg-red-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-red-700',
+                                isImmersive ? 'border-white/12 bg-white/5 text-white' : '',
+                            ].join(' ').trim()}
                             onChange={(e) => setData('profile_photo', e.target.files?.[0] ?? null)}
                         />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.profile_photo}
-                        />
+                        <InputError className={`mt-2 ${errorClassName}`.trim()} message={errors.profile_photo} />
                         {currentProfilePhotoUrl && (
                             <div className="mt-4 flex items-center gap-4">
                                 <img
@@ -341,18 +296,14 @@ export default function StudentProfileForm({
                                     className="h-20 w-20 rounded-full border border-white/10 object-cover"
                                 />
                                 <p className={helperClassName}>
-                                    Current profile photo. Upload a new `.jpg`
-                                    file to replace it.
+                                    Current profile photo. Upload a new `.jpg` file to replace it.
                                 </p>
                             </div>
                         )}
                         <p className={helperClassName}>
-                            Upload a JPG profile photo. The file will be stored
-                            in Bunny Storage and reused in certificate
-                            generation.
+                            Upload a JPG profile photo. The file will be stored in Bunny Storage and reused in certificate generation.
                         </p>
                     </div>
-
                 </div>
             </section>
 
@@ -360,8 +311,7 @@ export default function StudentProfileForm({
                 <div>
                     <h3 className={titleClassName}>Learning Background</h3>
                     <p className={descriptionClassName}>
-                        This information helps prepare future learning and
-                        certificate workflows.
+                        This information helps prepare future learning and certificate workflows.
                     </p>
                 </div>
 
@@ -377,27 +327,19 @@ export default function StudentProfileForm({
                         selectClassName={selectClassName}
                         errorClassName={errorClassName}
                     />
-
                     <SelectField
                         id="yoga_sequence_experience"
                         label="Yoga Sequence Experience"
                         value={data.yoga_sequence_experience}
-                        onChange={(value) =>
-                            setData('yoga_sequence_experience', value)
-                        }
+                        onChange={(value) => setData('yoga_sequence_experience', value)}
                         error={errors.yoga_sequence_experience}
                         options={sequenceOptions}
                         labelClassName={labelClassName}
                         selectClassName={selectClassName}
                         errorClassName={errorClassName}
                     />
-
                     <div>
-                        <InputLabel
-                            htmlFor="hours_per_week"
-                            value="Hours Per Week"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="hours_per_week" value="Hours Per Week" className={labelClassName} />
                         <TextInput
                             id="hours_per_week"
                             type="number"
@@ -407,12 +349,8 @@ export default function StudentProfileForm({
                             value={data.hours_per_week ?? ''}
                             onChange={(e) => setData('hours_per_week', e.target.value)}
                         />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.hours_per_week}
-                        />
+                        <InputError className={`mt-2 ${errorClassName}`.trim()} message={errors.hours_per_week} />
                     </div>
-
                     <SelectField
                         id="current_fitness_level"
                         label="Current Fitness Level"
@@ -424,7 +362,6 @@ export default function StudentProfileForm({
                         selectClassName={selectClassName}
                         errorClassName={errorClassName}
                     />
-
                     <SelectField
                         id="flexibility_rating"
                         label="Flexibility Rating"
@@ -443,8 +380,7 @@ export default function StudentProfileForm({
                 <div>
                     <h3 className={titleClassName}>Motivation</h3>
                     <p className={descriptionClassName}>
-                        Capture the student context required for onboarding and
-                        admin visibility.
+                        Capture the student context required for onboarding and admin visibility.
                     </p>
                 </div>
 
@@ -459,7 +395,6 @@ export default function StudentProfileForm({
                         textareaClassName={textareaClassName}
                         errorClassName={errorClassName}
                     />
-
                     <TextAreaField
                         id="why_yogafx"
                         label="Why YogaFX"
@@ -470,34 +405,21 @@ export default function StudentProfileForm({
                         textareaClassName={textareaClassName}
                         errorClassName={errorClassName}
                     />
-
                     <div>
-                        <InputLabel
-                            htmlFor="how_did_you_find_us"
-                            value="How Did You Find Us"
-                            className={labelClassName}
-                        />
+                        <InputLabel htmlFor="how_did_you_find_us" value="How Did You Find Us" className={labelClassName} />
                         <TextInput
                             id="how_did_you_find_us"
                             className={`mt-1 block w-full ${inputClassName}`.trim()}
                             value={data.how_did_you_find_us}
-                            onChange={(e) =>
-                                setData('how_did_you_find_us', e.target.value)
-                            }
+                            onChange={(e) => setData('how_did_you_find_us', e.target.value)}
                         />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.how_did_you_find_us}
-                        />
+                        <InputError className={`mt-2 ${errorClassName}`.trim()} message={errors.how_did_you_find_us} />
                     </div>
                 </div>
             </section>
 
             <div className="flex items-center gap-4">
-                <PrimaryButton
-                    disabled={processing}
-                    className={submitButtonClassName}
-                >
+                <PrimaryButton disabled={processing} className={submitButtonClassName}>
                     {submitLabel}
                 </PrimaryButton>
             </div>

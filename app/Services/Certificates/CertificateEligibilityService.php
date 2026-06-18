@@ -24,41 +24,9 @@ class CertificateEligibilityService
             ->filter(fn ($type) => isset(Certificate::TYPES[$type]))
             ->values();
 
-        $lessonIds = $this->relevantLessonIds($student);
-        $completedLessonIds = LessonProgress::query()
-            ->where('user_id', $student->id)
-            ->whereIn('lesson_id', $lessonIds)
-            ->where('is_done', true)
-            ->pluck('lesson_id')
-            ->map(fn ($lessonId) => (int) $lessonId)
-            ->unique()
-            ->values();
-
-        $assessmentIds = $this->relevantAssessmentIds($student);
-        $completedAssessmentIds = AssessmentProgress::query()
-            ->where('user_id', $student->id)
-            ->whereIn('assessment_id', $assessmentIds)
-            ->where('is_done', true)
-            ->pluck('assessment_id')
-            ->map(fn ($assessmentId) => (int) $assessmentId)
-            ->unique()
-            ->values();
-
         $assignmentSummary = $this->assignmentRequirementSummary($student);
 
         $requirements = collect([
-            [
-                'key' => 'lessons',
-                'label' => 'Lessons',
-                'completed' => $completedLessonIds->count(),
-                'total' => $lessonIds->count(),
-            ],
-            [
-                'key' => 'assessments',
-                'label' => 'Assessments',
-                'completed' => $completedAssessmentIds->count(),
-                'total' => $assessmentIds->count(),
-            ],
             [
                 'key' => 'assignments',
                 'label' => 'Assignments',
@@ -78,7 +46,7 @@ class CertificateEligibilityService
         $learningEligible = $tier !== null
             && $availableTypes->isNotEmpty()
             && $hasRelevantFlow
-            && $requirements->every(fn (array $item) => $item['is_complete']);
+            && $assignmentSummary['completed'] >= $assignmentSummary['total'];
 
         return [
             'tier' => $tier ? [
@@ -177,52 +145,6 @@ class CertificateEligibilityService
         return trim((string) $student->name) !== '';
     }
 
-    private function relevantLessonIds(User $student): Collection
-    {
-        $tierId = $student->access_tier_id;
-
-        if (! $tierId) {
-            return collect();
-        }
-
-        return Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $tierId))
-            ->with([
-                'lessons' => fn ($query) => $query
-                    ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $tierId))
-                    ->select('id', 'module_id', 'assessment_id'),
-            ])
-            ->get(['id'])
-            ->flatMap(fn (Module $module) => $module->lessons->pluck('id'))
-            ->map(fn ($lessonId) => (int) $lessonId)
-            ->unique()
-            ->values();
-    }
-
-    private function relevantAssessmentIds(User $student): Collection
-    {
-        $tierId = $student->access_tier_id;
-
-        if (! $tierId) {
-            return collect();
-        }
-
-        return Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $tierId))
-            ->with([
-                'lessons' => fn ($query) => $query
-                    ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $tierId))
-                    ->whereNotNull('assessment_id')
-                    ->select('id', 'module_id', 'assessment_id'),
-            ])
-            ->get(['id'])
-            ->flatMap(fn (Module $module) => $module->lessons->pluck('assessment_id'))
-            ->filter()
-            ->map(fn ($assessmentId) => (int) $assessmentId)
-            ->unique()
-            ->values();
-    }
-
     private function assignmentRequirementSummary(User $student): array
     {
         $assignmentIds = $this->relevantAssignmentIds($student);
@@ -247,7 +169,7 @@ class CertificateEligibilityService
         return [
             'completed' => $approvedAssignmentIds->count(),
             'total' => $assignmentIds->count(),
-            'detail' => 'Student must receive approval for all required live assignments available in the active tier.',
+            'detail' => 'Certificate unlocks after every required live assignment in the active tier has been approved.',
         ];
     }
 
@@ -290,7 +212,7 @@ class CertificateEligibilityService
         }
 
         if (! $hasRelevantFlow) {
-            return 'No relevant lesson, assessment, or assignment flow is configured for this tier yet.';
+            return 'No relevant assignment flow is configured for this tier yet.';
         }
 
         $incomplete = $requirements
@@ -299,13 +221,13 @@ class CertificateEligibilityService
             ->values();
 
         if ($incomplete->isNotEmpty()) {
-            if ($tierSlug === AccessTier::SLUG_ONLINE && $incomplete->contains('Assignments')) {
+            if ($incomplete->contains('Assignments')) {
                 return $assignmentSummary['detail'];
             }
 
             return 'Student must complete all relevant '.str($incomplete->join(', '))->lower()->value().' before certificate generation.';
         }
 
-        return 'All relevant learning flow is complete.';
+        return 'All required assignments are approved and certificate access is unlocked.';
     }
 }

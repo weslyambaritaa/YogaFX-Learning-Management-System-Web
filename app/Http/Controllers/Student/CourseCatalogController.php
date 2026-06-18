@@ -28,27 +28,83 @@ class CourseCatalogController extends Controller
                 ->orderBy('title')
                 ->get()
                 ->values()
-                ->map(function (Course $course, int $index) {
-                    $videoState = $this->videoStateForCourse($course);
-
-                    return [
-                        'id' => $course->id,
-                        'title' => $course->title,
-                        'url_slug' => $course->url_slug,
-                        'description' => $course->description,
-                        'video' => $videoState,
-                        'index' => $index + 1,
-                        'status' => $videoState['is_ready'] ? 'ready' : 'unavailable',
-                        'thumbnail_url' => $this->protectedMediaUrl(
-                        'course',
-                        $course->id,
-                        'thumbnail',
-                        $course->thumbnail,
-                        versionSeed: $course->updated_at,
-                    ) ?: $this->bunnyStreamService->thumbnailUrl($course->video),
-                    ];
-                }),
+                ->map(fn (Course $course, int $index) => $this->coursePayload($course, $index + 1)),
         ]);
+    }
+
+    public function show(Request $request, Course $course): Response
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user
+            && $user->access_tier_id !== null
+            && $course->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists(),
+            403,
+        );
+
+        $courses = Course::query()
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user->access_tier_id))
+            ->orderBy('title')
+            ->get()
+            ->values();
+
+        $currentIndex = $courses->search(fn (Course $item) => $item->id === $course->id);
+        $nextCourse = $currentIndex !== false ? $courses->get($currentIndex + 1) : null;
+
+        return Inertia::render('Student/Courses/Show', [
+            'course' => array_merge(
+                $this->coursePayload($course, $currentIndex === false ? null : $currentIndex + 1),
+                [
+                    'next_course' => $nextCourse ? [
+                        'id' => $nextCourse->id,
+                        'title' => $nextCourse->title,
+                        'url_slug' => $nextCourse->url_slug,
+                        'url' => route('courses.show', $nextCourse->url_slug),
+                    ] : null,
+                    'navigation' => $courses->map(fn (Course $item, int $index) => [
+                        'id' => $item->id,
+                        'title' => $item->title,
+                        'url_slug' => $item->url_slug,
+                        'thumbnail_url' => $this->protectedMediaUrl(
+                            'course',
+                            $item->id,
+                            'thumbnail',
+                            $item->thumbnail,
+                            versionSeed: $item->updated_at,
+                        ) ?: $this->bunnyStreamService->thumbnailUrl($item->video),
+                        'status' => $item->id === $course->id ? 'current' : 'available',
+                        'index' => $index + 1,
+                        'url' => route('courses.show', $item->url_slug),
+                    ])->all(),
+                ],
+            ),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function coursePayload(Course $course, ?int $index): array
+    {
+        $videoState = $this->videoStateForCourse($course);
+
+        return [
+            'id' => $course->id,
+            'title' => $course->title,
+            'url_slug' => $course->url_slug,
+            'description' => $course->description,
+            'video' => $videoState,
+            'index' => $index,
+            'status' => $videoState['is_ready'] ? 'ready' : 'unavailable',
+            'thumbnail_url' => $this->protectedMediaUrl(
+                'course',
+                $course->id,
+                'thumbnail',
+                $course->thumbnail,
+                versionSeed: $course->updated_at,
+            ) ?: $this->bunnyStreamService->thumbnailUrl($course->video),
+        ];
     }
 
     /**

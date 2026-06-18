@@ -28,31 +28,33 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
             <Head title="Email OTP Verification" />
 
             <div className="space-y-6">
-                <div className="rounded-[28px] border border-white/10 bg-[#15110f] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
+                {/* Header box — hitam, tanpa shadow besar */}
+                <div className="rounded-[16px] border border-gray-200 bg-gray-900 p-6 text-white">
                     <div className="flex items-start gap-4">
-                        <div className="rounded-full border border-white/10 bg-white/5 p-3">
-                            <MailCheck className="size-5 text-[#ffd7cf]" />
+                        <div className="rounded-full border border-white/20 bg-white/10 p-3">
+                            <MailCheck className="size-5 text-white" />
                         </div>
                         <div className="space-y-2">
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/48">
+                            <p className="text-sm font-semibold text-white/70">
                                 Email Verification
                             </p>
-                            <h1 className="text-3xl font-semibold tracking-tight">
+                            <h1 className="text-base font-semibold text-white">
                                 {heading}
                             </h1>
-                            <p className="max-w-2xl text-sm leading-7 text-white/62">
+                            <p className="text-sm leading-6 text-white/70">
                                 {description}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm">
+                {/* Form box */}
+                <div className="rounded-[16px] border border-gray-200 bg-white p-6">
                     <div className="mb-6">
-                        <h2 className="text-lg font-semibold text-slate-900">
+                        <h2 className="text-base font-semibold text-gray-900">
                             Verification details
                         </h2>
-                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                        <p className="mt-1 text-sm leading-6 text-gray-600">
                             Email destination: <strong>{email}</strong>
                             {expires_at ? <>. This code expires at {new Date(expires_at).toLocaleString()}.</> : null}
                         </p>
@@ -74,7 +76,11 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
                         </div>
 
                         <div className="flex justify-end pt-2">
-                            <Button type="submit" disabled={processing}>
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="rounded-md bg-red-600 px-6 text-white hover:bg-red-700"
+                            >
                                 {processing ? 'Verifying...' : 'Verify and Continue'}
                             </Button>
                         </div>

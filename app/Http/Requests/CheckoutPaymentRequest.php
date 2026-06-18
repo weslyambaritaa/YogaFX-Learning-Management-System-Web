@@ -3,7 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Invoice;
-use App\Models\PaymentActivity;
+use App\Models\Payment;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -33,8 +33,8 @@ class CheckoutPaymentRequest extends FormRequest
                 'required',
                 'string',
                 Rule::in([
-                    PaymentActivity::METHOD_PAYPAL_CARD,
-                    PaymentActivity::METHOD_BANK_TRANSFER,
+                    Payment::METHOD_PAYPAL,
+                    Payment::METHOD_BANK_TRANSFER,
                 ]),
             ],
         ];

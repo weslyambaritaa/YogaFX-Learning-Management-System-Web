@@ -1,6 +1,6 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { ArrowUpRight, PlayCircle } from 'lucide-react';
 
 export default function StudentCoursesIndex({ courses }) {
@@ -82,21 +82,14 @@ export default function StudentCoursesIndex({ courses }) {
                                     ) : null}
 
                                     <Button
-                                        asChild={Boolean(course.video?.is_ready && course.video?.hls_url)}
+                                        asChild
                                         disabled={!course.video?.is_ready || !course.video?.hls_url}
                                         className="rounded-full bg-[#f15b3a] text-white hover:bg-[#ff6a49] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        {course.video?.is_ready && course.video?.hls_url ? (
-                                            <a href={course.video.hls_url} target="_blank" rel="noreferrer">
-                                                Open Course Video
-                                                <ArrowUpRight className="ml-2 size-4" />
-                                            </a>
-                                        ) : (
-                                            <span>
-                                                Video Not Ready
-                                                <ArrowUpRight className="ml-2 inline size-4" />
-                                            </span>
-                                        )}
+                                        <Link href={route('courses.show', course.url_slug)}>
+                                            {course.video?.is_ready && course.video?.hls_url ? 'Open Course Video' : 'Video Not Ready'}
+                                            <ArrowUpRight className="ml-2 size-4" />
+                                        </Link>
                                     </Button>
                                 </div>
                             </article>

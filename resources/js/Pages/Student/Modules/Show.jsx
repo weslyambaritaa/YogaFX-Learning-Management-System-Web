@@ -431,7 +431,7 @@ export default function StudentModuleShow({ module }) {
                                                 >
                                                     Open Video
                                                     <ArrowRight className="size-4" />
-                                                </a>
+                                                </Link>
                                             ) : (
                                                 <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/60">
                                                     Video Not Ready

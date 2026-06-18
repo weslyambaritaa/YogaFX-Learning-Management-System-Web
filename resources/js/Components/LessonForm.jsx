@@ -105,7 +105,7 @@ export default function LessonForm({
                         onChange={(event) =>
                             setData('module_id', Number(event.target.value))
                         }
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     >
                         <option value="">Select module</option>
                         {modules.map((module) => (
@@ -122,7 +122,7 @@ export default function LessonForm({
                 <InputLabel htmlFor="assessment_id" value="Linked Scoreboard (Optional)" />
                 <select
                     id="assessment_id"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 md:max-w-md"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black md:max-w-md"
                     value={data.assessment_id}
                     onChange={(event) =>
                         setData('assessment_id', event.target.value ? Number(event.target.value) : '')
@@ -194,7 +194,7 @@ export default function LessonForm({
                     rows="8"
                     value={data.content ?? ''}
                     onChange={(event) => setData('content', event.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
                 <InputError className="mt-2" message={errors.content} />
             </div>
