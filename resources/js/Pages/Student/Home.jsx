@@ -66,7 +66,7 @@ function OnboardingOverlay({ onDone }) {
                             key={i}
                             className={[
                                 'h-1 rounded-full transition-all duration-300',
-                                i === slide ? 'w-8 bg-[#d5462f]' : i < slide ? 'w-4 bg-white/40' : 'w-4 bg-white/15',
+                                i === slide ? 'w-8 bg-[#DB202C]' : i < slide ? 'w-4 bg-white/40' : 'w-4 bg-white/15',
                             ].join(' ')}
                         />
                     ))}
@@ -83,7 +83,7 @@ function OnboardingOverlay({ onDone }) {
                     </button>
                     <button
                         onClick={() => (isLast ? finish() : setSlide(s => s + 1))}
-                        className="flex items-center gap-2 rounded-full bg-[#d5462f] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#e2553d] transition"
+                        className="flex items-center gap-2 rounded-full bg-[#DB202C] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#b91c26] transition"
                     >
                         {isLast ? 'Get Started' : 'Next'}
                         <ChevronRight className="size-4" />
@@ -102,10 +102,10 @@ function LessonRow({ lesson }) {
         ? <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
         : isLocked
         ? <Lock className="size-4 text-white/25 shrink-0" />
-        : <Play className="size-4 text-[#f15b3a] shrink-0" />;
+        : <Play className="size-4 text-[#DB202C] shrink-0" />;
 
     const content = (
-        <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition">
+        <div className="flex items-center gap-3 rounded-[6px] border border-white/8 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition">
             {icon}
             <div className="flex-1 min-w-0">
                 <p className={['text-sm truncate', isLocked ? 'text-white/35' : 'text-white'].join(' ')}>
@@ -156,10 +156,10 @@ function ModuleModal({ module, onClose }) {
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-t-[32px] sm:rounded-[32px] border border-white/10 bg-[#141110] shadow-2xl"
+                className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-t-[8px] sm:rounded-[8px] border border-white/10 bg-[#141110] shadow-2xl"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="relative aspect-[16/7] overflow-hidden rounded-t-[32px]">
+                <div className="relative aspect-[16/7] overflow-hidden rounded-t-[8px]">
                     {module.thumbnail_url ? (
                         <img src={module.thumbnail_url} alt={module.title} className="h-full w-full object-cover" />
                     ) : (
@@ -180,7 +180,7 @@ function ModuleModal({ module, onClose }) {
                             isCompleted
                                 ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
                                 : module.status === 'active'
-                                ? 'border-[#d5462f]/40 bg-[#d5462f]/20 text-[#ffcfc7]'
+                                ? 'border-[#DB202C]/40 bg-[#DB202C]/20 text-[#ffcfc7]'
                                 : 'border-white/15 bg-black/30 text-white/65',
                         ].join(' ')}>
                             {module.status_label ?? 'Available'}
@@ -205,9 +205,9 @@ function ModuleModal({ module, onClose }) {
                                 <span>{module.completed_lessons} of {module.lesson_count} lessons done</span>
                                 <span>{progressPct}%</span>
                             </div>
-                            <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                            <div className="h-1.5 rounded-[2px] bg-white/10 overflow-hidden">
                                 <div
-                                    className={['h-full rounded-full', isCompleted ? 'bg-emerald-400' : 'bg-[#d5462f]'].join(' ')}
+                                    className={['h-full rounded-[2px]', isCompleted ? 'bg-emerald-400' : 'bg-[#DB202C]'].join(' ')}
                                     style={{ width: `${progressPct}%` }}
                                 />
                             </div>
@@ -216,7 +216,7 @@ function ModuleModal({ module, onClose }) {
 
                     <Link
                         href={module.continue_url ?? module.cta_url}
-                        className="flex items-center justify-center gap-2 w-full rounded-full bg-[#d5462f] py-3 text-sm font-semibold text-white hover:bg-[#e2553d] transition"
+                        className="flex items-center justify-center gap-2 w-full rounded-full bg-[#DB202C] py-3 text-sm font-semibold text-white hover:bg-[#b91c26] transition"
                     >
                         <Play className="size-4 fill-current" />
                         {module.cta_label ?? 'Open Module'}
@@ -252,7 +252,7 @@ function ModuleCard({ module, onClick }) {
     return (
         <button
             onClick={() => onClick(module)}
-            className="group relative shrink-0 w-[240px] sm:w-[260px] rounded-[20px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_20px_60px_rgba(0,0,0,0.55)] text-left"
+            className="group relative shrink-0 w-[240px] sm:w-[260px] rounded-[6px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_20px_60px_rgba(0,0,0,0.55)] text-left"
         >
             <div className="relative aspect-[16/10] overflow-hidden">
                 {module.thumbnail_url ? (
@@ -268,11 +268,11 @@ function ModuleCard({ module, onClick }) {
 
                 <div className="absolute left-3 top-3">
                     <span className={[
-                        'rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] backdrop-blur',
+                        'rounded-[4px] border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] backdrop-blur',
                         isCompleted
                             ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
                             : module.status === 'active'
-                            ? 'border-[#d5462f]/40 bg-[#d5462f]/20 text-[#ffcfc7]'
+                            ? 'border-[#DB202C]/40 bg-[#DB202C]/20 text-[#ffcfc7]'
                             : 'border-white/15 bg-black/30 text-white/60',
                     ].join(' ')}>
                         {module.status_label ?? 'Available'}
@@ -296,9 +296,9 @@ function ModuleCard({ module, onClick }) {
                     {module.lesson_count > 0 ? `${module.lesson_count} lesson${module.lesson_count !== 1 ? 's' : ''}` : 'Module resource'}
                 </p>
                 {module.show_progress && (
-                    <div className="h-[3px] rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-[3px] rounded-[2px] bg-white/10 overflow-hidden">
                         <div
-                            className={['h-full rounded-full', isCompleted ? 'bg-emerald-400' : 'bg-[#d5462f]'].join(' ')}
+                            className={['h-full rounded-[2px]', isCompleted ? 'bg-emerald-400' : 'bg-[#DB202C]'].join(' ')}
                             style={{ width: `${module.progress_percentage}%` }}
                         />
                     </div>
@@ -445,7 +445,7 @@ function HeroSection({ homeExperience, continueLearning, studentName, onInfoClic
                     {!isNew && progressPct > 0 && (
                         <div className="flex items-center gap-3 max-w-xs">
                             <div className="flex-1 h-[3px] overflow-hidden rounded-full bg-white/20">
-                                <div className="h-full rounded-full bg-[#d5462f]" style={{ width: `${progressPct}%` }} />
+                                <div className="h-full rounded-full bg-[#DB202C]" style={{ width: `${progressPct}%` }} />
                             </div>
                             <span className="text-[11px] text-white/45 shrink-0">{progressPct}%</span>
                         </div>
@@ -454,7 +454,7 @@ function HeroSection({ homeExperience, continueLearning, studentName, onInfoClic
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                         <Link
                             href={ctaUrl}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#d5462f] px-7 py-3 text-sm font-bold text-white hover:bg-[#e2553d] transition shadow-lg"
+                            className="inline-flex items-center gap-2 rounded-full bg-[#DB202C] px-7 py-3 text-sm font-bold text-white hover:bg-[#b91c26] transition shadow-lg"
                         >
                             <Play className="size-4 fill-white" />
                             {ctaLabel}
@@ -516,16 +516,11 @@ export default function StudentHome({
         ? rawModules.find(m => m.url_slug === activeModuleSlug) ?? null
         : null;
 
-    const enrichModule = (m) => {
-        const isActive = m.url_slug === activeModuleSlug;
-        return {
-            ...m,
-            continue_url: isActive
-                ? (continueLearning?.cta_url ?? m.cta_url)
-                : m.cta_url,
-            lessons: m.lessons ?? [],
-        };
-    };
+        const enrichModule = (m) => ({
+        ...m,
+        continue_url: m.cta_url,
+        lessons: m.lessons ?? [],
+    });
 
     const ebookItems = ebookResourcesSection?.items ?? [];
 
@@ -595,7 +590,7 @@ export default function StudentHome({
                                         <h3 className="text-sm font-semibold text-white leading-tight line-clamp-3">{ebook.title}</h3>
                                     </div>
                                     <div className="p-3">
-                                        <span className="text-xs text-[#d5462f] group-hover:text-[#e2553d] transition flex items-center gap-1">
+                                        <span className="text-xs text-[#DB202C] group-hover:text-[#b91c26] transition flex items-center gap-1">
                                             Open Preview <ArrowRight className="size-3" />
                                         </span>
                                     </div>

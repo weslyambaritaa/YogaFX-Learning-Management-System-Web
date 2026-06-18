@@ -14,6 +14,7 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                student: ['Inter', 'Helvetica Neue', 'Arial', ...defaultTheme.fontFamily.sans],
             },
         },
     },
