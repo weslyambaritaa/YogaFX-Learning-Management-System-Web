@@ -9,10 +9,9 @@ export default function EditStudent({ student, accessTiers, status }) {
         first_name: student.first_name ?? '',
         last_name: student.last_name ?? '',
         email: student.email ?? '',
-        whatsapp: student.whatsapp ?? '',
-        preferred_certificate_picture:
-            student.preferred_certificate_picture ?? '',
-        profile_photo: student.profile_photo ?? '',
+        whatsapp_country_code: student.whatsapp_country_code ?? '+62',
+        whatsapp_number: student.whatsapp_number ?? '',
+        profile_photo: null,
         instagram: student.instagram ?? '',
         country: student.country ?? '',
         birth_date: student.birth_date ?? '',
@@ -29,7 +28,9 @@ export default function EditStudent({ student, accessTiers, status }) {
 
     const submit = (event) => {
         event.preventDefault();
-        patch(route('admin.students.update', student.id));
+        patch(route('admin.students.update', student.id), {
+            forceFormData: true,
+        });
     };
 
     const submitStatus = (event) => {
@@ -210,6 +211,7 @@ export default function EditStudent({ student, accessTiers, status }) {
                     processing={processing}
                     onSubmit={submit}
                     submitLabel="Save Student Profile"
+                    currentProfilePhotoUrl={student.profile_photo_url}
                 />
             </div>
 

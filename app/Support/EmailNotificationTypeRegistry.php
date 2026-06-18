@@ -102,6 +102,7 @@ class EmailNotificationTypeRegistry
                     '{{ access_tier }}',
                     '{{ access_tier_label }}',
                     '{{ registration_date }}',
+                    '{{ continuation_url }}',
                     '{{ dashboard_url }}',
                     '{{ login_url }}',
                 ],

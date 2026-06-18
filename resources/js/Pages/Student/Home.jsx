@@ -19,6 +19,13 @@ function formatDurationParts(totalSeconds) {
     return { hours, minutes, seconds };
 }
 
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(Number(amount || 0));
+}
+
 export default function StudentHome({
     homeStage,
     studentContext,
@@ -32,6 +39,8 @@ export default function StudentHome({
     certificateMilestone,
     ebookResourcesSection,
     homeExperience,
+    upgradeOptions = [],
+    status,
 }) {
     const hasReloadedRef = useRef(false);
     const studentName = studentContext?.display_name ?? 'Student';
@@ -306,6 +315,64 @@ export default function StudentHome({
                         </div>
                     </div>
                 </section>
+
+                {status === 'upgrade-payment-success' && (
+                    <div className="rounded-[24px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
+                        Your simulated upgrade payment succeeded and your student tier has been updated.
+                    </div>
+                )}
+
+                {upgradeOptions.length > 0 && (
+                    <section className="space-y-4">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                    Upgrade Path
+                                </p>
+                                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                                    Step into a higher YogaFX tier when you are ready
+                                </h2>
+                            </div>
+                            <span className="hidden text-sm text-white/45 md:inline">
+                                Simulated billing active
+                            </span>
+                        </div>
+
+                        <div className="grid gap-4 lg:grid-cols-3">
+                            {upgradeOptions.map((option) => (
+                                <div
+                                    key={option.id}
+                                    className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm"
+                                >
+                                    <div className="flex h-full flex-col justify-between gap-6 rounded-[22px] border border-white/8 bg-black/15 p-5">
+                                        <div className="space-y-3">
+                                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                                Upgrade target
+                                            </p>
+                                            <h3 className="text-2xl font-semibold text-white">
+                                                {option.name}
+                                            </h3>
+                                            <p className="text-sm leading-6 text-white/60">
+                                                Total tier price {formatCurrency(option.price_amount)}.
+                                                Your current journey reduces the amount due to {formatCurrency(option.amount_due)}.
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            asChild
+                                            className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                        >
+                                            <Link href={option.checkout_url}>
+                                                <ChevronRight className="mr-2 size-4" />
+                                                Upgrade to {option.name}
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <section className="space-y-4">
                     <div className="flex items-center justify-between gap-4">

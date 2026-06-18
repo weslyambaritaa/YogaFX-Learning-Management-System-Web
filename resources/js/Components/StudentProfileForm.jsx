@@ -2,6 +2,7 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import { usePage } from '@inertiajs/react';
 
 function SelectField({
     id,
@@ -75,7 +76,11 @@ export default function StudentProfileForm({
     onSubmit,
     submitLabel = 'Save Changes',
     variant = 'default',
+    currentProfilePhotoUrl = null,
 }) {
+    const { directory = {} } = usePage().props;
+    const countryOptions = directory.countries ?? [];
+    const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
     const isImmersive = variant === 'immersive';
     const genderOptions = [
         { value: 'female', label: 'Female' },
@@ -208,19 +213,34 @@ export default function StudentProfileForm({
 
                     <div>
                         <InputLabel
-                            htmlFor="whatsapp"
+                            htmlFor="whatsapp_number"
                             value="WhatsApp"
                             className={labelClassName}
                         />
-                        <TextInput
-                            id="whatsapp"
-                            className={`mt-1 block w-full ${inputClassName}`.trim()}
-                            value={data.whatsapp}
-                            onChange={(e) => setData('whatsapp', e.target.value)}
-                        />
+                        <div className="mt-1 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+                            <select
+                                id="whatsapp_country_code"
+                                value={data.whatsapp_country_code ?? '+62'}
+                                onChange={(e) => setData('whatsapp_country_code', e.target.value)}
+                                className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${selectClassName}`.trim()}
+                            >
+                                {phoneCountryCodeOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <TextInput
+                                id="whatsapp_number"
+                                className={`block w-full ${inputClassName}`.trim()}
+                                value={data.whatsapp_number ?? ''}
+                                onChange={(e) => setData('whatsapp_number', e.target.value)}
+                                placeholder="81234567890"
+                            />
+                        </div>
                         <InputError
                             className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.whatsapp}
+                            message={errors.whatsapp_number ?? errors.whatsapp_country_code ?? errors.whatsapp}
                         />
                     </div>
 
@@ -242,23 +262,28 @@ export default function StudentProfileForm({
                         />
                     </div>
 
-                    <div>
-                        <InputLabel
-                            htmlFor="country"
-                            value="Country"
-                            className={labelClassName}
-                        />
-                        <TextInput
-                            id="country"
-                            className={`mt-1 block w-full ${inputClassName}`.trim()}
-                            value={data.country}
-                            onChange={(e) => setData('country', e.target.value)}
-                        />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.country}
-                        />
-                    </div>
+                    <SelectField
+                        id="country"
+                        label="Country"
+                        value={data.country}
+                        onChange={(value) => {
+                            setData('country', value);
+
+                            const matchedCountry = countryOptions.find((option) => option.value === value);
+                            const matchedDialCode = phoneCountryCodeOptions.find((option) =>
+                                option.label.startsWith(`${matchedCountry?.label ?? ''} (`),
+                            );
+
+                            if (matchedDialCode && !data.whatsapp_number) {
+                                setData('whatsapp_country_code', matchedDialCode.value);
+                            }
+                        }}
+                        error={errors.country}
+                        options={countryOptions}
+                        labelClassName={labelClassName}
+                        selectClassName={selectClassName}
+                        errorClassName={errorClassName}
+                    />
 
                     <div>
                         <InputLabel
@@ -294,48 +319,40 @@ export default function StudentProfileForm({
                     <div className="md:col-span-2">
                         <InputLabel
                             htmlFor="profile_photo"
-                            value="Profile Photo URL"
+                            value="Profile Photo (.jpg)"
                             className={labelClassName}
                         />
-                        <TextInput
+                        <input
                             id="profile_photo"
-                            className={`mt-1 block w-full ${inputClassName}`.trim()}
-                            value={data.profile_photo ?? ''}
-                            onChange={(e) => setData('profile_photo', e.target.value)}
+                            type="file"
+                            accept=".jpg,.jpeg,image/jpeg"
+                            className={`mt-1 block w-full rounded-md border border-gray-300 bg-white text-sm shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#d5462f] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#e2553d] ${isImmersive ? 'border-white/12 bg-white/5 text-white file:bg-[#d5462f]' : ''}`.trim()}
+                            onChange={(e) => setData('profile_photo', e.target.files?.[0] ?? null)}
                         />
                         <InputError
                             className={`mt-2 ${errorClassName}`.trim()}
                             message={errors.profile_photo}
                         />
+                        {currentProfilePhotoUrl && (
+                            <div className="mt-4 flex items-center gap-4">
+                                <img
+                                    src={currentProfilePhotoUrl}
+                                    alt="Current profile"
+                                    className="h-20 w-20 rounded-full border border-white/10 object-cover"
+                                />
+                                <p className={helperClassName}>
+                                    Current profile photo. Upload a new `.jpg`
+                                    file to replace it.
+                                </p>
+                            </div>
+                        )}
                         <p className={helperClassName}>
-                            Use a stable image URL or protected path reference
-                            that represents the student clearly.
+                            Upload a JPG profile photo. The file will be stored
+                            in Bunny Storage and reused in certificate
+                            generation.
                         </p>
                     </div>
 
-                    <div className="md:col-span-2">
-                        <InputLabel
-                            htmlFor="preferred_certificate_picture"
-                            value="Preferred Certificate Picture Reference"
-                            className={labelClassName}
-                        />
-                        <TextInput
-                            id="preferred_certificate_picture"
-                            className={`mt-1 block w-full ${inputClassName}`.trim()}
-                            value={data.preferred_certificate_picture ?? ''}
-                            onChange={(e) =>
-                                setData('preferred_certificate_picture', e.target.value)
-                            }
-                        />
-                        <InputError
-                            className={`mt-2 ${errorClassName}`.trim()}
-                            message={errors.preferred_certificate_picture}
-                        />
-                        <p className={helperClassName}>
-                            This reference helps YogaFX keep certificate-related
-                            visuals aligned with the student profile.
-                        </p>
-                    </div>
                 </div>
             </section>
 

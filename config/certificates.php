@@ -37,13 +37,20 @@ return [
                 'font_family' => 'dejavu_sans_bold',
             ],
             'date_placement' => [
-                'x' => 1480,
+                'x' => 1490,
                 'y' => 1340,
                 'font_size' => 28,
                 'font_color' => '#000000',
                 'alignment' => 'left',
                 'vertical_alignment' => 'top',
-                'font_family' => 'dejavu_sans',
+                'font_family' => 'dejavu_sans_bold',
+            ],
+            'profile_photo_placement' => [
+                'top' => 130,        // Tambahkan nilainya agar foto turun (sebelumnya 105)
+                'right' => 120,      // (Opsional) Sesuaikan nilai ini jika jarak dari kanan terasa terlalu mepet setelah foto dibesarkan
+                'diameter' => 220,   // Tambahkan nilainya agar foto lebih besar (sebelumnya 190)
+                'border_width' => 8,
+                'border_color' => '#FFFFFF',
             ],
         ],
         Certificate::TYPE_YOGA_ALLIANCE => [
@@ -59,13 +66,20 @@ return [
                 'font_family' => 'dejavu_sans_bold',
             ],
             'date_placement' => [
-                'x' => 1480,
+                'x' => 1490,
                 'y' => 1340,
                 'font_size' => 28,
                 'font_color' => '#000000',
                 'alignment' => 'left',
                 'vertical_alignment' => 'top',
-                'font_family' => 'dejavu_sans',
+                'font_family' => 'dejavu_sans_bold',
+            ],
+            'profile_photo_placement' => [
+                'top' => 130,        // Tambahkan nilainya agar foto turun (sebelumnya 105)
+                'right' => 120,      // (Opsional) Sesuaikan nilai ini jika jarak dari kanan terasa terlalu mepet setelah foto dibesarkan
+                'diameter' => 220,   // Tambahkan nilainya agar foto lebih besar (sebelumnya 190)
+                'border_width' => 8,
+                'border_color' => '#FFFFFF',
             ],
         ],
     ],

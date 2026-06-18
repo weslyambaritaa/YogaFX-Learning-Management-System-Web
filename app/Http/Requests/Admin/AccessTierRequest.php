@@ -43,6 +43,7 @@ class AccessTierRequest extends FormRequest
                 Rule::unique(AccessTier::class, 'slug')->ignore($accessTier?->id),
             ],
             'description' => ['required', 'string', 'max:2000'],
+            'price_amount' => ['required', 'numeric', 'min:0'],
             'is_active' => ['required', 'boolean'],
         ];
     }

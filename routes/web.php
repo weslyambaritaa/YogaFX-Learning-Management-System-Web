@@ -13,6 +13,9 @@ use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\StudentProgressController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\ContentFileController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\LeadRegistrationController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\CourseCatalogController;
 use App\Http\Controllers\Student\EbookCatalogController;
@@ -23,6 +26,7 @@ use App\Http\Controllers\Student\HomeController;
 use App\Http\Controllers\Student\LessonCatalogController;
 use App\Http\Controllers\Student\ModuleCatalogController;
 use App\Http\Controllers\Student\ProfilePasswordController;
+use App\Http\Controllers\Student\UpgradeController;
 use App\Http\Controllers\Admin\ScoreboardBuilderController;
 use App\Http\Controllers\Admin\ScoreboardController;
 use Illuminate\Foundation\Application;
@@ -32,10 +36,24 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
-        'canRegister' => false,
+        'canRegister' => Route::has('lead-registration.create'),
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
+});
+
+Route::get('/scoreboard', [LeadRegistrationController::class, 'create'])->name('lead-registration.create');
+Route::post('/scoreboard', [LeadRegistrationController::class, 'store'])->name('lead-registration.store');
+Route::get('/scoreboard/submitted/{pendingRegistration}', [LeadRegistrationController::class, 'submitted'])->name('lead-registration.submitted');
+
+Route::middleware('signed')->group(function () {
+    Route::get('/checkout/{pendingRegistration}/{accessTierSlug}', [CheckoutController::class, 'show'])->name('checkout.show');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/pay', [CheckoutController::class, 'pay'])->name('checkout.pay');
+    Route::get('/onboarding/{onboardingState}/payment-success', [OnboardingController::class, 'showPaymentSuccess'])->name('onboarding.payment-success.show');
+    Route::get('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'showEnrollment'])->name('onboarding.enrollment.show');
+    Route::post('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'storeEnrollment'])->name('onboarding.enrollment.store');
+    Route::get('/onboarding/{onboardingState}/signup', [OnboardingController::class, 'showSignup'])->name('onboarding.signup.show');
+    Route::post('/onboarding/{onboardingState}/signup', [OnboardingController::class, 'storeSignup'])->name('onboarding.signup.store');
 });
 
 Route::middleware('auth')->group(function () {
@@ -84,6 +102,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
+        Route::get('/upgrades/{accessTier}', [UpgradeController::class, 'show'])->name('student.upgrades.show');
+        Route::post('/upgrades/{accessTier}', [UpgradeController::class, 'pay'])->name('student.upgrades.pay');
     });
 
     Route::get('/profile/password/change/{token}', [ProfilePasswordController::class, 'edit'])->name('profile.password.change.edit');

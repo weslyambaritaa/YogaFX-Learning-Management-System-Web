@@ -1,3 +1,4 @@
+import AdminSearchInput from '@/Components/admin/AdminSearchInput';
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import { Button } from '@/Components/ui/button';
 import {
@@ -10,6 +11,7 @@ import {
 } from '@/Components/ui/table';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { useDeferredValue, useState } from 'react';
 
 const statusMessages = {
     'assessment-result-deleted': 'Assessment result has been deleted.',
@@ -20,6 +22,17 @@ export default function AssessmentResultsIndex({
     results,
     status,
 }) {
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const filteredResults = results.filter((result) => [
+        result.name,
+        result.email,
+        result.correct_answers,
+        result.percentage,
+        result.completed_at,
+    ].join(' ').toLowerCase().includes(normalizedSearch));
+
     return (
         <AuthenticatedLayout
             header={
@@ -63,15 +76,23 @@ export default function AssessmentResultsIndex({
                             {statusMessages[status]}
                         </div>
                     )}
+                    <AdminSearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search results by student name, email, score, or completion time..."
+                        resultLabel={`${filteredResults.length} of ${results.length} results`}
+                    />
 
                     <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-                        {results.length === 0 ? (
+                        {filteredResults.length === 0 ? (
                             <div className="px-6 py-14 text-center">
                                 <h3 className="text-lg font-semibold text-slate-900">
-                                    No completed results yet
+                                    {results.length === 0 ? 'No completed results yet' : 'No results match your search'}
                                 </h3>
                                 <p className="mt-2 text-sm text-slate-500">
-                                    Completed attempts will appear here once students finish this assessment.
+                                    {results.length === 0
+                                        ? 'Completed attempts will appear here once students finish this assessment.'
+                                        : 'Try a different student name, email, or score keyword.'}
                                 </p>
                             </div>
                         ) : (
@@ -89,7 +110,7 @@ export default function AssessmentResultsIndex({
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {results.map((result) => (
+                                    {filteredResults.map((result) => (
                                         <TableRow key={result.id}>
                                             <TableCell className="font-medium text-slate-900">
                                                 <Link

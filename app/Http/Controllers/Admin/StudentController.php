@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminStudentUpdateRequest;
 use App\Models\AccessTier;
@@ -15,6 +17,7 @@ use App\Models\Lesson;
 use App\Models\UserSession;
 use App\Models\User;
 use App\Services\StudentSessionTrackingService;
+use App\Support\CountryDirectory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +26,9 @@ use Inertia\Response;
 
 class StudentController extends Controller
 {
+    use BuildsProtectedMediaUrls;
+    use HandlesLocalUploads;
+
     public function __construct(
         private readonly StudentSessionTrackingService $sessionTrackingService,
     ) {}
@@ -49,7 +55,13 @@ class StudentController extends Controller
                 'number' => $index + 1,
                 'name' => $student->name ?: trim("{$student->first_name} {$student->last_name}"),
                 'email' => $student->email,
-                'profile_photo' => $student->profile_photo,
+                'profile_photo' => $this->protectedMediaUrl(
+                    'user',
+                    $student->id,
+                    'profile_photo',
+                    $student->profile_photo,
+                    versionSeed: $student->updated_at,
+                ),
                 'profile_initials' => $this->initialsFor($student),
                 'access_tier_name' => $student->accessTier?->name ?? 'Not assigned',
                 'is_active' => (bool) $student->is_active,
@@ -83,8 +95,16 @@ class StudentController extends Controller
                 'last_name' => $student->last_name,
                 'email' => $student->email,
                 'whatsapp' => $student->whatsapp,
-                'preferred_certificate_picture' => $student->preferred_certificate_picture,
+                'whatsapp_country_code' => CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['country_code'],
+                'whatsapp_number' => CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['local_number'],
                 'profile_photo' => $student->profile_photo,
+                'profile_photo_url' => $this->protectedMediaUrl(
+                    'user',
+                    $student->id,
+                    'profile_photo',
+                    $student->profile_photo,
+                    versionSeed: $student->updated_at,
+                ),
                 'instagram' => $student->instagram,
                 'country' => $student->country,
                 'birth_date' => optional($student->birth_date)->toDateString(),
@@ -120,8 +140,17 @@ class StudentController extends Controller
     {
         abort_unless($student->isStudent(), 404);
 
-        $student->fill($request->validated());
+        $validated = $request->validated();
+        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+
+        $student->fill($validated);
         $student->syncDisplayName();
+
+        $student->profile_photo = $this->storeUploadedFileToBunny(
+            $request->file('profile_photo'),
+            'users/profile-photos',
+            $student->profile_photo,
+        );
 
         if ($student->isDirty('email')) {
             $student->email_verified_at = null;

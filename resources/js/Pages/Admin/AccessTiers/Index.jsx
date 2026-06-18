@@ -4,6 +4,12 @@ import { Head, Link, usePage } from '@inertiajs/react';
 export default function AccessTiersIndex({ accessTiers, status }) {
     const errors = usePage().props.errors;
 
+    const formatCurrency = (amount) =>
+        new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        }).format(Number(amount || 0));
+
     return (
         <AuthenticatedLayout
             header={
@@ -67,6 +73,9 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                             Slug
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                            Price
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Status
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
@@ -90,6 +99,9 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">
                                                 {accessTier.slug}
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                {formatCurrency(accessTier.price_amount)}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span

@@ -1,8 +1,10 @@
+import AdminSearchInput from '@/Components/admin/AdminSearchInput';
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useDeferredValue, useState } from 'react';
 
 const statusMessages = {
     'scoreboard-created': 'Scoreboard has been created and is ready for building.',
@@ -13,6 +15,18 @@ const statusMessages = {
 
 export default function ScoreboardsIndex({ scoreboards, status }) {
     const errors = usePage().props.errors;
+    const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+    const filteredScoreboards = scoreboards.filter((scoreboard) => [
+        scoreboard.title,
+        scoreboard.slug,
+        scoreboard.status,
+        scoreboard.is_active ? 'active' : 'inactive',
+        scoreboard.questions_count,
+        scoreboard.attempts_count,
+        scoreboard.updated_at,
+    ].join(' ').toLowerCase().includes(normalizedSearch));
 
     return (
         <AuthenticatedLayout
@@ -49,9 +63,15 @@ export default function ScoreboardsIndex({ scoreboards, status }) {
                             {errors.scoreboard}
                         </div>
                     )}
+                    <AdminSearchInput
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search assessments by title, slug, status, or activity..."
+                        resultLabel={`${filteredScoreboards.length} of ${scoreboards.length} assessments`}
+                    />
 
                     <div className="space-y-4">
-                        {scoreboards.map((scoreboard) => (
+                        {filteredScoreboards.map((scoreboard) => (
                             <div
                                 key={scoreboard.id}
                                 className="rounded-s-xl border border-slate-200 bg-white shadow-sm"
@@ -155,13 +175,15 @@ export default function ScoreboardsIndex({ scoreboards, status }) {
                         ))}
                     </div>
 
-                    {scoreboards.length === 0 && (
+                    {filteredScoreboards.length === 0 && (
                         <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
                             <h3 className="text-lg font-semibold text-slate-900">
-                                No assessments yet
+                                {scoreboards.length === 0 ? 'No assessments yet' : 'No assessments match your search'}
                             </h3>
                             <p className="mt-2 text-sm text-slate-500">
-                                Start with a new assessment, then continue into the builder when the meta record is ready.
+                                {scoreboards.length === 0
+                                    ? 'Start with a new assessment, then continue into the builder when the meta record is ready.'
+                                    : 'Try a different title, slug, or status keyword.'}
                             </p>
                         </div>
                     )}

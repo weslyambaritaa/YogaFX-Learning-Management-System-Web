@@ -1,0 +1,170 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
+use App\Http\Requests\EnrollmentUpdateRequest;
+use App\Http\Requests\SignupCompletionRequest;
+use App\Models\OnboardingState;
+use App\Services\EmailOtpChallengeService;
+use App\Services\SimulatedPaymentFlowService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Hash;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class OnboardingController extends Controller
+{
+    use BuildsProtectedMediaUrls;
+    use HandlesLocalUploads;
+
+    public function __construct(
+        private readonly SimulatedPaymentFlowService $paymentFlow,
+        private readonly EmailOtpChallengeService $otpChallenges,
+    ) {}
+
+    public function showPaymentSuccess(OnboardingState $onboardingState): Response|RedirectResponse
+    {
+        $onboardingState->loadMissing('user', 'pendingRegistration.accessTier');
+
+        if ($onboardingState->status === OnboardingState::STATUS_COMPLETED) {
+            return redirect()->route('login')->with('status', 'Your YogaFX account is ready. Please sign in.');
+        }
+
+        return Inertia::render('Public/PaymentSuccess', [
+            'onboarding' => [
+                'id' => $onboardingState->id,
+                'status' => $onboardingState->status,
+                'continue_url' => $this->paymentFlow->enrollmentUrl($onboardingState),
+                'access_tier' => [
+                    'name' => $onboardingState->pendingRegistration->accessTier->name,
+                    'slug' => $onboardingState->pendingRegistration->accessTier->slug,
+                ],
+            ],
+            'student' => [
+                'name' => $onboardingState->user->name,
+                'email' => $onboardingState->user->email,
+            ],
+        ]);
+    }
+
+    public function showEnrollment(OnboardingState $onboardingState): Response|RedirectResponse
+    {
+        $onboardingState->loadMissing('user', 'pendingRegistration.accessTier');
+
+        if ($onboardingState->status === OnboardingState::STATUS_AWAITING_SIGNUP) {
+            return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
+        }
+
+        if ($onboardingState->status === OnboardingState::STATUS_COMPLETED) {
+            return redirect()->route('login')->with('status', 'Your YogaFX account is ready. Please sign in.');
+        }
+
+        $user = $onboardingState->user;
+
+        return Inertia::render('Public/Enrollment', [
+            'onboarding' => [
+                'id' => $onboardingState->id,
+                'status' => $onboardingState->status,
+                'submit_url' => $this->paymentFlow->enrollmentSubmitUrl($onboardingState),
+                'access_tier' => [
+                    'name' => $onboardingState->pendingRegistration->accessTier->name,
+                    'slug' => $onboardingState->pendingRegistration->accessTier->slug,
+                ],
+            ],
+            'student' => [
+                'name' => $user->name,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'email' => $user->email,
+                'whatsapp' => $user->whatsapp,
+                'whatsapp_country_code' => \App\Support\CountryDirectory::splitPhoneNumber($user->whatsapp, $user->country)['country_code'],
+                'whatsapp_number' => \App\Support\CountryDirectory::splitPhoneNumber($user->whatsapp, $user->country)['local_number'],
+                'profile_photo' => $user->profile_photo,
+                'profile_photo_url' => $this->protectedMediaUrl(
+                    'user',
+                    $user->id,
+                    'profile_photo',
+                    $user->profile_photo,
+                    versionSeed: $user->updated_at,
+                ),
+                'instagram' => $user->instagram,
+                'country' => $user->country,
+                'birth_date' => optional($user->birth_date)->toDateString(),
+                'gender' => $user->gender,
+                'practicing_yoga_for' => $user->practicing_yoga_for,
+                'yoga_sequence_experience' => $user->yoga_sequence_experience,
+                'hours_per_week' => $user->hours_per_week,
+                'current_fitness_level' => $user->current_fitness_level,
+                'flexibility_rating' => $user->flexibility_rating,
+                'motivation' => $user->motivation,
+                'why_yogafx' => $user->why_yogafx,
+                'how_did_you_find_us' => $user->how_did_you_find_us,
+            ],
+        ]);
+    }
+
+    public function storeEnrollment(
+        EnrollmentUpdateRequest $request,
+        OnboardingState $onboardingState,
+    ): RedirectResponse {
+        $validated = $request->validated();
+        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+
+        $user = $onboardingState->user;
+        $validated['profile_photo'] = $this->storeUploadedFileToBunny(
+            $request->file('profile_photo'),
+            'users/profile-photos',
+            $user->profile_photo,
+        );
+
+        $onboardingState = $this->paymentFlow->completeEnrollment($onboardingState, $validated);
+
+        return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
+    }
+
+    public function showSignup(OnboardingState $onboardingState): Response|RedirectResponse
+    {
+        $onboardingState->loadMissing('user', 'pendingRegistration.accessTier');
+
+        if ($onboardingState->status === OnboardingState::STATUS_AWAITING_ENROLLMENT) {
+            return redirect()->away($this->paymentFlow->enrollmentUrl($onboardingState));
+        }
+
+        if ($onboardingState->status === OnboardingState::STATUS_COMPLETED) {
+            return redirect()->route('login')->with('status', 'Your YogaFX account is ready. Please sign in.');
+        }
+
+        return Inertia::render('Public/Signup', [
+            'onboarding' => [
+                'id' => $onboardingState->id,
+                'status' => $onboardingState->status,
+                'submit_url' => $this->paymentFlow->signupSubmitUrl($onboardingState),
+                'access_tier' => [
+                    'name' => $onboardingState->pendingRegistration->accessTier->name,
+                    'slug' => $onboardingState->pendingRegistration->accessTier->slug,
+                ],
+            ],
+            'student' => [
+                'name' => $onboardingState->user->name,
+                'email' => $onboardingState->user->email,
+            ],
+        ]);
+    }
+
+    public function storeSignup(
+        SignupCompletionRequest $request,
+        OnboardingState $onboardingState,
+    ): RedirectResponse {
+        $onboardingState->loadMissing('user');
+        $challenge = $this->otpChallenges->createForSignup($onboardingState->user, [
+            'onboarding_state_id' => $onboardingState->id,
+            'password_hash' => Hash::make((string) $request->string('password')),
+        ]);
+
+        return redirect()->route('auth.otp.show', [
+            'token' => $challenge['token'],
+        ]);
+    }
+}
