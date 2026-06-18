@@ -1,20 +1,20 @@
-import { Button } from '@/Components/ui/button';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, router } from '@inertiajs/react';
-import { ChevronRight, Play, Search } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Button } from "@/Components/ui/button";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link, router } from "@inertiajs/react";
+import { ChevronRight, Play, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
     const hours = Math.floor(safeSeconds / 3600)
         .toString()
-        .padStart(2, '0');
+        .padStart(2, "0");
     const minutes = Math.floor((safeSeconds % 3600) / 60)
         .toString()
-        .padStart(2, '0');
+        .padStart(2, "0");
     const seconds = Math.floor(safeSeconds % 60)
         .toString()
-        .padStart(2, '0');
+        .padStart(2, "0");
 
     return { hours, minutes, seconds };
 }
@@ -34,34 +34,34 @@ export default function StudentHome({
     homeExperience,
 }) {
     const hasReloadedRef = useRef(false);
-    const studentName = studentContext?.display_name ?? 'Student';
+    const studentName = studentContext?.display_name ?? "Student";
     const fullName = studentContext?.full_name ?? studentName;
     const accessTier = studentContext?.access_tier ?? null;
-    const tierLabel = accessTier?.name ?? 'Tier assignment pending';
+    const tierLabel = accessTier?.name ?? "Tier assignment pending";
     const tierStatusLabel = accessTier
         ? accessTier.is_active
-            ? 'Active access tier'
-            : 'Inactive access tier'
-        : 'No access tier assigned yet';
+            ? "Active access tier"
+            : "Inactive access tier"
+        : "No access tier assigned yet";
     const continueProgress = continueLearning?.progress_percentage ?? 0;
     const overallProgress = progressSummary?.overall_progress_percentage ?? 0;
     const currentSequenceLesson = sequentialAwareness?.current_lesson ?? null;
     const nextSequenceLesson = sequentialAwareness?.next_lesson ?? null;
     const currentSequenceStatus = currentSequenceLesson
         ? currentSequenceLesson.is_done
-            ? 'Completed'
+            ? "Completed"
             : currentSequenceLesson.watch_progress > 0
               ? `${currentSequenceLesson.watch_progress}% watched`
-              : 'Not started yet'
-        : 'No current lesson';
+              : "Not started yet"
+        : "No current lesson";
     const nextSequenceStatus = nextSequenceLesson
         ? currentSequenceLesson?.is_done
-            ? 'Ready next'
-            : 'Waiting in sequence'
-        : 'No next lesson';
+            ? "Ready next"
+            : "Waiting in sequence"
+        : "No next lesson";
     const heroBadges = homeExperience?.hero_badges ?? [
         tierLabel,
-        'Learning momentum is active',
+        "Learning momentum is active",
     ];
     const [runningAccessSeconds, setRunningAccessSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
@@ -75,58 +75,70 @@ export default function StudentHome({
         hasReloadedRef.current = true;
 
         router.reload({
-            only: ['availableModulesSection', 'progressSummary', 'nextStep', 'certificateMilestone', 'homeExperience'],
+            only: [
+                "availableModulesSection",
+                "progressSummary",
+                "nextStep",
+                "certificateMilestone",
+                "homeExperience",
+            ],
             preserveScroll: true,
             preserveState: true,
         });
     }, []);
 
-    const heroPrimaryKind = homeExperience?.primary_cta_kind ?? 'link';
-    const heroSecondaryKind = 'link';
-    const continueEngineLabel = homeExperience?.state === 'journey_complete'
-        ? 'Next: certificate and resources'
-        : homeExperience?.state === 'new_student'
-          ? 'Next: keep the first lesson simple'
-          : homeExperience?.state === 'catalog_empty'
-            ? 'Next: waiting for catalog access'
-            : 'Next: assignment milestone';
+    const heroPrimaryKind = homeExperience?.primary_cta_kind ?? "link";
+    const heroSecondaryKind = "link";
+    const continueEngineLabel =
+        homeExperience?.state === "journey_complete"
+            ? "Next: certificate and resources"
+            : homeExperience?.state === "new_student"
+              ? "Next: keep the first lesson simple"
+              : homeExperience?.state === "catalog_empty"
+                ? "Next: waiting for catalog access"
+                : "Next: assignment milestone";
     const secondaryDiscoveryItems = [
         {
-            title: 'Explore the full module path',
+            title: "Explore the full module path",
             description:
-                'Move through the full YogaFX catalog available in your current tier and revisit the modules that shape your learning rhythm.',
-            href: route('modules.index'),
-            label: 'Browse Modules',
+                "Move through the full YogaFX catalog available in your current tier and revisit the modules that shape your learning rhythm.",
+            href: route("modules.index"),
+            label: "Browse Modules",
         },
         {
-            title: 'Open supporting resources',
-            description:
-                ebookResourcesSection?.items?.length
-                    ? 'Keep your practice deepening with supporting ebooks and preview-first resources that stay close to your learning journey.'
-                    : 'Your ebook library will appear here as soon as supporting resources are attached to this tier.',
-            href: route('ebooks.index'),
-            label: 'Open Ebooks',
+            title: "Open supporting resources",
+            description: ebookResourcesSection?.items?.length
+                ? "Keep your practice deepening with supporting ebooks and preview-first resources that stay close to your learning journey."
+                : "Your ebook library will appear here as soon as supporting resources are attached to this tier.",
+            href: route("ebooks.index"),
+            label: "Open Ebooks",
         },
         {
-            title: 'Review your current milestones',
+            title: "Review your current milestones",
             description:
-                certificateMilestone?.state === 'download_available'
-                    ? 'Your latest certificate is already ready, while assignment and certificate milestones stay visible in the same calm Home flow.'
-                    : 'Assignment and certificate milestones stay visible here so you can understand where the larger YogaFX journey is heading next.',
+                certificateMilestone?.state === "download_available"
+                    ? "Your latest certificate is already ready, while assignment and certificate milestones stay visible in the same calm Home flow."
+                    : "Assignment and certificate milestones stay visible here so you can understand where the larger YogaFX journey is heading next.",
             href:
-                certificateMilestone?.cta_kind === 'download'
+                certificateMilestone?.cta_kind === "download"
                     ? certificateMilestone?.cta_url
-                    : route('modules.index'),
+                    : route("modules.index"),
             label:
-                certificateMilestone?.cta_kind === 'download'
-                    ? 'Download Certificate'
-                    : 'Review Journey',
-            kind: certificateMilestone?.cta_kind === 'download' ? 'download' : 'link',
+                certificateMilestone?.cta_kind === "download"
+                    ? "Download Certificate"
+                    : "Review Journey",
+            kind:
+                certificateMilestone?.cta_kind === "download"
+                    ? "download"
+                    : "link",
         },
     ];
 
     useEffect(() => {
-        if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
+        if (
+            !accessTimeSummary?.currently_active ||
+            !accessTimeSummary?.active_session_login_at
+        ) {
             setRunningAccessSeconds(
                 accessTimeSummary?.running_total_access_duration_seconds ?? 0,
             );
@@ -144,7 +156,8 @@ export default function StudentHome({
             );
 
             setRunningAccessSeconds(
-                (accessTimeSummary.total_access_duration_seconds ?? 0) + elapsed,
+                (accessTimeSummary.total_access_duration_seconds ?? 0) +
+                    elapsed,
             );
         };
 
@@ -191,27 +204,32 @@ export default function StudentHome({
                                     </p>
                                     <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl xl:text-6xl">
                                         {homeExperience?.hero_title ??
-                                            'Your premium YogaFX learning home is now ready to carry your student identity.'}
+                                            "Your premium YogaFX learning home is now ready to carry your student identity."}
                                     </h1>
                                 </div>
 
                                 <p className="max-w-2xl text-sm leading-7 text-white/72 sm:text-base">
-                                    You are signed in as {fullName}.{' '}
+                                    You are signed in as {fullName}.{" "}
                                     {homeExperience?.hero_description ??
                                         `Your Home experience is anchored to ${tierLabel.toLowerCase()} access and now has the core student context needed for the next learning-focused sections.`}
                                 </p>
 
                                 <div className="flex flex-wrap items-center gap-3 pt-2">
-                                    {heroPrimaryKind === 'download' ? (
+                                    {heroPrimaryKind === "download" ? (
                                         <Button
                                             asChild
                                             size="lg"
                                             className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
                                         >
-                                            <a href={homeExperience?.primary_cta_url ?? '#'}>
+                                            <a
+                                                href={
+                                                    homeExperience?.primary_cta_url ??
+                                                    "#"
+                                                }
+                                            >
                                                 <Play className="mr-2 size-4 fill-current" />
                                                 {homeExperience?.primary_cta_label ??
-                                                    'Continue the Course'}
+                                                    "Continue the Course"}
                                             </a>
                                         </Button>
                                     ) : (
@@ -220,24 +238,34 @@ export default function StudentHome({
                                             size="lg"
                                             className="rounded-full bg-[#d5462f] px-6 text-white shadow-[0_18px_50px_rgba(213,70,47,0.3)] hover:bg-[#e2553d]"
                                         >
-                                            <Link href={homeExperience?.primary_cta_url ?? route('modules.index')}>
+                                            <Link
+                                                href={
+                                                    homeExperience?.primary_cta_url ??
+                                                    route("modules.index")
+                                                }
+                                            >
                                                 <Play className="mr-2 size-4 fill-current" />
                                                 {homeExperience?.primary_cta_label ??
-                                                    'Continue the Course'}
+                                                    "Continue the Course"}
                                             </Link>
                                         </Button>
                                     )}
 
-                                    {heroSecondaryKind === 'download' ? (
+                                    {heroSecondaryKind === "download" ? (
                                         <Button
                                             asChild
                                             size="lg"
                                             variant="outline"
                                             className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
                                         >
-                                            <a href={homeExperience?.secondary_cta_url ?? '#'}>
+                                            <a
+                                                href={
+                                                    homeExperience?.secondary_cta_url ??
+                                                    "#"
+                                                }
+                                            >
                                                 {homeExperience?.secondary_cta_label ??
-                                                    'Explore Modules'}
+                                                    "Explore Modules"}
                                             </a>
                                         </Button>
                                     ) : (
@@ -247,9 +275,14 @@ export default function StudentHome({
                                             variant="outline"
                                             className="rounded-full border-white/20 bg-white/5 px-6 text-white hover:bg-white/10 hover:text-white"
                                         >
-                                            <Link href={homeExperience?.secondary_cta_url ?? route('modules.index')}>
+                                            <Link
+                                                href={
+                                                    homeExperience?.secondary_cta_url ??
+                                                    route("modules.index")
+                                                }
+                                            >
                                                 {homeExperience?.secondary_cta_label ??
-                                                    'Explore Modules'}
+                                                    "Explore Modules"}
                                             </Link>
                                         </Button>
                                     )}
@@ -298,7 +331,7 @@ export default function StudentHome({
                                         <p className="mt-3 text-sm leading-6 text-white/60">
                                             {accessTier
                                                 ? `${tierLabel} is attached to this student profile and ready to be used by the next Home sections.`
-                                                : 'This student can open Home safely, but content sections should keep using a no-tier fallback until access tier is assigned.'}
+                                                : "This student can open Home safely, but content sections should keep using a no-tier fallback until access tier is assigned."}
                                         </p>
                                     </div>
                                 </div>
@@ -311,14 +344,15 @@ export default function StudentHome({
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {continueLearning?.eyebrow ?? 'Continue Watching'}
+                                {continueLearning?.eyebrow ??
+                                    "Continue Watching"}
                             </p>
                             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                {continueLearning?.state === 'resume'
-                                    ? 'Pick up where your learning paused'
-                                    : continueLearning?.state === 'start'
-                                      ? 'Start your first YogaFX lesson'
-                                      : 'Continue Learning will appear here'}
+                                {continueLearning?.state === "resume"
+                                    ? "Pick up where your learning paused"
+                                    : continueLearning?.state === "start"
+                                      ? "Start your first YogaFX lesson"
+                                      : "Continue Learning will appear here"}
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
@@ -339,7 +373,7 @@ export default function StudentHome({
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
                                     <div className="absolute left-4 top-4 rounded-full border border-white/12 bg-black/35 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/70 backdrop-blur">
-                                        {continueLearning?.status ?? 'Ready'}
+                                        {continueLearning?.status ?? "Ready"}
                                     </div>
                                     {!continueLearning?.thumbnail_url && (
                                         <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3 backdrop-blur">
@@ -347,33 +381,47 @@ export default function StudentHome({
                                                 Visual placeholder
                                             </p>
                                             <p className="mt-2 text-sm font-medium text-white">
-                                                YogaFX lesson artwork is not attached yet.
+                                                YogaFX lesson artwork is not
+                                                attached yet.
                                             </p>
                                         </div>
                                     )}
                                 </div>
                                 <div className="space-y-2">
                                     <h3 className="text-lg font-medium text-white">
-                                        {continueLearning?.title ?? 'Continue Learning'}
+                                        {continueLearning?.title ??
+                                            "Continue Learning"}
                                     </h3>
                                     <p className="text-sm leading-6 text-white/60">
                                         {continueLearning?.description ??
-                                            'Your current lesson will appear here once Phase 3 is active.'}
+                                            "Your current lesson will appear here once Phase 3 is active."}
                                     </p>
-                                    {continueLearning?.module && continueLearning?.lesson && (
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs uppercase tracking-[0.2em] text-white/45">
-                                            <span>{continueLearning.module.title}</span>
-                                            <span className="h-1 w-1 rounded-full bg-white/25" />
-                                            <span>
-                                                Lesson {continueLearning.lesson.sort_order}
-                                            </span>
-                                        </div>
-                                    )}
+                                    {continueLearning?.module &&
+                                        continueLearning?.lesson && (
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs uppercase tracking-[0.2em] text-white/45">
+                                                <span>
+                                                    {
+                                                        continueLearning.module
+                                                            .title
+                                                    }
+                                                </span>
+                                                <span className="h-1 w-1 rounded-full bg-white/25" />
+                                                <span>
+                                                    Lesson{" "}
+                                                    {
+                                                        continueLearning.lesson
+                                                            .sort_order
+                                                    }
+                                                </span>
+                                            </div>
+                                        )}
                                 </div>
                                 <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                                     <div
                                         className="h-full rounded-full bg-[#d5462f] transition-all"
-                                        style={{ width: `${continueProgress}%` }}
+                                        style={{
+                                            width: `${continueProgress}%`,
+                                        }}
                                     />
                                 </div>
                                 <div className="flex flex-wrap items-center gap-3">
@@ -381,13 +429,20 @@ export default function StudentHome({
                                         asChild
                                         className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                     >
-                                        <Link href={continueLearning?.cta_url ?? route('modules.index')}>
-                                            {continueLearning?.state === 'resume' ? (
+                                        <Link
+                                            href={
+                                                continueLearning?.cta_url ??
+                                                route("modules.index")
+                                            }
+                                        >
+                                            {continueLearning?.state ===
+                                            "resume" ? (
                                                 <Play className="mr-2 size-4 fill-current" />
                                             ) : (
                                                 <ChevronRight className="mr-2 size-4" />
                                             )}
-                                            {continueLearning?.cta_label ?? 'Browse Modules'}
+                                            {continueLearning?.cta_label ??
+                                                "Browse Modules"}
                                         </Link>
                                     </Button>
 
@@ -397,7 +452,11 @@ export default function StudentHome({
                                             variant="outline"
                                             className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                                         >
-                                            <Link href={continueLearning.module.url}>
+                                            <Link
+                                                href={
+                                                    continueLearning.module.url
+                                                }
+                                            >
                                                 Open Module
                                             </Link>
                                         </Button>
@@ -411,21 +470,23 @@ export default function StudentHome({
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <p className="text-xs uppercase tracking-[0.22em] text-white/50">
-                                            {sequentialAwareness?.eyebrow ?? 'Learning Sequence'}
+                                            {sequentialAwareness?.eyebrow ??
+                                                "Learning Sequence"}
                                         </p>
                                         <h3 className="text-xl font-semibold text-white">
                                             {sequentialAwareness?.title ??
-                                                'Sequence awareness will appear here'}
+                                                "Sequence awareness will appear here"}
                                         </h3>
                                         <p className="text-sm leading-6 text-white/60">
                                             {sequentialAwareness?.description ??
-                                                'Home will explain the current lesson order here.'}
+                                                "Home will explain the current lesson order here."}
                                         </p>
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
                                         <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
-                                            {sequentialAwareness?.status ?? 'Sequence guidance'}
+                                            {sequentialAwareness?.status ??
+                                                "Sequence guidance"}
                                         </span>
                                         <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
                                             Guidance, not hard locking
@@ -441,7 +502,7 @@ export default function StudentHome({
                                                     </p>
                                                     <p className="mt-2 text-sm font-medium text-white">
                                                         {currentSequenceLesson?.title ??
-                                                            'No current lesson yet'}
+                                                            "No current lesson yet"}
                                                     </p>
                                                 </div>
                                                 <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
@@ -451,7 +512,7 @@ export default function StudentHome({
                                             <p className="mt-3 text-sm leading-6 text-white/58">
                                                 {currentSequenceLesson
                                                     ? `Lesson ${currentSequenceLesson.sort_order} in ${currentSequenceLesson.module_title}`
-                                                    : 'The active lesson in the sequence will appear here.'}
+                                                    : "The active lesson in the sequence will appear here."}
                                             </p>
                                         </div>
 
@@ -463,7 +524,7 @@ export default function StudentHome({
                                                     </p>
                                                     <p className="mt-2 text-sm font-medium text-white">
                                                         {nextSequenceLesson?.title ??
-                                                            'No further accessible lesson'}
+                                                            "No further accessible lesson"}
                                                     </p>
                                                 </div>
                                                 <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
@@ -473,7 +534,7 @@ export default function StudentHome({
                                             <p className="mt-3 text-sm leading-6 text-white/58">
                                                 {nextSequenceLesson
                                                     ? `Lesson ${nextSequenceLesson.sort_order} in ${nextSequenceLesson.module_title}`
-                                                    : 'When the next lesson in sequence exists, Home will surface it here.'}
+                                                    : "When the next lesson in sequence exists, Home will surface it here."}
                                             </p>
                                         </div>
                                     </div>
@@ -484,16 +545,21 @@ export default function StudentHome({
                                                 Sequence rule
                                             </p>
                                             <p className="mt-3 text-sm font-medium text-white">
-                                                {sequentialAwareness?.sequence_rule?.label ??
-                                                    'Sequence guidance is not available yet.'}
+                                                {sequentialAwareness
+                                                    ?.sequence_rule?.label ??
+                                                    "Sequence guidance is not available yet."}
                                             </p>
                                             <p className="mt-2 text-sm leading-6 text-white/58">
-                                                {sequentialAwareness?.sequence_rule?.detail ??
-                                                    'Home will explain the lesson order and next sequence rule here.'}
+                                                {sequentialAwareness
+                                                    ?.sequence_rule?.detail ??
+                                                    "Home will explain the lesson order and next sequence rule here."}
                                             </p>
                                         </div>
 
-                                        {(sequentialAwareness?.supporting_rules ?? []).map((rule) => (
+                                        {(
+                                            sequentialAwareness?.supporting_rules ??
+                                            []
+                                        ).map((rule) => (
                                             <div
                                                 key={rule.label}
                                                 className="rounded-[20px] border border-white/10 bg-white/5 p-4"
@@ -527,10 +593,12 @@ export default function StudentHome({
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {progressSummary?.eyebrow ?? 'Learning Progress'}
+                                {progressSummary?.eyebrow ??
+                                    "Learning Progress"}
                             </p>
                             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                {progressSummary?.title ?? 'Your progress summary will appear here'}
+                                {progressSummary?.title ??
+                                    "Your progress summary will appear here"}
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
@@ -556,12 +624,14 @@ export default function StudentHome({
                                     <div className="mt-5 h-2 overflow-hidden rounded-full bg-black/30">
                                         <div
                                             className="h-full rounded-full bg-[#d5462f] transition-all"
-                                            style={{ width: `${overallProgress}%` }}
+                                            style={{
+                                                width: `${overallProgress}%`,
+                                            }}
                                         />
                                     </div>
                                     <p className="mt-4 text-sm leading-6 text-white/60">
                                         {progressSummary?.status ??
-                                            'Progress will update as completed lessons grow.'}
+                                            "Progress will update as completed lessons grow."}
                                     </p>
                                 </div>
 
@@ -570,14 +640,17 @@ export default function StudentHome({
                                         Modules finished
                                     </p>
                                     <div className="mt-8 text-4xl font-semibold tracking-[-0.04em] text-white">
-                                        {progressSummary?.modules_completed ?? 0}
+                                        {progressSummary?.modules_completed ??
+                                            0}
                                         <span className="ml-2 text-base font-medium text-white/40">
-                                            / {progressSummary?.modules_total ?? 0}
+                                            /{" "}
+                                            {progressSummary?.modules_total ??
+                                                0}
                                         </span>
                                     </div>
                                     <p className="mt-4 text-sm leading-6 text-white/58">
-                                        Completed modules reflect accessible lessons that have all
-                                        been marked done.
+                                        Completed modules reflect accessible
+                                        lessons that have all been marked done.
                                     </p>
                                 </div>
 
@@ -586,14 +659,17 @@ export default function StudentHome({
                                         Lessons finished
                                     </p>
                                     <div className="mt-8 text-4xl font-semibold tracking-[-0.04em] text-white">
-                                        {progressSummary?.lessons_completed ?? 0}
+                                        {progressSummary?.lessons_completed ??
+                                            0}
                                         <span className="ml-2 text-base font-medium text-white/40">
-                                            / {progressSummary?.lessons_total ?? 0}
+                                            /{" "}
+                                            {progressSummary?.lessons_total ??
+                                                0}
                                         </span>
                                     </div>
                                     <p className="mt-4 text-sm leading-6 text-white/58">
-                                        Lesson completion is the main source for the Home progress
-                                        summary in this phase.
+                                        Lesson completion is the main source for
+                                        the Home progress summary in this phase.
                                     </p>
                                 </div>
                             </div>
@@ -606,13 +682,13 @@ export default function StudentHome({
                                         Momentum summary
                                     </p>
                                     <h3 className="text-xl font-semibold text-white">
-                                        {progressSummary?.state === 'ready'
-                                            ? 'Your completed lessons now shape the Home overview'
-                                            : 'Home is ready to show progress as soon as learning begins'}
+                                        {progressSummary?.state === "ready"
+                                            ? "Your completed lessons now shape the Home overview"
+                                            : "Home is ready to show progress as soon as learning begins"}
                                     </h3>
                                     <p className="text-sm leading-6 text-white/60">
                                         {progressSummary?.description ??
-                                            'This area keeps the summary human and calm, so Home stays focused on motivation instead of reporting.'}
+                                            "This area keeps the summary human and calm, so Home stays focused on motivation instead of reporting."}
                                     </p>
                                 </div>
 
@@ -621,10 +697,12 @@ export default function StudentHome({
                                         Stage 12 scope
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        The final Home order is now aligned to the approved
-                                        product priority, sequence guidance is folded into
-                                        Continue Learning, and the page is tuned to feel calmer
-                                        across mobile, tablet, and desktop.
+                                        The final Home order is now aligned to
+                                        the approved product priority, sequence
+                                        guidance is folded into Continue
+                                        Learning, and the page is tuned to feel
+                                        calmer across mobile, tablet, and
+                                        desktop.
                                     </p>
                                 </div>
                             </div>
@@ -636,10 +714,11 @@ export default function StudentHome({
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {nextStep?.eyebrow ?? 'Recommended Next Step'}
+                                {nextStep?.eyebrow ?? "Recommended Next Step"}
                             </p>
                             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                {nextStep?.title ?? 'Your next step will appear here'}
+                                {nextStep?.title ??
+                                    "Your next step will appear here"}
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
@@ -653,35 +732,47 @@ export default function StudentHome({
                                 <div className="space-y-4">
                                     <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
                                         <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
-                                            {nextStep?.status ?? 'Ready now'}
+                                            {nextStep?.status ?? "Ready now"}
                                         </span>
                                         <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
                                             {nextStep?.kind
-                                                ? nextStep.kind.replace(/_/g, ' ')
-                                                : 'recommended step'}
+                                                ? nextStep.kind.replace(
+                                                      /_/g,
+                                                      " ",
+                                                  )
+                                                : "recommended step"}
                                         </span>
                                     </div>
 
                                     <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
                                         {nextStep?.description ??
-                                            'Home will highlight the strongest next learning action here.'}
+                                            "Home will highlight the strongest next learning action here."}
                                     </p>
 
                                     {(nextStep?.module || nextStep?.lesson) && (
                                         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs uppercase tracking-[0.2em] text-white/45">
                                             {nextStep?.module?.title && (
-                                                <span>{nextStep.module.title}</span>
+                                                <span>
+                                                    {nextStep.module.title}
+                                                </span>
                                             )}
-                                            {nextStep?.module?.title && nextStep?.lesson?.sort_order && (
-                                                <span className="h-1 w-1 rounded-full bg-white/25" />
-                                            )}
+                                            {nextStep?.module?.title &&
+                                                nextStep?.lesson
+                                                    ?.sort_order && (
+                                                    <span className="h-1 w-1 rounded-full bg-white/25" />
+                                                )}
                                             {nextStep?.lesson?.sort_order && (
-                                                <span>Lesson {nextStep.lesson.sort_order}</span>
+                                                <span>
+                                                    Lesson{" "}
+                                                    {nextStep.lesson.sort_order}
+                                                </span>
                                             )}
                                             {nextStep?.lesson?.title && (
                                                 <>
                                                     <span className="h-1 w-1 rounded-full bg-white/25" />
-                                                    <span>{nextStep.lesson.title}</span>
+                                                    <span>
+                                                        {nextStep.lesson.title}
+                                                    </span>
                                                 </>
                                             )}
                                         </div>
@@ -693,9 +784,15 @@ export default function StudentHome({
                                         asChild
                                         className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                     >
-                                        <Link href={nextStep?.cta_url ?? route('modules.index')}>
+                                        <Link
+                                            href={
+                                                nextStep?.cta_url ??
+                                                route("modules.index")
+                                            }
+                                        >
                                             <ChevronRight className="mr-2 size-4" />
-                                            {nextStep?.cta_label ?? 'Browse Modules'}
+                                            {nextStep?.cta_label ??
+                                                "Browse Modules"}
                                         </Link>
                                     </Button>
 
@@ -705,7 +802,9 @@ export default function StudentHome({
                                             variant="outline"
                                             className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                                         >
-                                            <Link href={nextStep.module.url}>Open Module</Link>
+                                            <Link href={nextStep.module.url}>
+                                                Open Module
+                                            </Link>
                                         </Button>
                                     )}
                                 </div>
@@ -719,21 +818,24 @@ export default function StudentHome({
                                         Recommendation engine
                                     </p>
                                     <h3 className="text-xl font-semibold text-white">
-                                        {nextStep?.kind === 'continue_lesson'
-                                            ? 'Home keeps the student on the current learning track'
-                                            : nextStep?.kind === 'next_lesson'
-                                              ? 'Home can now point directly to the next unfinished lesson'
-                                              : nextStep?.kind === 'start_lesson'
-                                                ? 'Home gives new students a safe first step'
-                                                : nextStep?.kind === 'explore_modules'
-                                                  ? 'Home falls back to discovery when no active lesson is available'
-                                                  : 'Home is ready to guide the next action'}
+                                        {nextStep?.kind === "continue_lesson"
+                                            ? "Home keeps the student on the current learning track"
+                                            : nextStep?.kind === "next_lesson"
+                                              ? "Home can now point directly to the next unfinished lesson"
+                                              : nextStep?.kind ===
+                                                  "start_lesson"
+                                                ? "Home gives new students a safe first step"
+                                                : nextStep?.kind ===
+                                                    "explore_modules"
+                                                  ? "Home falls back to discovery when no active lesson is available"
+                                                  : "Home is ready to guide the next action"}
                                     </h3>
                                     <p className="text-sm leading-6 text-white/60">
-                                        The current recommendation logic prioritizes paths that
-                                        already have safe student-side entry points today:
-                                        continue lesson, start lesson, next available lesson, or
-                                        browse modules.
+                                        The current recommendation logic
+                                        prioritizes paths that already have safe
+                                        student-side entry points today:
+                                        continue lesson, start lesson, next
+                                        available lesson, or browse modules.
                                     </p>
                                 </div>
 
@@ -742,11 +844,13 @@ export default function StudentHome({
                                         Current boundary
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        Assessment recommendation still stays deferred until its
-                                        student-side flow becomes active. Assignment and
-                                        certificate milestones now appear below as visibility
-                                        layers, while this card keeps the main next step focused
-                                        on safe learning routes.
+                                        Assessment recommendation still stays
+                                        deferred until its student-side flow
+                                        becomes active. Assignment and
+                                        certificate milestones now appear below
+                                        as visibility layers, while this card
+                                        keeps the main next step focused on safe
+                                        learning routes.
                                     </p>
                                 </div>
                             </div>
@@ -758,10 +862,12 @@ export default function StudentHome({
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {availableModulesSection?.eyebrow ?? 'Available Modules'}
+                                {availableModulesSection?.eyebrow ??
+                                    "Available Modules"}
                             </p>
                             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                {availableModulesSection?.title ?? 'Your module catalog will appear here'}
+                                {availableModulesSection?.title ??
+                                    "Your module catalog will appear here"}
                             </h2>
                         </div>
                         <Button
@@ -769,7 +875,9 @@ export default function StudentHome({
                             variant="outline"
                             className="hidden rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white md:inline-flex"
                         >
-                            <Link href={route('modules.index')}>See All Modules</Link>
+                            <Link href={route("modules.index")}>
+                                See All Modules
+                            </Link>
                         </Button>
                     </div>
 
@@ -779,23 +887,29 @@ export default function StudentHome({
                                 <div className="max-w-3xl space-y-2">
                                     <p className="text-sm leading-7 text-white/60">
                                         {availableModulesSection?.description ??
-                                            'Home will show the modules available in the current student tier here.'}
+                                            "Home will show the modules available in the current student tier here."}
                                     </p>
                                 </div>
 
                                 <div className="grid gap-3 sm:grid-cols-3">
                                     {[
                                         {
-                                            label: availableModulesSection?.summary?.total ?? 0,
-                                            eyebrow: 'Modules',
+                                            label:
+                                                availableModulesSection?.summary
+                                                    ?.total ?? 0,
+                                            eyebrow: "Modules",
                                         },
                                         {
-                                            label: availableModulesSection?.summary?.active ?? 0,
-                                            eyebrow: 'In progress',
+                                            label:
+                                                availableModulesSection?.summary
+                                                    ?.active ?? 0,
+                                            eyebrow: "In progress",
                                         },
                                         {
-                                            label: availableModulesSection?.summary?.completed ?? 0,
-                                            eyebrow: 'Completed',
+                                            label:
+                                                availableModulesSection?.summary
+                                                    ?.completed ?? 0,
+                                            eyebrow: "Completed",
                                         },
                                     ].map((item) => (
                                         <div
@@ -815,144 +929,188 @@ export default function StudentHome({
 
                             {availableModulesSection?.items?.length ? (
                                 <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
-                                    {availableModulesSection.items.map((module, index) => (
-                                        <div
-                                            key={module.id}
-                                            className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15 md:min-w-0"
-                                        >
-                                            <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
-                                                <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.4),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
-                                                    {module.thumbnail_url && (
-                                                        <img
-                                                            src={module.thumbnail_url}
-                                                            alt={module.title}
-                                                            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-                                                        />
-                                                    )}
-                                                    {!module.thumbnail_url && (
-                                                        <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
-                                                            <div>
-                                                                <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                                                    Artwork pending
-                                                                </p>
-                                                                <p className="mt-3 text-lg font-medium text-white/80">
-                                                                    YogaFX module cover will appear here.
-                                                                </p>
+                                    {availableModulesSection.items.map(
+                                        (module, index) => (
+                                            <div
+                                                key={module.id}
+                                                className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15 md:min-w-0"
+                                            >
+                                                <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
+                                                    <div className="relative aspect-[16/10] overflow-hidden rounded-[20px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.4),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
+                                                        {module.thumbnail_url && (
+                                                            <img
+                                                                src={
+                                                                    module.thumbnail_url
+                                                                }
+                                                                alt={
+                                                                    module.title
+                                                                }
+                                                                className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                                                            />
+                                                        )}
+                                                        {!module.thumbnail_url && (
+                                                            <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+                                                                <div>
+                                                                    <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                                                        Artwork
+                                                                        pending
+                                                                    </p>
+                                                                    <p className="mt-3 text-lg font-medium text-white/80">
+                                                                        YogaFX
+                                                                        module
+                                                                        cover
+                                                                        will
+                                                                        appear
+                                                                        here.
+                                                                    </p>
+                                                                </div>
                                                             </div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                                                        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                                                            <span
+                                                                className={[
+                                                                    "rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.22em] backdrop-blur",
+                                                                    module.status ===
+                                                                    "completed"
+                                                                        ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-200"
+                                                                        : module.status ===
+                                                                            "active"
+                                                                          ? "border-[#d5462f]/35 bg-[#d5462f]/20 text-[#ffd7cf]"
+                                                                          : "border-white/15 bg-black/30 text-white/70",
+                                                                ].join(" ")}
+                                                            >
+                                                                {
+                                                                    module.status_label
+                                                                }
+                                                            </span>
+                                                            <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+                                                                Module{" "}
+                                                                {
+                                                                    module.sort_order
+                                                                }
+                                                            </span>
                                                         </div>
-                                                    )}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                                                    <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                                                        <span
-                                                            className={[
-                                                                'rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.22em] backdrop-blur',
-                                                                module.status === 'completed'
-                                                                    ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-200'
-                                                                    : module.status === 'active'
-                                                                      ? 'border-[#d5462f]/35 bg-[#d5462f]/20 text-[#ffd7cf]'
-                                                                      : 'border-white/15 bg-black/30 text-white/70',
-                                                            ].join(' ')}
-                                                        >
-                                                            {module.status_label}
-                                                        </span>
-                                                        <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
-                                                            Module {module.sort_order}
-                                                        </span>
+                                                        <div className="absolute bottom-4 left-4 right-4">
+                                                            <p className="text-xs uppercase tracking-[0.2em] text-white/50">
+                                                                {module.lesson_count >
+                                                                0
+                                                                    ? `${module.lesson_count} lessons`
+                                                                    : "Resource module"}
+                                                            </p>
+                                                            <h3 className="mt-2 text-xl font-semibold leading-tight text-white">
+                                                                {module.title}
+                                                            </h3>
+                                                        </div>
                                                     </div>
-                                                    <div className="absolute bottom-4 left-4 right-4">
-                                                        <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-                                                            {module.lesson_count > 0
-                                                                ? `${module.lesson_count} lessons`
-                                                                : 'Resource module'}
-                                                        </p>
-                                                        <h3 className="mt-2 text-xl font-semibold leading-tight text-white">
-                                                            {module.title}
-                                                        </h3>
-                                                    </div>
-                                                </div>
 
                                                     <div className="space-y-4">
                                                         <div className="flex items-center justify-between gap-3 text-sm text-white/55">
                                                             <span>
-                                                            {module.lesson_count > 0
-                                                                ? `${module.completed_lessons} of ${module.lesson_count} lessons completed`
-                                                                : (module.assignments_count ?? 0) > 0
-                                                                  ? 'Assignment review is required before this module can be cleared'
-                                                                : module.status === 'completed'
-                                                                  ? 'Opened and completed in your journey'
-                                                                  : 'Open this module once to complete it'}
+                                                                {module.lesson_count >
+                                                                0
+                                                                    ? `${module.completed_lessons} of ${module.lesson_count} lessons completed`
+                                                                    : (module.assignments_count ??
+                                                                            0) >
+                                                                        0
+                                                                      ? "Assignment review is required before this module can be cleared"
+                                                                      : module.status ===
+                                                                          "completed"
+                                                                        ? "Opened and completed in your journey"
+                                                                        : "Open this module once to complete it"}
                                                             </span>
                                                             {module.show_progress ? (
-                                                                <span>{module.progress_percentage}%</span>
+                                                                <span>
+                                                                    {
+                                                                        module.progress_percentage
+                                                                    }
+                                                                    %
+                                                                </span>
                                                             ) : null}
                                                         </div>
 
-                                                    {module.show_progress ? (
-                                                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                                                            <div
-                                                                className={[
-                                                                    'h-full rounded-full transition-all',
-                                                                    module.status === 'completed'
-                                                                        ? 'bg-emerald-400'
-                                                                        : 'bg-[#d5462f]',
-                                                                ].join(' ')}
-                                                                style={{
-                                                                    width: `${module.progress_percentage}%`,
-                                                                }}
-                                                            />
-                                                        </div>
-                                                    ) : null}
+                                                        {module.show_progress ? (
+                                                            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                                                <div
+                                                                    className={[
+                                                                        "h-full rounded-full transition-all",
+                                                                        module.status ===
+                                                                        "completed"
+                                                                            ? "bg-emerald-400"
+                                                                            : "bg-[#d5462f]",
+                                                                    ].join(" ")}
+                                                                    style={{
+                                                                        width: `${module.progress_percentage}%`,
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        ) : null}
 
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <p className="text-sm leading-6 text-white/58">
-                                                            {module.status === 'completed'
-                                                                ? 'This module is complete and ready to review anytime.'
-                                                                : module.status === 'active'
-                                                                  ? 'This is your current learning track and is ready to continue.'
-                                                                  : 'This module is unlocked in your tier and ready to explore.'}
-                                                        </p>
-                                                        <span className="hidden text-[11px] uppercase tracking-[0.22em] text-white/30 xl:inline">
-                                                            #{index + 1}
-                                                        </span>
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <p className="text-sm leading-6 text-white/58">
+                                                                {module.status ===
+                                                                "completed"
+                                                                    ? "This module is complete and ready to review anytime."
+                                                                    : module.status ===
+                                                                        "active"
+                                                                      ? "This is your current learning track and is ready to continue."
+                                                                      : "This module is unlocked in your tier and ready to explore."}
+                                                            </p>
+                                                            <span className="hidden text-[11px] uppercase tracking-[0.22em] text-white/30 xl:inline">
+                                                                #{index + 1}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                                                        <Button
+                                                            asChild
+                                                            className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                                        >
+                                                            <Link
+                                                                href={
+                                                                    module.cta_url
+                                                                }
+                                                            >
+                                                                {
+                                                                    module.cta_label
+                                                                }
+                                                            </Link>
+                                                        </Button>
+
+                                                        <Button
+                                                            asChild
+                                                            variant="outline"
+                                                            className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                        >
+                                                            <Link
+                                                                href={route(
+                                                                    "modules.index",
+                                                                )}
+                                                            >
+                                                                Browse Catalog
+                                                            </Link>
+                                                        </Button>
                                                     </div>
                                                 </div>
-
-                                                <div className="flex flex-wrap items-center gap-3 pt-1">
-                                                    <Button
-                                                        asChild
-                                                        className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
-                                                    >
-                                                        <Link href={module.cta_url}>
-                                                            {module.cta_label}
-                                                        </Link>
-                                                    </Button>
-
-                                                    <Button
-                                                        asChild
-                                                        variant="outline"
-                                                        className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                                    >
-                                                        <Link href={route('modules.index')}>
-                                                            Browse Catalog
-                                                        </Link>
-                                                    </Button>
-                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ),
+                                    )}
                                 </div>
                             ) : (
                                 <div className="rounded-[24px] border border-dashed border-white/12 bg-black/20 px-5 py-8">
                                     <p className="text-sm leading-7 text-white/60">
                                         {availableModulesSection?.description ??
-                                            'No module is available yet for this student tier.'}
+                                            "No module is available yet for this student tier."}
                                     </p>
                                     <div className="mt-4">
                                         <Button
                                             asChild
                                             className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                         >
-                                            <Link href={route('modules.index')}>Open Modules</Link>
+                                            <Link href={route("modules.index")}>
+                                                Open Modules
+                                            </Link>
                                         </Button>
                                     </div>
                                 </div>
@@ -965,11 +1123,12 @@ export default function StudentHome({
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {assignmentMilestone?.eyebrow ?? 'Assignment Milestone'}
+                                {assignmentMilestone?.eyebrow ??
+                                    "Assignment Milestone"}
                             </p>
                             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
                                 {assignmentMilestone?.title ??
-                                    'Assignment milestone will appear here'}
+                                    "Assignment milestone will appear here"}
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
@@ -984,51 +1143,58 @@ export default function StudentHome({
                                     <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
                                         <span
                                             className={[
-                                                'rounded-full border px-3 py-1',
-                                                assignmentMilestone?.state === 'approved'
-                                                    ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-200'
-                                                    : assignmentMilestone?.state === 'rejected'
-                                                      ? 'border-rose-400/30 bg-rose-400/15 text-rose-200'
-                                                      : assignmentMilestone?.state === 'under_review'
-                                                        ? 'border-amber-300/30 bg-amber-300/15 text-amber-100'
-                                                        : assignmentMilestone?.state === 'not_available'
-                                                          ? 'border-white/15 bg-black/25 text-white/65'
-                                                          : 'border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]',
-                                            ].join(' ')}
+                                                "rounded-full border px-3 py-1",
+                                                assignmentMilestone?.state ===
+                                                "approved"
+                                                    ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-200"
+                                                    : assignmentMilestone?.state ===
+                                                        "rejected"
+                                                      ? "border-rose-400/30 bg-rose-400/15 text-rose-200"
+                                                      : assignmentMilestone?.state ===
+                                                          "under_review"
+                                                        ? "border-amber-300/30 bg-amber-300/15 text-amber-100"
+                                                        : assignmentMilestone?.state ===
+                                                            "not_available"
+                                                          ? "border-white/15 bg-black/25 text-white/65"
+                                                          : "border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]",
+                                            ].join(" ")}
                                         >
-                                            {assignmentMilestone?.status ?? 'Assignment tracked'}
+                                            {assignmentMilestone?.status ??
+                                                "Assignment tracked"}
                                         </span>
                                         <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
                                             {assignmentMilestone?.eligibility_label ??
-                                                'Tier eligibility pending'}
+                                                "Tier eligibility pending"}
                                         </span>
                                     </div>
 
                                     <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
                                         {assignmentMilestone?.description ??
-                                            'Home will explain the assignment milestone here.'}
+                                            "Home will explain the assignment milestone here."}
                                     </p>
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-3">
-                                    {(assignmentMilestone?.checklist ?? []).map((item) => (
-                                        <div
-                                            key={item.label}
-                                            className="rounded-[24px] border border-white/10 bg-black/20 p-5"
-                                        >
-                                            <div className="flex items-start justify-between gap-3">
-                                                <p className="text-sm font-medium text-white">
-                                                    {item.label}
+                                    {(assignmentMilestone?.checklist ?? []).map(
+                                        (item) => (
+                                            <div
+                                                key={item.label}
+                                                className="rounded-[24px] border border-white/10 bg-black/20 p-5"
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <p className="text-sm font-medium text-white">
+                                                        {item.label}
+                                                    </p>
+                                                    <span className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
+                                                        {item.status}
+                                                    </span>
+                                                </div>
+                                                <p className="mt-3 text-sm leading-6 text-white/58">
+                                                    {item.detail}
                                                 </p>
-                                                <span className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/65">
-                                                    {item.status}
-                                                </span>
                                             </div>
-                                            <p className="mt-3 text-sm leading-6 text-white/58">
-                                                {item.detail}
-                                            </p>
-                                        </div>
-                                    ))}
+                                        ),
+                                    )}
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-3">
@@ -1036,9 +1202,15 @@ export default function StudentHome({
                                         asChild
                                         className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                     >
-                                        <Link href={assignmentMilestone?.cta_url ?? route('modules.index')}>
+                                        <Link
+                                            href={
+                                                assignmentMilestone?.cta_url ??
+                                                route("modules.index")
+                                            }
+                                        >
                                             <ChevronRight className="mr-2 size-4" />
-                                            {assignmentMilestone?.cta_label ?? 'Browse Modules'}
+                                            {assignmentMilestone?.cta_label ??
+                                                "Browse Modules"}
                                         </Link>
                                     </Button>
 
@@ -1047,7 +1219,9 @@ export default function StudentHome({
                                         variant="outline"
                                         className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                                     >
-                                        <Link href={route('modules.index')}>Open Learning Catalog</Link>
+                                        <Link href={route("modules.index")}>
+                                            Open Learning Catalog
+                                        </Link>
                                     </Button>
                                 </div>
                             </div>
@@ -1061,8 +1235,8 @@ export default function StudentHome({
                                             Assignment context
                                         </p>
                                         <h3 className="text-xl font-semibold text-white">
-                                            Home keeps the milestone visible without inventing a dead
-                                            end
+                                            Home keeps the milestone visible
+                                            without inventing a dead end
                                         </h3>
                                     </div>
 
@@ -1073,7 +1247,7 @@ export default function StudentHome({
                                         <p className="mt-3 text-sm leading-6 text-white/60">
                                             {assignmentMilestone?.latest_submission_at
                                                 ? assignmentMilestone.latest_submission_at
-                                                : 'No recorded submission timestamp yet.'}
+                                                : "No recorded submission timestamp yet."}
                                         </p>
                                     </div>
 
@@ -1082,12 +1256,14 @@ export default function StudentHome({
                                             Latest feedback
                                         </p>
                                         <p className="mt-3 text-sm font-medium text-white">
-                                            {assignmentMilestone?.latest_feedback?.status ??
-                                                'No feedback yet'}
+                                            {assignmentMilestone
+                                                ?.latest_feedback?.status ??
+                                                "No feedback yet"}
                                         </p>
                                         <p className="mt-2 text-sm leading-6 text-white/60">
-                                            {assignmentMilestone?.latest_feedback?.message ??
-                                                'Feedback from assignment review will appear here when it exists.'}
+                                            {assignmentMilestone
+                                                ?.latest_feedback?.message ??
+                                                "Feedback from assignment review will appear here when it exists."}
                                         </p>
                                     </div>
                                 </div>
@@ -1098,7 +1274,7 @@ export default function StudentHome({
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
                                         {assignmentMilestone?.support_note ??
-                                            'Home keeps assignment visible as a milestone, but it does not open a student submission flow that is not active yet.'}
+                                            "Home keeps assignment visible as a milestone, but it does not open a student submission flow that is not active yet."}
                                     </p>
                                 </div>
                             </div>
@@ -1110,11 +1286,12 @@ export default function StudentHome({
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {certificateMilestone?.eyebrow ?? 'Certificate Milestone'}
+                                {certificateMilestone?.eyebrow ??
+                                    "Certificate Milestone"}
                             </p>
                             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
                                 {certificateMilestone?.title ??
-                                    'Certificate milestone will appear here'}
+                                    "Certificate milestone will appear here"}
                             </h2>
                         </div>
                         <span className="hidden text-sm text-white/45 md:inline">
@@ -1129,30 +1306,35 @@ export default function StudentHome({
                                     <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.22em] text-white/55">
                                         <span
                                             className={[
-                                                'rounded-full border px-3 py-1',
-                                                certificateMilestone?.state === 'download_available'
-                                                    ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-200'
-                                                    : certificateMilestone?.state === 'ready'
-                                                      ? 'border-amber-300/30 bg-amber-300/15 text-amber-100'
-                                                      : 'border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]',
-                                            ].join(' ')}
+                                                "rounded-full border px-3 py-1",
+                                                certificateMilestone?.state ===
+                                                "download_available"
+                                                    ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-200"
+                                                    : certificateMilestone?.state ===
+                                                        "ready"
+                                                      ? "border-amber-300/30 bg-amber-300/15 text-amber-100"
+                                                      : "border-[#d5462f]/35 bg-[#d5462f]/18 text-[#ffd7cf]",
+                                            ].join(" ")}
                                         >
-                                            {certificateMilestone?.status ?? 'Certificate tracked'}
+                                            {certificateMilestone?.status ??
+                                                "Certificate tracked"}
                                         </span>
                                         <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1">
                                             {certificateMilestone?.eligibility_label ??
-                                                'Tier eligibility pending'}
+                                                "Tier eligibility pending"}
                                         </span>
                                     </div>
 
                                     <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
                                         {certificateMilestone?.description ??
-                                            'Home will explain the certificate milestone here.'}
+                                            "Home will explain the certificate milestone here."}
                                     </p>
                                 </div>
 
                                 <div className="grid gap-4 md:grid-cols-3">
-                                    {(certificateMilestone?.milestones ?? []).map((item) => (
+                                    {(
+                                        certificateMilestone?.milestones ?? []
+                                    ).map((item) => (
                                         <div
                                             key={item.label}
                                             className="rounded-[24px] border border-white/10 bg-black/20 p-5"
@@ -1173,15 +1355,21 @@ export default function StudentHome({
                                 </div>
 
                                 <div className="flex flex-wrap items-center gap-3">
-                                    {certificateMilestone?.cta_kind === 'download' ? (
+                                    {certificateMilestone?.cta_kind ===
+                                    "download" ? (
                                         <Button
                                             asChild
                                             className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                         >
-                                            <a href={certificateMilestone?.cta_url ?? '#'}>
+                                            <a
+                                                href={
+                                                    certificateMilestone?.cta_url ??
+                                                    "#"
+                                                }
+                                            >
                                                 <ChevronRight className="mr-2 size-4" />
                                                 {certificateMilestone?.cta_label ??
-                                                    'Download Latest Certificate'}
+                                                    "Download Latest Certificate"}
                                             </a>
                                         </Button>
                                     ) : (
@@ -1189,9 +1377,15 @@ export default function StudentHome({
                                             asChild
                                             className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                         >
-                                            <Link href={certificateMilestone?.cta_url ?? route('modules.index')}>
+                                            <Link
+                                                href={
+                                                    certificateMilestone?.cta_url ??
+                                                    route("modules.index")
+                                                }
+                                            >
                                                 <ChevronRight className="mr-2 size-4" />
-                                                {certificateMilestone?.cta_label ?? 'Browse Modules'}
+                                                {certificateMilestone?.cta_label ??
+                                                    "Browse Modules"}
                                             </Link>
                                         </Button>
                                     )}
@@ -1201,7 +1395,9 @@ export default function StudentHome({
                                         variant="outline"
                                         className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                                     >
-                                        <Link href={route('modules.index')}>Open Learning Catalog</Link>
+                                        <Link href={route("modules.index")}>
+                                            Open Learning Catalog
+                                        </Link>
                                     </Button>
                                 </div>
                             </div>
@@ -1215,7 +1411,8 @@ export default function StudentHome({
                                             Certificate context
                                         </p>
                                         <h3 className="text-xl font-semibold text-white">
-                                            Your generated certificate PDFs appear here
+                                            Your generated certificate PDFs
+                                            appear here
                                         </h3>
                                     </div>
 
@@ -1223,25 +1420,34 @@ export default function StudentHome({
                                         <p className="text-xs uppercase tracking-[0.2em] text-white/45">
                                             Available downloads
                                         </p>
-                                        {(certificateMilestone?.generated_certificates ?? []).length ===
-                                        0 ? (
+                                        {(
+                                            certificateMilestone?.generated_certificates ??
+                                            []
+                                        ).length === 0 ? (
                                             <p className="mt-3 text-sm leading-6 text-white/60">
-                                                No certificate PDF has been generated for your
-                                                account yet.
+                                                No certificate PDF has been
+                                                generated for your account yet.
                                             </p>
                                         ) : (
                                             <div className="mt-3 space-y-3">
-                                                {(certificateMilestone?.generated_certificates ??
-                                                    []).map((certificate) => (
+                                                {(
+                                                    certificateMilestone?.generated_certificates ??
+                                                    []
+                                                ).map((certificate) => (
                                                     <div
                                                         key={certificate.id}
                                                         className="rounded-2xl border border-white/10 bg-black/20 p-3"
                                                     >
                                                         <p className="text-sm font-medium text-white">
-                                                            {certificate.type_label}
+                                                            {
+                                                                certificate.type_label
+                                                            }
                                                         </p>
                                                         <p className="mt-1 text-sm text-white/60">
-                                                            Generated {certificate.generated_at}
+                                                            Generated{" "}
+                                                            {
+                                                                certificate.generated_at
+                                                            }
                                                         </p>
                                                         <Button
                                                             asChild
@@ -1249,7 +1455,11 @@ export default function StudentHome({
                                                             variant="outline"
                                                             className="mt-3 rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                                                         >
-                                                            <a href={certificate.download_url}>
+                                                            <a
+                                                                href={
+                                                                    certificate.download_url
+                                                                }
+                                                            >
                                                                 Download PDF
                                                             </a>
                                                         </Button>
@@ -1266,7 +1476,7 @@ export default function StudentHome({
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
                                         {certificateMilestone?.support_note ??
-                                            'Home surfaces certificate milestone directly in the dashboard while the full student certificate area remains out of scope.'}
+                                            "Home surfaces certificate milestone directly in the dashboard while the full student certificate area remains out of scope."}
                                     </p>
                                 </div>
                             </div>
@@ -1278,11 +1488,12 @@ export default function StudentHome({
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                {ebookResourcesSection?.eyebrow ?? 'Ebooks & Resources'}
+                                {ebookResourcesSection?.eyebrow ??
+                                    "Ebooks & Resources"}
                             </p>
                             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
                                 {ebookResourcesSection?.title ??
-                                    'Your supporting resources will appear here'}
+                                    "Your supporting resources will appear here"}
                             </h2>
                         </div>
                         <Button
@@ -1290,7 +1501,9 @@ export default function StudentHome({
                             variant="outline"
                             className="hidden rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white md:inline-flex"
                         >
-                            <Link href={route('ebooks.index')}>See All Ebooks</Link>
+                            <Link href={route("ebooks.index")}>
+                                See All Ebooks
+                            </Link>
                         </Button>
                     </div>
 
@@ -1300,7 +1513,7 @@ export default function StudentHome({
                                 <div className="max-w-3xl space-y-2">
                                     <p className="text-sm leading-7 text-white/60">
                                         {ebookResourcesSection?.description ??
-                                            'Home will show your supporting ebook resources here.'}
+                                            "Home will show your supporting ebook resources here."}
                                     </p>
                                 </div>
 
@@ -1310,7 +1523,8 @@ export default function StudentHome({
                                             Resources
                                         </p>
                                         <div className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">
-                                            {ebookResourcesSection?.summary?.total ?? 0}
+                                            {ebookResourcesSection?.summary
+                                                ?.total ?? 0}
                                         </div>
                                     </div>
 
@@ -1319,8 +1533,8 @@ export default function StudentHome({
                                             Tier access
                                         </p>
                                         <div className="mt-3 text-lg font-semibold tracking-[-0.03em] text-white">
-                                            {ebookResourcesSection?.summary?.tier_name ??
-                                                'Tier pending'}
+                                            {ebookResourcesSection?.summary
+                                                ?.tier_name ?? "Tier pending"}
                                         </div>
                                     </div>
                                 </div>
@@ -1328,77 +1542,98 @@ export default function StudentHome({
 
                             {ebookResourcesSection?.items?.length ? (
                                 <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 xl:grid-cols-3">
-                                    {ebookResourcesSection.items.map((ebook, index) => (
-                                        <div
-                                            key={ebook.id}
-                                            className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15 md:min-w-0"
-                                        >
-                                            <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
-                                                <div className="relative aspect-[4/5] overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.45),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
-                                                    <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02))]" />
-                                                    <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-3">
-                                                        <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
-                                                            {ebook.eyebrow}
-                                                        </span>
-                                                        <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
-                                                            {ebook.format_label}
-                                                        </span>
+                                    {ebookResourcesSection.items.map(
+                                        (ebook, index) => (
+                                            <div
+                                                key={ebook.id}
+                                                className="group min-w-[280px] snap-start rounded-[28px] border border-white/10 bg-[#120f0e] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/15 md:min-w-0"
+                                            >
+                                                <div className="flex h-full flex-col gap-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
+                                                    <div className="relative aspect-[4/5] overflow-hidden rounded-[22px] bg-[radial-gradient(circle_at_20%_18%,_rgba(214,90,52,0.45),_transparent_30%),linear-gradient(160deg,_#2d1e18_0%,_#120f0e_100%)]">
+                                                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02))]" />
+                                                        <div className="absolute inset-x-4 top-4 flex items-center justify-between gap-3">
+                                                            <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+                                                                {ebook.eyebrow}
+                                                            </span>
+                                                            <span className="rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+                                                                {
+                                                                    ebook.format_label
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                        <div className="absolute bottom-4 left-4 right-4">
+                                                            <p className="text-xs uppercase tracking-[0.2em] text-white/50">
+                                                                Resource #
+                                                                {index + 1}
+                                                            </p>
+                                                            <h3 className="mt-3 text-2xl font-semibold leading-tight text-white">
+                                                                {ebook.title}
+                                                            </h3>
+                                                            <p className="mt-3 text-sm leading-6 text-white/58">
+                                                                {
+                                                                    ebook.file_name
+                                                                }
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div className="absolute bottom-4 left-4 right-4">
-                                                        <p className="text-xs uppercase tracking-[0.2em] text-white/50">
-                                                            Resource #{index + 1}
+
+                                                    <div className="space-y-4">
+                                                        <p className="text-sm leading-6 text-white/58">
+                                                            {ebook.description}
                                                         </p>
-                                                        <h3 className="mt-3 text-2xl font-semibold leading-tight text-white">
-                                                            {ebook.title}
-                                                        </h3>
-                                                        <p className="mt-3 text-sm leading-6 text-white/58">
-                                                            {ebook.file_name}
-                                                        </p>
-                                                    </div>
-                                                </div>
 
-                                                <div className="space-y-4">
-                                                    <p className="text-sm leading-6 text-white/58">
-                                                        {ebook.description}
-                                                    </p>
+                                                        <div className="flex flex-wrap items-center gap-3 pt-1">
+                                                            <Button
+                                                                asChild
+                                                                className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
+                                                            >
+                                                                <Link
+                                                                    href={
+                                                                        ebook.preview_url
+                                                                    }
+                                                                >
+                                                                    Open Preview
+                                                                </Link>
+                                                            </Button>
 
-                                                    <div className="flex flex-wrap items-center gap-3 pt-1">
-                                                        <Button
-                                                            asChild
-                                                            className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
-                                                        >
-                                                            <Link href={ebook.preview_url}>Open Preview</Link>
-                                                        </Button>
-
-                                                        <Button
-                                                            asChild
-                                                            variant="outline"
-                                                            className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                                        >
-                                                            <a href={ebook.download_url}>Download</a>
-                                                        </Button>
+                                                            <Button
+                                                                asChild
+                                                                variant="outline"
+                                                                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                                            >
+                                                                <a
+                                                                    href={
+                                                                        ebook.download_url
+                                                                    }
+                                                                >
+                                                                    Download
+                                                                </a>
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ),
+                                    )}
                                 </div>
                             ) : (
                                 <div className="rounded-[24px] border border-dashed border-white/12 bg-black/20 px-5 py-8">
                                     <p className="text-sm leading-7 text-white/60">
                                         {ebookResourcesSection?.description ??
-                                            'No supporting ebook is available for this student tier yet.'}
+                                            "No supporting ebook is available for this student tier yet."}
                                     </p>
                                     <p className="mt-3 text-sm leading-6 text-white/50">
                                         {ebookResourcesSection?.support_note ??
-                                            'Supporting resources stay optional so Home remains focused on the core learning journey.'}
+                                            "Supporting resources stay optional so Home remains focused on the core learning journey."}
                                     </p>
                                     <div className="mt-4">
                                         <Button
                                             asChild
                                             className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                         >
-                                            <Link href={route('ebooks.index')}>Open Ebooks</Link>
+                                            <Link href={route("ebooks.index")}>
+                                                Open Ebooks
+                                            </Link>
                                         </Button>
                                     </div>
                                 </div>
@@ -1441,12 +1676,12 @@ export default function StudentHome({
                                         </p>
                                     </div>
 
-                                    {item.kind === 'download' ? (
+                                    {item.kind === "download" ? (
                                         <Button
                                             asChild
                                             className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                         >
-                                            <a href={item.href ?? '#'}>
+                                            <a href={item.href ?? "#"}>
                                                 <ChevronRight className="mr-2 size-4" />
                                                 {item.label}
                                             </a>
@@ -1456,7 +1691,12 @@ export default function StudentHome({
                                             asChild
                                             className="rounded-full bg-[#d5462f] px-5 text-white hover:bg-[#e2553d]"
                                         >
-                                            <Link href={item.href ?? route('modules.index')}>
+                                            <Link
+                                                href={
+                                                    item.href ??
+                                                    route("modules.index")
+                                                }
+                                            >
                                                 <ChevronRight className="mr-2 size-4" />
                                                 {item.label}
                                             </Link>

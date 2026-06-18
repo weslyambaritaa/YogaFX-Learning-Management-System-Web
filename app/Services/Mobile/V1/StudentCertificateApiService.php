@@ -8,11 +8,10 @@ use App\Services\BunnyStorageService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Support\BunnyAssetPath;
 use App\Support\MobileMediaPayload;
-use Illuminate\Contracts\Support\Responsable;
+use App\Support\MobileSignedUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -145,7 +144,7 @@ class StudentCertificateApiService
 
     private function signedCertificateRoute(string $routeName, Certificate $certificate): string
     {
-        return URL::temporarySignedRoute($routeName, now()->addHour(), [
+        return MobileSignedUrl::temporarySignedRoute($routeName, now()->addHour(), [
             'certificate' => $certificate->id,
             'student' => $certificate->user_id,
         ]);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Certificate;
 use App\Models\User;
 use App\Services\BunnyStorageService;
+use App\Support\MobileSignedUrl;
 use App\Support\BunnyAssetPath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +22,7 @@ class CertificateMediaController extends Controller
 
     public function open(Request $request, Certificate $certificate): Response|StreamedResponse|BinaryFileResponse
     {
-        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
 
         $student = $this->resolveSignedStudent($request);
         abort_unless($certificate->user_id === $student->id, 403);
@@ -31,7 +32,7 @@ class CertificateMediaController extends Controller
 
     public function download(Request $request, Certificate $certificate): Response|StreamedResponse|BinaryFileResponse
     {
-        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
 
         $student = $this->resolveSignedStudent($request);
         abort_unless($certificate->user_id === $student->id, 403);

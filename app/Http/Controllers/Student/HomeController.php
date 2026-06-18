@@ -191,20 +191,9 @@ class HomeController extends Controller
                     'id' => $lesson->id,
                     'title' => $lesson->title,
                     'sort_order' => $lesson->sort_order,
+                    'thumbnail_url' => $this->lessonThumbnailUrl($lesson, $module),
                 ],
-                'thumbnail_url' => $this->protectedMediaUrl(
-                    'lesson',
-                    $lesson->id,
-                    'thumbnail',
-                    $lesson->thumbnail,
-                    versionSeed: $lesson->updated_at,
-                ) ?: $this->protectedMediaUrl(
-                    'module',
-                    $module->id,
-                    'thumbnail',
-                    $module->thumbnail,
-                    versionSeed: $module->updated_at,
-                ),
+                'thumbnail_url' => $this->lessonThumbnailUrl($lesson, $module),
                 'status' => $latestProgress->is_done
                     ? 'Last lesson completed'
                     : ($progressPercentage > 0 ? "{$progressPercentage}% complete" : 'In progress'),
@@ -232,20 +221,9 @@ class HomeController extends Controller
                     'id' => $startingLesson->id,
                     'title' => $startingLesson->title,
                     'sort_order' => $startingLesson->sort_order,
+                    'thumbnail_url' => $this->lessonThumbnailUrl($startingLesson, $startingModule),
                 ],
-                'thumbnail_url' => $this->protectedMediaUrl(
-                    'lesson',
-                    $startingLesson->id,
-                    'thumbnail',
-                    $startingLesson->thumbnail,
-                    versionSeed: $startingLesson->updated_at,
-                ) ?: $this->protectedMediaUrl(
-                    'module',
-                    $startingModule->id,
-                    'thumbnail',
-                    $startingModule->thumbnail,
-                    versionSeed: $startingModule->updated_at,
-                ),
+                'thumbnail_url' => $this->lessonThumbnailUrl($startingLesson, $startingModule),
                 'status' => 'Ready to start',
             ];
         }
@@ -591,13 +569,7 @@ class HomeController extends Controller
                     default => 'Open Module',
                 },
                 'cta_url' => route('modules.show', $module->url_slug),
-                'thumbnail_url' => $this->protectedMediaUrl(
-                    'module',
-                    $module->id,
-                    'thumbnail',
-                    $module->thumbnail,
-                    versionSeed: $module->updated_at,
-                ),
+                'thumbnail_url' => $this->moduleThumbnailUrl($module),
             ];
         })->values();
 
@@ -1337,5 +1309,27 @@ class HomeController extends Controller
             ))
             ->keys()
             ->first();
+    }
+
+    protected function moduleThumbnailUrl(Module $module): ?string
+    {
+        return $this->protectedMediaUrl(
+            'module',
+            $module->id,
+            'thumbnail',
+            $module->thumbnail,
+            versionSeed: $module->updated_at,
+        );
+    }
+
+    protected function lessonThumbnailUrl($lesson, ?Module $module = null): ?string
+    {
+        return $this->protectedMediaUrl(
+            'lesson',
+            $lesson->id,
+            'thumbnail',
+            $lesson->thumbnail,
+            versionSeed: $lesson->updated_at,
+        ) ?: ($module ? $this->moduleThumbnailUrl($module) : null);
     }
 }

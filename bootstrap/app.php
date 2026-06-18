@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'mobile.signed' => \App\Http\Middleware\ValidateMobileRelativeSignature::class,
             'mobile.student' => \App\Http\Middleware\EnsureMobileStudentAccess::class,
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'track.student.session' => \App\Http\Middleware\TrackStudentSessionActivity::class,
