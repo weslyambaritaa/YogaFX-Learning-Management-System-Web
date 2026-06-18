@@ -221,7 +221,7 @@ export default function EditStudent({ student, accessTiers, status }) {
                         Danger Zone
                     </h3>
                     <p className="text-sm text-rose-700">
-                        Reset progress removes learning progress only. Assignment submissions, certificates, and access-time data stay intact. Delete account removes the student and all related records permanently.
+                        Reset progress removes lesson progress, assignment submissions, certificate download completion, and open-once module completion records. Generated certificates and access-time data stay intact. Delete account removes the student and all related records permanently.
                     </p>
                 </div>
 
