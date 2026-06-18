@@ -694,7 +694,7 @@ class ModuleCatalogController extends Controller
 
     private function isAssignmentComplete(?AssignmentSubmission $submission): bool
     {
-        return $submission !== null;
+        return $submission?->assignment_status === AssignmentSubmission::STATUS_APPROVED;
     }
 
     private function certificateDownloadMap(?int $userId, iterable $moduleIds): Collection

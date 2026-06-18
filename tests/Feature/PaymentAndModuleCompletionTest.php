@@ -83,7 +83,7 @@ class PaymentAndModuleCompletionTest extends TestCase
         ]);
     }
 
-    public function test_assignment_submission_marks_assignment_module_complete_for_sequential_access(): void
+    public function test_assignment_module_requires_approval_before_next_module_unlocks(): void
     {
         $tier = AccessTier::factory()->create();
         $student = User::factory()
@@ -131,6 +131,25 @@ class PaymentAndModuleCompletionTest extends TestCase
             'assignment_status' => AssignmentSubmission::STATUS_SUBMITTED,
             'submitted_at' => now(),
         ]);
+
+        $this->actingAs($student)
+            ->get(route('modules.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Student/Modules/Index')
+                ->where('modules.0.title', 'Assignment Module')
+                ->where('modules.0.status', 'available')
+                ->where('modules.1.title', 'Resource Module')
+                ->where('modules.1.status', 'locked'));
+
+        AssignmentSubmission::query()
+            ->where('user_id', $student->id)
+            ->where('assignment_id', $assignment->id)
+            ->update([
+                'assignment_status' => AssignmentSubmission::STATUS_APPROVED,
+                'reviewed_at' => now(),
+                'graded_at' => now(),
+            ]);
 
         $this->actingAs($student)
             ->get(route('modules.index'))

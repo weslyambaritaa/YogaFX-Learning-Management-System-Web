@@ -484,7 +484,7 @@ class StudentModuleApiService
 
     private function isAssignmentComplete(?AssignmentSubmission $submission): bool
     {
-        return $submission !== null;
+        return $submission?->assignment_status === AssignmentSubmission::STATUS_APPROVED;
     }
 
     private function assignmentSubmissionMap(?int $userId, iterable $assignmentIds): Collection
