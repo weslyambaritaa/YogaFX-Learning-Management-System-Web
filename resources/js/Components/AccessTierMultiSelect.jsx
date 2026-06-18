@@ -46,10 +46,7 @@ export default function AccessTierMultiSelect({
                         <Card
                             key={accessTier.id}
                             className={cn(
-                                'border transition-colors',
-                                isSelected
-                                    ? 'border-indigo-500 ring-2 ring-indigo-200'
-                                    : 'border-gray-200',
+                                'border-0 ring-0',
                                 !accessTier.is_active && 'opacity-75',
                             )}
                         >
@@ -57,7 +54,12 @@ export default function AccessTierMultiSelect({
                                 <Button
                                     type="button"
                                     variant={isSelected ? 'default' : 'outline'}
-                                    className="h-auto w-full justify-start rounded-xl px-4 py-4 text-left"
+                                    className={cn(
+                                        'h-auto w-full justify-start rounded-xl border px-4 py-4 text-left transition-colors',
+                                        isSelected
+                                            ? 'border-gray-900 ring-2 ring-gray-300'
+                                            : 'border-gray-200 hover:border-gray-300',
+                                    )}
                                     onClick={() => toggleTier(accessTier.id)}
                                     aria-pressed={isSelected}
                                 >

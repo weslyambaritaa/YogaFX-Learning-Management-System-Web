@@ -49,7 +49,7 @@ export default function AssignmentForm({
                     rows={8}
                     value={data.description ?? ''}
                     onChange={(event) => setData('description', event.target.value)}
-                    className="mt-1 block w-full"
+                    className="mt-1 block w-full focus-visible:border-slate-500 focus-visible:ring-slate-500/30"
                 />
                 <p className="mt-2 text-xs text-gray-500">
                     Use this field for the submission brief, student instruction, and review expectation.
@@ -64,7 +64,7 @@ export default function AssignmentForm({
                         id="status"
                         value={data.status}
                         onChange={(event) => setData('status', event.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500"
                     >
                         {assignmentStatuses.map((status) => (
                             <option key={status.value} value={status.value}>
@@ -83,7 +83,7 @@ export default function AssignmentForm({
                             type="checkbox"
                             checked={Boolean(data.is_required)}
                             onChange={(event) => setData('is_required', event.target.checked)}
-                            className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                            className="rounded border-gray-300 text-slate-700 shadow-sm focus:ring-slate-500"
                         />
                         Student must submit this assignment
                     </label>

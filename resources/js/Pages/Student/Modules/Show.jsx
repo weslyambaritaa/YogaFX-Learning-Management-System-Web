@@ -20,7 +20,7 @@ const lessonStatusConfig = {
     active: {
         icon: PlayCircle,
         label: 'Active Lesson',
-        className: 'text-[#f15b3a]',
+        className: 'text-[#DB202C]',
     },
     available: {
         icon: PlayCircle,
@@ -70,7 +70,7 @@ export default function StudentModuleShow({ module }) {
             <Head title={module.title} />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
-                <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+                <section className="relative overflow-hidden rounded-[10px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                     <div className="absolute inset-0">
                         {module.thumbnail_url ? (
                             <img
@@ -147,10 +147,10 @@ export default function StudentModuleShow({ module }) {
                                 <LessonCardTag
                                     key={lesson.id}
                                     {...(lesson.url ? { href: lesson.url } : {})}
-                                    className="group block rounded-[30px] border border-white/10 bg-white/[0.04] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
+                                    className="group block rounded-[10px] border border-white/10 bg-white/[0.04] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
                                 >
                                     <div className="grid gap-4 md:grid-cols-[280px_1fr]">
-                                        <div className="relative overflow-hidden rounded-[24px] bg-[#161211]">
+                                        <div className="relative overflow-hidden rounded-[10px] bg-[#161211]">
                                             {lesson.thumbnail_url ? (
                                                 <img
                                                     src={lesson.thumbnail_url}
@@ -203,7 +203,7 @@ export default function StudentModuleShow({ module }) {
                                                     </div>
                                                     <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                                                         <div
-                                                            className="h-full rounded-full bg-[#f15b3a]"
+                                                            className="h-full rounded-full bg-[#DB202C]"
                                                             style={{ width: `${lesson.progress_percentage}%` }}
                                                         />
                                                     </div>
@@ -248,7 +248,7 @@ export default function StudentModuleShow({ module }) {
                                     <Link
                                         key={assignment.id}
                                         href={assignment.url}
-                                        className="group rounded-[28px] border border-white/10 bg-white/[0.04] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
+                                        className="group rounded-[10px] border border-white/10 bg-white/[0.04] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="space-y-3">
@@ -319,7 +319,7 @@ export default function StudentModuleShow({ module }) {
                                 {module.ebooks.map((ebook) => (
                                     <div
                                         key={ebook.id}
-                                        className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5"
+                                        className="rounded-[10px] border border-white/10 bg-white/[0.04] p-5"
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="space-y-3">
@@ -341,7 +341,7 @@ export default function StudentModuleShow({ module }) {
                                         <div className="mt-6 flex flex-wrap gap-3 border-t border-white/8 pt-4">
                                             <a
                                                 href={ebook.preview_url}
-                                                className="inline-flex items-center gap-2 rounded-full bg-[#d5462f] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#e2553d]"
+                                                className="inline-flex items-center gap-2 rounded-full bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
                                             >
                                                 Open Ebook
                                                 <ArrowRight className="size-4" />
@@ -360,7 +360,7 @@ export default function StudentModuleShow({ module }) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
+                            <div className="rounded-[10px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
                                 No ebook entries are available for your current access tier in
                                 this module yet.
                             </div>
@@ -386,7 +386,7 @@ export default function StudentModuleShow({ module }) {
                                 {module.video_lecturers.map((course) => (
                                     <div
                                         key={course.id}
-                                        className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.04]"
+                                        className="overflow-hidden rounded-[10px] border border-white/10 bg-white/[0.04]"
                                     >
                                         <div className="relative overflow-hidden">
                                             {course.thumbnail_url ? (
@@ -402,7 +402,7 @@ export default function StudentModuleShow({ module }) {
                                         </div>
 
                                         <div className="space-y-4 p-5">
-                                            <div className="inline-flex items-center gap-2 text-sm font-medium text-[#f15b3a]">
+                                            <div className="inline-flex items-center gap-2 text-sm font-medium text-[#DB202C]">
                                                 <Play className="size-4" />
                                                 {course.video?.is_ready ? 'Ready to watch' : 'Video unavailable'}
                                             </div>
@@ -423,9 +423,11 @@ export default function StudentModuleShow({ module }) {
                                             ) : null}
 
                                             {course.video?.is_ready && course.video?.hls_url ? (
-                                                <Link
-                                                    href={route('courses.show', course.url_slug)}
-                                                    className="inline-flex items-center gap-2 rounded-full bg-[#d5462f] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#e2553d]"
+                                                <a
+                                                    href={course.video.hls_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-2 rounded-full bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
                                                 >
                                                     Open Video
                                                     <ArrowRight className="size-4" />
@@ -440,7 +442,7 @@ export default function StudentModuleShow({ module }) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
+                            <div className="rounded-[10px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
                                 No video lecturer entries are available for your current access
                                 tier in this module yet.
                             </div>
@@ -467,7 +469,7 @@ export default function StudentModuleShow({ module }) {
                                     <a
                                         key={certificate.id}
                                         href={certificate.download_url}
-                                        className="group rounded-[28px] border border-white/10 bg-white/[0.04] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
+                                        className="group rounded-[10px] border border-white/10 bg-white/[0.04] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/18 hover:bg-white/[0.06]"
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="space-y-3">
@@ -494,7 +496,7 @@ export default function StudentModuleShow({ module }) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
+                            <div className="rounded-[10px] border border-white/10 bg-white/[0.04] p-5 text-sm leading-7 text-white/62">
                                 No certificate PDF has been generated for your account yet in
                                 this module.
                             </div>
