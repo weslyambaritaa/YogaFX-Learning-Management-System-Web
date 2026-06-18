@@ -285,21 +285,13 @@ class EmailNotificationService
             ->whereNotNull('access_tier_id')
             ->get()
             ->each(function (User $user) use ($threshold, &$sentCount): void {
-                if ($this->studentHasActiveSession($user)) {
-                    return;
-                }
-
                 if ($this->studentHasCompletedAccessibleCourse($user)) {
                     return;
                 }
 
-                if ($this->studentHasActiveSession($user)) {
-                    return;
-                }
+                $lastAccessAt = $this->latestStudentAccessAt($user);
 
-                $lastLoginAt = $this->latestStudentLoginAt($user);
-
-                if (! $lastLoginAt || $lastLoginAt->gt($threshold)) {
+                if (! $lastAccessAt || $lastAccessAt->gt($threshold)) {
                     return;
                 }
 
@@ -315,12 +307,12 @@ class EmailNotificationService
                     return;
                 }
 
-                $inactiveMinutes = max($lastLoginAt->diffInMinutes(now()), self::REMINDER_INACTIVITY_THRESHOLD_MINUTES);
+                $inactiveMinutes = max($lastAccessAt->diffInMinutes(now()), self::REMINDER_INACTIVITY_THRESHOLD_MINUTES);
 
                 event(new ReminderTriggered([
                     'user_name' => $user->name,
                     'user_email' => $user->email,
-                    'last_activity_date' => $lastLoginAt->toDateTimeString(),
+                    'last_activity_date' => $lastAccessAt->toDateTimeString(),
                     'inactive_days' => (string) $inactiveMinutes,
                     'dashboard_url' => route('student.dashboard'),
                     'login_url' => route('login'),
@@ -734,32 +726,26 @@ class EmailNotificationService
         return $base;
     }
 
-    private function latestStudentLoginAt(User $user)
+    private function latestStudentAccessAt(User $user)
     {
         if ($this->studentSessionSchemaReady()) {
             $latestSession = UserSession::query()
                 ->where('user_id', $user->id)
+                ->orderByDesc('last_activity_at')
+                ->orderByDesc('logout_at')
                 ->orderByDesc('login_at')
-                ->first(['login_at']);
+                ->first(['login_at', 'last_activity_at', 'logout_at']);
 
-            if ($latestSession?->login_at) {
-                return $latestSession->login_at;
+            $lastAccessAt = $latestSession?->last_activity_at
+                ?? $latestSession?->logout_at
+                ?? $latestSession?->login_at;
+
+            if ($lastAccessAt) {
+                return $lastAccessAt;
             }
         }
 
         return $user->created_at;
-    }
-
-    private function studentHasActiveSession(User $user): bool
-    {
-        if (! $this->studentSessionSchemaReady()) {
-            return false;
-        }
-
-        return UserSession::query()
-            ->where('user_id', $user->id)
-            ->where('is_active', true)
-            ->exists();
     }
 
     private function studentHasCompletedAccessibleCourse(User $user): bool

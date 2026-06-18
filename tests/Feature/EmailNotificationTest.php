@@ -514,7 +514,7 @@ class EmailNotificationTest extends TestCase
         ]);
     }
 
-    public function test_reminder_command_sends_notification_once_for_students_who_have_been_logged_out_for_ten_minutes(): void
+    public function test_reminder_command_sends_notification_for_idle_or_logged_out_students_after_ten_minutes(): void
     {
         Mail::fake();
 
@@ -523,17 +523,24 @@ class EmailNotificationTest extends TestCase
             'slug' => AccessTier::SLUG_ONLINE,
         ]);
 
-        $inactiveStudent = User::factory()->student()->create([
+        $idleStudent = User::factory()->student()->create([
             'access_tier_id' => $tier->id,
-            'email' => 'inactive@yogafx.test',
-            'name' => 'Inactive Student',
+            'email' => 'idle@yogafx.test',
+            'name' => 'Idle Student',
             'created_at' => now()->subHours(3),
         ]);
 
-        $activeStudent = User::factory()->student()->create([
+        $loggedOutStudent = User::factory()->student()->create([
+            'access_tier_id' => $tier->id,
+            'email' => 'logged-out@yogafx.test',
+            'name' => 'Logged Out Student',
+            'created_at' => now()->subHours(3),
+        ]);
+
+        $recentlyActiveStudent = User::factory()->student()->create([
             'access_tier_id' => $tier->id,
             'email' => 'active@yogafx.test',
-            'name' => 'Active Student',
+            'name' => 'Recently Active Student',
             'created_at' => now()->subHours(3),
         ]);
 
@@ -560,8 +567,17 @@ class EmailNotificationTest extends TestCase
         ]);
 
         UserSession::query()->create([
-            'user_id' => $inactiveStudent->id,
-            'session_id' => 'inactive-session',
+            'user_id' => $idleStudent->id,
+            'session_id' => 'idle-session',
+            'login_at' => now()->subMinutes(20),
+            'last_activity_at' => now()->subMinutes(20),
+            'session_duration_seconds' => 120,
+            'is_active' => true,
+        ]);
+
+        UserSession::query()->create([
+            'user_id' => $loggedOutStudent->id,
+            'session_id' => 'logged-out-session',
             'login_at' => now()->subMinutes(20),
             'last_activity_at' => now()->subMinutes(20),
             'logout_at' => now()->subMinutes(20),
@@ -570,7 +586,7 @@ class EmailNotificationTest extends TestCase
         ]);
 
         UserSession::query()->create([
-            'user_id' => $activeStudent->id,
+            'user_id' => $recentlyActiveStudent->id,
             'session_id' => 'active-session',
             'login_at' => now()->subMinutes(20),
             'last_activity_at' => now()->subMinute(),
@@ -601,17 +617,24 @@ class EmailNotificationTest extends TestCase
         $this->artisan('email-notifications:send-reminders')
             ->assertExitCode(0);
 
-        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        Mail::assertSent(TemplatedNotificationMail::class, 4);
         $this->assertDatabaseHas('email_logs', [
             'notification_type' => EmailNotificationTypeRegistry::REMINDER,
             'reference_type' => 'user',
-            'reference_id' => $inactiveStudent->id,
+            'reference_id' => $idleStudent->id,
             'recipient_type' => 'user',
-            'recipient_email' => 'inactive@yogafx.test',
+            'recipient_email' => 'idle@yogafx.test',
+        ]);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::REMINDER,
+            'reference_type' => 'user',
+            'reference_id' => $loggedOutStudent->id,
+            'recipient_type' => 'user',
+            'recipient_email' => 'logged-out@yogafx.test',
         ]);
         $this->assertDatabaseMissing('email_logs', [
             'notification_type' => EmailNotificationTypeRegistry::REMINDER,
-            'reference_id' => $activeStudent->id,
+            'reference_id' => $recentlyActiveStudent->id,
         ]);
         $this->assertDatabaseMissing('email_logs', [
             'notification_type' => EmailNotificationTypeRegistry::REMINDER,
