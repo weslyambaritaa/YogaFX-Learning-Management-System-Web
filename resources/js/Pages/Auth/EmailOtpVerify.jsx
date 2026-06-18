@@ -2,8 +2,8 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import { Button } from '@/Components/ui/button';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, useForm } from '@inertiajs/react';
+import PublicFlowLayout from '@/Layouts/PublicFlowLayout';
+import { useForm } from '@inertiajs/react';
 import { MailCheck } from 'lucide-react';
 
 export default function EmailOtpVerify({ token, context, email, expires_at }) {
@@ -24,69 +24,83 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
         : 'Your password was correct. Enter the OTP code that YogaFX sent to your email so the login session can continue safely.';
 
     return (
-        <GuestLayout>
-            <Head title="Email OTP Verification" />
-
-            <div className="space-y-6">
-                {/* Header box — hitam, tanpa shadow besar */}
-                <div className="rounded-[16px] border border-gray-200 bg-gray-900 p-6 text-white">
-                    <div className="flex items-start gap-4">
-                        <div className="rounded-full border border-white/20 bg-white/10 p-3">
-                            <MailCheck className="size-5 text-white" />
+        <PublicFlowLayout
+            title="Email OTP Verification"
+            heading={heading}
+            description={description}
+            aside={
+                <div className="space-y-6">
+                    {/* Verification details card */}
+                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
+                        <div className="flex justify-end">
+                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
+                                Verification details
+                            </p>
                         </div>
-                        <div className="space-y-2">
-                            <p className="text-sm font-semibold text-white/70">
-                                Email Verification
+                        <div className="mt-7 space-y-3 text-sm text-white">
+                            <p>{email}</p>
+                            {expires_at && (
+                                <p className="text-white/70">
+                                    Code expires at {new Date(expires_at).toLocaleString()}.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Why this step card */}
+                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
+                        <div className="flex justify-end">
+                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
+                                Why this step
                             </p>
-                            <h1 className="text-base font-semibold text-white">
-                                {heading}
-                            </h1>
-                            <p className="text-sm leading-6 text-white/70">
-                                {description}
-                            </p>
+                        </div>
+                        <div className="mt-7 space-y-3 text-sm leading-6 text-white/70">
+                            <p>The OTP code confirms this email address belongs to you before the session continues.</p>
+                            <p>Codes are single-use and expire after a short window for security.</p>
                         </div>
                     </div>
                 </div>
-
-                {/* Form box */}
-                <div className="rounded-[16px] border border-gray-200 bg-white p-6">
-                    <div className="mb-6">
-                        <h2 className="text-base font-semibold text-gray-900">
-                            Verification details
-                        </h2>
-                        <p className="mt-1 text-sm leading-6 text-gray-600">
-                            Email destination: <strong>{email}</strong>
-                            {expires_at ? <>. This code expires at {new Date(expires_at).toLocaleString()}.</> : null}
-                        </p>
-                    </div>
-
-                    <form onSubmit={submit} className="space-y-5">
-                        <div>
-                            <InputLabel htmlFor="otp_code" value="OTP Code" />
-                            <TextInput
-                                id="otp_code"
-                                value={data.otp_code}
-                                onChange={(event) => setData('otp_code', event.target.value)}
-                                className="mt-1 block w-full"
-                                inputMode="numeric"
-                                autoComplete="one-time-code"
-                                placeholder="Enter the 6-digit code from your email"
-                            />
-                            <InputError message={errors.otp_code} className="mt-2" />
-                        </div>
-
-                        <div className="flex justify-end pt-2">
-                            <Button
-                                type="submit"
-                                disabled={processing}
-                                className="rounded-md bg-red-600 px-6 text-white hover:bg-red-700"
-                            >
-                                {processing ? 'Verifying...' : 'Verify and Continue'}
-                            </Button>
-                        </div>
-                    </form>
+            }
+        >
+            <form onSubmit={submit} className="space-y-6">
+                <div className="flex items-center gap-3">
+                    <MailCheck
+                        className="h-6 w-6 flex-shrink-0 text-white/70"
+                        strokeWidth={2.5}
+                    />
+                    <p className="text-sm leading-6 text-white/70">
+                        We sent a 6-digit verification code to your email.
+                    </p>
                 </div>
-            </div>
-        </GuestLayout>
+
+                <div>
+                    <InputLabel htmlFor="otp_code" value="OTP Code" className="text-white/80" />
+                    <TextInput
+                        id="otp_code"
+                        value={data.otp_code}
+                        onChange={(event) => setData('otp_code', event.target.value)}
+                        className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="Enter the 6-digit code from your email"
+                    />
+                    <InputError message={errors.otp_code} className="mt-2 text-red-400" />
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <p className="text-sm text-gray-500">
+                        Enter the code exactly as received. Codes expire automatically.
+                    </p>
+
+                    <Button
+                        type="submit"
+                        disabled={processing}
+                        className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
+                    >
+                        {processing ? 'Verifying...' : 'Verify and Continue'}
+                    </Button>
+                </div>
+            </form>
+        </PublicFlowLayout>
     );
 }
