@@ -2,22 +2,22 @@
 
 namespace App\Services\Mobile\V1;
 
-use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
+use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Services\BunnyStreamService;
 use App\Services\StudentLearningMilestoneEmailService;
+use App\Support\MobileSignedUrl;
 use App\Support\MobileMediaPayload;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class StudentLessonApiService
 {
-    use BuildsProtectedMediaUrls;
+    use BuildsMobileSignedContentImageUrls;
 
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
@@ -78,13 +78,7 @@ class StudentLessonApiService
             'id' => $lesson->id,
             'title' => $lesson->title,
             'content' => $lesson->content,
-            'thumbnail_url' => $this->protectedMediaUrl(
-                'lesson',
-                $lesson->id,
-                'thumbnail',
-                $lesson->thumbnail,
-                versionSeed: $lesson->updated_at,
-            ),
+            'thumbnail_url' => $this->lessonThumbnailUrl($user, $lesson, $lesson->module),
             'is_locked' => false,
             'lock_reason' => null,
             'video' => $videoState,
@@ -152,7 +146,7 @@ class StudentLessonApiService
                 'id' => $item->id,
                 'title' => $item->title,
                 'sort_order' => $item->sort_order,
-                'thumbnail_url' => $this->lessonThumbnailUrl($item, $lesson->module),
+                'thumbnail_url' => $this->lessonThumbnailUrl($user, $item, $lesson->module),
                 'is_locked' => ! ($lessonUnlockMap->get($item->id)['is_unlocked'] ?? false),
                 'lock_reason' => $lessonUnlockMap->get($item->id)['reason'] ?? null,
                 'status' => $this->isLessonFullyComplete(
@@ -170,7 +164,7 @@ class StudentLessonApiService
                 'id' => $nextLesson->id,
                 'title' => $nextLesson->title,
                 'sort_order' => $nextLesson->sort_order,
-                'thumbnail_url' => $this->lessonThumbnailUrl($nextLesson, $lesson->module),
+                'thumbnail_url' => $this->lessonThumbnailUrl($user, $nextLesson, $lesson->module),
                 'is_unlocked' => (bool) ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false),
                 'lock_reason' => $lessonUnlockMap->get($nextLesson->id)['reason'] ?? null,
             ] : null,
@@ -307,23 +301,12 @@ class StudentLessonApiService
         ];
     }
 
-    private function lessonThumbnailUrl(Lesson $lesson, ?Module $module = null): ?string
+    private function lessonThumbnailUrl(User $user, Lesson $lesson, ?Module $module = null): ?string
     {
-        return $this->protectedMediaUrl(
-            'lesson',
-            $lesson->id,
-            'thumbnail',
-            $lesson->thumbnail,
-            versionSeed: $lesson->updated_at,
-        ) ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
+        return $this->mobileSignedContentImageUrl($user, 'lesson', $lesson->id, 'thumbnail', $lesson->thumbnail, $lesson->updated_at)
+            ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
             ?: ($module
-                ? $this->protectedMediaUrl(
-                    'module',
-                    $module->id,
-                    'thumbnail',
-                    $module->thumbnail,
-                    versionSeed: $module->updated_at,
-                )
+                ? $this->mobileSignedContentImageUrl($user, 'module', $module->id, 'thumbnail', $module->thumbnail, $module->updated_at)
                 : null);
     }
 
@@ -333,7 +316,7 @@ class StudentLessonApiService
             return null;
         }
 
-        return URL::temporarySignedRoute(
+        return MobileSignedUrl::temporarySignedRoute(
             'mobile.api.v1.lesson-media.audio',
             now()->addHour(),
             [
@@ -349,7 +332,7 @@ class StudentLessonApiService
             return null;
         }
 
-        return URL::temporarySignedRoute(
+        return MobileSignedUrl::temporarySignedRoute(
             'mobile.api.v1.lesson-media.workbook',
             now()->addHour(),
             [
@@ -365,7 +348,7 @@ class StudentLessonApiService
             return null;
         }
 
-        return URL::temporarySignedRoute(
+        return MobileSignedUrl::temporarySignedRoute(
             'mobile.api.v1.lesson-media.workbook.download',
             now()->addHour(),
             [

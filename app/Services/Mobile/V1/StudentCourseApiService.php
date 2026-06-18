@@ -2,16 +2,16 @@
 
 namespace App\Services\Mobile\V1;
 
-use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Models\Course;
 use App\Models\User;
+use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Services\BunnyStreamService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class StudentCourseApiService
 {
-    use BuildsProtectedMediaUrls;
+    use BuildsMobileSignedContentImageUrls;
 
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
@@ -27,7 +27,7 @@ class StudentCourseApiService
         return [
             'items' => $courses
                 ->values()
-                ->map(fn (Course $course, int $index) => $this->coursePayload($course, $index + 1))
+                ->map(fn (Course $course, int $index) => $this->coursePayload($user, $course, $index + 1))
                 ->all(),
         ];
     }
@@ -41,7 +41,7 @@ class StudentCourseApiService
             return null;
         }
 
-        return $this->coursePayload($course, null);
+        return $this->coursePayload($user, $course, null);
     }
 
     /**
@@ -67,16 +67,11 @@ class StudentCourseApiService
     /**
      * @return array<string, mixed>
      */
-    private function coursePayload(Course $course, ?int $index): array
+    private function coursePayload(User $user, Course $course, ?int $index): array
     {
         $videoState = $this->videoStateForCourse($course);
-        $thumbnailUrl = $this->protectedMediaUrl(
-            'course',
-            $course->id,
-            'thumbnail',
-            $course->thumbnail,
-            versionSeed: $course->updated_at,
-        ) ?: $this->bunnyStreamService->thumbnailUrl($course->video);
+        $thumbnailUrl = $this->mobileSignedContentImageUrl($user, 'course', $course->id, 'thumbnail', $course->thumbnail, $course->updated_at)
+            ?: $this->bunnyStreamService->thumbnailUrl($course->video);
 
         return [
             'id' => $course->id,
