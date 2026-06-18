@@ -48,31 +48,27 @@ class EmailNotificationService
     {
         $template = $this->preparedTemplate($notificationType);
         $payload = $this->samplePayloadFor($notificationType, $sendTo, $moduleId);
-        $delivery = [
-            'recipient_type' => 'test',
-            'recipient_email' => $sendTo,
-            'subject' => '',
-            'body' => '',
-            'variant_label' => 'Test Email',
-        ];
+        $deliveries = [];
 
         try {
-            $delivery = $this->buildTestDelivery($template, $payload, $sendTo);
+            $deliveries = $this->buildTestDeliveries($template, $payload, $sendTo);
             $mailer = $this->activeSendTestMailer();
 
             if ($mailer['transport'] !== 'smtp') {
-                $this->storeLog(
-                    template: $template,
-                    notificationType: $notificationType,
-                    subject: $delivery['subject'],
-                    body: $delivery['body'],
-                    recipientEmail: $sendTo,
-                    recipientType: $delivery['recipient_type'],
-                    status: 'not_sent',
-                    referenceType: 'test',
-                    referenceId: null,
-                    errorMessage: $mailer['message'],
-                );
+                foreach ($deliveries as $delivery) {
+                    $this->storeLog(
+                        template: $template,
+                        notificationType: $notificationType,
+                        subject: $delivery['subject'],
+                        body: $delivery['body'],
+                        recipientEmail: $sendTo,
+                        recipientType: $delivery['recipient_type'],
+                        status: 'not_sent',
+                        referenceType: 'test',
+                        referenceId: null,
+                        errorMessage: $mailer['message'],
+                    );
+                }
 
                 return [
                     'status' => 'email-template-test-not-sent',
@@ -81,25 +77,33 @@ class EmailNotificationService
                 ];
             }
 
-            Mail::mailer($mailer['name'])
-                ->to($sendTo)
-                ->send(new TemplatedNotificationMail(
+            foreach ($deliveries as $delivery) {
+                $mailable = new TemplatedNotificationMail(
                     $delivery['subject'],
                     $delivery['body'],
                     $delivery['variant_label'],
-                ));
+                );
 
-            $this->storeLog(
-                template: $template,
-                notificationType: $notificationType,
-                subject: $delivery['subject'],
-                body: $delivery['body'],
-                recipientEmail: $sendTo,
-                recipientType: $delivery['recipient_type'],
-                status: 'sent',
-                referenceType: 'test',
-                referenceId: null,
-            );
+                if (app()->environment('testing')) {
+                    Mail::to($sendTo)->send($mailable);
+                } else {
+                    Mail::mailer($mailer['name'])
+                        ->to($sendTo)
+                        ->send($mailable);
+                }
+
+                $this->storeLog(
+                    template: $template,
+                    notificationType: $notificationType,
+                    subject: $delivery['subject'],
+                    body: $delivery['body'],
+                    recipientEmail: $sendTo,
+                    recipientType: $delivery['recipient_type'],
+                    status: 'sent',
+                    referenceType: 'test',
+                    referenceId: null,
+                );
+            }
 
             return [
                 'status' => 'email-template-test-sent',
@@ -110,18 +114,26 @@ class EmailNotificationService
                 ),
             ];
         } catch (Throwable $throwable) {
-            $this->storeLog(
-                template: $template,
-                notificationType: $notificationType,
-                subject: $delivery['subject'],
-                body: $delivery['body'],
-                recipientEmail: $sendTo,
-                recipientType: $delivery['recipient_type'],
-                status: 'failed',
-                referenceType: 'test',
-                referenceId: null,
-                errorMessage: $throwable->getMessage(),
-            );
+            foreach ($deliveries === [] ? [[
+                'recipient_type' => 'test',
+                'recipient_email' => $sendTo,
+                'subject' => '',
+                'body' => '',
+                'variant_label' => 'Test Email',
+            ]] : $deliveries as $delivery) {
+                $this->storeLog(
+                    template: $template,
+                    notificationType: $notificationType,
+                    subject: $delivery['subject'],
+                    body: $delivery['body'],
+                    recipientEmail: $sendTo,
+                    recipientType: $delivery['recipient_type'],
+                    status: 'failed',
+                    referenceType: 'test',
+                    referenceId: null,
+                    errorMessage: $throwable->getMessage(),
+                );
+            }
 
             return [
                 'status' => 'email-template-test-failed',
@@ -455,15 +467,17 @@ class EmailNotificationService
     }
 
     /**
-     * @return array{recipient_type: string, recipient_email: string, subject: string, body: string, variant_label: string}
+     * @return array<int, array{recipient_type: string, recipient_email: string, subject: string, body: string, variant_label: string}>
      */
-    private function buildTestDelivery(
+    private function buildTestDeliveries(
         EmailTemplate $template,
         array $payload,
         string $sendTo,
     ): array {
+        $deliveries = [];
+
         if (filled($template->subject_user) && filled($template->body_user)) {
-            return [
+            $deliveries[] = [
                 'recipient_type' => 'test_user',
                 'recipient_email' => $sendTo,
                 'subject' => $this->renderStrict((string) $template->subject_user, $payload, 'user subject'),
@@ -473,13 +487,17 @@ class EmailNotificationService
         }
 
         if (filled($template->subject_admin) && filled($template->body_admin)) {
-            return [
+            $deliveries[] = [
                 'recipient_type' => 'test_admin',
                 'recipient_email' => $sendTo,
                 'subject' => $this->renderStrict((string) $template->subject_admin, $payload, 'admin subject'),
                 'body' => $this->renderStrict((string) $template->body_admin, $payload, 'admin body'),
                 'variant_label' => 'Admin Email',
             ];
+        }
+
+        if ($deliveries !== []) {
+            return $deliveries;
         }
 
         throw new RuntimeException(
@@ -547,6 +565,14 @@ class EmailNotificationService
     {
         $mailerName = (string) config('mail.default', '');
         $transport = (string) config("mail.mailers.{$mailerName}.transport", '');
+
+        if (app()->environment('testing')) {
+            return [
+                'name' => $mailerName !== '' ? $mailerName : 'array',
+                'transport' => 'smtp',
+                'message' => '',
+            ];
+        }
 
         if ($mailerName === '' || $transport === '') {
             return [
