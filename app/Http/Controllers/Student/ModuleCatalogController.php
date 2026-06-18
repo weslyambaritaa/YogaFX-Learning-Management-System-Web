@@ -758,29 +758,20 @@ class ModuleCatalogController extends Controller
     ): array {
         $tier = $user?->accessTier;
         $summary = $user ? $this->certificateEligibilityService->summaryForStudent($user) : null;
-        $latestCertificate = $user
-            ? Certificate::query()
-                ->where('user_id', $user->id)
-                ->latest('generated_at')
-                ->latest('id')
-                ->first()
-            : null;
-        $availableTypes = collect($summary['available_types'] ?? []);
-        $eligibleTier = $user && $user->access_tier_id !== null && $availableTypes->isNotEmpty();
-        $learningModules = $modules
-            ->reject(fn (Module $module) => $this->isCertificateDownloadModule($module))
-            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
-            ->values();
-        $currentPathCompleted = $learningModules->isNotEmpty()
-            && $learningModules->every(fn (Module $module) => $module->lessons->every(
-                fn (Lesson $lesson) => $this->isLessonFullyComplete(
-                    $lesson,
-                    $lessonProgressMap->get($lesson->id),
-                    $completedAssessmentIds,
-                ),
-            ));
+        $generatedCertificates = $user
+            ? $this->certificateEligibilityService
+                ->latestCertificatesByType($user, $summary['available_types'] ?? [])
+                ->sortByDesc(fn (Certificate $certificate) => sprintf(
+                    '%010d-%010d',
+                    $certificate->generated_at?->getTimestamp() ?? 0,
+                    $certificate->id,
+                ))
+                ->values()
+            : collect();
+        $latestCertificate = $generatedCertificates->first();
+        $eligibleTier = $user && $user->access_tier_id !== null && collect($summary['available_types'] ?? [])->isNotEmpty();
         $learningEligible = (bool) ($summary['learning_eligible'] ?? false);
-        $hasCertificate = (bool) $latestCertificate;
+        $hasCertificate = $generatedCertificates->isNotEmpty();
         $isVisible = $eligibleTier && ($learningEligible || $hasCertificate);
         $state = ! $eligibleTier
             ? 'not_available'
@@ -797,27 +788,27 @@ class ModuleCatalogController extends Controller
                 : ($learningEligible ? 'available' : 'locked'),
             'module_description' => $hasCertificate
                 ? ($isDownloaded
-                    ? 'Your certificate has already been downloaded from this module.'
-                    : 'Your certificate is ready. Open this module to review and download your latest YogaFX certificate.')
+                    ? 'Your certificate library has already been opened and downloaded from this module.'
+                    : 'Your certificate library is ready. Open this module to review and download your available certificates.')
                 : ($learningEligible
-                    ? 'Your learning journey is complete and this certificate module is now open while certificate generation is being finalized.'
-                    : 'Complete your full YogaFX learning journey to unlock certificate access.'),
+                    ? 'All required assignments are approved. This certificate module is now unlocked while certificate files are being finalized.'
+                    : 'Certificate access unlocks after all required assignments have been approved.'),
             'title' => $hasCertificate
-                ? 'Your latest certificate is ready to download.'
+                ? 'Your certificate library is ready.'
                 : ($learningEligible
-                    ? 'Your certificate milestone is ready from the learning side.'
+                    ? 'Your certificate area is unlocked from the assignment side.'
                     : 'Certificate access is not unlocked yet.'),
             'description' => $hasCertificate
-                ? 'This module now acts as your student certificate area. Download the latest certificate record generated for your account.'
+                ? 'This module now acts as your student certificate library. Review and download every generated certificate available for your account.'
                 : ($learningEligible
-                    ? 'You have completed the accessible learning path for your current tier. If the certificate file has not been generated yet, please wait for the YogaFX team to finalize it.'
-                    : 'Certificate access opens after the required YogaFX journey has been completed.'),
+                    ? 'Your required assignments are approved. If certificate files are not listed yet, please wait for the YogaFX team to finish generation.'
+                    : 'Certificate access opens after the required assignment approvals have been completed.'),
             'eligibility_label' => $eligibleTier
                 ? 'Certificate included in '.($tier?->name ?? 'your current tier')
                 : 'Certificate not available in this tier',
             'support_note' => $hasCertificate
-                ? 'The latest available certificate record is surfaced here so you do not need a separate student certificate menu.'
-                : 'This page opens as soon as your learning path reaches certificate readiness, even if the final file is still waiting to be generated.',
+                ? 'Every generated certificate available for your account is listed inside this module.'
+                : 'This page unlocks after assignment approvals, even if certificate files are still waiting to be generated.',
             'requirements' => $summary['requirements'] ?? [],
             'learning_eligible' => $learningEligible,
             'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
@@ -829,6 +820,15 @@ class ModuleCatalogController extends Controller
                 'generated_at' => optional($latestCertificate->generated_at)->format('Y-m-d H:i'),
                 'download_url' => route('student.certificates.download', $latestCertificate),
             ] : null,
+            'generated_certificates' => $generatedCertificates
+                ->map(fn (Certificate $certificate) => [
+                    'id' => $certificate->id,
+                    'type_label' => $certificate->typeLabel(),
+                    'version' => $certificate->version,
+                    'generated_at' => optional($certificate->generated_at)->format('Y-m-d H:i'),
+                    'download_url' => route('student.certificates.download', $certificate),
+                ])
+                ->all(),
             'cta_label' => $hasCertificate ? 'Download Latest Certificate' : 'Browse Modules',
             'cta_url' => $hasCertificate
                 ? route('student.certificates.download', $latestCertificate)

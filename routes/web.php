@@ -103,6 +103,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
+        Route::get('/courses/{course:url_slug}', [CourseCatalogController::class, 'show'])->name('courses.show');
         Route::get('/upgrades/{accessTier}', [UpgradeController::class, 'show'])->name('student.upgrades.show');
         Route::post('/upgrades/{accessTier}', [UpgradeController::class, 'pay'])->name('student.upgrades.pay');
     });
