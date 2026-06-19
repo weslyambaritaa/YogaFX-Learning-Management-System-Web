@@ -305,10 +305,10 @@ export default function AssessmentShow({
                         </h2>
                     </div>
                     <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-                        <div className="rounded-full border border-red-400/20 bg-red-500/15 px-4 py-2 text-sm font-semibold text-red-100">
+                        <div className="rounded-lg border border-red-400/20 bg-red-500/15 px-4 py-2 text-sm font-semibold text-red-100">
                             {remaining}
                         </div>
-                        <div className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-white/72">
+                        <div className="rounded-lg border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-white/72">
                             {assessment.progress.current} out of{' '}
                             {assessment.progress.total}
                         </div>
@@ -342,7 +342,7 @@ export default function AssessmentShow({
 
                     {assessment.design.logo_url && (
                         <div className="flex justify-center">
-                            <div className="rounded-full border border-white/10 bg-white/5 px-6 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.25)]">
+                            <div className="rounded-[12px] border border-white/10 bg-white/5 px-6 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.25)]">
                                 {assessment.design.logo_link ? (
                                     <a
                                         href={assessment.design.logo_link}
@@ -375,7 +375,7 @@ export default function AssessmentShow({
                         </div>
                     )}
 
-                    <div className="rounded-[40px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.4)] backdrop-blur md:p-10">
+                    <div className="rounded-[16px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.4)] backdrop-blur md:p-10">
                         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                             <div className="space-y-3">
                                 <div className="text-xs font-semibold uppercase tracking-[0.24em] text-red-200/90">
@@ -390,7 +390,7 @@ export default function AssessmentShow({
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-3 text-sm text-white/70">
+                            <div className="rounded-[12px] border border-white/10 bg-black/20 px-5 py-3 text-sm text-white/70">
                                 {isLastQuestion
                                     ? 'Final step'
                                     : 'Continue when your answer is ready'}
@@ -399,7 +399,7 @@ export default function AssessmentShow({
 
                         <form onSubmit={submit} className="space-y-8">
                             {question.show_instruction && question.instruction_text && (
-                                <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white/72">
+                                <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-3 text-sm text-white/72">
                                     {question.instruction_text}
                                 </div>
                             )}
@@ -414,8 +414,8 @@ export default function AssessmentShow({
                             />
 
                             {isInfoScreen ? (
-                                <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/68">
-                                    This info screen presents content only and will move forward without storing an answer.
+                                <div className="rounded-[14px] border border-white/10 bg-white/5 px-5 py-6 text-sm text-white/68">
+                                    This screen is informational only.
                                 </div>
                             ) : isOptionBased ? (
                                 <div
@@ -438,7 +438,7 @@ export default function AssessmentShow({
                                             ];
 
                                         const sharedClass = [
-                                            'rounded-3xl border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60',
+                                            'rounded-[14px] border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60',
                                             selectedState === 'correct'
                                                 ? 'border-emerald-300/50 bg-emerald-500/18 text-white shadow-[0_12px_32px_rgba(16,185,129,0.18)]'
                                                 : selectedState === 'incorrect'
@@ -468,7 +468,7 @@ export default function AssessmentShow({
                                                         <img
                                                             src={option.image_url}
                                                             alt={option.label}
-                                                            className={`h-44 w-full rounded-2xl ${getImageFitClass(question)}`}
+                                                            className={`h-44 w-full rounded-[12px] ${getImageFitClass(question)}`}
                                                         />
                                                     )}
                                                     {question.show_labels && (
@@ -611,7 +611,7 @@ export default function AssessmentShow({
                                                 </span>
                                             </div>
                                             {question.show_score_tooltip && (
-                                                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/68">
+                                                <div className="rounded-[12px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/68">
                                                     {question.score_tooltip_format
                                                         || 'Selected value will be used as raw score.'}
                                                 </div>
@@ -623,7 +623,7 @@ export default function AssessmentShow({
                                                 <div
                                                     key={`scale-group-${groupIndex}`}
                                                     className={[
-                                                        'rounded-2xl border border-white/10 bg-white/5 p-4',
+                                                        'rounded-[12px] border border-white/10 bg-white/5 p-4',
                                                         question.question_type === 'linear_scale'
                                                             ? 'overflow-x-auto'
                                                             : '',
@@ -659,7 +659,7 @@ export default function AssessmentShow({
                                                                     className={[
                                                                         question.question_type === 'linear_scale'
                                                                             ? 'flex size-9 items-center justify-center rounded-full border text-xs font-semibold transition'
-                                                                            : 'rounded-2xl border px-4 py-4 text-center text-sm font-medium transition',
+                                                                            : 'rounded-[12px] border px-4 py-4 text-center text-sm font-medium transition',
                                                                         isSelected
                                                                             ? 'border-red-300/50 bg-red-500/18 text-white shadow-[0_12px_32px_rgba(226,72,72,0.18)]'
                                                                             : 'border-white/10 bg-white/5 text-white/84 hover:border-white/24 hover:bg-white/8',
@@ -723,7 +723,7 @@ export default function AssessmentShow({
                             {isOptionBased && optionFeedback.message && (
                                 <div
                                     className={[
-                                        'rounded-2xl border px-4 py-3 text-sm font-medium',
+                                        'rounded-[12px] border px-4 py-3 text-sm font-medium',
                                         optionFeedback.tone === 'success'
                                             ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'
                                             : 'border-rose-400/30 bg-rose-500/10 text-rose-100',
@@ -734,19 +734,19 @@ export default function AssessmentShow({
                             )}
 
                             {checkboxSelectionLimitMessage(question) && (
-                                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/68">
+                                <div className="rounded-[12px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/68">
                                     {checkboxSelectionLimitMessage(question)}
                                 </div>
                             )}
 
                             {selectionFeedback && (
-                                <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                                <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                                     {selectionFeedback}
                                 </div>
                             )}
 
                             {Object.keys(errors).length > 0 && (
-                                <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                                <div className="rounded-[12px] border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                                     {Object.values(errors)[0]}
                                 </div>
                             )}

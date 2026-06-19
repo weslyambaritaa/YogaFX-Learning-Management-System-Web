@@ -35,7 +35,7 @@ export default function StudentAssignmentShow({ assignment, uploadConstraints, s
             <Head title={assignment.title} />
 
             <div className="mx-auto flex max-w-[1200px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
-                <section className="rounded-[32px] border border-white/10 bg-[#120f0f] p-8 shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+                <section className="rounded-[16px] border border-white/10 bg-[#120f0f] p-8 shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                     <div className="space-y-4">
                         <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
                             {assignment.module?.title ?? 'Module Assignment'}
@@ -45,33 +45,33 @@ export default function StudentAssignmentShow({ assignment, uploadConstraints, s
                         </h1>
                         <p className="max-w-3xl text-sm leading-7 text-white/68 sm:text-base">
                             {assignment.description ||
-                                'Upload your assignment video here. This assignment is kept separate from lessons so your submission workflow stays clean and reviewable.'}
+                                'Upload your assignment video here for review.'}
                         </p>
                     </div>
 
                     <div className="mt-6 flex flex-wrap gap-3">
-                        <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
+                        <div className="rounded-md border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
                             Required submission
                         </div>
-                        <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
+                        <div className="rounded-md border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/80 backdrop-blur">
                             Assignment {assignment.sort_order}
                         </div>
                     </div>
                 </section>
 
                 {statusMessages[status] && (
-                    <div className="rounded-[24px] border border-emerald-400/25 bg-emerald-500/10 px-5 py-4 text-sm leading-7 text-emerald-100">
+                    <div className="rounded-[12px] border border-emerald-400/25 bg-emerald-500/10 px-5 py-4 text-sm leading-7 text-emerald-100">
                         {statusMessages[status]}
                     </div>
                 )}
 
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_360px]">
-                    <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur">
+                    <section className="rounded-[14px] border border-white/10 bg-white/[0.04] p-6 backdrop-blur">
                         <h2 className="text-2xl font-semibold text-white">
                             Submit Assignment Video
                         </h2>
                         <p className="mt-3 text-sm leading-7 text-white/62">
-                            Upload a supported video file. The submission will replace your previous file for this assignment and move back into the review queue.
+                            Upload a supported video file. A new upload replaces the previous one.
                         </p>
 
                         <form onSubmit={submit} className="mt-6 space-y-5" encType="multipart/form-data">
@@ -87,7 +87,7 @@ export default function StudentAssignmentShow({ assignment, uploadConstraints, s
                                     type="file"
                                     accept=".mp4,.mov,.webm,.avi,.m4v,video/*"
                                     onChange={(event) => setData('video', event.target.files?.[0] ?? null)}
-                                    className="mt-2 block w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[#f15b3a] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#dc4f31]"
+                                    className="mt-2 block w-full rounded-[12px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white file:mr-4 file:rounded-md file:border-0 file:bg-[#f15b3a] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[#dc4f31]"
                                 />
                                 <p className="mt-2 text-xs text-white/45">
                                     Maximum file size: {uploadConstraints.video_max_size_label}. Supported formats include MP4, MOV, WEBM, AVI, and M4V.
@@ -124,7 +124,7 @@ export default function StudentAssignmentShow({ assignment, uploadConstraints, s
                     </section>
 
                     <aside className="space-y-5">
-                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
+                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
                             <p className="text-xs uppercase tracking-[0.22em] text-white/45">
                                 Current Submission
                             </p>
@@ -162,13 +162,13 @@ export default function StudentAssignmentShow({ assignment, uploadConstraints, s
                             </div>
                         </div>
 
-                        <div className="rounded-[28px] border border-white/10 bg-black/25 p-5 shadow-2xl backdrop-blur-md">
+                        <div className="rounded-[14px] border border-white/10 bg-black/25 p-5 shadow-2xl backdrop-blur-md">
                             <p className="text-xs uppercase tracking-[0.22em] text-white/45">
                                 Review Feedback
                             </p>
                             <div className="mt-4 text-sm leading-7 text-white/68">
                                 {assignment.submission?.feedback ||
-                                    'No review feedback has been added yet. Once admin reviews your submission, the latest note will appear here.'}
+                                    'No review feedback yet.'}
                             </div>
                         </div>
                     </aside>

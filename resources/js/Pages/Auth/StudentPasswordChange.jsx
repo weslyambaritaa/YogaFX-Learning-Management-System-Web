@@ -28,7 +28,7 @@ export default function StudentPasswordChange({ token, email, expires_at, status
             <Head title="Student Password Change" />
 
             <div className="space-y-6">
-                <div className="rounded-[28px] border border-white/10 bg-[#15110f] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
+                <div className="rounded-[14px] border border-white/10 bg-[#15110f] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
                     <div className="flex items-start gap-4">
                         <div className="rounded-full border border-white/10 bg-white/5 p-3">
                             <KeyRound className="size-5 text-[#ffd7cf]" />
@@ -41,23 +41,19 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                                 Verify your email code and set a new password
                             </h1>
                             <p className="max-w-2xl text-sm leading-7 text-white/62">
-                                This page completes the password change request that
-                                was started from your student profile. Use the OTP
-                                code sent to your email together with your new
-                                password.
+                                Enter the OTP from your email and set a new password.
                             </p>
                         </div>
                     </div>
                 </div>
 
                 {status === 'student-password-change-email-sent' && (
-                    <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-                        Your password change email has been sent. Check your inbox
-                        for the OTP code and secure link.
+                    <div className="rounded-[12px] border border-emerald-300/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                        Password change email sent. Check your inbox.
                     </div>
                 )}
 
-                <div className="rounded-[28px] border border-black/10 bg-white p-6 shadow-sm">
+                <div className="rounded-[14px] border border-black/10 bg-white p-6 shadow-sm">
                     <div className="mb-6 flex items-start gap-3">
                         <div className="rounded-full bg-slate-100 p-2">
                             <MailCheck className="size-5 text-slate-700" />
@@ -85,7 +81,7 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                                 className="mt-1 block w-full"
                                 inputMode="numeric"
                                 autoComplete="one-time-code"
-                                placeholder="Enter the 6-digit code from your email"
+                                placeholder="Enter the 6-digit code"
                             />
                             <InputError message={errors.otp_code} className="mt-2" />
                         </div>

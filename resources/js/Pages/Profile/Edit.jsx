@@ -71,10 +71,7 @@ export default function Edit({ status }) {
                                     ready to continue.
                                 </h1>
                                 <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
-                                    This page powers your student onboarding,
-                                    your learning context, and the details YogaFX
-                                    uses to keep future certificate and learning
-                                    experiences aligned with you.
+                                    Keep your profile accurate so your student experience stays aligned.
                                 </p>
                             </div>
 
@@ -175,15 +172,12 @@ export default function Edit({ status }) {
                                 Keep your personal and learning context aligned
                             </h2>
                             <p className="max-w-2xl text-sm leading-7 text-white/60">
-                                The profile below supports onboarding, learning
-                                personalization, and future milestone workflows.
-                                Update it with care so your student experience
-                                stays cohesive.
+                                Update the details used across your learning journey.
                             </p>
                         </div>
 
                         <div className="rounded-lg border border-white/12 bg-black/20 px-4 py-2 text-sm text-white/62">
-                            Profile update flows into Home and student content
+                            Used across your student area
                         </div>
                     </div>
 
@@ -211,15 +205,12 @@ export default function Edit({ status }) {
                                 Change your password safely
                             </h2>
                             <p className="max-w-2xl text-sm leading-7 text-white/60">
-                                Start a student-only password change request from
-                                here. YogaFX will send an email to your student
-                                inbox with a secure link and OTP code, then you can
-                                set a new password from that flow.
+                                Request a password change by email.
                             </p>
                         </div>
 
                         <div className="rounded-lg border border-white/12 bg-black/20 px-4 py-2 text-sm text-white/62">
-                            Email verification required
+                            Secure email flow
                         </div>
                     </div>
 
@@ -233,20 +224,14 @@ export default function Edit({ status }) {
                                     Request password change
                                 </h3>
                                 <p className="max-w-2xl text-sm leading-7 text-white/60">
-                                    Use the button below to start the secure student
-                                    password-change flow. The email will contain the
-                                    OTP code and the direct link that opens the final
-                                    password form.
+                                    We will send an OTP and secure link to your email.
                                 </p>
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                             <p className="max-w-2xl text-sm leading-7 text-white/48">
-                                This profile flow is intentionally separate from
-                                forgot/reset password so the student can trigger a
-                                secure change request directly from the signed-in
-                                experience.
+                                Use this when you want to change your password from inside your account.
                             </p>
 
                             <Button
