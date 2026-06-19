@@ -3,18 +3,20 @@
 namespace App\Http\Controllers\Mobile\V1;
 
 use App\Http\Controllers\Controller;
+use App\Services\PasswordChangeFlowService;
 use App\Support\MobileApiResponse;
-use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class PasswordRecoveryController extends Controller
 {
+    public function __construct(
+        private readonly PasswordChangeFlowService $passwordChangeFlowService,
+    ) {}
+
     public function forgot(Request $request)
     {
         $validator = validator($request->all(), [
@@ -54,6 +56,7 @@ class PasswordRecoveryController extends Controller
         $validator = validator($request->all(), [
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
+            'otp_code' => ['required', 'digits:6'],
             'password' => ['required', 'confirmed', PasswordRule::defaults()],
         ]);
 
@@ -67,28 +70,22 @@ class PasswordRecoveryController extends Controller
 
         $validated = $validator->validated();
 
-        $status = Password::reset(
-            [
-                'email' => $validated['email'],
-                'password' => $validated['password'],
-                'password_confirmation' => $request->input('password_confirmation'),
-                'token' => $validated['token'],
-            ],
-            function ($user) use ($validated): void {
-                $user->forceFill([
-                    'password' => Hash::make($validated['password']),
-                    'remember_token' => Str::random(60),
-                ])->save();
-
-                event(new PasswordReset($user));
-            }
+        $result = $this->passwordChangeFlowService->resetWithOtp(
+            $validated['email'],
+            $validated['token'],
+            $validated['otp_code'],
+            $validated['password'],
+            (string) $request->input('password_confirmation'),
         );
+
+        $status = $result['status'];
 
         if ($status === Password::PASSWORD_RESET) {
             return MobileApiResponse::success(
                 [
                     'email' => $validated['email'],
                     'password_reset' => true,
+                    'mobile_origin' => $result['password_change_request']->isMobileOrigin(),
                 ],
                 'Password reset successfully.',
             );

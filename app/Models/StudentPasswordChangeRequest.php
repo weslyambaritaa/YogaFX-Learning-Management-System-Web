@@ -11,11 +11,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'email',
     'token_hash',
     'otp_hash',
+    'origin',
     'expires_at',
     'used_at',
 ])]
 class StudentPasswordChangeRequest extends Model
 {
+    public const ORIGIN_WEB = 'web';
+    public const ORIGIN_MOBILE = 'mobile';
+
     protected function casts(): array
     {
         return [
@@ -37,5 +41,10 @@ class StudentPasswordChangeRequest extends Model
     public function isUsed(): bool
     {
         return $this->used_at !== null;
+    }
+
+    public function isMobileOrigin(): bool
+    {
+        return $this->origin === self::ORIGIN_MOBILE;
     }
 }

@@ -9,6 +9,7 @@ use App\Models\EmailLog;
 use App\Models\EmailTemplate;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Models\StudentPasswordChangeRequest;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Support\EmailNotificationTemplateDefaults;
@@ -22,6 +23,10 @@ class EmailNotificationService
 {
     private const EMAIL_PLACEHOLDER_PATTERN = '/{{\s*([\w_]+)\s*}}|(?<!{){\s*([\w_]+)\s*}(?!})/';
     private const REMINDER_INACTIVITY_THRESHOLD_MINUTES = 10;
+
+    public function __construct(
+        private readonly PasswordChangeFlowService $passwordChangeFlowService,
+    ) {}
 
     public function findOrCreateTemplate(string $notificationType): EmailTemplate
     {
@@ -210,13 +215,18 @@ class EmailNotificationService
 
     public function sendPasswordResetRequested(User $user, string $token): void
     {
+        $resetRequest = $this->passwordChangeFlowService->prepareResetRequest(
+            $user,
+            $token,
+            $this->detectPasswordResetOrigin(),
+        );
+
         event(new ResetPasswordRequested([
             'user_name' => $user->name,
             'user_email' => $user->email,
-            'reset_url' => route('password.reset', [
-                'token' => $token,
-                'email' => $user->email,
-            ]),
+            'reset_url' => $resetRequest['change_password_url'],
+            'password_change_url' => $resetRequest['change_password_url'],
+            'otp_code' => $resetRequest['otp_code'],
             'reset_expiry_minutes' => (string) config(
                 'auth.passwords.'.config('auth.defaults.passwords').'.expire',
                 60,
@@ -225,48 +235,15 @@ class EmailNotificationService
         ], 'user', $user->id));
     }
 
-    public function sendStudentPasswordChangeRequested(
-        User $user,
-        string $changePasswordUrl,
-        string $otpCode,
-        int $expiresInMinutes,
-    ): void {
-        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
-        $payload = [
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'reset_url' => $changePasswordUrl,
-            'password_change_url' => $changePasswordUrl,
-            'otp_code' => $otpCode,
-            'reset_expiry_minutes' => (string) $expiresInMinutes,
-            'login_url' => route('login'),
-        ];
+    private function detectPasswordResetOrigin(): string
+    {
+        $request = request();
 
-        $deliveries = $this->buildDeliveries($template, $payload);
-
-        foreach ($deliveries as $delivery) {
-            $body = $delivery['body'];
-
-            if ($delivery['recipient_type'] === 'user') {
-                $body = $this->ensurePasswordChangeVerificationBlock(
-                    $body,
-                    (string) $template->body_user,
-                    $payload,
-                );
-            }
-
-            $this->deliver(
-                template: $template,
-                notificationType: EmailNotificationTypeRegistry::RESET_PASSWORD,
-                subject: $delivery['subject'],
-                body: $body,
-                recipientEmail: $delivery['recipient_email'],
-                recipientType: $delivery['recipient_type'],
-                referenceType: 'student_password_change',
-                referenceId: $user->id,
-                variantLabel: $delivery['variant_label'],
-            );
+        if ($request?->routeIs('mobile.api.v1.auth.password.forgot')) {
+            return StudentPasswordChangeRequest::ORIGIN_MOBILE;
         }
+
+        return StudentPasswordChangeRequest::ORIGIN_WEB;
     }
 
     public function sendInactivityReminders(): int
@@ -361,11 +338,21 @@ class EmailNotificationService
         $deliveries = [];
 
         if (filled($template->subject_user) && filled($template->body_user) && filled($payload['user_email'] ?? $testRecipient)) {
+            $body = $this->render((string) $template->body_user, $payload);
+
+            if (! $isTest && filled($payload['otp_code'] ?? null)) {
+                $body = $this->ensurePasswordChangeVerificationBlock(
+                    $body,
+                    (string) $template->body_user,
+                    $payload,
+                );
+            }
+
             $deliveries[] = [
                 'recipient_type' => $isTest ? 'test_user' : 'user',
                 'recipient_email' => $testRecipient ?: (string) $payload['user_email'],
                 'subject' => $this->render((string) $template->subject_user, $payload),
-                'body' => $this->render((string) $template->body_user, $payload),
+                'body' => $body,
                 'variant_label' => 'User Email',
             ];
         }
@@ -701,10 +688,15 @@ class EmailNotificationService
             'access_tier' => 'master_class',
             'access_tier_label' => 'Masterclass',
             'registration_date' => now()->toDateString(),
-            'reset_url' => route('password.reset', [
+            'reset_url' => route('profile.password.change.edit', [
                 'token' => 'sample-reset-token',
                 'email' => $sendTo,
             ]),
+            'password_change_url' => route('profile.password.change.edit', [
+                'token' => 'sample-reset-token',
+                'email' => $sendTo,
+            ]),
+            'otp_code' => '123456',
             'reset_expiry_minutes' => (string) config(
                 'auth.passwords.'.config('auth.defaults.passwords').'.expire',
                 60,
