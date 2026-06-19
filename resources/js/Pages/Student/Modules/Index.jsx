@@ -74,7 +74,7 @@ export default function StudentModulesIndex({ modules }) {
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="rounded-[10px] border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
+                            <div className="rounded-[8px] border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
                                 <div className="text-sm uppercase tracking-[0.2em] text-white/45">
                                     Modules
                                 </div>
@@ -82,7 +82,7 @@ export default function StudentModulesIndex({ modules }) {
                                     {modules.length}
                                 </div>
                             </div>
-                            <div className="rounded-[10px] border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
+                            <div className="rounded-[8px] border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
                                 <div className="text-sm uppercase tracking-[0.2em] text-white/45">
                                     Completed
                                 </div>
@@ -138,7 +138,7 @@ export default function StudentModulesIndex({ modules }) {
                                         <div className="flex flex-col justify-between gap-6 p-2">
                                             <div className="space-y-4">
                                                 <div className="flex flex-wrap items-center gap-3">
-                                                    <span className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/60">
+                                                    <span className="rounded-md border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/60">
                                                         Module {module.sort_order}
                                                     </span>
                                                     <span className={`inline-flex items-center gap-2 text-sm font-medium ${status.className}`}>
@@ -204,4 +204,3 @@ export default function StudentModulesIndex({ modules }) {
         </AuthenticatedLayout>
     );
 }
-

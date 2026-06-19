@@ -287,7 +287,7 @@ function UserMenu({ user, isImmersive = false }) {
                 <Button
                     variant="outline"
                     className={[
-                        'gap-2 rounded-full',
+                        'gap-2 rounded-lg',
                         isImmersive
                             ? 'border-white/15 bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white'
                             : '',
@@ -694,7 +694,7 @@ function StudentTopNavigation({
                                             asChild
                                             variant="ghost"
                                             className={[
-                                                'h-11 w-full justify-start rounded-xl px-3',
+                                                'h-11 w-full justify-start rounded-lg px-3',
                                                 isItemActive(item)
                                                     ? 'text-[#ff5a3c] hover:text-[#ff5a3c] hover:bg-[#ff5a3c]/10'
                                                     : (isImmersive
@@ -728,7 +728,7 @@ function StudentTopNavigation({
                                             asChild
                                             variant="ghost"
                                             className={[
-                                                'h-11 w-full justify-start rounded-xl px-3 opacity-100',
+                                                'h-11 w-full justify-start rounded-lg px-3 opacity-100',
                                                 isItemActive(item)
                                                     ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
                                                     : (isImmersive
@@ -790,7 +790,7 @@ function StudentTopNavigation({
                                 asChild
                                 variant="ghost"
                                 className={[
-                                    'rounded-full px-4 text-xs font-medium opacity-100',
+                                    'rounded-lg px-4 text-xs font-medium opacity-100',
                                     isItemActive(item)
                                         ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
                                         : (isImmersive

@@ -48,7 +48,7 @@ export default function Edit({ status }) {
             <Head title="Student Profile" />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-6 sm:px-6 lg:px-10">
-                <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#15110f] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+                <section className="relative overflow-hidden rounded-[16px] border border-white/10 bg-[#15110f] shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,_rgba(173,76,38,0.42),_transparent_30%),radial-gradient(circle_at_84%_18%,_rgba(245,158,11,0.14),_transparent_24%),linear-gradient(180deg,_rgba(255,255,255,0.04)_0%,_rgba(0,0,0,0.62)_78%,_rgba(0,0,0,0.82)_100%)]" />
 
                     <div className="relative grid gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-12 lg:py-12">
@@ -82,7 +82,7 @@ export default function Edit({ status }) {
                                 <Button
                                     type="button"
                                     disabled
-                                    className="rounded-full bg-[#d5462f] px-6 text-white opacity-100 hover:bg-[#e2553d]"
+                                    className="rounded-lg bg-[#d5462f] px-6 text-white opacity-100 hover:bg-[#e2553d]"
                                 >
                                     {profileComplete ? 'Profile Complete' : 'Complete Your Profile'}
                                 </Button>
@@ -90,7 +90,7 @@ export default function Edit({ status }) {
                                     type="button"
                                     variant="outline"
                                     disabled
-                                    className="rounded-full border-white/20 bg-white/5 px-6 text-white opacity-100 hover:bg-white/10 hover:text-white"
+                                    className="rounded-lg border-white/20 bg-white/5 px-6 text-white opacity-100 hover:bg-white/10 hover:text-white"
                                 >
                                     Current Tier: {accessTierName}
                                 </Button>
@@ -98,7 +98,7 @@ export default function Edit({ status }) {
                         </div>
 
                         <div className="grid gap-4">
-                            <div className="rounded-[28px] border border-white/10 bg-black/30 p-5 backdrop-blur-md">
+                            <div className="rounded-[14px] border border-white/10 bg-black/30 p-5 backdrop-blur-md">
                                 <p className="text-xs uppercase tracking-[0.22em] text-white/50">
                                     Profile Status
                                 </p>
@@ -121,7 +121,7 @@ export default function Edit({ status }) {
                                 </div>
                             </div>
 
-                            <div className="rounded-[28px] border border-white/10 bg-black/30 p-5 backdrop-blur-md">
+                            <div className="rounded-[14px] border border-white/10 bg-black/30 p-5 backdrop-blur-md">
                                 <p className="text-xs uppercase tracking-[0.22em] text-white/50">
                                     Access Tier
                                 </p>
@@ -146,7 +146,7 @@ export default function Edit({ status }) {
                 </section>
 
                 {!profileComplete && (
-                    <div className="rounded-[24px] border border-amber-300/15 bg-[linear-gradient(160deg,rgba(217,119,6,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-amber-50/90">
+                    <div className="rounded-[12px] border border-amber-300/15 bg-[linear-gradient(160deg,rgba(217,119,6,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-amber-50/90">
                         Complete every required profile field before continuing
                         to the student dashboard. This keeps your Home experience
                         relevant and your learning flow stable.
@@ -154,18 +154,18 @@ export default function Edit({ status }) {
                 )}
 
                 {status === 'profile-updated' && (
-                    <div className="rounded-[24px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
+                    <div className="rounded-[12px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
                         Your profile has been updated and saved successfully.
                     </div>
                 )}
 
                 {status === 'student-password-change-email-sent' && (
-                    <div className="rounded-[24px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
+                    <div className="rounded-[12px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
                         We sent a password change email to your student inbox. Open it to get the OTP code and secure link for your next step.
                     </div>
                 )}
 
-                <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-6 lg:p-8">
+                <section className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-6 lg:p-8">
                     <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="space-y-2">
                             <p className="text-xs uppercase tracking-[0.22em] text-white/45">
@@ -182,12 +182,12 @@ export default function Edit({ status }) {
                             </p>
                         </div>
 
-                        <div className="rounded-full border border-white/12 bg-black/20 px-4 py-2 text-sm text-white/62">
+                        <div className="rounded-lg border border-white/12 bg-black/20 px-4 py-2 text-sm text-white/62">
                             Profile update flows into Home and student content
                         </div>
                     </div>
 
-                    <div className="rounded-[28px] border border-white/10 bg-[#100d0c] p-4 sm:p-5 lg:p-6">
+                    <div className="rounded-[14px] border border-white/10 bg-[#100d0c] p-4 sm:p-5 lg:p-6">
                         <StudentProfileForm
                             data={data}
                             setData={setData}
@@ -201,7 +201,7 @@ export default function Edit({ status }) {
                     </div>
                 </section>
 
-                <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-6 lg:p-8">
+                <section className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-6 lg:p-8">
                     <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="space-y-2">
                             <p className="text-xs uppercase tracking-[0.22em] text-white/45">
@@ -218,12 +218,12 @@ export default function Edit({ status }) {
                             </p>
                         </div>
 
-                        <div className="rounded-full border border-white/12 bg-black/20 px-4 py-2 text-sm text-white/62">
+                        <div className="rounded-lg border border-white/12 bg-black/20 px-4 py-2 text-sm text-white/62">
                             Email verification required
                         </div>
                     </div>
 
-                    <div className="rounded-[28px] border border-white/10 bg-[#100d0c] p-5 sm:p-6">
+                    <div className="rounded-[14px] border border-white/10 bg-[#100d0c] p-5 sm:p-6">
                         <div className="mb-6 flex items-start gap-4">
                             <div className="rounded-full border border-white/10 bg-white/5 p-3">
                                 <KeyRound className="size-5 text-[#ffd7cf]" />
@@ -252,7 +252,7 @@ export default function Edit({ status }) {
                             <Button
                                 type="button"
                                 onClick={requestPasswordChange}
-                                className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                                className="rounded-lg bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
                             >
                                 Change Password
                             </Button>
@@ -261,7 +261,7 @@ export default function Edit({ status }) {
                 </section>
 
                 <div className="flex justify-end">
-                    <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/45">
+                    <div className="rounded-lg border border-white/10 bg-black/20 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/45">
                         Next student stage stays paused until you are ready
                         <ChevronRight className="ml-2 inline size-3.5" />
                     </div>

@@ -28,7 +28,7 @@ export default function Show({ dialog }) {
                         {dialog.title}
                     </h1>
 
-                    <div className="mt-8 bg-white px-6 py-10 text-slate-900 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:px-10">
+                    <div className="mt-8 rounded-[10px] bg-white px-6 py-10 text-slate-900 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:px-10">
                         {dialog.content ? (
                             <div
                                 className="prose prose-lg max-w-none prose-headings:text-[#c10d0d] prose-p:text-slate-900 prose-strong:text-slate-950"

@@ -127,7 +127,7 @@ export default function StudentProfileForm({
     ];
 
     const sectionClassName = isImmersive
-        ? "rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 sm:p-6"
+        ? "rounded-[14px] border border-white/10 bg-[linear-gradient(160deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-5 sm:p-6"
         : "space-y-6";
     const titleClassName = isImmersive
         ? "text-xl font-semibold tracking-tight text-white"
@@ -410,7 +410,7 @@ export default function StudentProfileForm({
                                 <img
                                     src={currentProfilePhotoUrl}
                                     alt="Current profile"
-                                    className="h-20 w-20 rounded-full border border-white/10 object-cover"
+                                    className="h-20 w-20 rounded-[12px] border border-white/10 object-cover"
                                 />
                                 <p className={helperClassName}>
                                     Current profile photo. Upload a new `.jpg`

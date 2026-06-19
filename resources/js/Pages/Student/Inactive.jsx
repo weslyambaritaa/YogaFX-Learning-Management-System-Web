@@ -11,7 +11,7 @@ export default function StudentInactive() {
             <Head title="Access Blocked" />
 
             <div className="flex min-h-[70vh] items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(226,72,72,0.16),_transparent_24%),linear-gradient(180deg,#121010_0%,#070707_55%,#030303_100%)] px-4 py-12 sm:px-6 lg:px-8">
-                <div className="w-full max-w-2xl rounded-[36px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_90px_rgba(0,0,0,0.4)] backdrop-blur md:p-12">
+                <div className="w-full max-w-2xl rounded-[16px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_90px_rgba(0,0,0,0.4)] backdrop-blur md:p-12">
                     <div className="mx-auto flex size-20 items-center justify-center rounded-full border border-rose-300/20 bg-rose-500/15 text-3xl text-rose-100">
                         !
                     </div>

@@ -100,18 +100,18 @@ export default function StudentModuleShow({ module }) {
 
                         {module.show_progress ? (
                             <div className="flex flex-wrap gap-3">
-                                <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
+                                <div className="rounded-md border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
                                     {module.completed_lessons} /{" "}
                                     {module.lesson_count} lessons completed
                                 </div>
-                                <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
+                                <div className="rounded-md border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
                                     {module.progress_percentage}% module
                                     progress
                                 </div>
                             </div>
                         ) : (
                             <div className="flex flex-wrap gap-3">
-                                <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
+                                <div className="rounded-md border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
                                     {module.assignments?.length
                                         ? "Assignment submission and approval are required before this module can be cleared."
                                         : module.status === "completed"
@@ -169,7 +169,7 @@ export default function StudentModuleShow({ module }) {
                                                     <div className="aspect-[16/9] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                                                 )}
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-                                                <div className="absolute left-4 top-4 rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/70 backdrop-blur">
+                                                <div className="absolute left-4 top-4 rounded-md border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/70 backdrop-blur">
                                                     Lesson {lesson.sort_order}
                                                 </div>
                                             </div>
@@ -287,7 +287,7 @@ export default function StudentModuleShow({ module }) {
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="space-y-3">
-                                                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
+                                                <div className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
                                                     <ClipboardCheck className="size-3.5" />
                                                     Assignment{" "}
                                                     {assignment.sort_order}
@@ -303,7 +303,7 @@ export default function StudentModuleShow({ module }) {
                                                 </div>
                                             </div>
 
-                                            <div className="rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/68">
+                                            <div className="rounded-md border border-white/12 bg-white/5 px-3 py-1 text-xs text-white/68">
                                                 Required
                                             </div>
                                         </div>
@@ -364,7 +364,7 @@ export default function StudentModuleShow({ module }) {
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="space-y-3">
-                                                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
+                                                <div className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
                                                     <FileText className="size-3.5" />
                                                     Ebook {ebook.sort_order}
                                                 </div>
@@ -382,7 +382,7 @@ export default function StudentModuleShow({ module }) {
                                         <div className="mt-6 flex flex-wrap gap-3 border-t border-white/8 pt-4">
                                             <a
                                                 href={ebook.preview_url}
-                                                className="inline-flex items-center gap-2 rounded-full bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
+                                                className="inline-flex items-center gap-2 rounded-lg bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
                                             >
                                                 Open Ebook
                                                 <ArrowRight className="size-4" />
@@ -390,7 +390,7 @@ export default function StudentModuleShow({ module }) {
                                             {ebook.download_url ? (
                                                 <a
                                                     href={ebook.download_url}
-                                                    className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                                                    className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
                                                 >
                                                     Download
                                                     <Download className="size-4" />
@@ -475,13 +475,13 @@ export default function StudentModuleShow({ module }) {
                                                     href={course.video.hls_url}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    className="inline-flex items-center gap-2 rounded-full bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
+                                                className="inline-flex items-center gap-2 rounded-lg bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
                                                 >
                                                     Open Video
                                                     <ArrowRight className="size-4" />
                                                 </a>
                                             ) : (
-                                                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/60">
+                                                <div className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/60">
                                                     Video Not Ready
                                                 </div>
                                             )}
@@ -521,7 +521,7 @@ export default function StudentModuleShow({ module }) {
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="space-y-3">
-                                                <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
+                                                <div className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
                                                     <Download className="size-3.5" />
                                                     Certificate PDF
                                                 </div>

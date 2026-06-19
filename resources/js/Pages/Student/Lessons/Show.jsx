@@ -380,14 +380,14 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         </p>
                     </div>
 
-                    <div className="overflow-hidden rounded-[32px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+                    <div className="overflow-hidden rounded-[16px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                         <div className="relative">
                             {lessonVideoUrl ? (
                                 <div className="border-b border-white/10 bg-black/20 p-4 sm:p-6">
                                     <VideoJsPlayer
                                         src={lessonVideoUrl}
                                         poster={lesson.thumbnail_url}
-                                        className="overflow-hidden rounded-[24px]"
+                                        className="overflow-hidden rounded-[14px]"
                                         autoplay={Boolean(lesson.autoplay)}
                                         onPlaybackError={setPlayerWarning}
                                         onProgressUpdate={handleProgressUpdate}
@@ -406,13 +406,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             ) : (
                                 <div className="aspect-[16/8] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                             )}
-                            <div className="absolute left-5 top-5 rounded-full border border-white/12 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/72 backdrop-blur">
+                            <div className="absolute left-5 top-5 rounded-md border border-white/12 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/72 backdrop-blur">
                                 {isLessonDone
                                     ? 'Lesson completed'
                                     : `${watchProgress}% lesson progress`}
                             </div>
                             {autoNextCountdown !== null && nextLesson?.title ? (
-                                <div className="absolute inset-x-5 bottom-5 rounded-2xl border border-white/15 bg-black/55 px-5 py-4 backdrop-blur">
+                                <div className="absolute inset-x-5 bottom-5 rounded-[12px] border border-white/15 bg-black/55 px-5 py-4 backdrop-blur">
                                     <div className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">
                                         Up Next
                                     </div>
@@ -425,7 +425,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 Auto continuing in {autoNextCountdown} seconds
                                             </div>
                                         </div>
-                                        <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-lg font-semibold text-white">
+                                        <div className="rounded-lg border border-white/15 bg-white/10 px-4 py-2 text-lg font-semibold text-white">
                                             {autoNextCountdown}
                                         </div>
                                     </div>
@@ -435,12 +435,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                         <div className="space-y-6 p-6 sm:p-8">
                             {lessonVideoWarning && (
-                                <div className="rounded-[24px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-100">
+                                <div className="rounded-[12px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-100">
                                     {lessonVideoWarning}
                                 </div>
                             )}
                             {playbackWarning && (
-                                <div className="rounded-[24px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-100">
+                                <div className="rounded-[12px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-100">
                                     <p>{playbackWarning}</p>
                                     <div className="mt-3 space-y-1 text-xs leading-6 text-amber-50/90">
                                         <p>
@@ -484,7 +484,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             key={action.label}
                                             asChild
                                             variant="outline"
-                                            className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                            className="rounded-lg border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                                         >
                                             <a
                                                 href={action.href}
@@ -500,7 +500,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             </div>
 
                             {lesson.audio_url && (
-                                <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                                <div className="rounded-[12px] border border-white/10 bg-white/[0.04] p-5">
                                     <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
                                         <Volume2 className="size-4 text-[#f15b3a]" />
                                         Audio Companion
@@ -517,7 +517,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     dangerouslySetInnerHTML={{ __html: lesson.content }}
                                 />
                             ) : (
-                                <div className="rounded-[24px] border border-white/10 bg-white/[0.04] px-5 py-6 text-sm leading-7 text-white/60">
+                                <div className="rounded-[12px] border border-white/10 bg-white/[0.04] px-5 py-6 text-sm leading-7 text-white/60">
                                     Lesson content will appear here when this learning material
                                     includes written guidance.
                                 </div>
@@ -554,7 +554,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                       : 'Open Assessment'}
                                             </Link>
                                         ) : (
-                                            <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                                            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
                                                 Locked
                                             </div>
                                         )}
@@ -582,7 +582,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 </Link>
                                             </Button>
                                         ) : (
-                                            <div className="rounded-full border border-amber-400/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
+                                            <div className="rounded-lg border border-amber-400/25 bg-amber-500/10 px-4 py-2 text-sm text-amber-100">
                                                 {nextLesson.lock_reason ?? 'Finish this lesson before continuing.'}
                                             </div>
                                         )
@@ -595,7 +595,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 </section>
 
                 <section className="space-y-5">
-                    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
                         <p className="text-xs uppercase tracking-[0.22em] text-white/45">
                             Progress
                         </p>
@@ -615,7 +615,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         </p>
                     </div>
 
-                    <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
+                    <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <p className="text-xs uppercase tracking-[0.22em] text-white/45">
@@ -639,10 +639,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     <NavigationTag
                                         key={item.id}
                                         {...(item.url ? { href: item.url } : {})}
-                                    className="block rounded-[22px] border border-white/10 bg-black/18 p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
+                                    className="block rounded-[12px] border border-white/10 bg-black/18 p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
                                     >
                                         <div className="flex items-start gap-4">
-                                            <div className="h-24 w-40 shrink-0 overflow-hidden rounded-2xl bg-white/5">
+                                            <div className="h-24 w-40 shrink-0 overflow-hidden rounded-[12px] bg-white/5">
                                                 {item.thumbnail_url ? (
                                                     <img
                                                         src={item.thumbnail_url}
@@ -686,7 +686,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         </div>
                     </div>
 
-                    <div className="rounded-[28px] border border-white/10 bg-black/25 p-5 shadow-2xl backdrop-blur-md">
+                    <div className="rounded-[14px] border border-white/10 bg-black/25 p-5 shadow-2xl backdrop-blur-md">
                         <div className="space-y-5">
                             <div className="space-y-2">
                                 <p className="text-xs uppercase tracking-[0.24em] text-white/45">

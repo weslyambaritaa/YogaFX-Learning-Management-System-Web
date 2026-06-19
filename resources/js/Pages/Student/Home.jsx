@@ -52,7 +52,7 @@ function OnboardingOverlay({ onDone }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-            <div className="relative w-full max-w-md rounded-[28px] border border-white/15 bg-[#1a1210] p-8 shadow-2xl">
+            <div className="relative w-full max-w-md rounded-[16px] border border-white/15 bg-[#1a1210] p-8 shadow-2xl">
                 <button
                     onClick={finish}
                     className="absolute right-5 top-5 text-white/40 hover:text-white/70 transition"
@@ -84,7 +84,7 @@ function OnboardingOverlay({ onDone }) {
                     </button>
                     <button
                         onClick={() => (isLast ? finish() : setSlide(s => s + 1))}
-                        className="flex items-center gap-2 rounded-full bg-[#DB202C] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#b91c26] transition"
+                        className="flex items-center gap-2 rounded-lg bg-[#DB202C] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#b91c26] transition"
                     >
                         {isLast ? 'Get Started' : 'Next'}
                         <ChevronRight className="size-4" />
@@ -157,7 +157,7 @@ function ModuleModal({ module, onClose }) {
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-t-[8px] sm:rounded-[8px] border border-white/10 bg-[#141110] shadow-2xl"
+                className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-t-[8px] sm:rounded-[10px] border border-white/10 bg-[#141110] shadow-2xl"
                 onClick={e => e.stopPropagation()}
             >
                 <div className="relative aspect-[16/7] overflow-hidden rounded-t-[8px]">
@@ -170,14 +170,14 @@ function ModuleModal({ module, onClose }) {
 
                     <button
                         onClick={onClose}
-                        className="absolute right-4 top-4 rounded-full border border-white/15 bg-black/50 p-2 text-white/70 hover:text-white backdrop-blur transition"
+                        className="absolute right-4 top-4 rounded-lg border border-white/15 bg-black/50 p-2 text-white/70 hover:text-white backdrop-blur transition"
                     >
                         <X className="size-4" />
                     </button>
 
                     <div className="absolute left-4 bottom-4">
                         <span className={[
-                            'rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.2em] backdrop-blur',
+                            'rounded-md border px-3 py-1 text-[10px] uppercase tracking-[0.2em] backdrop-blur',
                             isCompleted
                                 ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
                                 : module.status === 'active'
@@ -217,7 +217,7 @@ function ModuleModal({ module, onClose }) {
 
                     <Link
                         href={module.continue_url ?? module.cta_url}
-                        className="flex items-center justify-center gap-2 w-full rounded-full bg-[#DB202C] py-3 text-sm font-semibold text-white hover:bg-[#b91c26] transition"
+                        className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#DB202C] py-3 text-sm font-semibold text-white hover:bg-[#b91c26] transition"
                     >
                         <Play className="size-4 fill-current" />
                         {module.cta_label ?? 'Open Module'}
@@ -253,7 +253,7 @@ function ModuleCard({ module, onClick }) {
     return (
         <button
             onClick={() => onClick(module)}
-            className="group relative shrink-0 w-[240px] sm:w-[260px] rounded-[6px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_20px_60px_rgba(0,0,0,0.55)] text-left"
+            className="group relative shrink-0 w-[240px] sm:w-[260px] rounded-[10px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_20px_60px_rgba(0,0,0,0.55)] text-left"
         >
             <div className="relative aspect-[16/10] overflow-hidden">
                 {module.thumbnail_url ? (
@@ -269,7 +269,7 @@ function ModuleCard({ module, onClick }) {
 
                 <div className="absolute left-3 top-3">
                     <span className={[
-                        'rounded-[4px] border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] backdrop-blur',
+                        'rounded-md border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] backdrop-blur',
                         isCompleted
                             ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
                             : module.status === 'active'
@@ -322,7 +322,7 @@ function ModuleRow({ title, modules, onCardClick }) {
             <div className="relative group/row">
                 <button
                     onClick={() => scroll(-1)}
-                    className="absolute left-1 top-1/2 -translate-y-1/2 z-10 rounded-full border border-white/15 bg-black/60 p-2 text-white/65 hover:text-white backdrop-blur opacity-0 group-hover/row:opacity-100 transition"
+                    className="absolute left-1 top-1/2 -translate-y-1/2 z-10 rounded-lg border border-white/15 bg-black/60 p-2 text-white/65 hover:text-white backdrop-blur opacity-0 group-hover/row:opacity-100 transition"
                 >
                     <ChevronRight className="size-4 rotate-180" />
                 </button>
@@ -335,7 +335,7 @@ function ModuleRow({ title, modules, onCardClick }) {
                 </div>
                 <button
                     onClick={() => scroll(1)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 z-10 rounded-full border border-white/15 bg-black/60 p-2 text-white/65 hover:text-white backdrop-blur opacity-0 group-hover/row:opacity-100 transition"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 z-10 rounded-lg border border-white/15 bg-black/60 p-2 text-white/65 hover:text-white backdrop-blur opacity-0 group-hover/row:opacity-100 transition"
                 >
                     <ChevronRight className="size-4" />
                 </button>
@@ -377,7 +377,7 @@ function AccessTimeCard({ accessTimeSummary }) {
     const parts = formatDurationParts(liveSeconds);
 
     return (
-        <div className="inline-flex items-center gap-5 rounded-2xl border border-white/10 bg-black/40 px-7 py-5 backdrop-blur-md">
+        <div className="inline-flex items-center gap-5 rounded-[14px] border border-white/10 bg-black/40 px-7 py-5 backdrop-blur-md">
             <div className="leading-tight">
                 <p className="text-xs uppercase tracking-[0.18em] text-white/45">
                     Running Total
@@ -455,7 +455,7 @@ function HeroSection({ homeExperience, continueLearning, studentName, onInfoClic
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                         <Link
                             href={ctaUrl}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#DB202C] px-7 py-3 text-sm font-bold text-white hover:bg-[#b91c26] transition shadow-lg"
+                            className="inline-flex items-center gap-2 rounded-lg bg-[#DB202C] px-7 py-3 text-sm font-bold text-white hover:bg-[#b91c26] transition shadow-lg"
                         >
                             <Play className="size-4 fill-white" />
                             {ctaLabel}
@@ -464,7 +464,7 @@ function HeroSection({ homeExperience, continueLearning, studentName, onInfoClic
                         {onInfoClick && moduleCtx && (
                             <button
                                 onClick={onInfoClick}
-                                className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-6 py-3 text-sm font-medium text-white hover:bg-white/18 transition backdrop-blur"
+                                className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-6 py-3 text-sm font-medium text-white hover:bg-white/18 transition backdrop-blur"
                             >
                                 <Info className="size-4" />
                                 More Info
@@ -581,7 +581,7 @@ export default function StudentHome({
                                 <Link
                                     key={ebook.id}
                                     href={ebook.preview_url ?? route('ebooks.index')}
-                                    className="group shrink-0 w-[170px] rounded-[18px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/22"
+                                    className="group shrink-0 w-[170px] rounded-[12px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/22"
                                 >
                                     <div className="relative aspect-[3/4] bg-[radial-gradient(circle_at_20%_18%,rgba(213,70,47,0.45),transparent_30%),linear-gradient(160deg,#2d1e18,#120f0e)] p-4 flex flex-col justify-between">
                                         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/50">
@@ -603,7 +603,7 @@ export default function StudentHome({
 
                 {rawModules.length === 0 && (
                     <div className="px-4 sm:px-6 lg:px-10">
-                        <div className="rounded-[28px] border border-white/8 bg-white/[0.02] px-8 py-16 text-center">
+                        <div className="rounded-[14px] border border-white/8 bg-white/[0.02] px-8 py-16 text-center">
                             <p className="text-sm text-white/45">No modules are available for your current access tier.</p>
                             <p className="mt-2 text-xs text-white/25">Contact your administrator for more information.</p>
                         </div>
@@ -616,14 +616,14 @@ export default function StudentHome({
                             {certificateMilestone?.state === 'download_available' && (
                                 <a
                                     href={certificateMilestone.cta_url ?? '#'}
-                                    className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-5 py-2.5 text-xs font-medium text-emerald-300 hover:bg-emerald-400/15 transition"
+                                    className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-5 py-2.5 text-xs font-medium text-emerald-300 hover:bg-emerald-400/15 transition"
                                 >
                                     <Download className="size-3.5" />
                                     {certificateMilestone.cta_label ?? 'Download Certificate'}
                                 </a>
                             )}
                             {assignmentMilestone?.state === 'approved' && (
-                                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-5 py-2.5 text-xs font-medium text-emerald-300">
+                                <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-5 py-2.5 text-xs font-medium text-emerald-300">
                                     <CheckCircle2 className="size-3.5" />
                                     Assignment approved
                                 </div>
