@@ -7,9 +7,12 @@ import { useState } from 'react';
 export default function UpgradeCheckout({ upgrade }) {
     const { data, setData, post, processing, errors } = useForm({
         payment_type: 'pay_full',
-        payment_method: 'paypal',
+        payment_method: upgrade.payment_method_options?.[0]?.value ?? 'paypal',
     });
     const [isSimulating, setIsSimulating] = useState(false);
+    const mockOptionEnabled = (upgrade.payment_method_options ?? []).some(
+        (option) => option.value === 'mock',
+    );
 
     const submit = (event) => {
         event.preventDefault();
@@ -35,13 +38,13 @@ export default function UpgradeCheckout({ upgrade }) {
                         <div className="space-y-6">
                             <div className="space-y-3">
                                 <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
-                                    Upgrade Simulation
+                                    Tier Upgrade
                                 </p>
                                 <h1 className="text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
                                     Move into a higher YogaFX tier without losing your billing history.
                                 </h1>
                                 <p className="max-w-2xl text-sm leading-7 text-white/64 sm:text-base">
-                                    This upgrade flow keeps the original invoice untouched, creates a fresh invoice for the remaining prorated amount, then simulates a successful payment before the new tier becomes active on your account.
+                                    This upgrade flow keeps your payment history intact, creates a fresh invoice for the remaining amount due, then continues through full PayPal redirect before your new tier becomes active.
                                 </p>
                             </div>
 
@@ -77,8 +80,11 @@ export default function UpgradeCheckout({ upgrade }) {
                                             onChange={(event) => setData('payment_method', event.target.value)}
                                             className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
                                         >
-                                            <option value="paypal">PayPal</option>
-                                            <option value="bank_transfer">Bank Transfer</option>
+                                            {(upgrade.payment_method_options ?? []).map((option) => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
                                         </select>
                                         {errors.payment_method && (
                                             <p className="mt-2 text-sm text-[#ffb4a8]">{errors.payment_method}</p>
@@ -88,7 +94,9 @@ export default function UpgradeCheckout({ upgrade }) {
 
                                 <div className="flex flex-wrap items-center justify-between gap-4">
                                     <p className="text-sm text-white/50">
-                                        Simulated payment takes 2-3 seconds, then the new tier is attached to your account.
+                                        {mockOptionEnabled
+                                            ? 'PayPal will redirect you out and back. Mock mode is only shown in approved non-production environments.'
+                                            : 'PayPal will redirect you out and back to finish your upgrade securely.'}
                                     </p>
 
                                     <Button
@@ -96,7 +104,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                         disabled={processing || isSimulating}
                                         className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
                                     >
-                                        {isSimulating ? 'Processing upgrade...' : 'Pay Upgrade Now'}
+                                        {isSimulating ? 'Preparing upgrade...' : 'Pay Upgrade Now'}
                                     </Button>
                                 </div>
                             </form>
@@ -123,7 +131,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                         {formatCurrency(upgrade.amount_due, upgrade.target_tier.currency_code)}
                                     </div>
                                     <p className="mt-3 text-sm leading-6 text-white/60">
-                                        Prorated from the target program price minus the total amount already paid in your current journey.
+                                        Calculated from the target tier price minus the amount already paid on your latest relevant active tier invoice.
                                     </p>
                                 </div>
                             </div>

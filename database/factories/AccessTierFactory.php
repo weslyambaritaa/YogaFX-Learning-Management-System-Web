@@ -29,6 +29,7 @@ class AccessTierFactory extends Factory
             'thumbnail' => null,
             'price' => fake()->randomFloat(2, 49, 999),
             'currency_code' => fake()->randomElement(AccessTier::CURRENCY_OPTIONS),
+            'level' => fake()->numberBetween(1, 5),
             'is_active' => true,
         ];
     }

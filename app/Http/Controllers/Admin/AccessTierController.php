@@ -22,6 +22,7 @@ class AccessTierController extends Controller
             'accessTiers' => AccessTier::query()
                 ->withCount('users')
                 ->orderByDesc('is_active')
+                ->orderBy('level')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (AccessTier $accessTier) => [
@@ -38,6 +39,7 @@ class AccessTierController extends Controller
                     ),
                     'price' => (float) $accessTier->price,
                     'currency_code' => $accessTier->currency_code,
+                    'level' => $accessTier->level,
                     'is_active' => $accessTier->is_active,
                     'users_count' => $accessTier->users_count,
                 ]),
@@ -84,6 +86,7 @@ class AccessTierController extends Controller
                 ),
                 'price' => (float) $accessTier->price,
                 'currency_code' => $accessTier->currency_code,
+                'level' => $accessTier->level,
                 'is_active' => $accessTier->is_active,
                 'users_count' => $accessTier->users_count,
             ],

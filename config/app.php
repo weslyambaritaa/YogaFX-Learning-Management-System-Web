@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'enable_mock_payment_ui' => (bool) env('VITE_ENABLE_MOCK_PAYMENT', false),
+
 ];

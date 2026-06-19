@@ -17,6 +17,8 @@ use App\Http\Controllers\ContentFileController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\LeadRegistrationController;
 use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\PayPalCheckoutController;
+use App\Http\Controllers\PayPalWebhookController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\CourseCatalogController;
 use App\Http\Controllers\Student\EbookCatalogController;
@@ -30,6 +32,7 @@ use App\Http\Controllers\Student\ProfilePasswordController;
 use App\Http\Controllers\Student\UpgradeController;
 use App\Http\Controllers\Admin\ScoreboardBuilderController;
 use App\Http\Controllers\Admin\ScoreboardController;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -47,10 +50,17 @@ Route::get('/scoreboard', [LeadRegistrationController::class, 'create'])->name('
 Route::post('/scoreboard', [LeadRegistrationController::class, 'store'])->name('lead-registration.store');
 Route::get('/scoreboard/submitted/{pendingRegistration}', [LeadRegistrationController::class, 'submitted'])->name('lead-registration.submitted');
 
+Route::get('/paypal/checkout/{invoice}/success', [PayPalCheckoutController::class, 'success'])->name('paypal.success');
+Route::get('/paypal/checkout/{invoice}/cancel', [PayPalCheckoutController::class, 'cancel'])->name('paypal.cancel');
+Route::post('/webhooks/paypal', PayPalWebhookController::class)
+    ->withoutMiddleware([ValidateCsrfToken::class])
+    ->name('paypal.webhook');
+
 Route::middleware('signed')->group(function () {
     Route::get('/checkout/{pendingRegistration}/{accessTierSlug}', [CheckoutController::class, 'show'])->name('checkout.show');
     Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/pay', [CheckoutController::class, 'pay'])->name('checkout.pay');
     Route::get('/onboarding/{onboardingState}/payment-success', [OnboardingController::class, 'showPaymentSuccess'])->name('onboarding.payment-success.show');
+    Route::get('/upgrades/{invoice}/payment-success', [UpgradeController::class, 'success'])->name('student.upgrades.success');
     Route::get('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'showEnrollment'])->name('onboarding.enrollment.show');
     Route::post('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'storeEnrollment'])->name('onboarding.enrollment.store');
     Route::get('/onboarding/{onboardingState}/signup', [OnboardingController::class, 'showSignup'])->name('onboarding.signup.show');

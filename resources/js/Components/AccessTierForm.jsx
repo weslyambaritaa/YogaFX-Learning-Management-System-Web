@@ -68,6 +68,23 @@ export default function AccessTierForm({
                     </select>
                     <InputError className="mt-2" message={errors.currency_code} />
                 </div>
+
+                <div>
+                    <InputLabel htmlFor="level" value="Tier Level" />
+                    <TextInput
+                        id="level"
+                        type="number"
+                        min="1"
+                        step="1"
+                        className="mt-1 block w-full"
+                        value={data.level}
+                        onChange={(event) => setData('level', event.target.value)}
+                    />
+                    <p className="mt-2 text-xs text-gray-500">
+                        Higher level means higher upgrade hierarchy.
+                    </p>
+                    <InputError className="mt-2" message={errors.level} />
+                </div>
             </div>
 
             <div>

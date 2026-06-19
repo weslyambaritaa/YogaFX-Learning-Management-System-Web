@@ -1,33 +1,33 @@
-import { Button } from "@/Components/ui/button";
-import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
-import { Link } from "@inertiajs/react";
-import { CheckCircle2 } from "lucide-react";
+import { Button } from '@/Components/ui/button';
+import PublicFlowLayout from '@/Layouts/PublicFlowLayout';
+import { formatCurrency } from '@/lib/currency';
+import { Head, Link } from '@inertiajs/react';
+import { CheckCircle2 } from 'lucide-react';
 
-export default function PaymentSuccess({ onboarding, student }) {
+export default function UpgradePaymentSuccess({ upgrade }) {
     return (
         <PublicFlowLayout
-            title="Payment Success"
+            title="Upgrade Success"
             eyebrow="Payment Completed"
-            heading="Your payment was successful. Continue when you're ready."
-            description="Your payment has been recorded, your YogaFX base account has been prepared, and your continuation path is ready for the next enrollment step."
+            heading="Your upgrade payment was successful."
+            description="Your YogaFX upgrade has been finalized, your new tier access is ready, and you can continue back into your learning dashboard whenever you're ready."
             aside={
                 <div className="space-y-6">
-                    {/* Payment result card */}
                     <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
                         <div className="flex justify-end">
                             <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
-                                Payment result
+                                Upgrade result
                             </p>
                         </div>
                         <div className="mt-7 space-y-3 text-sm text-white">
-                            <p>Student: {student.name}</p>
-                            <p>Email: {student.email}</p>
-                            <p>Tier: {onboarding.access_tier.name}</p>
-                            <p>Status: success</p>
+                            <p>Student: {upgrade.student?.name ?? 'Student'}</p>
+                            <p>Email: {upgrade.student?.email ?? '-'}</p>
+                            <p>Tier: {upgrade.target_tier?.name ?? '-'}</p>
+                            <p>Invoice: {upgrade.invoice_number}</p>
+                            <p>Amount received: {formatCurrency(upgrade.amount_paid, upgrade.currency_code)}</p>
                         </div>
                     </div>
 
-                    {/* Next step card */}
                     <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
                         <div className="flex justify-end">
                             <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
@@ -35,41 +35,37 @@ export default function PaymentSuccess({ onboarding, student }) {
                             </p>
                         </div>
                         <div className="mt-7 space-y-3 text-sm leading-6 text-white/70">
-                            <p>
-                                Enrollment comes next, then final password
-                                creation, then LMS access.
-                            </p>
+                            <p>Your account has already been moved into the upgraded access tier.</p>
+                            <p>Return to the dashboard to continue with the new YogaFX content available in this path.</p>
                         </div>
                     </div>
                 </div>
             }
         >
+            <Head title="Upgrade Success" />
+
             <div className="space-y-6">
-                {/* Success message */}
                 <div className="flex items-center gap-3">
                     <CheckCircle2
                         className="h-6 w-6 flex-shrink-0 text-green-400"
                         strokeWidth={2.5}
                     />
                     <p className="text-sm font-medium leading-7 text-green-400">
-                        Invoice and payment activity have been finalized, your
-                        anti-limbo continuation is active, and you can continue
-                        into enrollment from here.
+                        Your upgrade payment has been finalized and your new tier is now active.
                     </p>
                 </div>
 
-                {/* Footer + tombol */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <p className="text-sm text-gray-500">
-                        Continue when you're ready.
+                        Continue back into your upgraded learning dashboard when you're ready.
                     </p>
 
                     <Button
                         asChild
                         className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
                     >
-                        <Link href={onboarding.continue_url}>
-                            Continue Registration / Enrollment
+                        <Link href={upgrade.continue_url}>
+                            {upgrade.cta_label ?? 'Return to Dashboard'}
                         </Link>
                     </Button>
                 </div>

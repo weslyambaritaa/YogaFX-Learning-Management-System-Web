@@ -533,8 +533,9 @@ class HomeController extends Controller
             $moduleCollection->pluck('id'),
         );
         $activeLessonId = $this->latestProgressLessonId($user->id, $lessonProgressMap);
+        $moduleStates = collect();
 
-        $items = $moduleCollection->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $resourceModuleVisitMap) {
+        $items = $moduleCollection->values()->map(function (Module $module, int $index) use ($activeLessonId, $lessonProgressMap, $resourceModuleVisitMap, &$moduleStates, $moduleCollection) {
             $totalLessons = $module->lessons->count();
             $completedLessons = $module->lessons
                 ->filter(fn ($lesson) => (bool) optional($lessonProgressMap->get($lesson->id))->is_done)
@@ -543,15 +544,39 @@ class HomeController extends Controller
                 && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty();
             $isVisitedResourceModule = $isResourceOnlyModule
                 && $resourceModuleVisitMap->has($module->id);
-            $isActive = $module->lessons->contains(fn ($lesson) => $lesson->id === $activeLessonId);
-            $status = $isVisitedResourceModule || ($totalLessons > 0 && $completedLessons === $totalLessons)
+            $hasStartedLesson = $module->lessons->contains(function ($lesson) use ($lessonProgressMap) {
+                $progress = $lessonProgressMap->get($lesson->id);
+
+                return $progress && (
+                    (bool) $progress->is_done
+                    || (float) $progress->watch_progress > 0
+                    || $progress->video_completed_at !== null
+                    || $progress->completed_at !== null
+                );
+            });
+            $isCompleted = $isVisitedResourceModule || ($totalLessons > 0 && $completedLessons === $totalLessons);
+            $isInProgress = ! $isCompleted && (
+                $module->lessons->contains(fn ($lesson) => $lesson->id === $activeLessonId)
+                || ($totalLessons > 0 && $hasStartedLesson)
+            );
+            $allPreviousCompleted = $index === 0
+                || $moduleCollection
+                    ->slice(0, $index)
+                    ->every(fn (Module $previousModule) => ($moduleStates->get($previousModule->id)['is_completed'] ?? false) === true);
+            $status = $isCompleted
                 ? 'completed'
-                : ($isActive ? 'active' : 'available');
+                : ($isInProgress ? 'in_progress' : ($allPreviousCompleted ? 'available' : 'locked'));
             $statusLabel = match ($status) {
                 'completed' => 'Completed',
-                'active' => 'Continue',
+                'in_progress' => 'In Progress',
+                'locked' => 'Locked',
                 default => 'Available',
             };
+
+            $moduleStates->put($module->id, [
+                'is_completed' => $isCompleted,
+                'status' => $status,
+            ]);
 
             return [
                 'id' => $module->id,
@@ -565,35 +590,42 @@ class HomeController extends Controller
                     ? (int) round(($completedLessons / $totalLessons) * 100)
                     : ($isVisitedResourceModule ? 100 : 0),
                 'show_progress' => $totalLessons > 0,
-                'status' => $status,
-                'status_label' => $statusLabel,
-                'cta_label' => match ($status) {
-                    'completed' => 'Review Module',
-                    'active' => 'Continue Module',
-                    default => 'Open Module',
-                },
-                'cta_url' => route('modules.show', $module->url_slug),
-                    'thumbnail_url' => $this->protectedMediaUrl(
-                    'module',
-                    $module->id,
-                    'thumbnail',
-                    $module->thumbnail,
-                    versionSeed: $module->updated_at,
-                ),
-                'lessons' => $module->lessons->map(fn ($lesson) => [
-                    'id'                  => $lesson->id,
-                    'title'               => $lesson->title,
-                    'sort_order'          => $lesson->sort_order,
-                    'url'                 => route('lessons.show', $lesson),
-                    'status'              => isset($lessonProgressMap[$lesson->id])
-                                                ? ($lessonProgressMap[$lesson->id]->is_done ? 'completed' : 'available')
-                                                : 'available',
-                    'progress_percentage' => isset($lessonProgressMap[$lesson->id])
-                                                ? (int) round((float) $lessonProgressMap[$lesson->id]->watch_progress)
-                                                : 0,
-                ])->values()->toArray(),
-            ];  // <-- penutup array return
-        })->values();
+                  'status' => $status,
+                  'status_label' => $statusLabel,
+                  'cta_label' => match ($status) {
+                      'completed' => 'Review Module',
+                      'in_progress' => 'Continue Module',
+                      'locked' => 'Locked Module',
+                      default => 'Open Module',
+                  },
+                  'cta_url' => $status === 'locked'
+                      ? null
+                      : route('modules.show', $module->url_slug),
+                  'thumbnail_url' => $this->protectedMediaUrl(
+                      'module',
+                      $module->id,
+                      'thumbnail',
+                      $module->thumbnail,
+                      versionSeed: $module->updated_at,
+                  ),
+                  'lessons' => $module->lessons->map(fn ($lesson) => [
+                      'id'                  => $lesson->id,
+                      'title'               => $lesson->title,
+                      'sort_order'          => $lesson->sort_order,
+                      'url'                 => $status === 'locked' ? null : route('lessons.show', $lesson),
+                      'status'              => $status === 'locked'
+                                                  ? 'locked'
+                                                  : (($progress = $lessonProgressMap->get($lesson->id)) && $progress->is_done
+                                                      ? 'completed'
+                                                      : ((($progress?->watch_progress ?? 0) > 0 || $lesson->id === $activeLessonId)
+                                                          ? 'in_progress'
+                                                          : 'available')),
+                      'progress_percentage' => (($progress = $lessonProgressMap->get($lesson->id)) !== null)
+                                                  ? (int) round((float) $progress->watch_progress)
+                                                  : 0,
+                  ])->values()->toArray(),
+              ];  // <-- penutup array return
+          })->values();
 
         
         return [
@@ -605,8 +637,9 @@ class HomeController extends Controller
             'summary' => [
                 'total' => $items->count(),
                 'completed' => $items->where('status', 'completed')->count(),
-                'active' => $items->where('status', 'active')->count(),
+                'in_progress' => $items->where('status', 'in_progress')->count(),
                 'available' => $items->where('status', 'available')->count(),
+                'locked' => $items->where('status', 'locked')->count(),
             ],
         ];
     }

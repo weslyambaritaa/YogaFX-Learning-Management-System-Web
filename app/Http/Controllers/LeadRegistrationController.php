@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LeadRegistrationRequest;
 use App\Models\AccessTier;
 use App\Models\PendingRegistration;
-use App\Services\SimulatedPaymentFlowService;
+use App\Services\PaymentCheckoutService;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
@@ -13,7 +13,7 @@ use Illuminate\Http\RedirectResponse;
 class LeadRegistrationController extends Controller
 {
     public function __construct(
-        private readonly SimulatedPaymentFlowService $paymentFlow,
+        private readonly PaymentCheckoutService $paymentFlow,
     ) {}
 
     public function create(): Response

@@ -35,6 +35,7 @@ class CheckoutPaymentRequest extends FormRequest
                 Rule::in([
                     Payment::METHOD_PAYPAL,
                     Payment::METHOD_BANK_TRANSFER,
+                    Payment::METHOD_MOCK,
                 ]),
             ],
         ];

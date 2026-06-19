@@ -8,7 +8,7 @@ use App\Http\Requests\EnrollmentUpdateRequest;
 use App\Http\Requests\SignupCompletionRequest;
 use App\Models\OnboardingState;
 use App\Services\EmailOtpChallengeService;
-use App\Services\SimulatedPaymentFlowService;
+use App\Services\PaymentCheckoutService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -20,7 +20,7 @@ class OnboardingController extends Controller
     use HandlesLocalUploads;
 
     public function __construct(
-        private readonly SimulatedPaymentFlowService $paymentFlow,
+        private readonly PaymentCheckoutService $paymentFlow,
         private readonly EmailOtpChallengeService $otpChallenges,
     ) {}
 

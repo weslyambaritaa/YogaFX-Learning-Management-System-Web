@@ -9,7 +9,8 @@ import { useState } from "react";
 export default function Checkout({ checkout }) {
     const { data, setData, post, processing, errors } = useForm({
         payment_type: "pay_full",
-        payment_method: "paypal",
+        payment_method:
+            checkout.payment_method_options?.[0]?.value ?? "paypal",
     });
     const [isSimulating, setIsSimulating] = useState(false);
 
@@ -32,7 +33,7 @@ export default function Checkout({ checkout }) {
         <PublicFlowLayout
             title="Checkout"
             heading="Review your details, choose how to pay, and continue into YogaFX."
-            description="This checkout still looks and behaves like a real payment step, but the actual payment result for this phase is simulated internally so the business flow can be built without a live gateway."
+            description="This checkout now prepares a real PayPal redirect architecture, while still allowing controlled mock mode in non-production for transition and testing."
             aside={
                 <div className="space-y-6">
                     {/* Program card */}
@@ -65,12 +66,12 @@ export default function Checkout({ checkout }) {
                                 you click Pay Now.
                             </p>
                             <p>
-                                The payment result is simulated as success after
-                                a short loading state.
+                                PayPal uses a full redirect to the official
+                                checkout page.
                             </p>
                             <p>
-                                Successful payment immediately opens anti-limbo
-                                onboarding continuation.
+                                Mock mode remains available only in non-production
+                                for testing and transition.
                             </p>
                         </div>
                     </div>
@@ -160,8 +161,16 @@ export default function Checkout({ checkout }) {
                             }
                             className="mt-2 block w-full rounded-md border border-gray-700 bg-black text-white focus:border-white focus:ring-white"
                         >
-                            <option value="paypal">PayPal</option>
-                            <option value="bank_transfer">Bank Transfer</option>
+                            {(checkout.payment_method_options ?? []).map(
+                                (option) => (
+                                    <option
+                                        key={option.value}
+                                        value={option.value}
+                                    >
+                                        {option.label}
+                                    </option>
+                                ),
+                            )}
                         </select>
                         <InputError
                             className="mt-2"
@@ -175,7 +184,7 @@ export default function Checkout({ checkout }) {
                     <p className="text-sm leading-6 text-gray-700">
                         {data.payment_type === "installment"
                             ? `The first simulated payment records ${formatCurrency(installmentAmount, checkout.currency_code)} now and leaves the remaining balance on the invoice as installment.`
-                            : "The simulated payment records the full amount and closes the invoice as paid in full."}
+                            : "The first successful capture records the full amount and closes the invoice as paid in full."}
                     </p>
                 </div>
 
@@ -191,7 +200,7 @@ export default function Checkout({ checkout }) {
                         disabled={processing || isSimulating}
                         className="rounded-md bg-red-600 px-6 text-white hover:bg-red-700"
                     >
-                        {isSimulating ? "Processing payment..." : "Pay Now"}
+                        {isSimulating ? "Preparing checkout..." : "Pay Now"}
                     </Button>
                 </div>
             </form>

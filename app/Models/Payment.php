@@ -21,14 +21,16 @@ class Payment extends Model
     public const STATUS_PENDING = 'pending';
     public const STATUS_SUCCESS = 'success';
     public const STATUS_FAILED = 'failed';
+    public const STATUS_CANCELLED = 'cancelled';
 
     public const TYPE_PAY_FULL = 'pay_full';
     public const TYPE_INSTALLMENT = 'installment';
 
     public const METHOD_PAYPAL = 'paypal';
     public const METHOD_BANK_TRANSFER = 'bank_transfer';
+    public const METHOD_MOCK = 'mock';
 
-    protected $table = 'payments';
+    protected $table = 'payment_activities';
 
     protected function casts(): array
     {

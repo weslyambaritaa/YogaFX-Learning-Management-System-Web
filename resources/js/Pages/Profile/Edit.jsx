@@ -1,10 +1,11 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { formatCurrency } from '@/lib/currency';
 import StudentProfileForm from '@/Components/StudentProfileForm';
 import { Button } from '@/Components/ui/button';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { CheckCircle2, ChevronRight, KeyRound, ShieldCheck } from 'lucide-react';
 
-export default function Edit({ status }) {
+export default function Edit({ status, upgradeOptions = [] }) {
     const user = usePage().props.auth.user;
     const studentName = user.first_name ?? user.name ?? 'Student';
     const accessTierName = user.access_tier?.name ?? 'Not assigned yet';
@@ -161,6 +162,81 @@ export default function Edit({ status }) {
                         We sent a password change email to your student inbox. Open it to get the OTP code and secure link for your next step.
                     </div>
                 )}
+
+                <section className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-6 lg:p-8">
+                    <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="space-y-2">
+                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                Upgrade Access
+                            </p>
+                            <h2 className="text-3xl font-semibold tracking-tight text-white">
+                                Move into a higher YogaFX tier
+                            </h2>
+                            <p className="max-w-2xl text-sm leading-7 text-white/60">
+                                Choose a higher tier when you are ready to continue with broader access and the related PayPal upgrade flow.
+                            </p>
+                        </div>
+
+                        <div className="rounded-lg border border-white/12 bg-black/20 px-4 py-2 text-sm text-white/62">
+                            Based on your current tier level
+                        </div>
+                    </div>
+
+                    {upgradeOptions.length > 0 ? (
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            {upgradeOptions.map((tier) => (
+                                <div
+                                    key={tier.id}
+                                    className="rounded-[14px] border border-white/10 bg-[#100d0c] p-5 sm:p-6"
+                                >
+                                    <div className="flex flex-col gap-5">
+                                        <div className="space-y-3">
+                                            <div className="flex flex-wrap items-center gap-3">
+                                                <span className="rounded-full border border-[#d5462f]/30 bg-[#d5462f]/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-[#ffd7cf]">
+                                                    Level {tier.level}
+                                                </span>
+                                                <span className="text-xs uppercase tracking-[0.18em] text-white/42">
+                                                    Available upgrade
+                                                </span>
+                                            </div>
+
+                                            <div>
+                                                <h3 className="text-xl font-semibold text-white">
+                                                    {tier.name}
+                                                </h3>
+                                                <p className="mt-2 text-sm leading-7 text-white/58">
+                                                    {tier.description || 'Continue into a higher tier with broader YogaFX learning access.'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                            <div>
+                                                <p className="text-xs uppercase tracking-[0.18em] text-white/42">
+                                                    Target price
+                                                </p>
+                                                <p className="mt-1 text-2xl font-semibold text-white">
+                                                    {formatCurrency(tier.price, tier.currency_code)}
+                                                </p>
+                                            </div>
+
+                                            <Button
+                                                asChild
+                                                className="rounded-lg bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                                            >
+                                                <Link href={tier.upgrade_url}>Upgrade Now</Link>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="rounded-[14px] border border-white/10 bg-[#100d0c] p-5 text-sm leading-7 text-white/60 sm:p-6">
+                            You are already on the highest available active tier right now, so there is no upgrade option to show here.
+                        </div>
+                    )}
+                </section>
 
                 <section className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm sm:p-6 lg:p-8">
                     <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

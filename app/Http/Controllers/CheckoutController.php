@@ -4,20 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CheckoutPaymentRequest;
 use App\Models\AccessTier;
-use App\Models\OnboardingState;
 use App\Models\PendingRegistration;
-use App\Services\SimulatedPaymentFlowService;
+use App\Services\PaymentCheckoutService;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
 
 class CheckoutController extends Controller
 {
     public function __construct(
-        private readonly SimulatedPaymentFlowService $paymentFlow,
+        private readonly PaymentCheckoutService $paymentFlow,
     ) {}
 
-    public function show(PendingRegistration $pendingRegistration, string $accessTierSlug): Response|RedirectResponse
+    public function show(PendingRegistration $pendingRegistration, string $accessTierSlug): InertiaResponse|RedirectResponse
     {
         $accessTier = AccessTier::query()
             ->where('slug', $accessTierSlug)
@@ -28,7 +28,7 @@ class CheckoutController extends Controller
         $pendingRegistration->loadMissing('accessTier', 'onboardingState');
 
         if ($pendingRegistration->status === PendingRegistration::STATUS_PAYMENT_SUCCESS && $pendingRegistration->onboardingState) {
-            return redirect()->away($this->paymentFlow->enrollmentUrl($pendingRegistration->onboardingState));
+            return redirect()->away($this->paymentFlow->paymentSuccessUrl($pendingRegistration->onboardingState));
         }
 
         if ($pendingRegistration->status === PendingRegistration::STATUS_COMPLETED) {
@@ -56,6 +56,7 @@ class CheckoutController extends Controller
                     'currency_code' => $pendingRegistration->accessTier->currency_code,
                 ],
                 'pay_url' => $this->paymentFlow->checkoutPayUrl($pendingRegistration),
+                'payment_method_options' => $this->paymentFlow->availablePaymentMethodOptions(),
             ],
         ]);
     }
@@ -64,18 +65,19 @@ class CheckoutController extends Controller
         CheckoutPaymentRequest $request,
         PendingRegistration $pendingRegistration,
         string $accessTierSlug,
-    ): RedirectResponse {
+    ): RedirectResponse|HttpResponse {
         $accessTier = AccessTier::query()
             ->where('slug', $accessTierSlug)
             ->firstOrFail();
 
         abort_unless($pendingRegistration->access_tier_id === $accessTier->id, 404);
 
-        $result = $this->paymentFlow->processInitialPayment($pendingRegistration, $request->validated());
+        $result = $this->paymentFlow->startInitialCheckout($pendingRegistration, $request->validated());
 
-        /** @var OnboardingState $onboardingState */
-        $onboardingState = $result['onboarding_state'];
+        if ($request->header('X-Inertia')) {
+            return Inertia::location($result['redirect_url']);
+        }
 
-        return redirect()->away($this->paymentFlow->paymentSuccessUrl($onboardingState));
+        return redirect()->away($result['redirect_url']);
     }
 }

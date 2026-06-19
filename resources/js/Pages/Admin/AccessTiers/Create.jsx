@@ -10,6 +10,7 @@ export default function CreateAccessTier() {
         thumbnail: null,
         price: '',
         currency_code: 'IDR',
+        level: '1',
         is_active: true,
     });
 

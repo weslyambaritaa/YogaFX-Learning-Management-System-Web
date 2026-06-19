@@ -20,6 +20,7 @@ class AccessTierSeeder extends Seeder
                 'thumbnail' => null,
                 'price' => 0,
                 'currency_code' => AccessTier::CURRENCY_IDR,
+                'level' => 1,
                 'is_active' => true,
             ],
             [
@@ -29,6 +30,7 @@ class AccessTierSeeder extends Seeder
                 'thumbnail' => null,
                 'price' => 0,
                 'currency_code' => AccessTier::CURRENCY_IDR,
+                'level' => 2,
                 'is_active' => true,
             ],
             [
@@ -38,8 +40,9 @@ class AccessTierSeeder extends Seeder
                 'thumbnail' => null,
                 'price' => 0,
                 'currency_code' => AccessTier::CURRENCY_IDR,
+                'level' => 3,
                 'is_active' => true,
             ],
-        ], ['slug'], ['name', 'description', 'thumbnail', 'price', 'currency_code', 'is_active']);
+        ], ['slug'], ['name', 'description', 'thumbnail', 'price', 'currency_code', 'level', 'is_active']);
     }
 }

@@ -26,9 +26,10 @@ class Invoice extends Model
     public const TYPE_INITIAL = 'initial';
     public const TYPE_UPGRADE = 'upgrade';
 
-    public const STATUS_PENDING = 'pending';
+    public const STATUS_UNPAID = 'unpaid';
     public const STATUS_PAID_FULL = 'paid_full';
     public const STATUS_INSTALLMENT = 'installment';
+    public const STATUS_UPGRADED = 'upgraded';
 
     public const CONTEXT_INITIAL = self::TYPE_INITIAL;
     public const CONTEXT_UPGRADE = self::TYPE_UPGRADE;
@@ -62,7 +63,7 @@ class Invoice extends Model
 
     public function payments(): HasMany
     {
-        return $this->hasMany(Payment::class);
+        return $this->hasMany(Payment::class, 'invoice_id');
     }
 
     public function paymentActivities(): HasMany

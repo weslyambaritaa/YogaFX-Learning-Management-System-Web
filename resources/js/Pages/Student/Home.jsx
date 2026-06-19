@@ -98,6 +98,7 @@ function OnboardingOverlay({ onDone }) {
 function LessonRow({ lesson }) {
     const isCompleted = lesson.status === 'completed';
     const isLocked = lesson.status === 'locked';
+    const isInProgress = lesson.status === 'in_progress';
 
     const icon = isCompleted
         ? <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
@@ -118,6 +119,9 @@ function LessonRow({ lesson }) {
             </div>
             {isCompleted && (
                 <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-400/70 shrink-0">Done</span>
+            )}
+            {isInProgress && (
+                <span className="text-[10px] uppercase tracking-[0.18em] text-[#f2d9c8]/80 shrink-0">In Progress</span>
             )}
             {!isCompleted && !isLocked && lesson.progress_percentage > 0 && (
                 <span className="text-[11px] text-white/40 shrink-0">{lesson.progress_percentage}%</span>
@@ -150,6 +154,7 @@ function ModuleModal({ module, onClose }) {
     const lessons = module.lessons ?? [];
     const progressPct = module.progress_percentage ?? 0;
     const isCompleted = module.status === 'completed';
+    const isLocked = module.status === 'locked';
 
     return (
         <div
@@ -180,8 +185,10 @@ function ModuleModal({ module, onClose }) {
                             'rounded-md border px-3 py-1 text-[10px] uppercase tracking-[0.2em] backdrop-blur',
                             isCompleted
                                 ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
-                                : module.status === 'active'
+                                : module.status === 'in_progress'
                                 ? 'border-[#DB202C]/40 bg-[#DB202C]/20 text-[#ffcfc7]'
+                                : module.status === 'locked'
+                                ? 'border-white/10 bg-black/40 text-white/40'
                                 : 'border-white/15 bg-black/30 text-white/65',
                         ].join(' ')}>
                             {module.status_label ?? 'Available'}
@@ -215,13 +222,20 @@ function ModuleModal({ module, onClose }) {
                         </div>
                     )}
 
-                    <Link
-                        href={module.continue_url ?? module.cta_url}
-                        className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#DB202C] py-3 text-sm font-semibold text-white hover:bg-[#b91c26] transition"
-                    >
-                        <Play className="size-4 fill-current" />
-                        {module.cta_label ?? 'Open Module'}
-                    </Link>
+                    {module.continue_url ?? module.cta_url ? (
+                        <Link
+                            href={module.continue_url ?? module.cta_url}
+                            className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#DB202C] py-3 text-sm font-semibold text-white hover:bg-[#b91c26] transition"
+                        >
+                            <Play className="size-4 fill-current" />
+                            {module.cta_label ?? 'Open Module'}
+                        </Link>
+                    ) : (
+                        <div className="flex items-center justify-center gap-2 w-full rounded-lg border border-white/10 bg-white/[0.04] py-3 text-sm font-semibold text-white/40">
+                            {isLocked ? <Lock className="size-4" /> : <Play className="size-4 fill-current" />}
+                            {module.cta_label ?? 'Open Module'}
+                        </div>
+                    )}
 
                     {lessons.length > 0 && (
                         <div className="space-y-2">
@@ -249,6 +263,8 @@ function ModuleModal({ module, onClose }) {
 
 function ModuleCard({ module, onClick }) {
     const isCompleted = module.status === 'completed';
+    const isInProgress = module.status === 'in_progress';
+    const isLocked = module.status === 'locked';
 
     return (
         <button
@@ -272,8 +288,10 @@ function ModuleCard({ module, onClick }) {
                         'rounded-md border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] backdrop-blur',
                         isCompleted
                             ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
-                            : module.status === 'active'
+                            : isInProgress
                             ? 'border-[#DB202C]/40 bg-[#DB202C]/20 text-[#ffcfc7]'
+                            : isLocked
+                            ? 'border-white/10 bg-black/40 text-white/40'
                             : 'border-white/15 bg-black/30 text-white/60',
                     ].join(' ')}>
                         {module.status_label ?? 'Available'}
@@ -509,8 +527,7 @@ export default function StudentHome({
     }, []);
 
     const rawModules = availableModulesSection?.items ?? [];
-    const inProgress = rawModules.filter(m => m.status === 'active');
-    const others = rawModules.filter(m => m.status !== 'active');
+    const inProgress = rawModules.filter(m => m.status === 'in_progress');
 
     const activeModuleSlug = continueLearning?.module?.url_slug ?? null;
     const heroModule = activeModuleSlug
@@ -558,7 +575,7 @@ export default function StudentHome({
 
                 <ModuleRow
                     title={inProgress.length > 0 ? 'All Modules' : 'Start Here'}
-                    modules={others.length > 0 ? others : rawModules}
+                    modules={rawModules}
                     onCardClick={setSelectedModule}
                 />
 

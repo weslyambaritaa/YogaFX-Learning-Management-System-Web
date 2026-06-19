@@ -10,6 +10,7 @@ export default function EditAccessTier({ accessTier, status }) {
         thumbnail: null,
         price: accessTier.price ?? '',
         currency_code: accessTier.currency_code ?? 'IDR',
+        level: accessTier.level ?? '1',
         is_active: accessTier.is_active ?? true,
     });
 
