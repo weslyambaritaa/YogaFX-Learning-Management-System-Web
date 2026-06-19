@@ -21,7 +21,7 @@
         "vite": "^8.0.0"
     },
     "dependencies": {
-        "@ckeditor/ckeditor5-build-classic": "^41.4.2",
+        "@ckeditor/ckeditor5-build-classic": "^39.0.2",
         "@ckeditor/ckeditor5-react": "^11.2.0",
         "@fontsource-variable/geist": "^5.2.9",
         "@tailwindcss/vite": "^4.3.1",
