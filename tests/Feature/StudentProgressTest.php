@@ -12,10 +12,13 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\StudentModuleVisit;
 use App\Models\User;
+use App\Services\Certificates\CertificateEligibilityService;
+use App\Services\Certificates\CertificateGeneratorService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
+use Mockery;
 use Tests\TestCase;
 
 class StudentProgressTest extends TestCase
@@ -56,11 +59,13 @@ class StudentProgressTest extends TestCase
             ->has('tierSections', 3)
             ->where('tierSections.0.label', 'Masterclass')
             ->where('tierSections.0.students.0.name', $masterclassStudent->name)
-            ->where('tierSections.0.students.0.assignment_status', 'Not Submitted')
+            ->where('tierSections.0.students.0.assignment_status', 'Not Available')
             ->where('tierSections.1.label', 'Online')
             ->where('tierSections.1.students.0.name', $onlineStudent->name)
+            ->where('tierSections.1.students.0.assignment_status', 'Not Available')
             ->where('tierSections.2.label', 'Starter Kit')
-            ->where('tierSections.2.students.0.name', $starterKitStudent->name));
+            ->where('tierSections.2.students.0.name', $starterKitStudent->name)
+            ->where('tierSections.2.students.0.assignment_status', 'Not Available'));
     }
 
     public function test_admin_can_view_completed_lesson_student_progress_page(): void
@@ -275,7 +280,15 @@ class StudentProgressTest extends TestCase
         Storage::fake('local');
         Mail::fake();
 
-        [$admin, $student] = $this->createStudentProgressContext();
+        [$admin, $student, $lesson] = $this->createStudentProgressContext();
+
+        LessonProgress::factory()->create([
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'watch_progress' => 100,
+            'is_done' => true,
+            'completed_at' => now(),
+        ]);
 
         $generateResponse = $this->actingAs($admin)->post(
             route('admin.student-progress.certificates.store', ['student' => $student]),
@@ -329,6 +342,58 @@ class StudentProgressTest extends TestCase
 
         $this->assertSoftDeleted('certificates', [
             'id' => $certificate->id,
+        ]);
+    }
+
+    public function test_admin_can_generate_certificate_when_bonus_module_without_lessons_exists(): void
+    {
+        [$admin, $student, $lesson] = $this->createStudentProgressContext();
+
+        LessonProgress::factory()->create([
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'watch_progress' => 100,
+            'is_done' => true,
+            'completed_at' => now(),
+        ]);
+
+        $bonusModule = Module::factory()->create([
+            'title' => 'Bonus Module',
+            'url_slug' => 'bonus-module',
+            'ebook_enabled' => true,
+        ]);
+        $bonusModule->accessTiers()->sync([$student->access_tier_id]);
+
+        $summary = app(CertificateEligibilityService::class)->summaryForStudent($student->fresh());
+        $learningPathRequirement = collect($summary['requirements'])->firstWhere('key', 'learning_path');
+
+        $this->assertTrue($summary['learning_eligible']);
+        $this->assertSame(1, $learningPathRequirement['total']);
+        $this->assertSame(1, $learningPathRequirement['completed']);
+
+        $this->app->instance(CertificateGeneratorService::class, Mockery::mock(CertificateGeneratorService::class, function ($mock) use ($student, $admin) {
+            $mock->shouldReceive('generate')
+                ->once()
+                ->andReturnUsing(fn () => Certificate::factory()->create([
+                    'user_id' => $student->id,
+                    'generated_by_user_id' => $admin->id,
+                    'certificate_type' => Certificate::TYPE_BIKRAM,
+                    'file_path' => 'certificates/test-bonus.pdf',
+                    'file_name' => 'test-bonus.pdf',
+                ]));
+        }));
+
+        $response = $this->actingAs($admin)->post(
+            route('admin.student-progress.certificates.store', ['student' => $student]),
+            ['certificate_type' => Certificate::TYPE_BIKRAM],
+        );
+
+        $response->assertRedirect(route('admin.student-progress.certificates.show', $student));
+
+        $this->assertDatabaseHas('certificates', [
+            'user_id' => $student->id,
+            'certificate_type' => Certificate::TYPE_BIKRAM,
+            'file_name' => 'test-bonus.pdf',
         ]);
     }
 

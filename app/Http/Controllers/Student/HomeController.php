@@ -15,6 +15,7 @@ use App\Models\StudentModuleVisit;
 use App\Services\BunnyStorageService;
 use App\Services\CertificateDownloadTrackingService;
 use App\Services\Certificates\CertificateEligibilityService;
+use App\Services\StudentLearningPathService;
 use App\Services\StudentSessionTrackingService;
 use App\Support\BunnyAssetPath;
 use Illuminate\Http\RedirectResponse;
@@ -33,6 +34,7 @@ class HomeController extends Controller
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly BunnyStorageService $bunnyStorage,
         private readonly CertificateDownloadTrackingService $certificateDownloadTrackingService,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {}
 
     public function index(Request $request): Response|RedirectResponse
@@ -45,7 +47,7 @@ class HomeController extends Controller
 
         $displayName = trim((string) ($user?->first_name ?: $user?->name ?: 'Student'));
         $tier = $user?->accessTier;
-        $availableModules = $this->availableModulesForStudent($user?->access_tier_id);
+        $availableModules = $this->availableModulesForStudent($user);
         $continueLearning = $this->buildContinueLearning($request, $availableModules);
         $progressSummary = $this->buildProgressSummary($request, $availableModules);
         $nextStep = $this->buildNextStep($request, $availableModules, $continueLearning);
@@ -112,27 +114,13 @@ class HomeController extends Controller
         return Storage::disk('local')->download($certificate->file_path, $certificate->file_name);
     }
 
-    protected function availableModulesForStudent(?int $accessTierId): Collection
+    protected function availableModulesForStudent(?User $user): Collection
     {
-        if (! $accessTierId) {
+        if (! $user || ! $user->access_tier_id) {
             return collect();
         }
 
-        return Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
-            ->with([
-                'lessons' => fn ($query) => $query
-                    ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
-                    ->orderBy('sort_order')
-                    ->orderBy('title'),
-                'assignments' => fn ($query) => $query
-                    ->where('status', Assignment::STATUS_LIVE)
-                    ->orderBy('sort_order')
-                    ->orderBy('title'),
-            ])
-            ->orderBy('sort_order')
-            ->orderBy('title')
-            ->get();
+        return $this->studentLearningPathService->accessibleModulesForStudent($user);
     }
 
     protected function buildContinueLearning(Request $request, Collection $availableModules): array
@@ -845,18 +833,15 @@ class HomeController extends Controller
             ];
         }
 
-        $requiredAssignments = Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user->access_tier_id))
-            ->with([
-                'assignments' => fn ($query) => $query
-                    ->where('status', Assignment::STATUS_LIVE)
-                    ->orderBy('sort_order')
-                    ->orderBy('title'),
-            ])
-            ->get(['id'])
-            ->flatMap(fn (Module $module) => $module->assignments)
-            ->unique('id')
-            ->values();
+        $requiredAssignmentIds = $this->studentLearningPathService->relevantAssignmentIdsForStudent($user);
+        $requiredAssignments = $requiredAssignmentIds->isEmpty()
+            ? collect()
+            : Assignment::query()
+                ->whereIn('id', $requiredAssignmentIds)
+                ->orderBy('sort_order')
+                ->orderBy('title')
+                ->get()
+                ->values();
 
         if ($requiredAssignments->isEmpty()) {
             return [
@@ -880,11 +865,6 @@ class HomeController extends Controller
             ->orderByDesc('submitted_at')
             ->orderByDesc('id')
             ->get();
-
-        $requiredAssignmentIds = $requiredAssignments
-            ->pluck('id')
-            ->map(fn ($assignmentId) => (int) $assignmentId)
-            ->values();
 
         $submittedEntries = $submissions
             ->filter(fn (AssignmentSubmission $submission) => $requiredAssignmentIds->contains((int) $submission->assignment_id))

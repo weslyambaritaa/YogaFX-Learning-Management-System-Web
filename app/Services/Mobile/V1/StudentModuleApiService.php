@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Services\BunnyStreamService;
 use App\Services\Certificates\CertificateEligibilityService;
+use App\Services\StudentLearningPathService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -29,6 +30,7 @@ class StudentModuleApiService
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly CertificateEligibilityService $certificateEligibilityService,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {}
 
     /**
@@ -42,7 +44,7 @@ class StudentModuleApiService
             return collect();
         }
 
-        $modules = $this->accessibleModulesWithLessons($accessTierId);
+        $modules = $this->accessibleModulesWithLessons($user);
         $resourceModuleVisitMap = $this->resourceModuleVisitMap($user->id, $modules->pluck('id'));
         $lessonProgressMap = $this->lessonProgressMap(
             $user->id,
@@ -146,7 +148,7 @@ class StudentModuleApiService
             return null;
         }
 
-        $modules = $this->accessibleModulesWithLessons($accessTierId);
+        $modules = $this->accessibleModulesWithLessons($user);
         $latestProgress = LessonProgress::query()
             ->where('user_id', $user->id)
             ->whereHas('lesson', function ($query) use ($accessTierId) {
@@ -216,7 +218,7 @@ class StudentModuleApiService
             return null;
         }
 
-        $modules = $this->accessibleModulesWithLessons($accessTierId);
+        $modules = $this->accessibleModulesWithLessons($user);
         /** @var Module|null $currentModule */
         $currentModule = $modules->firstWhere('id', $moduleId);
 
@@ -371,25 +373,9 @@ class StudentModuleApiService
         ];
     }
 
-    private function accessibleModulesWithLessons(?int $accessTierId): Collection
+    private function accessibleModulesWithLessons(User $user): Collection
     {
-        return Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
-            ->with([
-                'lessons' => fn ($query) => $query
-                    ->select(['id', 'module_id', 'title', 'sort_order', 'assessment_id', 'lesson_video_id', 'workbook', 'audio_url', 'content', 'thumbnail'])
-                    ->with(['assessment:id,status,is_active'])
-                    ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
-                    ->orderBy('sort_order')
-                    ->orderBy('title'),
-                'assignments' => fn ($query) => $query
-                    ->where('status', Assignment::STATUS_LIVE)
-                    ->orderBy('sort_order')
-                    ->orderBy('title'),
-            ])
-            ->orderBy('sort_order')
-            ->orderBy('title')
-            ->get();
+        return $this->studentLearningPathService->accessibleModulesForStudent($user, withAssessments: true);
     }
 
     private function moduleAccessMap(

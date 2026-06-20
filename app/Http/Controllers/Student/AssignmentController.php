@@ -9,6 +9,7 @@ use App\Http\Requests\Student\AssignmentSubmissionRequest;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Services\BunnyStorageService;
+use App\Services\StudentLearningPathService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,6 +22,7 @@ class AssignmentController extends Controller
 
     public function __construct(
         private readonly BunnyStorageService $bunnyStorage,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {
     }
 
@@ -32,6 +34,7 @@ class AssignmentController extends Controller
         abort_unless(
             $user
             && $user->access_tier_id !== null
+            && $this->studentLearningPathService->assignmentFlowAccessibleForStudent($user)
             && $assignment->status === Assignment::STATUS_LIVE
             && $assignment->module
             && $assignment->module->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists(),
@@ -92,6 +95,7 @@ class AssignmentController extends Controller
         abort_unless(
             $user
             && $user->access_tier_id !== null
+            && $this->studentLearningPathService->assignmentFlowAccessibleForStudent($user)
             && $assignment->status === Assignment::STATUS_LIVE
             && $assignment->module
             && $assignment->module->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists(),

@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\Certificates\CertificateGeneratorService;
 use App\Services\BunnyStorageService;
+use App\Services\StudentLearningPathService;
 use App\Services\StudentSessionTrackingService;
 use App\Support\BunnyAssetPath;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -39,6 +40,7 @@ class StudentProgressController extends Controller
         private readonly BunnyStorageService $bunnyStorage,
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly CertificateGeneratorService $certificateGeneratorService,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {}
 
     public function completedLessonsIndex(): RedirectResponse
@@ -506,18 +508,7 @@ class StudentProgressController extends Controller
 
     private function assignmentStatusForStudent(User $student): string
     {
-        $requiredAssignmentIds = Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $student->access_tier_id))
-            ->with([
-                'assignments' => fn ($query) => $query
-                    ->where('status', Assignment::STATUS_LIVE)
-                    ->select('id', 'module_id'),
-            ])
-            ->get(['id'])
-            ->flatMap(fn (Module $module) => $module->assignments->pluck('id'))
-            ->map(fn ($assignmentId) => (int) $assignmentId)
-            ->unique()
-            ->values();
+        $requiredAssignmentIds = $this->studentLearningPathService->relevantAssignmentIdsForStudent($student);
 
         if ($requiredAssignmentIds->isEmpty()) {
             return 'Not Available';

@@ -10,6 +10,7 @@ use App\Services\BunnyStreamService;
 use App\Services\BunnyStorageService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\CertificateDownloadTrackingService; // 1. Pastikan class ini di-import
+use App\Services\StudentLearningPathService;
 use App\Services\StudentSessionTrackingService;
 use Illuminate\Http\Request;
 
@@ -23,13 +24,15 @@ class StudentHomeApiService extends HomeController
         StudentSessionTrackingService $sessionTrackingService,
         CertificateEligibilityService $certificateEligibilityService,
         BunnyStorageService $bunnyStorage,
-        CertificateDownloadTrackingService $certificateDownloadTrackingService
+        CertificateDownloadTrackingService $certificateDownloadTrackingService,
+        StudentLearningPathService $studentLearningPathService,
     ) {
         parent::__construct(
             $sessionTrackingService,
             $certificateEligibilityService,
             $bunnyStorage,
-            $certificateDownloadTrackingService
+            $certificateDownloadTrackingService,
+            $studentLearningPathService,
         );
     }
 
@@ -41,7 +44,7 @@ class StudentHomeApiService extends HomeController
         $user = $request->user();
         $displayName = trim((string) ($user?->first_name ?: $user?->name ?: 'Student'));
         $tier = $user?->accessTier;
-        $availableModules = $this->availableModulesForStudent($user?->access_tier_id);
+        $availableModules = $this->availableModulesForStudent($user);
         $continueLearning = $this->buildContinueLearning($request, $availableModules);
         $progressSummary = $this->buildProgressSummary($request, $availableModules);
         $nextStep = $this->buildNextStep($request, $availableModules, $continueLearning);

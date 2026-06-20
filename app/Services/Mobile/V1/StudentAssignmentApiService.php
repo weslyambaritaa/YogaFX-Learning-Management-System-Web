@@ -8,6 +8,7 @@ use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\User;
 use App\Services\BunnyStorageService;
+use App\Services\StudentLearningPathService;
 use App\Support\UploadConstraints;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -31,6 +32,7 @@ class StudentAssignmentApiService
     public function __construct(
         private readonly BunnyStorageService $bunnyStorageService,
         private readonly StudentModuleApiService $studentModuleApiService,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {}
 
     /**
@@ -184,6 +186,7 @@ class StudentAssignmentApiService
 
         if (
             $user->access_tier_id === null
+            || ! $this->studentLearningPathService->assignmentFlowAccessibleForStudent($user)
             || $assignment->status !== Assignment::STATUS_LIVE
             || ! $assignment->module
             || ! $assignment->module->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists()

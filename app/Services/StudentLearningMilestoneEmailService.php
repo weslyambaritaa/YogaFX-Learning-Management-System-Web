@@ -116,7 +116,9 @@ class StudentLearningMilestoneEmailService
             ])
             ->orderBy('sort_order')
             ->orderBy('title')
-            ->get();
+            ->get()
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->values();
     }
 
     /**

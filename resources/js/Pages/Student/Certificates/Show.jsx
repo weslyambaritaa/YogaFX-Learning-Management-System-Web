@@ -84,7 +84,7 @@ export default function StudentCertificateShow({ module, certificate }) {
                                 <p className="text-sm leading-6 text-white/58">
                                     {certificate?.latest_certificate
                                                 ? `Latest: ${certificate.latest_certificate.type_label}, version ${certificate.latest_certificate.version}, generated ${certificate.latest_certificate.generated_at}`
-                                                : 'The certificate module is open because your assignment approvals have reached certificate readiness, but there is no generated certificate file yet.'}
+                                                : 'The certificate module is open because your accessible tier path has reached certificate readiness, but there is no generated certificate file yet.'}
                                 </p>
                             </div>
 
@@ -184,7 +184,7 @@ export default function StudentCertificateShow({ module, certificate }) {
                                 <p className="mt-3 text-sm leading-6 text-white/58">
                                     {isDownloadReady
                                         ? 'This module now acts as your certificate library. Download any generated certificate listed here whenever you need it.'
-                                        : 'Your certificate milestone is visible because your assignment approvals are ready. If the files are not here yet, the next step is certificate generation from the admin side.'}
+                                        : 'Your certificate milestone is visible because your accessible tier path is ready. If the files are not here yet, the next step is certificate generation from the admin side.'}
                                 </p>
                             </div>
                         </div>

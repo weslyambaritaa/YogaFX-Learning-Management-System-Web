@@ -210,7 +210,10 @@ class PaymentAndModuleCompletionTest extends TestCase
 
     public function test_assignment_module_requires_approval_before_next_module_unlocks(): void
     {
-        $tier = AccessTier::factory()->create();
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_ONLINE,
+            'name' => 'Online',
+        ]);
         $student = User::factory()
             ->student()
             ->completeProfile()
@@ -335,6 +338,156 @@ class PaymentAndModuleCompletionTest extends TestCase
 
         $summaryAfterApproval = app(CertificateEligibilityService::class)->summaryForStudent($student->fresh());
         $this->assertTrue($summaryAfterApproval['learning_eligible']);
+    }
+
+    public function test_starter_kit_skips_assignment_only_module_for_progression_and_certificate_unlock(): void
+    {
+        config()->set('certificates.tiers.starter_kit', ['bikram_yoga_certificate']);
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_STARTER_KIT,
+            'name' => 'Starter Kit',
+        ]);
+
+        $student = User::factory()
+            ->student()
+            ->completeProfile()
+            ->create([
+                'access_tier_id' => $tier->id,
+                'is_active' => true,
+            ]);
+
+        $lessonModule = Module::factory()->create([
+            'title' => 'Starter Lesson Module',
+            'url_slug' => 'starter-lesson-module',
+            'sort_order' => 1,
+        ]);
+        $lessonModule->accessTiers()->attach($tier);
+
+        $lesson = \App\Models\Lesson::factory()->create([
+            'module_id' => $lessonModule->id,
+            'title' => 'Starter Lesson',
+        ]);
+        $lesson->accessTiers()->attach($tier);
+
+        \App\Models\LessonProgress::query()->create([
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'watch_progress' => 100,
+            'is_done' => true,
+            'completed_at' => now(),
+            'video_completed_at' => now(),
+        ]);
+
+        $assignmentModule = Module::factory()->create([
+            'title' => 'Starter Assignment Module',
+            'url_slug' => 'starter-assignment-module',
+            'sort_order' => 2,
+        ]);
+        $assignmentModule->accessTiers()->attach($tier);
+
+        Assignment::query()->create([
+            'module_id' => $assignmentModule->id,
+            'title' => 'Starter Assignment',
+            'description' => 'Should be skipped for starter path.',
+            'sort_order' => 1,
+            'status' => Assignment::STATUS_LIVE,
+            'is_required' => true,
+        ]);
+
+        $certificateModule = Module::factory()->create([
+            'title' => 'Starter Certificate Module',
+            'url_slug' => 'starter-certificate-module',
+            'sort_order' => 3,
+            'certificate_enabled' => true,
+        ]);
+        $certificateModule->accessTiers()->attach($tier);
+
+        $this->actingAs($student)
+            ->get(route('modules.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Student/Modules/Index')
+                ->has('modules', 2)
+                ->where('modules.0.title', 'Starter Lesson Module')
+                ->where('modules.0.status', 'completed')
+                ->where('modules.1.title', 'Starter Certificate Module')
+                ->where('modules.1.status', 'available'));
+
+        $this->actingAs($student)
+            ->get(route('modules.show', $certificateModule->url_slug))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Student/Certificates/Show')
+                ->where('module.title', 'Starter Certificate Module')
+                ->where('certificate.state', 'ready'));
+
+        $summary = app(CertificateEligibilityService::class)->summaryForStudent($student->fresh());
+
+        $this->assertTrue($summary['learning_eligible']);
+    }
+
+    public function test_master_class_skips_assignment_only_module_when_certificate_is_next_accessible_module(): void
+    {
+        config()->set('certificates.tiers.master_class', ['bikram_yoga_certificate']);
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'name' => 'Master Class',
+        ]);
+
+        $student = User::factory()
+            ->student()
+            ->completeProfile()
+            ->create([
+                'access_tier_id' => $tier->id,
+                'is_active' => true,
+            ]);
+
+        $assignmentModule = Module::factory()->create([
+            'title' => 'Master Assignment Module',
+            'url_slug' => 'master-assignment-module',
+            'sort_order' => 1,
+        ]);
+        $assignmentModule->accessTiers()->attach($tier);
+
+        Assignment::query()->create([
+            'module_id' => $assignmentModule->id,
+            'title' => 'Master Assignment',
+            'description' => 'Should be skipped for master class path.',
+            'sort_order' => 1,
+            'status' => Assignment::STATUS_LIVE,
+            'is_required' => true,
+        ]);
+
+        $certificateModule = Module::factory()->create([
+            'title' => 'Master Certificate Module',
+            'url_slug' => 'master-certificate-module',
+            'sort_order' => 2,
+            'certificate_enabled' => true,
+        ]);
+        $certificateModule->accessTiers()->attach($tier);
+
+        $this->actingAs($student)
+            ->get(route('modules.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Student/Modules/Index')
+                ->has('modules', 1)
+                ->where('modules.0.title', 'Master Certificate Module')
+                ->where('modules.0.status', 'available'));
+
+        $this->actingAs($student)
+            ->get(route('modules.show', $certificateModule->url_slug))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Student/Certificates/Show')
+                ->where('module.title', 'Master Certificate Module')
+                ->where('certificate.state', 'ready'));
+
+        $summary = app(CertificateEligibilityService::class)->summaryForStudent($student->fresh());
+
+        $this->assertTrue($summary['learning_eligible']);
     }
 
     public function test_student_can_open_video_lecturer_in_dedicated_player_page(): void

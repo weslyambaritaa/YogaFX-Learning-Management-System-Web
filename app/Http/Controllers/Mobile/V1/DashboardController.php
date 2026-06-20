@@ -13,6 +13,7 @@ use App\Models\Module;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\Mobile\V1\StudentHomeApiService;
 use App\Services\Mobile\V1\StudentModuleApiService;
+use App\Services\StudentLearningPathService;
 use App\Support\MobileApiResponse;
 use Illuminate\Http\Request;
 
@@ -22,6 +23,7 @@ class DashboardController extends Controller
         private readonly StudentModuleApiService $studentModuleApiService,
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly StudentHomeApiService $studentHomeApiService,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {}
 
     public function __invoke(Request $request)
@@ -72,18 +74,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $assignmentIds = Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $user->access_tier_id))
-            ->with([
-                'assignments' => fn ($query) => $query
-                    ->where('status', Assignment::STATUS_LIVE)
-                    ->select('id', 'module_id'),
-            ])
-            ->get(['id'])
-            ->flatMap(fn (Module $module) => $module->assignments->pluck('id'))
-            ->map(fn ($assignmentId) => (int) $assignmentId)
-            ->unique()
-            ->values();
+        $assignmentIds = $this->studentLearningPathService->relevantAssignmentIdsForStudent($user);
 
         if ($assignmentIds->isEmpty()) {
             return [
