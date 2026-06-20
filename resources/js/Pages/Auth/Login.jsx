@@ -153,6 +153,20 @@ export default function Login({ status, canResetPassword }) {
                                         </Button>
                                     </div>
                                 </form>
+
+                                <div className="mt-8 border-t border-white/10 pt-6 text-center">
+                                    <p className="text-sm text-white/60">
+                                        New to YogaFX?
+                                    </p>
+                                    <Link
+                                        href={route(
+                                            "lead-registration.create",
+                                        )}
+                                        className="mt-3 inline-flex items-center justify-center text-sm font-medium text-white underline underline-offset-4 transition hover:text-white/80"
+                                    >
+                                        Sign up and start your journey
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </main>

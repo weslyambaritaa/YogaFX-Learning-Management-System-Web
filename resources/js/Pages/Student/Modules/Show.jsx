@@ -92,10 +92,11 @@ export default function StudentModuleShow({ module }) {
                             <h1 className="text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
                                 {module.title}
                             </h1>
-                            <p className="max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
-                                {module.description ||
-                                    "Navigate this module like a premium episode selection view. Every lesson is presented with clear order, status, and learning signals."}
-                            </p>
+                            {module.description ? (
+                                <p className="max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
+                                    {module.description}
+                                </p>
+                            ) : null}
                         </div>
 
                         {module.show_progress ? (
@@ -131,11 +132,8 @@ export default function StudentModuleShow({ module }) {
                                     Lesson Access
                                 </p>
                                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                    Select your next lesson
+                                    Lessons
                                 </h2>
-                            </div>
-                            <div className="hidden text-sm text-white/42 md:block">
-                                Netflix-style episode selection
                             </div>
                         </div>
 

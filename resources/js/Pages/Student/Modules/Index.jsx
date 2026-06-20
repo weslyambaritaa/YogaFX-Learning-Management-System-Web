@@ -1,12 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
-import {
-    ArrowRight,
-    CheckCircle2,
-    Lock,
-    PlayCircle,
-} from 'lucide-react';
+import { ArrowRight, CheckCircle2, Lock, PlayCircle } from 'lucide-react';
 
 const statusConfig = {
     completed: {
@@ -64,13 +59,8 @@ export default function StudentModulesIndex({ modules }) {
                                 YogaFX Learning Catalog
                             </p>
                             <h1 className="text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
-                                Explore your modules like a premium course library.
+                                Modules
                             </h1>
-                            <p className="max-w-2xl text-sm leading-7 text-white/68 sm:text-base">
-                                Every module is presented as part of your learning journey,
-                                with progress, availability, and the next content you can
-                                open at a glance.
-                            </p>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2">
@@ -98,15 +88,12 @@ export default function StudentModulesIndex({ modules }) {
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="text-xs uppercase tracking-[0.24em] text-white/40">
-                                Module Grid
+                                Library
                             </p>
                             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                Browse your available modules
+                                Browse modules
                             </h2>
                         </div>
-                        <span className="hidden text-sm text-white/40 md:inline">
-                            Premium course browsing
-                        </span>
                     </div>
 
                     <div className="grid gap-5 xl:grid-cols-2">
@@ -119,56 +106,44 @@ export default function StudentModulesIndex({ modules }) {
                                 <ModuleCardTag
                                     key={module.id}
                                     {...(module.url ? { href: module.url } : {})}
-                                    className="group relative overflow-hidden rounded-[10px] border border-white/10 bg-white/[0.04] p-4 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
+                                    className="group relative overflow-hidden rounded-[12px] border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
                                 >
-                                    <div className="grid gap-4 md:grid-cols-[42%_1fr]">
-                                        <div className="relative overflow-hidden rounded-[4px] bg-[#1a1513]">
+                                    <div className="flex h-full flex-col">
+                                        <div className="relative overflow-hidden bg-[#1a1513]">
                                             {module.thumbnail_url ? (
                                                 <img
                                                     src={module.thumbnail_url}
                                                     alt={module.title}
-                                                    className="aspect-[4/3] h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                                                    className="aspect-[16/9] h-full w-full bg-[#1a1513] object-contain p-3 transition duration-500 group-hover:scale-[1.01]"
                                                 />
                                             ) : (
-                                                <div className="aspect-[4/3] bg-[radial-gradient(circle_at_24%_20%,_rgba(223,103,57,0.45),_transparent_28%),linear-gradient(160deg,_#2b1d16_0%,_#120f0e_100%)]" />
+                                                <div className="aspect-[16/9] bg-[radial-gradient(circle_at_24%_20%,_rgba(223,103,57,0.45),_transparent_28%),linear-gradient(160deg,_#2b1d16_0%,_#120f0e_100%)]" />
                                             )}
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+                                            <div className="absolute left-4 top-4 flex flex-wrap items-center gap-2">
+                                                <span className="rounded-md border border-white/12 bg-black/35 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+                                                    Module {module.sort_order}
+                                                </span>
+                                                <span className={`inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/35 px-3 py-1 text-[11px] font-medium backdrop-blur ${status.className}`}>
+                                                    <StatusIcon className="size-4" />
+                                                    {status.label}
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        <div className="flex flex-col justify-between gap-6 p-2">
-                                            <div className="space-y-4">
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <span className="rounded-md border border-white/12 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/60">
-                                                        Module {module.sort_order}
-                                                    </span>
-                                                    <span className={`inline-flex items-center gap-2 text-sm font-medium ${status.className}`}>
-                                                        <StatusIcon className="size-4" />
-                                                        {status.label}
-                                                    </span>
-                                                </div>
-
-                                                <div>
-                                                    <h3 className="text-2xl font-semibold tracking-tight text-white">
-                                                        {module.title}
-                                                    </h3>
-                                                    <p className="mt-3 text-sm leading-7 text-white/62">
-                                                        {module.lesson_count > 0
-                                                            ? `${module.completed_lessons} of ${module.lesson_count} lessons completed in this module.`
-                                                            : (module.assignments_count ?? 0) > 0
-                                                              ? 'This module is driven by assignment submission and review before your journey can move forward.'
-                                                            : module.status === 'completed'
-                                                              ? 'This module has been opened and is now marked complete in your learning path.'
-                                                              : 'Open this module once to mark it in your learning journey.'}
-                                                    </p>
-                                                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                                                        {module.lesson_count} lessons • {module.assignments_count ?? 0} assignments
-                                                    </p>
-                                                </div>
+                                        <div className="flex flex-1 flex-col justify-between gap-5 p-5">
+                                            <div>
+                                                <h3 className="text-xl font-semibold tracking-tight text-white">
+                                                    {module.title}
+                                                </h3>
+                                                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                                    {module.lesson_count} lessons / {module.assignments_count ?? 0} assignments
+                                                </p>
                                             </div>
 
                                             <div className="space-y-4">
-                                               {module.show_progress ? (
-                                                <div className="space-y-1">
+                                                {module.show_progress ? (
+                                                    <div className="space-y-1">
                                                         <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-white/40">
                                                             <span>Progress</span>
                                                             <span>{module.progress_percentage}%</span>

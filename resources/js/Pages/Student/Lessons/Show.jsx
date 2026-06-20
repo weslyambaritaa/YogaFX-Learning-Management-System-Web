@@ -373,11 +373,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         <h1 className="text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
                             {lesson.title}
                         </h1>
-                        <p className="max-w-3xl text-sm leading-7 text-white/65 sm:text-base">
-                            Stay focused on the lesson experience. Your content, workbook,
-                            media, and progression all live here in one premium learning
-                            view.
-                        </p>
                     </div>
 
                     <div className="overflow-hidden rounded-[16px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
@@ -595,27 +590,33 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 </section>
 
                 <section className="space-y-5">
-                    <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
-                        <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                            Progress
-                        </p>
-                        <h2 className="mt-3 text-2xl font-semibold text-white">
-                            You've completed {moduleState?.completed_lessons ?? 0} of{' '}
-                            {moduleState?.lesson_count ?? 0} lessons
-                        </h2>
-                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                            <div
-                                className="h-full rounded-full bg-[#3DDC84]"
-                                style={{ width: `${moduleState?.progress_percentage ?? 0}%` }}
-                            />
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5">
+                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
+                                Progress
+                            </p>
+                            <h2 className="mt-3 text-2xl font-semibold text-white">
+                                {moduleState?.completed_lessons ?? 0} of {moduleState?.lesson_count ?? 0} lessons completed
+                            </h2>
+                            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                                <div
+                                    className="h-full rounded-full bg-[#3DDC84]"
+                                    style={{ width: `${moduleState?.progress_percentage ?? 0}%` }}
+                                />
+                            </div>
                         </div>
-                        <p className="mt-3 text-sm text-white/58">
-                            Keep your rhythm steady and move through the module one lesson at
-                            a time.
-                        </p>
+
+                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5">
+                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                                Total Access Time
+                            </p>
+                            <div className="mt-3 text-3xl font-semibold tracking-[0.08em] text-white">
+                                {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur">
+                    <div className="space-y-4">
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <p className="text-xs uppercase tracking-[0.22em] text-white/45">
@@ -639,7 +640,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     <NavigationTag
                                         key={item.id}
                                         {...(item.url ? { href: item.url } : {})}
-                                    className="block rounded-[12px] border border-white/10 bg-black/18 p-4 transition hover:border-white/20 hover:bg-white/[0.05]"
+                                        className="block rounded-[12px] border border-white/10 bg-white/[0.04] p-4 transition hover:border-white/20 hover:bg-white/[0.06]"
                                     >
                                         <div className="flex items-start gap-4">
                                             <div className="h-24 w-40 shrink-0 overflow-hidden rounded-[12px] bg-white/5">
@@ -683,22 +684,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     </NavigationTag>
                                 );
                             })}
-                        </div>
-                    </div>
-
-                    <div className="rounded-[14px] border border-white/10 bg-black/25 p-5 shadow-2xl backdrop-blur-md">
-                        <div className="space-y-5">
-                            <div className="space-y-2">
-                                <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                                    Total Access Time
-                                </p>
-                                <div className="text-3xl font-semibold tracking-[0.08em] text-white">
-                                    {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
-                                </div>
-                                <p className="text-sm text-white/55">
-                                    Cumulative student access time
-                                </p>
-                            </div>
                         </div>
                     </div>
                 </section>

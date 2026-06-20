@@ -175,10 +175,7 @@ export default function StudentProfileForm({
             <section className={sectionClassName}>
                 <div>
                     <h3 className={titleClassName}>Personal Identity</h3>
-                    <p className={descriptionClassName}>
-                        Complete the student profile data needed for onboarding
-                        and future learning operations.
-                    </p>
+                    <p className={descriptionClassName}>Basic account details.</p>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
@@ -413,15 +410,12 @@ export default function StudentProfileForm({
                                     className="h-20 w-20 rounded-[12px] border border-white/10 object-cover"
                                 />
                                 <p className={helperClassName}>
-                                    Current profile photo. Upload a new `.jpg`
-                                    file to replace it.
+                                    Current photo.
                                 </p>
                             </div>
                         )}
                         <p className={helperClassName}>
-                            Upload a JPG profile photo. The file will be stored
-                            in Bunny Storage and reused in certificate
-                            generation.
+                            Upload a JPG photo.
                         </p>
                     </div>
                 </div>
@@ -430,10 +424,7 @@ export default function StudentProfileForm({
             <section className={sectionClassName}>
                 <div>
                     <h3 className={titleClassName}>Learning Background</h3>
-                    <p className={descriptionClassName}>
-                        This information helps prepare future learning and
-                        certificate workflows.
-                    </p>
+                    <p className={descriptionClassName}>Your practice background.</p>
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-2">
@@ -521,10 +512,7 @@ export default function StudentProfileForm({
             <section className={sectionClassName}>
                 <div>
                     <h3 className={titleClassName}>Motivation</h3>
-                    <p className={descriptionClassName}>
-                        Capture the student context required for onboarding and
-                        admin visibility.
-                    </p>
+                    <p className={descriptionClassName}>A short personal context.</p>
                 </div>
 
                 <div className="grid gap-6">

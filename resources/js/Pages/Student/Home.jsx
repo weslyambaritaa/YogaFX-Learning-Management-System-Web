@@ -8,10 +8,8 @@ import {
     Info,
     CheckCircle2,
     Lock,
-    BookOpen,
     Download,
     X,
-    ArrowRight,
 } from 'lucide-react';
 
 function formatDurationParts(totalSeconds) {
@@ -425,7 +423,7 @@ function HeroSection({ homeExperience, continueLearning, studentName, onInfoClic
     const lessonCtx = continueLearning?.lesson ?? null;
 
     return (
-        <section className="relative min-h-[72vh] sm:min-h-[82vh] flex items-end overflow-hidden">
+        <section className="relative min-h-screen flex items-end overflow-hidden">
             {thumbnail ? (
                 <img src={thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover" />
             ) : (
@@ -439,7 +437,7 @@ function HeroSection({ homeExperience, continueLearning, studentName, onInfoClic
                 </div>
             )}
 
-            <div className="relative w-full px-4 pb-16 pt-24 sm:px-6 lg:px-10 lg:pb-24 max-w-[1400px] mx-auto">
+            <div className="relative w-full px-4 pb-20 pt-24 sm:px-6 lg:px-10 lg:pb-28 max-w-[1400px] mx-auto">
                 <div className="max-w-2xl space-y-5">
                     <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-[#f2d9c8]">
                         {isNew ? `Hello, ${studentName}` : `Welcome back, ${studentName}`}
@@ -503,7 +501,6 @@ export default function StudentHome({
     availableModulesSection,
     assignmentMilestone,
     certificateMilestone,
-    ebookResourcesSection,
     homeExperience,
     sequentialAwareness,
 }) {
@@ -539,9 +536,6 @@ export default function StudentHome({
         continue_url: m.cta_url,
         lessons: m.lessons ?? [],
     });
-
-    const ebookItems = ebookResourcesSection?.items ?? [];
-
     return (
         <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-20">
             <Head title="Home" />
@@ -563,7 +557,7 @@ export default function StudentHome({
                 accessTimeSummary={accessTimeSummary}
             />
 
-            <div className="relative z-10 -mt-10 space-y-10">
+            <div className="relative z-10 space-y-10 pt-10">
 
                 {inProgress.length > 0 && (
                     <ModuleRow
@@ -578,45 +572,6 @@ export default function StudentHome({
                     modules={rawModules}
                     onCardClick={setSelectedModule}
                 />
-
-                {ebookItems.length > 0 && (
-                    <section className="space-y-4">
-                        <div className="flex items-center justify-between px-4 sm:px-6 lg:px-10">
-                            <h2 className="text-base font-semibold text-white tracking-tight">Learning Resources</h2>
-                            <Link
-                                href={route('ebooks.index')}
-                                className="text-xs text-white/40 hover:text-white/70 transition flex items-center gap-1"
-                            >
-                                View All <ChevronRight className="size-3.5" />
-                            </Link>
-                        </div>
-                        <div
-                            className="flex gap-4 overflow-x-auto pb-3 px-4 sm:px-6 lg:px-10"
-                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                        >
-                            {ebookItems.map(ebook => (
-                                <Link
-                                    key={ebook.id}
-                                    href={ebook.preview_url ?? route('ebooks.index')}
-                                    className="group shrink-0 w-[170px] rounded-[12px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/22"
-                                >
-                                    <div className="relative aspect-[3/4] bg-[radial-gradient(circle_at_20%_18%,rgba(213,70,47,0.45),transparent_30%),linear-gradient(160deg,#2d1e18,#120f0e)] p-4 flex flex-col justify-between">
-                                        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-white/50">
-                                            <BookOpen className="size-3" />
-                                            Ebook
-                                        </div>
-                                        <h3 className="text-sm font-semibold text-white leading-tight line-clamp-3">{ebook.title}</h3>
-                                    </div>
-                                    <div className="p-3">
-                                        <span className="text-xs text-[#DB202C] group-hover:text-[#b91c26] transition flex items-center gap-1">
-                                            Open Preview <ArrowRight className="size-3" />
-                                        </span>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    </section>
-                )}
 
                 {rawModules.length === 0 && (
                     <div className="px-4 sm:px-6 lg:px-10">

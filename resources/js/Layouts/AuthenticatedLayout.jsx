@@ -757,7 +757,7 @@ function StudentTopNavigation({
                     </div>
 
                     {/* CENTER: desktop nav links */}
-                    <div className="hidden items-center gap-2 overflow-x-auto md:flex">
+                    <div className="hidden min-w-0 items-center gap-2 md:flex">
                         {studentNavigationItems.map((item) => (
                             <Button
                                 key={item.route}

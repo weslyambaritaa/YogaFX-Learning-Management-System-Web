@@ -33,18 +33,10 @@ use App\Http\Controllers\Student\UpgradeController;
 use App\Http\Controllers\Admin\ScoreboardBuilderController;
 use App\Http\Controllers\Admin\ScoreboardController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('lead-registration.create'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::redirect('/', '/login');
 
 Route::get('/scoreboard', [LeadRegistrationController::class, 'create'])->name('lead-registration.create');
 Route::post('/scoreboard', [LeadRegistrationController::class, 'store'])->name('lead-registration.store');
