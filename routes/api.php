@@ -23,6 +23,9 @@ Route::prefix('mobile/v1')
     ->as('mobile.api.v1.')
     ->group(function (): void {
         Route::post('/auth/login', [AuthController::class, 'store'])->name('auth.login');
+        Route::post('/auth/login/request-otp', [AuthController::class, 'store'])->name('auth.login.request-otp');
+        Route::post('/auth/login/verify-otp', [AuthController::class, 'verifyOtp'])->name('auth.login.verify-otp');
+        Route::post('/auth/login/resend-otp', [AuthController::class, 'resendOtp'])->name('auth.login.resend-otp');
         Route::post('/auth/forgot-password', [PasswordRecoveryController::class, 'forgot'])->name('auth.password.forgot');
         Route::post('/auth/reset-password', [PasswordRecoveryController::class, 'reset'])->name('auth.password.reset');
         Route::get('/media/lessons/{lesson}/audio', [LessonMediaController::class, 'audio'])

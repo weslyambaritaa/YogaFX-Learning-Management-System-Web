@@ -47,14 +47,8 @@ class EmailOtpChallengeService
 
     public function verifyLoginChallenge(AuthEmailOtpChallenge $challenge, string $otpCode, $request): User
     {
-        $this->guardChallenge($challenge, $otpCode, AuthEmailOtpChallenge::CONTEXT_LOGIN);
-
-        return DB::transaction(function () use ($challenge, $request): User {
-            $challenge->forceFill([
-                'used_at' => now(),
-            ])->save();
-
-            $user = $challenge->user()->firstOrFail();
+        return DB::transaction(function () use ($challenge, $otpCode, $request): User {
+            $user = $this->consumeLoginChallenge($challenge, $otpCode);
 
             Auth::login($user, (bool) ($challenge->payload['remember'] ?? false));
             $request->session()->regenerate();
@@ -64,6 +58,19 @@ class EmailOtpChallengeService
             }
 
             return $user;
+        });
+    }
+
+    public function consumeLoginChallenge(AuthEmailOtpChallenge $challenge, string $otpCode): User
+    {
+        $this->guardChallenge($challenge, $otpCode, AuthEmailOtpChallenge::CONTEXT_LOGIN);
+
+        return DB::transaction(function () use ($challenge): User {
+            $challenge->forceFill([
+                'used_at' => now(),
+            ])->save();
+
+            return $challenge->user()->firstOrFail();
         });
     }
 
@@ -173,13 +180,15 @@ class EmailOtpChallengeService
             '<p>Return to the verification page that is already open in your browser to continue.</p>',
         ]);
 
-        try {
-            Mail::to($user->email)->send(
-                new TemplatedNotificationMail($subject, $body, $title),
-            );
-        } catch (Throwable $throwable) {
-            report($throwable);
-        }
+        dispatch(function () use ($user, $subject, $body, $title): void {
+            try {
+                Mail::to($user->email)->send(
+                    new TemplatedNotificationMail($subject, $body, $title),
+                );
+            } catch (Throwable $throwable) {
+                report($throwable);
+            }
+        })->afterResponse();
     }
 
     private function guardChallenge(AuthEmailOtpChallenge $challenge, string $otpCode, string $expectedContext): void
