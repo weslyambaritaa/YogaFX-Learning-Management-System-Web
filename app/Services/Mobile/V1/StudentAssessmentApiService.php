@@ -25,6 +25,12 @@ class StudentAssessmentApiService
     use BuildsProtectedMediaUrls;
     use BuildsMobileSignedContentImageUrls;
 
+    public const WRONG_ANSWER_MESSAGE = 'Oops!!! Wrong Answer! Please refer to your workbook and try again.';
+
+    public const INVALID_ACTIVE_QUESTION_MESSAGE = 'This question is no longer active for the current attempt. Please refresh and try again.';
+
+    public const INVALID_OPTION_SELECTION_MESSAGE = 'One or more selected answers do not belong to the current question.';
+
     public function __construct(
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
     ) {}
@@ -266,6 +272,12 @@ class StudentAssessmentApiService
         $assessment = $lesson->assessment->load('questions.options', 'resultRanges');
         $question = $attempt->currentQuestion ?? $assessment->questions->sortBy('sort_order')->first();
         abort_unless($question, 404);
+
+        if ($stalePayloadResponse = $this->stalePayloadResponse($request, $attempt, $question)) {
+            return $stalePayloadResponse;
+        }
+
+        $this->assertSubmittedQuestionMatchesActiveQuestion($request, $question);
 
         $nextQuestion = $this->persistQuestionAnswer($request, $attempt, $question, $assessment->questions);
 
@@ -556,7 +568,7 @@ class StudentAssessmentApiService
                 && ! $this->selectionIsFullyCorrect($selectedOptions, $availableOptions)
             ) {
                 throw ValidationException::withMessages([
-                    'option_ids' => 'Oops!!! Wrong Answer! Please refer to your workbook and try again.',
+                    'option_ids' => self::WRONG_ANSWER_MESSAGE,
                 ]);
             }
 
@@ -768,6 +780,12 @@ class StudentAssessmentApiService
             ->whereIn('id', $optionIds)
             ->values();
 
+        if ($optionIds->isNotEmpty() && $selectedOptions->count() !== $optionIds->count()) {
+            throw ValidationException::withMessages([
+                'option_ids' => self::INVALID_OPTION_SELECTION_MESSAGE,
+            ]);
+        }
+
         if ($question->required && $selectedOptions->isEmpty()) {
             throw ValidationException::withMessages([
                 'option_ids' => 'Please choose at least one answer before continuing.',
@@ -819,6 +837,48 @@ class StudentAssessmentApiService
         return $selectedIds->isNotEmpty()
             && $selectedIds->count() === $correctIds->count()
             && $selectedIds->values()->all() === $correctIds->values()->all();
+    }
+
+    private function stalePayloadResponse(Request $request, AssessmentAttempt $attempt, Question $currentQuestion): ?array
+    {
+        if (! $request->filled('question_id')) {
+            return null;
+        }
+
+        $submittedQuestionId = (int) $request->input('question_id');
+
+        if ($submittedQuestionId === (int) $currentQuestion->id) {
+            return null;
+        }
+
+        $hasSavedAnswerForSubmittedQuestion = $attempt->answers()
+            ->where('question_id', $submittedQuestionId)
+            ->exists();
+
+        if (! $hasSavedAnswerForSubmittedQuestion) {
+            return null;
+        }
+
+        return [
+            'mode' => 'question_redirect',
+            'attempt_id' => $attempt->id,
+            'question_id' => $currentQuestion->id,
+        ];
+    }
+
+    private function assertSubmittedQuestionMatchesActiveQuestion(Request $request, Question $currentQuestion): void
+    {
+        if (! $request->filled('question_id')) {
+            return;
+        }
+
+        $submittedQuestionId = (int) $request->input('question_id');
+
+        if ($submittedQuestionId !== (int) $currentQuestion->id) {
+            throw ValidationException::withMessages([
+                'question_id' => self::INVALID_ACTIVE_QUESTION_MESSAGE,
+            ]);
+        }
     }
 
     private function rebuildAttemptHistory(Assessment $assessment, AssessmentAttempt $attempt, Question $currentQuestion): array

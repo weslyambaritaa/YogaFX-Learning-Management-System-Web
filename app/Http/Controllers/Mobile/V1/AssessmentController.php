@@ -63,8 +63,14 @@ class AssessmentController extends Controller
         try {
             $payload = $this->studentAssessmentApiService->storeAnswerForUser($request, $request->user(), $lesson, $attempt);
         } catch (ValidationException $exception) {
+            $message = collect($exception->errors())
+                ->flatten()
+                ->contains(StudentAssessmentApiService::WRONG_ANSWER_MESSAGE)
+                ? 'The submitted answer is incorrect.'
+                : 'The assessment answer payload is invalid.';
+
             return MobileApiResponse::error(
-                'The assessment answer payload is invalid.',
+                $message,
                 Response::HTTP_UNPROCESSABLE_ENTITY,
                 $exception->errors(),
             );

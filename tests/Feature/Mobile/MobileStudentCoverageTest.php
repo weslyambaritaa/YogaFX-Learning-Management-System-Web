@@ -11,6 +11,7 @@ use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
+use App\Models\UserSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -34,9 +35,17 @@ class MobileStudentCoverageTest extends TestCase
             'sort_order' => 1,
         ])->accessTiers()->sync([$tier->id]);
 
-        Sanctum::actingAs($student);
+        $token = $student->createToken('Pixel 9')->plainTextToken;
 
-        $this->getJson('/api/mobile/v1/dashboard')
+        UserSession::query()->create([
+            'user_id' => $student->id,
+            'session_id' => 'mobile-token:1',
+            'login_at' => now()->subMinutes(5),
+            'last_activity_at' => now()->subMinute(),
+            'is_active' => true,
+        ]);
+
+        $response = $this->withToken($token)->getJson('/api/mobile/v1/dashboard')
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.dialogs.0.key', DialogContent::KEY_FULL_STANDING)
@@ -47,6 +56,8 @@ class MobileStudentCoverageTest extends TestCase
             ->assertJsonPath('data.ebook_resources.items.0.title', 'Daily Practice Guide')
             ->assertJsonPath('data.home_stage', 12)
             ->assertJsonPath('data.student_context.access_tier.slug', 'online')
+            ->assertJsonPath('data.access_time_summary.persisted_total_access_duration_seconds', 0)
+            ->assertJsonPath('data.access_time_summary.currently_active', true)
             ->assertJsonStructure([
                 'data' => [
                     'access_time_summary',
@@ -61,6 +72,11 @@ class MobileStudentCoverageTest extends TestCase
                     'home_experience',
                 ],
             ]);
+
+        $this->assertGreaterThanOrEqual(
+            300,
+            (float) $response->json('data.access_time_summary.total_access_duration_seconds'),
+        );
     }
 
     public function test_mobile_module_detail_includes_related_student_resources(): void

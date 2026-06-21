@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Mobile\V1\LoginRequest;
 use App\Http\Resources\Mobile\V1\CurrentStudentResource;
 use App\Models\User;
+use App\Services\StudentSessionTrackingService;
 use App\Support\MobileApiResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly StudentSessionTrackingService $studentSessionTrackingService,
+    ) {}
+
     public function store(LoginRequest $request)
     {
         $user = $request->authenticateStudent();
@@ -32,6 +37,8 @@ class AuthController extends Controller
 
         $token = $user->createToken($request->deviceName());
 
+        $this->studentSessionTrackingService->startMobileSession($user, $token->accessToken->id);
+
         return MobileApiResponse::success([
             'token' => $token->plainTextToken,
             'token_type' => 'Bearer',
@@ -44,6 +51,7 @@ class AuthController extends Controller
         /** @var User $user */
         $user = $request->user();
 
+        $this->studentSessionTrackingService->endMobileSession($request, $user);
         $request->user()?->currentAccessToken()?->delete();
 
         return MobileApiResponse::success([

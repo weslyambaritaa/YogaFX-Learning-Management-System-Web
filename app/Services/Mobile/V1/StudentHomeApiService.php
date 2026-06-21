@@ -77,7 +77,7 @@ class StudentHomeApiService extends HomeController
                 ] : null,
             ],
             'access_time_summary' => $user
-                ? $this->studentSessionTrackingService->summaryForUser($user)
+                ? $this->mobileAccessTimeSummary($user)
                 : null,
             'continue_learning_section' => $continueLearning,
             'progress_summary_section' => $progressSummary,
@@ -126,5 +126,19 @@ class StudentHomeApiService extends HomeController
             $lesson->updated_at,
         ) ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
             ?: ($module ? $this->moduleThumbnailUrl($module) : null);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mobileAccessTimeSummary($user): array
+    {
+        $summary = $this->studentSessionTrackingService->summaryForUser($user);
+
+        return [
+            ...$summary,
+            'persisted_total_access_duration_seconds' => $summary['total_access_duration_seconds'],
+            'total_access_duration_seconds' => $summary['running_total_access_duration_seconds'],
+        ];
     }
 }

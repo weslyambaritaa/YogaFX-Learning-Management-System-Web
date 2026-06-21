@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             AccessTierSeeder::class,
             AdminUserSeeder::class,
             StudentUserSeeder::class,
+        
         ]);
     }
 }

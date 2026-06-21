@@ -40,6 +40,11 @@ class MobileAuthTest extends TestCase
             ->assertJsonPath('data.user.access_tier.slug', 'online');
 
         $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->assertDatabaseHas('user_sessions', [
+            'user_id' => $student->id,
+            'session_id' => 'mobile-token:1',
+            'is_active' => true,
+        ]);
     }
 
     public function test_mobile_login_rejects_invalid_credentials(): void
@@ -99,9 +104,17 @@ class MobileAuthTest extends TestCase
             ->create([
                 'access_tier_id' => $tier->id,
                 'is_active' => true,
+                'total_access_duration_seconds' => 120,
             ]);
 
         $token = $student->createToken('iPhone 17')->plainTextToken;
+        \App\Models\UserSession::query()->create([
+            'user_id' => $student->id,
+            'session_id' => 'mobile-token:1',
+            'login_at' => now()->subMinutes(2),
+            'last_activity_at' => now()->subMinute(),
+            'is_active' => true,
+        ]);
 
         $this->withToken($token)
             ->getJson('/api/mobile/v1/me')
@@ -114,6 +127,12 @@ class MobileAuthTest extends TestCase
             ->assertJsonPath('message', 'Logout successful.');
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
+        $this->assertDatabaseHas('user_sessions', [
+            'user_id' => $student->id,
+            'session_id' => 'mobile-token:1',
+            'is_active' => false,
+        ]);
+        $this->assertGreaterThanOrEqual(180, $student->fresh()->total_access_duration_seconds);
     }
 
     public function test_mobile_logout_requires_authentication(): void

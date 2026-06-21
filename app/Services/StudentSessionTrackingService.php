@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Schema;
 
 class StudentSessionTrackingService
 {
+    private const MOBILE_SESSION_PREFIX = 'mobile-token:';
+
     public function startStudentSession(Request $request, User $user): void
     {
         if (! $user->isStudent() || ! $this->timeTrackingSchemaReady()) {
@@ -30,6 +32,26 @@ class StudentSessionTrackingService
         ]);
 
         $request->session()->put('student_user_session_id', $session->id);
+    }
+
+    public function startMobileSession(User $user, string|int $tokenId): void
+    {
+        if (! $user->isStudent() || ! $this->timeTrackingSchemaReady()) {
+            return;
+        }
+
+        $this->reconcileTimedOutSessions($user);
+        $this->closeAllActiveSessions($user);
+
+        $now = now();
+
+        UserSession::query()->create([
+            'user_id' => $user->id,
+            'session_id' => $this->mobileSessionId($tokenId),
+            'login_at' => $now,
+            'last_activity_at' => $now,
+            'is_active' => true,
+        ]);
     }
 
     public function touchStudentSession(Request $request, User $user): void
@@ -69,6 +91,50 @@ class StudentSessionTrackingService
 
         $this->closeSession($session, $user, now());
         $request->session()->forget('student_user_session_id');
+    }
+
+    public function touchMobileSession(Request $request, User $user): void
+    {
+        if (! $user->isStudent() || ! $this->timeTrackingSchemaReady()) {
+            return;
+        }
+
+        $this->reconcileTimedOutSessions($user);
+
+        $session = $this->resolveMobileActiveSession($request, $user);
+
+        if (! $session) {
+            $tokenId = $user->currentAccessToken()?->id;
+
+            if ($tokenId === null) {
+                return;
+            }
+
+            $this->startMobileSession($user, $tokenId);
+
+            return;
+        }
+
+        $session->forceFill([
+            'last_activity_at' => now(),
+        ])->save();
+    }
+
+    public function endMobileSession(Request $request, ?User $user): void
+    {
+        if (! $user || ! $user->isStudent() || ! $this->timeTrackingSchemaReady()) {
+            return;
+        }
+
+        $this->reconcileTimedOutSessions($user);
+
+        $session = $this->resolveMobileActiveSession($request, $user);
+
+        if (! $session) {
+            return;
+        }
+
+        $this->closeSession($session, $user, now());
     }
 
     /**
@@ -228,6 +294,26 @@ class StudentSessionTrackingService
             ->first();
     }
 
+    private function resolveMobileActiveSession(Request $request, User $user): ?UserSession
+    {
+        if (! $this->timeTrackingSchemaReady()) {
+            return null;
+        }
+
+        $tokenId = $user->currentAccessToken()?->id;
+
+        if ($tokenId === null) {
+            return null;
+        }
+
+        return UserSession::query()
+            ->where('user_id', $user->id)
+            ->where('session_id', $this->mobileSessionId($tokenId))
+            ->where('is_active', true)
+            ->latest('id')
+            ->first();
+    }
+
     private function closeSession(
         UserSession $session,
         User $user,
@@ -274,5 +360,10 @@ class StudentSessionTrackingService
     {
         return Schema::hasTable('user_sessions')
             && Schema::hasColumn('users', 'total_access_duration_seconds');
+    }
+
+    private function mobileSessionId(string|int $tokenId): string
+    {
+        return self::MOBILE_SESSION_PREFIX.$tokenId;
     }
 }
