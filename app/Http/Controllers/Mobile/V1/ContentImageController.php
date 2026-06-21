@@ -24,7 +24,7 @@ class ContentImageController extends Controller
     public function show(Request $request, string $entity, int $id, string $field): Response|StreamedResponse
     {
         abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
-        abort_unless($field === 'thumbnail', 404);
+        abort_unless(in_array($field, ['thumbnail', 'profile_photo'], true), 404);
 
         $student = $this->resolveSignedStudent($request);
         $record = $this->resolveRecord($entity, $id);
@@ -49,18 +49,25 @@ class ContentImageController extends Controller
         return $student;
     }
 
-    private function resolveRecord(string $entity, int $id): Module|Lesson|Course
+    private function resolveRecord(string $entity, int $id): Module|Lesson|Course|User
     {
         return match ($entity) {
             'module' => Module::query()->findOrFail($id),
             'lesson' => Lesson::query()->findOrFail($id),
             'course' => Course::query()->findOrFail($id),
+            'user' => User::query()->findOrFail($id),
             default => abort(404),
         };
     }
 
-    private function authorizeStudentAccess(User $student, Module|Lesson|Course $record): void
+    private function authorizeStudentAccess(User $student, Module|Lesson|Course|User $record): void
     {
+        if ($record instanceof User) {
+            abort_unless($record->isStudent() && $record->is($student), 403);
+
+            return;
+        }
+
         if ($record instanceof Module) {
             abort_unless(
                 $record->accessTiers()->where('access_tiers.id', $student->access_tier_id)->exists(),

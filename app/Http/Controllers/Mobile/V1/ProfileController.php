@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Mobile\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Support\MobileApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +15,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ProfileController extends Controller
 {
+    use BuildsMobileSignedContentImageUrls;
+    use HandlesLocalUploads;
+
     public function show(Request $request)
     {
         return MobileApiResponse::success(
@@ -24,8 +29,17 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request)
     {
         $user = $request->user();
-        $user->fill($request->validated());
+        $validated = $request->validated();
+        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+
+        $user->fill($validated);
         $user->syncDisplayName();
+
+        $user->profile_photo = $this->storeUploadedFileToBunny(
+            $request->file('profile_photo'),
+            'users/profile-photos',
+            $user->profile_photo,
+        );
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
@@ -93,6 +107,14 @@ class ProfileController extends Controller
             'whatsapp' => $user->whatsapp,
             'preferred_certificate_picture' => $user->preferred_certificate_picture,
             'profile_photo' => $user->profile_photo,
+            'profile_photo_url' => $this->mobileSignedContentImageUrl(
+                $user,
+                'user',
+                $user->id,
+                'profile_photo',
+                $user->profile_photo,
+                $user->updated_at,
+            ),
             'instagram' => $user->instagram,
             'country' => $user->country,
             'birth_date' => $user->birth_date?->toDateString(),
