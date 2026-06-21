@@ -40,7 +40,7 @@ export default function EbookPreview({ ebook, backUrl, backLabel }) {
 
                         <Button asChild>
                             <a href={ebook.download_url}>
-                                Download Ebook
+                                Access
                             </a>
                         </Button>
                     </div>

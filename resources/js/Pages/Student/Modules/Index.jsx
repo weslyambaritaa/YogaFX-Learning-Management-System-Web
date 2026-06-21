@@ -136,9 +136,6 @@ export default function StudentModulesIndex({ modules }) {
                                                 <h3 className="text-xl font-semibold tracking-tight text-white">
                                                     {module.title}
                                                 </h3>
-                                                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                                                    {module.lesson_count} lessons / {module.assignments_count ?? 0} assignments
-                                                </p>
                                             </div>
 
                                             <div className="space-y-4">

@@ -29,8 +29,7 @@ export default function AssessmentIntro({
             <div className="bg-[radial-gradient(circle_at_top,_rgba(170,42,42,0.22),_transparent_28%),linear-gradient(180deg,#0d0d0d_0%,#080808_38%,#040404_100%)] py-12">
                 <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
                     <div className="overflow-hidden rounded-[16px] border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur">
-                        <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-                            <div className="p-8 lg:p-10">
+                        <div className="p-8 lg:p-10">
                                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f16d6d]">
                                     Assessment
                                 </div>
@@ -161,21 +160,6 @@ export default function AssessmentIntro({
                                         {eligibility.watch_progress ?? 0}%.
                                     </div>
                                 )}
-                            </div>
-
-                            <div className="relative bg-[#101010] p-8 lg:p-10">
-                                {assessment.thumbnail_url ? (
-                                    <img
-                                        src={assessment.thumbnail_url}
-                                        alt={assessment.title}
-                                        className="h-full min-h-[280px] w-full rounded-[14px] object-cover"
-                                    />
-                                ) : (
-                                    <div className="flex h-full min-h-[280px] items-center justify-center rounded-[14px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(226,72,72,0.22),_transparent_32%),linear-gradient(180deg,#181818_0%,#0d0d0d_100%)] px-8 text-center text-sm font-medium text-white/50">
-                                        Assessment cover art appears here when available.
-                                    </div>
-                                )}
-                            </div>
                         </div>
                     </div>
                 </div>

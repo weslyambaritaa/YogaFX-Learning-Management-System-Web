@@ -15,41 +15,19 @@ export default function StudentCertificateShow({ module, certificate }) {
             <Head title={module.title} />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
-                <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-                    <div className="absolute inset-0">
-                        {module.thumbnail_url ? (
-                            <img
-                                src={module.thumbnail_url}
-                                alt={module.title}
-                                className="h-full w-full object-cover opacity-55"
-                            />
-                        ) : (
-                            <div className="h-full w-full bg-[radial-gradient(circle_at_20%_18%,_rgba(211,101,52,0.45),_transparent_30%),linear-gradient(160deg,_#2f1d16_0%,_#120f0e_100%)]" />
-                        )}
-                    </div>
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(0,0,0,0.22)_0%,_rgba(0,0,0,0.72)_72%,_rgba(0,0,0,0.92)_100%)]" />
-
-                    <div className="relative flex min-h-[420px] flex-col justify-end gap-6 px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
-                        <div className="max-w-3xl space-y-4">
-                            <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
-                                Module {module.sort_order}
-                            </p>
-                            <h1 className="text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
-                                {certificate?.title ?? module.title}
-                            </h1>
-                            <p className="max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
-                                {certificate?.description ?? module.description}
-                            </p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-3">
-                            <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
-                                {certificate?.eligibility_label ?? 'Certificate access'}
-                            </div>
-                                <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
-                                {isDownloadReady ? 'Certificates available' : 'Waiting for certificate file'}
-                            </div>
-                        </div>
+                <section className="rounded-[24px] border border-white/10 bg-[#120f0f] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:p-8">
+                    <div className="max-w-3xl space-y-3">
+                        <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
+                            Certificate Status
+                        </p>
+                        <h1 className="text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl">
+                            {certificate?.title ?? module.title}
+                        </h1>
+                        <p className="text-sm leading-7 text-white/68">
+                            {isDownloadReady
+                                ? 'All generated certificates for your account are available here.'
+                                : 'This module becomes your certificate library as soon as certificate files are generated.'}
+                        </p>
                     </div>
                 </section>
 
@@ -63,10 +41,10 @@ export default function StudentCertificateShow({ module, certificate }) {
                                 <h2 className="text-2xl font-semibold tracking-tight text-white">
                                     {isDownloadReady
                                         ? 'Open your latest certificate file'
-                                        : 'Your learning path is ready, certificate file is still pending'}
+                                        : 'Certificate file is not available yet'}
                                 </h2>
                                 <p className="text-sm leading-7 text-white/60">
-                                    {certificate?.support_note}
+                                    {certificate?.support_note ?? 'Every generated certificate tied to your account appears in this library.'}
                                 </p>
                             </div>
 
@@ -84,7 +62,7 @@ export default function StudentCertificateShow({ module, certificate }) {
                                 <p className="text-sm leading-6 text-white/58">
                                     {certificate?.latest_certificate
                                                 ? `Latest: ${certificate.latest_certificate.type_label}, version ${certificate.latest_certificate.version}, generated ${certificate.latest_certificate.generated_at}`
-                                                : 'The certificate module is open because your accessible tier path has reached certificate readiness, but there is no generated certificate file yet.'}
+                                                : 'No generated certificate is available yet.'}
                                 </p>
                             </div>
 
@@ -173,7 +151,9 @@ export default function StudentCertificateShow({ module, certificate }) {
                                     {isDownloadReady ? 'Certificate ready' : 'Awaiting generation'}
                                 </p>
                                 <p className="mt-3 text-sm leading-6 text-white/58">
-                                    {certificate?.description}
+                                    {isDownloadReady
+                                        ? 'This module now acts as your student certificate library. Review and download every generated certificate available for your account.'
+                                        : certificate?.description}
                                 </p>
                             </div>
 

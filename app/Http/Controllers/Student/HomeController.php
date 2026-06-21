@@ -12,6 +12,7 @@ use App\Models\Ebook;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\StudentModuleVisit;
+use App\Models\User;
 use App\Services\BunnyStorageService;
 use App\Services\CertificateDownloadTrackingService;
 use App\Services\Certificates\CertificateEligibilityService;

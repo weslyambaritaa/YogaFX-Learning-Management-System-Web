@@ -396,9 +396,11 @@ class ModuleCatalogController extends Controller
                     'id' => $course->id,
                     'title' => $course->title,
                     'url_slug' => $course->url_slug,
+                    'url' => route('courses.show', $course->url_slug),
                     'description' => $course->description,
                     'index' => $index + 1,
                     'video' => $videoState,
+                    'status' => $videoState['is_ready'] ? 'ready' : 'unavailable',
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'course',
                         $course->id,

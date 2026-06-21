@@ -103,7 +103,7 @@ export default function StudentModuleShow({ module }) {
                             <div className="flex flex-wrap gap-3">
                                 <div className="rounded-md border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
                                     {module.completed_lessons} /{" "}
-                                    {module.lesson_count} lessons completed
+                                    {module.lesson_count} completed
                                 </div>
                                 <div className="rounded-md border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
                                     {module.progress_percentage}% module
@@ -168,7 +168,7 @@ export default function StudentModuleShow({ module }) {
                                                 )}
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
                                                 <div className="absolute left-4 top-4 rounded-md border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/70 backdrop-blur">
-                                                    Lesson {lesson.sort_order}
+                                                    #{lesson.sort_order}
                                                 </div>
                                             </div>
 
@@ -287,8 +287,7 @@ export default function StudentModuleShow({ module }) {
                                             <div className="space-y-3">
                                                 <div className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/25 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
                                                     <ClipboardCheck className="size-3.5" />
-                                                    Assignment{" "}
-                                                    {assignment.sort_order}
+                                                    #{assignment.sort_order}
                                                 </div>
                                                 <div>
                                                     <h3 className="text-xl font-semibold tracking-tight text-white">
@@ -378,19 +377,12 @@ export default function StudentModuleShow({ module }) {
                                         </div>
 
                                         <div className="mt-6 flex flex-wrap gap-3 border-t border-white/8 pt-4">
-                                            <a
-                                                href={ebook.preview_url}
-                                                className="inline-flex items-center gap-2 rounded-lg bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
-                                            >
-                                                Open Ebook
-                                                <ArrowRight className="size-4" />
-                                            </a>
                                             {ebook.download_url ? (
                                                 <a
                                                     href={ebook.download_url}
                                                     className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
                                                 >
-                                                    Download
+                                                    Access
                                                     <Download className="size-4" />
                                                 </a>
                                             ) : null}
@@ -468,16 +460,14 @@ export default function StudentModuleShow({ module }) {
                                             ) : null}
 
                                             {course.video?.is_ready &&
-                                            course.video?.hls_url ? (
-                                                <a
-                                                    href={course.video.hls_url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                className="inline-flex items-center gap-2 rounded-lg bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
+                                            course.url ? (
+                                                <Link
+                                                    href={course.url}
+                                                    className="inline-flex items-center gap-2 rounded-lg bg-[#DB202C] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#DB202C]"
                                                 >
                                                     Open Video
                                                     <ArrowRight className="size-4" />
-                                                </a>
+                                                </Link>
                                             ) : (
                                                 <div className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/60">
                                                     Video Not Ready

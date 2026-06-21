@@ -66,8 +66,12 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                 <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
                     {stage === 'loading' && (
                         <div className="rounded-[16px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:p-12">
-                            <div className="mx-auto flex size-24 items-center justify-center rounded-full border border-white/12 bg-white/8 text-4xl font-semibold text-white">
-                                {countdown}
+                            <div className="relative mx-auto flex size-28 items-center justify-center">
+                                <div className="absolute inset-0 rounded-full border-4 border-white/10" />
+                                <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#e24848] border-r-[#e24848]/60" />
+                                <div className="relative flex size-20 items-center justify-center rounded-full border border-white/12 bg-white/8 text-4xl font-semibold text-white">
+                                    {Math.max(countdown, 1)}
+                                </div>
                             </div>
                             <div className="mx-auto mt-8 max-w-2xl">
                                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-red-200/90">

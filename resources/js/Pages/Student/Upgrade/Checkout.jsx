@@ -32,24 +32,24 @@ export default function UpgradeCheckout({ upgrade }) {
         <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-16">
             <Head title="Upgrade Program" />
 
-            <div className="mx-auto flex max-w-[1100px] flex-col gap-8 px-4 pt-6 sm:px-6 lg:px-10">
-                <section className="rounded-[32px] border border-white/10 bg-[#15110f] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.4)] sm:p-8 lg:p-10">
-                    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="mx-auto flex max-w-[980px] flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-8">
+                <section className="rounded-[24px] border border-white/10 bg-[#15110f] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:p-7">
+                    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
                         <div className="space-y-6">
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
                                     Tier Upgrade
                                 </p>
-                                <h1 className="text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
-                                    Move into a higher YogaFX tier without losing your billing history.
+                                <h1 className="text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl">
+                                    Upgrade tier
                                 </h1>
-                                <p className="max-w-2xl text-sm leading-7 text-white/64 sm:text-base">
-                                    This upgrade flow keeps your payment history intact, creates a fresh invoice for the remaining amount due, then continues through full PayPal redirect before your new tier becomes active.
+                                <p className="max-w-2xl text-sm leading-7 text-white/64">
+                                    Your billing history stays intact. We only create a new invoice for the remaining amount, then continue through PayPal.
                                 </p>
                             </div>
 
-                            <form onSubmit={submit} className="space-y-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
-                                <div className="grid gap-5 md:grid-cols-2">
+                            <form onSubmit={submit} className="space-y-5 rounded-[20px] border border-white/10 bg-white/[0.04] p-5">
+                                <div className="grid gap-4 md:grid-cols-2">
                                     <div>
                                         <label className="text-xs uppercase tracking-[0.18em] text-white/62">
                                             Payment Type
@@ -57,7 +57,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                         <select
                                             value={data.payment_type}
                                             onChange={(event) => setData('payment_type', event.target.value)}
-                                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
                                         >
                                             <option value="pay_full">
                                                 Pay in Full - {formatCurrency(upgrade.amount_due, upgrade.target_tier.currency_code)}
@@ -78,7 +78,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                         <select
                                             value={data.payment_method}
                                             onChange={(event) => setData('payment_method', event.target.value)}
-                                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
                                         >
                                             {(upgrade.payment_method_options ?? []).map((option) => (
                                                 <option key={option.value} value={option.value}>
@@ -92,11 +92,17 @@ export default function UpgradeCheckout({ upgrade }) {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center justify-between gap-4">
-                                    <p className="text-sm text-white/50">
+                                <div className="rounded-[16px] border border-white/10 bg-black/20 px-4 py-4 text-sm leading-6 text-white/58">
+                                    {mockOptionEnabled
+                                        ? 'PayPal redirects you out and back. Mock mode only appears in approved non-production environments.'
+                                        : 'PayPal will redirect you out and back to complete this upgrade securely.'}
+                                </div>
+
+                                <div className="flex flex-wrap items-center justify-end gap-4">
+                                    <p className="text-xs text-white/38">
                                         {mockOptionEnabled
-                                            ? 'PayPal will redirect you out and back. Mock mode is only shown in approved non-production environments.'
-                                            : 'PayPal will redirect you out and back to finish your upgrade securely.'}
+                                            ? 'Non-production flow'
+                                            : 'Secure PayPal redirect'}
                                     </p>
 
                                     <Button
@@ -110,9 +116,9 @@ export default function UpgradeCheckout({ upgrade }) {
                             </form>
                         </div>
 
-                        <aside className="rounded-[28px] border border-white/10 bg-black/25 p-5 backdrop-blur-md">
+                        <aside className="rounded-[20px] border border-white/10 bg-black/25 p-5 backdrop-blur-md">
                             <div className="space-y-5">
-                                <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
+                                <div className="rounded-[18px] border border-white/10 bg-[#161210] p-5">
                                     <p className="text-xs uppercase tracking-[0.22em] text-white/46">
                                         Upgrade path
                                     </p>
@@ -123,7 +129,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                     </div>
                                 </div>
 
-                                <div className="rounded-[24px] border border-white/10 bg-[#161210] p-5">
+                                <div className="rounded-[18px] border border-white/10 bg-[#161210] p-5">
                                     <p className="text-xs uppercase tracking-[0.22em] text-white/46">
                                         Amount due now
                                     </p>
