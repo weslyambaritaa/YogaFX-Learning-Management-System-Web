@@ -590,13 +590,7 @@ class HomeController extends Controller
                   'cta_url' => $status === 'locked'
                       ? null
                       : route('modules.show', $module->url_slug),
-                  'thumbnail_url' => $this->protectedMediaUrl(
-                      'module',
-                      $module->id,
-                      'thumbnail',
-                      $module->thumbnail,
-                      versionSeed: $module->updated_at,
-                  ),
+                  'thumbnail_url' => $this->moduleThumbnailUrl($module),
                   'lessons' => $module->lessons->map(fn ($lesson) => [
                       'id'                  => $lesson->id,
                       'title'               => $lesson->title,
