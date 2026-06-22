@@ -556,7 +556,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 </DialogContent>
             </Dialog>
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
+            {/* UPDATE: pt-8 diubah menjadi pt-4 dan gap diperkecil agar tampilan lebih naik */}
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-10">
                 <StudentBackButton
                     fallbackHref={route(
                         "modules.show",
@@ -575,44 +576,58 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                     </div>
 
                     <div className="overflow-hidden rounded-[16px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-                        <div className="relative">
+                        {/* UPDATE: Memberikan bg-black pada wrapper area video agar tampak seperti theater */}
+                        <div className="relative bg-black border-b border-white/10">
                             {lessonVideoUrl ? (
-                                <div className="border-b border-white/10 bg-black/20 p-4 sm:p-6">
-                                    {workbookBlocksVideo ? (
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setShowWorkbookDialog(true)
-                                            }
-                                            className="flex aspect-video w-full items-center justify-center rounded-[14px] border border-[#DB202C]/30 bg-[#DB202C]/10 px-6 text-center text-white"
-                                        >
-                                            Download the workbook first before
-                                            watching this video.
-                                        </button>
-                                    ) : (
-                                        <VideoJsPlayer
-                                            src={lessonVideoUrl}
-                                            poster={lesson.thumbnail_url}
-                                            className="overflow-hidden rounded-[14px]"
-                                            autoplay={Boolean(lesson.autoplay)}
-                                            onPlaybackError={setPlayerWarning}
-                                            onProgressUpdate={
-                                                handleProgressUpdate
-                                            }
-                                            onTimeUpdate={
-                                                handlePlayerTimeUpdate
-                                            }
-                                        />
-                                    )}
+                                <div className="p-4 sm:p-6 lg:p-8">
+                                    {/* UPDATE: Membatasi ukuran maksimal video dengan max-w-5xl (1024px) agar tinggi tetap ideal di layar */}
+                                    <div className="mx-auto w-full max-w-5xl aspect-video">
+                                        {workbookBlocksVideo ? (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setShowWorkbookDialog(true)
+                                                }
+                                                className="flex h-full w-full items-center justify-center rounded-[14px] border border-[#DB202C]/30 bg-[#DB202C]/10 px-6 text-center text-white"
+                                            >
+                                                Download the workbook first
+                                                before watching this video.
+                                            </button>
+                                        ) : (
+                                            <VideoJsPlayer
+                                                src={lessonVideoUrl}
+                                                poster={lesson.thumbnail_url}
+                                                className="h-full w-full overflow-hidden rounded-[14px] shadow-2xl"
+                                                autoplay={Boolean(
+                                                    lesson.autoplay,
+                                                )}
+                                                onPlaybackError={
+                                                    setPlayerWarning
+                                                }
+                                                onProgressUpdate={
+                                                    handleProgressUpdate
+                                                }
+                                                onTimeUpdate={
+                                                    handlePlayerTimeUpdate
+                                                }
+                                            />
+                                        )}
+                                    </div>
                                 </div>
                             ) : lesson.thumbnail_url ? (
-                                <img
-                                    src={lesson.thumbnail_url}
-                                    alt={lesson.title}
-                                    className="aspect-video h-full w-full object-cover opacity-70"
-                                />
+                                <div className="p-4 sm:p-6 lg:p-8">
+                                    <div className="mx-auto w-full max-w-5xl aspect-video overflow-hidden rounded-[14px]">
+                                        <img
+                                            src={lesson.thumbnail_url}
+                                            alt={lesson.title}
+                                            className="h-full w-full object-cover opacity-70"
+                                        />
+                                    </div>
+                                </div>
                             ) : (
-                                <div className="aspect-video bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                                <div className="p-4 sm:p-6 lg:p-8">
+                                    <div className="mx-auto w-full max-w-5xl aspect-video rounded-[14px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                                </div>
                             )}
 
                             <div className="absolute left-5 top-5">
@@ -624,7 +639,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             </div>
 
                             {autoNextCountdown !== null && nextLesson?.title ? (
-                                <div className="absolute inset-x-5 bottom-5 rounded-[14px] border border-white/15 bg-black/60 px-5 py-4 backdrop-blur">
+                                <div className="absolute inset-x-5 bottom-5 mx-auto max-w-5xl rounded-[14px] border border-white/15 bg-black/60 px-5 py-4 backdrop-blur">
                                     <div className="flex items-center justify-between gap-4">
                                         <div className="space-y-2">
                                             <div className="text-sm font-semibold uppercase tracking-[0.18em] text-white/55">
@@ -731,7 +746,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             <div className="text-base font-semibold text-white">
                                                 {assessmentState.title}
                                             </div>
-                                            <p className="mt-1 text-sm text-white/70">
+                                            {/* UPDATE: Mengubah class agar sama dengan judul di atasnya */}
+                                            <p className="mt-1 text-base font-semibold text-white">
                                                 {assessmentState.is_completed
                                                     ? "This assessment has already been completed."
                                                     : assessmentState.is_unlocked
@@ -809,7 +825,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                 <section className="space-y-5">
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-                        {/* UPDATE: Progress section Netflix Style */}
+                        {/* UPDATE: Progress section (Tanpa Eyebrow) */}
                         <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5">
                             <h2 className="text-2xl font-semibold tracking-tight text-white">
                                 {moduleState?.completed_lessons ?? 0} of{" "}
@@ -826,7 +842,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             </div>
                         </div>
 
-                        {/* UPDATE: Total Access Time section Netflix Style */}
+                        {/* UPDATE: Total Access Time section (Tanpa Eyebrow) */}
                         <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5">
                             <h2 className="text-xl font-semibold tracking-tight text-white">
                                 Total Access Time
@@ -838,7 +854,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                     </div>
 
                     <div className="space-y-4">
-                        {/* UPDATE: Lesson Navigation Netflix Style */}
+                        {/* UPDATE: Lesson Navigation title (Tanpa Eyebrow) */}
                         <div>
                             <h2 className="text-2xl font-semibold tracking-tight text-white">
                                 More lessons in this module
