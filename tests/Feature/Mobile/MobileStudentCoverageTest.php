@@ -13,7 +13,9 @@ use App\Models\Module;
 use App\Models\User;
 use App\Models\UserSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\Sanctum;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class MobileStudentCoverageTest extends TestCase
@@ -57,6 +59,7 @@ class MobileStudentCoverageTest extends TestCase
             ->assertJsonPath('data.home_stage', 12)
             ->assertJsonPath('data.student_context.access_tier.slug', 'online')
             ->assertJsonPath('data.access_time_summary.persisted_total_access_duration_seconds', 0)
+            ->assertJsonPath('data.access_time_summary.total_access_duration_seconds', 0)
             ->assertJsonPath('data.access_time_summary.currently_active', true)
             ->assertJsonStructure([
                 'data' => [
@@ -75,7 +78,50 @@ class MobileStudentCoverageTest extends TestCase
 
         $this->assertGreaterThanOrEqual(
             300,
-            (float) $response->json('data.access_time_summary.total_access_duration_seconds'),
+            (float) $response->json('data.access_time_summary.running_total_access_duration_seconds'),
+        );
+    }
+
+    public function test_web_and_mobile_access_time_payloads_share_the_same_semantics(): void
+    {
+        [$student] = $this->createActiveStudentWithTier();
+        [$mobileStudent] = $this->createActiveStudentWithTier('master_class');
+
+        $student->forceFill([
+            'total_access_duration_seconds' => 120,
+        ])->save();
+        $mobileStudent->forceFill([
+            'total_access_duration_seconds' => 120,
+        ])->save();
+
+        $webResponse = $this->actingAs($student)->get(route('student.dashboard'));
+
+        $webResponse->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Student/Home')
+            ->where('accessTimeSummary.total_access_duration_seconds', 120)
+            ->missing('accessTimeSummary.persisted_total_access_duration_seconds')
+            ->where('accessTimeSummary.currently_active', true)
+            ->where('accessTimeSummary.active_session_login_at', fn ($value) => filled($value))
+            ->where('accessTimeSummary.running_total_access_duration_seconds', fn ($value) => is_numeric($value) && (float) $value >= 120.0)
+        );
+
+        Auth::guard('web')->logout();
+
+        $token = $mobileStudent->createToken('Pixel 9')->plainTextToken;
+
+        $mobileResponse = $this
+            ->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/mobile/v1/dashboard');
+
+        $mobileResponse->assertOk()
+            ->assertJsonPath('data.access_time_summary.total_access_duration_seconds', 120)
+            ->assertJsonPath('data.access_time_summary.persisted_total_access_duration_seconds', 120)
+            ->assertJsonPath('data.access_time_summary.currently_active', true);
+
+        $this->assertNotNull($mobileResponse->json('data.access_time_summary.active_session_login_at'));
+        $this->assertGreaterThanOrEqual(
+            120,
+            (float) $mobileResponse->json('data.access_time_summary.running_total_access_duration_seconds'),
         );
     }
 

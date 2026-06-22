@@ -135,10 +135,12 @@ class StudentHomeApiService extends HomeController
     {
         $summary = $this->studentSessionTrackingService->summaryForUser($user);
 
+        // Keep the mobile contract aligned with the web summary semantics:
+        // - total_access_duration_seconds = persisted cumulative total from DB
+        // - running_total_access_duration_seconds = persisted total + active session elapsed
         return [
             ...$summary,
             'persisted_total_access_duration_seconds' => $summary['total_access_duration_seconds'],
-            'total_access_duration_seconds' => $summary['running_total_access_duration_seconds'],
         ];
     }
 }
