@@ -4,7 +4,7 @@ import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link } from "@inertiajs/react";
-import { ArrowRight, Check, FileText, Play } from "lucide-react";
+import { ArrowRight, FileText, Play } from "lucide-react";
 import { useState } from "react";
 
 function LessonCard({ lesson, onLockedClick }) {
@@ -32,16 +32,6 @@ function LessonCard({ lesson, onLockedClick }) {
                         </h3>
                         <p className="text-base font-semibold tracking-tight text-white/82">
                             Lesson {lesson.sort_order}
-                        </p>
-                        <p className="text-xs leading-6 text-white/62">
-                            {[
-                                lesson.has_workbook ? "Workbook" : null,
-                                lesson.has_video ? "Video" : null,
-                                lesson.has_audio ? "Audio" : null,
-                                lesson.has_content ? "Content" : null,
-                            ]
-                                .filter(Boolean)
-                                .join(" • ") || "Learning content ready"}
                         </p>
                     </div>
                 </div>
@@ -128,13 +118,12 @@ export default function StudentModuleShow({ module }) {
                                 {module.title}
                             </h1>
                             {module.description ? (
-                                <p className="max-w-2xl text-sm sm:text-base leading-7 font-medium text-white">
+                                <p className="max-w-2xl text-sm font-medium leading-7 text-white sm:text-base">
                                     {module.description}
                                 </p>
                             ) : null}
                         </div>
 
-                        {/* UPDATE: Buttons & Progress badges with Netflix styling */}
                         <div className="flex flex-wrap gap-3 pt-2">
                             {module.continue_last_lesson_url ? (
                                 <Button
@@ -151,12 +140,12 @@ export default function StudentModuleShow({ module }) {
                                 </Button>
                             ) : null}
 
-                            <div className="flex items-center h-auto rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white">
+                            <div className="flex h-auto items-center rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white">
                                 {module.completed_lessons} /{" "}
                                 {module.lesson_count} completed
                             </div>
 
-                            <div className="flex items-center h-auto rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white">
+                            <div className="flex h-auto items-center rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white">
                                 {module.progress_percentage}% module progress
                             </div>
                         </div>
@@ -166,7 +155,6 @@ export default function StudentModuleShow({ module }) {
                 {module.lessons.length ? (
                     <section className="space-y-5">
                         <div>
-                            {/* UPDATE: Dihapus "Lesson Access" dan margins disesuaikan */}
                             <h2 className="text-2xl font-semibold tracking-tight text-white">
                                 Lessons
                             </h2>
