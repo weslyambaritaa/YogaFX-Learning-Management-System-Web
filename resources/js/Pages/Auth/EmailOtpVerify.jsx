@@ -19,60 +19,20 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
     const heading =
         context === "signup"
             ? "Verify your email code to finish YogaFX sign up"
-            : "Verify your email code to finish YogaFX login";
+            : null;
     const description =
         context === "signup"
             ? "Your password is ready. Enter the OTP code that YogaFX sent to your email so the onboarding flow can safely open the LMS."
-            : "Your password was correct. Enter the OTP code that YogaFX sent to your email so the login session can continue safely.";
+            : null;
 
     return (
         <PublicFlowLayout
             title="Email OTP Verification"
             heading={heading}
             description={description}
-            aside={
-                <div className="space-y-6">
-                    {/* Verification details card */}
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
-                        <div className="flex justify-end">
-                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
-                                Verification details
-                            </p>
-                        </div>
-                        <div className="mt-7 space-y-3 text-sm text-white">
-                            <p>{email}</p>
-                            {expires_at && (
-                                <p className="text-white/70">
-                                    Code expires at{" "}
-                                    {new Date(expires_at).toLocaleString()}.
-                                </p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Why this step card */}
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
-                        <div className="flex justify-end">
-                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
-                                Why this step
-                            </p>
-                        </div>
-                        <div className="mt-7 space-y-3 text-sm leading-6 text-white/70">
-                            <p>
-                                The OTP code confirms this email address belongs
-                                to you before the session continues.
-                            </p>
-                            <p>
-                                Codes are single-use and expire after a short
-                                window for security.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            }
         >
-            <form onSubmit={submit} className="space-y-6">
-                <div className="flex items-center gap-3">
+            <form onSubmit={submit} className="mx-auto flex max-w-xl flex-col items-center space-y-6 text-center">
+                <div className="flex items-center justify-center gap-3">
                     <MailCheck
                         className="h-6 w-6 flex-shrink-0 text-white/70"
                         strokeWidth={2.5}
@@ -82,7 +42,7 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
                     </p>
                 </div>
 
-                <div>
+                <div className="w-full text-left">
                     <InputLabel
                         htmlFor="otp_code"
                         value="OTP Code"
@@ -105,12 +65,20 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
                     />
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <p className="text-sm text-gray-500">
-                        Enter the code exactly as received. Codes expire
-                        automatically.
+                <div className="space-y-3 text-sm text-white">
+                    <p className="font-semibold text-white/80">
+                        Verification details
                     </p>
+                    <p>{email}</p>
+                    {expires_at && (
+                        <p className="text-white/70">
+                            Code expires at{" "}
+                            {new Date(expires_at).toLocaleString()}.
+                        </p>
+                    )}
+                </div>
 
+                <div className="flex justify-center">
                     <Button
                         type="submit"
                         disabled={processing}

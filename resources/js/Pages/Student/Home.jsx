@@ -3,7 +3,7 @@ import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link } from "@inertiajs/react";
-import { Check, ChevronRight, Download, Play, X } from "lucide-react";
+import { Check, ChevronRight, Download, Info, Play, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const ONBOARDING_KEY = "yogafx_onboarding_done";
@@ -314,9 +314,10 @@ function ModuleCard({ module, onLockedClick }) {
             window.clearTimeout(hoverTimeoutRef.current);
         }
 
+        // UPDATE: Waktu tunggu popup diset tepat 200ms (0.2 detik)
         hoverTimeoutRef.current = window.setTimeout(() => {
             setIsHoverOpen(true);
-        }, 300);
+        }, 200);
     };
 
     const closeHover = () => {
@@ -397,12 +398,13 @@ function ModuleCard({ module, onLockedClick }) {
             onMouseEnter={openHover}
             onMouseLeave={closeHover}
         >
-            <div className="aspect-video overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04] shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition duration-300">
+            {/* UPDATE: Animasi transition dipercepat menjadi duration-200 (0.2s) */}
+            <div className="aspect-video overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04] shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition duration-200">
                 {module.thumbnail_url ? (
                     <img
                         src={module.thumbnail_url}
                         alt={module.title}
-                        className="h-full w-full object-cover transition duration-500"
+                        className="h-full w-full object-cover transition duration-200"
                     />
                 ) : (
                     <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,rgba(223,103,57,0.45),transparent_28%),linear-gradient(160deg,#2b1d16_0%,#120f0e_100%)]" />
@@ -410,9 +412,10 @@ function ModuleCard({ module, onLockedClick }) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/58 via-transparent to-transparent" />
             </div>
 
+            {/* UPDATE: Animasi popup transition-all diset menjadi duration-200 (0.2s) */}
             <div
                 className={[
-                    "pointer-events-none absolute left-1/2 top-1/2 w-[112%] min-w-[320px] max-w-[380px] -translate-x-1/2 rounded-[22px] border border-white/12 bg-[#141110] shadow-[0_34px_90px_rgba(0,0,0,0.55)] transition-all duration-300",
+                    "pointer-events-none absolute left-1/2 top-1/2 w-[112%] min-w-[320px] max-w-[380px] -translate-x-1/2 rounded-[22px] border border-white/12 bg-[#141110] shadow-[0_34px_90px_rgba(0,0,0,0.55)] transition-all duration-200",
                     isHoverOpen
                         ? "-translate-y-[52%] scale-100 opacity-100"
                         : "-translate-y-1/2 scale-95 opacity-0",
@@ -571,40 +574,46 @@ export default function StudentHome({
 
                 <div className="relative mx-auto flex min-h-screen max-w-[1400px] flex-col justify-end gap-8 px-4 pb-20 pt-24 sm:px-6 lg:px-10 lg:pb-28">
                     <div className="max-w-2xl space-y-5 text-white">
-                        <div className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
+                        <div className="text-xs uppercase tracking-[0.28em] font-medium text-white">
                             {homeExperience?.state === "new_student"
                                 ? `Hello, ${studentName}`
                                 : `Welcome back, ${studentName}`}
                         </div>
-                        <h1 className="text-4xl font-bold tracking-[-0.03em] sm:text-5xl xl:text-6xl">
+
+                        <h1 className="text-4xl font-bold tracking-[-0.03em] sm:text-5xl xl:text-6xl text-white">
                             {continueLearning?.title ??
                                 homeExperience?.hero_title ??
                                 "Start your learning journey"}
                         </h1>
-                        <p className="text-sm leading-7 text-white/68 sm:text-base">
+
+                        <p className="text-sm sm:text-base leading-7 font-medium text-white">
                             {continueLearning?.description ??
                                 homeExperience?.hero_description}
                         </p>
-                        <div className="flex flex-wrap gap-3">
+
+                        <div className="flex flex-wrap gap-3 pt-2">
+                            {/* Tombol Primary (Play) - Desain Netflix */}
                             <Button
                                 asChild
-                                className="rounded-[14px] bg-[#DB202C] px-7 text-white hover:bg-[#c31c28]"
+                                className="h-auto rounded-md bg-white px-7 py-3 text-[1.05rem] font-bold text-black transition-colors hover:bg-white/80"
                             >
                                 <Link
                                     href={
                                         continueLearning?.cta_url ??
                                         route("modules.index")
                                     }
+                                    className="flex items-center"
                                 >
-                                    <Play className="mr-2 size-4 fill-white" />
+                                    <Play className="mr-2.5 size-6 fill-black text-black" />
                                     {continueLearning?.cta_label ??
                                         homeExperience?.primary_cta_label ??
                                         "Continue Learning"}
                                 </Link>
                             </Button>
+
+                            {/* Tombol Secondary (Info) - Desain Netflix */}
                             <Button
                                 type="button"
-                                variant="outline"
                                 onClick={() => {
                                     const activeModuleSlug =
                                         continueLearning?.module?.url_slug ??
@@ -622,8 +631,9 @@ export default function StudentHome({
                                     }
                                     setSelectedModule(targetModule ?? null);
                                 }}
-                                className="rounded-[14px] border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+                                className="h-auto rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white transition-colors hover:bg-[#5a5c5f]/60"
                             >
+                                <Info className="mr-2.5 size-6" />
                                 More Info
                             </Button>
                         </div>
