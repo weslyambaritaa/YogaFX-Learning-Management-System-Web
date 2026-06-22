@@ -5,8 +5,10 @@ use App\Http\Controllers\Mobile\V1\AssignmentController;
 use App\Http\Controllers\Mobile\V1\AssessmentController;
 use App\Http\Controllers\Mobile\V1\CertificateController;
 use App\Http\Controllers\Mobile\V1\CertificateMediaController;
+use App\Http\Controllers\Mobile\V1\ContentImageController;
 use App\Http\Controllers\Mobile\V1\CourseController;
 use App\Http\Controllers\Mobile\V1\DashboardController;
+use App\Http\Controllers\Mobile\V1\DialogController;
 use App\Http\Controllers\Mobile\V1\EbookController;
 use App\Http\Controllers\Mobile\V1\EbookMediaController;
 use App\Http\Controllers\Mobile\V1\LessonController;
@@ -44,10 +46,15 @@ Route::prefix('mobile/v1')
         Route::get('/media/certificates/{certificate}/download', [CertificateMediaController::class, 'download'])
             ->middleware('signed')
             ->name('certificates.media.download');
+        Route::get('/media/content-images/{entity}/{id}/{field}', [ContentImageController::class, 'show'])
+            ->middleware('signed')
+            ->name('content-images.show');
 
         Route::middleware(['auth:sanctum', 'mobile.student'])->group(function (): void {
             Route::get('/me', MeController::class)->name('me.show');
             Route::get('/dashboard', DashboardController::class)->name('dashboard.show');
+            Route::get('/dialogs', [DialogController::class, 'index'])->name('dialogs.index');
+            Route::get('/dialogs/{key}', [DialogController::class, 'show'])->name('dialogs.show');
             Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
             Route::get('/modules/{module}', [ModuleController::class, 'show'])->name('modules.show');
             Route::get('/ebooks', [EbookController::class, 'index'])->name('ebooks.index');
