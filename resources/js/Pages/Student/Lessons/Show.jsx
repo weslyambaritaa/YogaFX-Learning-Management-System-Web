@@ -25,6 +25,10 @@ function formatDurationParts(totalSeconds) {
     return { hours, minutes, seconds };
 }
 
+function workbookStorageKey(lessonId) {
+    return `yogafx_workbook_downloaded_${lessonId}`;
+}
+
 function LessonNavCard({ item, onLockedClick }) {
     const body = (
         <div className="group h-full rounded-[14px] border border-white/10 bg-white/[0.04] p-3.5 transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
@@ -91,6 +95,9 @@ function LessonNavCard({ item, onLockedClick }) {
 }
 
 export default function StudentLessonShow({ lesson, accessTimeSummary }) {
+    const initialWorkbookDownloaded = Boolean(lesson.progress?.is_workbook_downloaded)
+        || (typeof window !== 'undefined'
+            && window.localStorage.getItem(workbookStorageKey(lesson.id)) === '1');
     const [playerWarning, setPlayerWarning] = useState(null);
     const [watchProgress, setWatchProgress] = useState(lesson.progress?.watch_progress ?? 0);
     const [isLessonDone, setIsLessonDone] = useState(Boolean(lesson.progress?.is_done));
@@ -99,9 +106,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const [navigationItems, setNavigationItems] = useState(lesson.navigation ?? []);
     const [nextLesson, setNextLesson] = useState(lesson.next_lesson);
     const [autoNextCountdown, setAutoNextCountdown] = useState(null);
-    const [workbookDownloaded, setWorkbookDownloaded] = useState(
-        Boolean(lesson.progress?.is_workbook_downloaded),
-    );
+    const [workbookDownloaded, setWorkbookDownloaded] = useState(initialWorkbookDownloaded);
     const [showWorkbookDialog, setShowWorkbookDialog] = useState(false);
     const [showLockedDialog, setShowLockedDialog] = useState(false);
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
@@ -137,6 +142,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     }, [autoNextCountdown]);
 
     useEffect(() => {
+        const persistedWorkbookDownloaded = typeof window !== 'undefined'
+            && window.localStorage.getItem(workbookStorageKey(lesson.id)) === '1';
+
         setWatchProgress(lesson.progress?.watch_progress ?? 0);
         setIsLessonDone(Boolean(lesson.progress?.is_done));
         setAssessmentState(lesson.assessment);
@@ -144,7 +152,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         setNavigationItems(lesson.navigation ?? []);
         setNextLesson(lesson.next_lesson);
         setAutoNextCountdown(null);
-        setWorkbookDownloaded(Boolean(lesson.progress?.is_workbook_downloaded));
+        setWorkbookDownloaded(Boolean(lesson.progress?.is_workbook_downloaded) || persistedWorkbookDownloaded);
         autoNextStartedRef.current = false;
         progressRequestRef.current = {
             inFlight: false,
@@ -152,6 +160,21 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             pending: null,
         };
     }, [lesson]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const storageKey = workbookStorageKey(lesson.id);
+
+        if (workbookDownloaded) {
+            window.localStorage.setItem(storageKey, '1');
+            return;
+        }
+
+        window.localStorage.removeItem(storageKey);
+    }, [lesson.id, workbookDownloaded]);
 
     useEffect(() => {
         if (autoNextCountdown === null || !nextLesson?.url) {
@@ -203,6 +226,36 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         accessTimeSummary?.running_total_access_duration_seconds,
         accessTimeSummary?.total_access_duration_seconds,
     ]);
+
+    useEffect(() => {
+        const refreshLessonState = () => {
+            router.reload({
+                only: ['lesson', 'accessTimeSummary'],
+                preserveScroll: true,
+                preserveState: true,
+            });
+        };
+
+        const handlePageShow = (event) => {
+            if (event.persisted) {
+                refreshLessonState();
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refreshLessonState();
+            }
+        };
+
+        window.addEventListener('pageshow', handlePageShow);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('pageshow', handlePageShow);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
 
     const readXsrfToken = () => {
         const xsrfCookie = document.cookie
