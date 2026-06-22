@@ -522,130 +522,194 @@ export default function Checkout({ checkout }) {
                     </div>
                 )}
 
-                <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                        <InputLabel value="First Name" className="text-white/84" />
-                        <input
-                            value={formData.first_name}
-                            onChange={(event) =>
-                                setFieldValue("first_name", event.target.value)
-                            }
-                            className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/30 px-4 py-3 text-white focus:border-[#d7a686] focus:outline-none"
-                        />
-                        <InputError className="mt-2" message={fieldErrors.first_name} />
+                <div className="space-y-5 rounded-[20px] border border-white/10 bg-white/[0.03] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.18)] backdrop-blur-sm">
+                    <div className="grid gap-5 md:grid-cols-2">
+                        <div className="rounded-[20px] border border-white/8 bg-black/15 p-4 md:col-span-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/45">
+                                Billing identity
+                            </p>
+                            <div className="mt-4 grid gap-5 md:grid-cols-2">
+                                <div>
+                                    <InputLabel value="First Name" className="text-white/84" />
+                                    <div className="relative mt-2">
+                                        <input
+                                            value={formData.first_name}
+                                            onChange={(event) =>
+                                                setFieldValue("first_name", event.target.value)
+                                            }
+                                            className={`block w-full rounded-2xl border bg-black/30 px-4 py-3 text-white transition-all duration-200 placeholder:text-white/28 focus:outline-none focus:ring-2 focus:ring-[#d7a686]/30 ${
+                                                fieldErrors.first_name
+                                                    ? "border-rose-500 pr-11 focus:border-rose-400"
+                                                    : "border-white/10 focus:border-[#d7a686]"
+                                            }`}
+                                        />
+                                        {fieldErrors.first_name && (
+                                            <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-rose-300" />
+                                        )}
+                                    </div>
+                                    <InputError className="mt-2" message={fieldErrors.first_name} />
+                                </div>
+
+                                <div>
+                                    <InputLabel value="Last Name" className="text-white/84" />
+                                    <div className="relative mt-2">
+                                        <input
+                                            value={formData.last_name}
+                                            onChange={(event) =>
+                                                setFieldValue("last_name", event.target.value)
+                                            }
+                                            className={`block w-full rounded-2xl border bg-black/30 px-4 py-3 text-white transition-all duration-200 placeholder:text-white/28 focus:outline-none focus:ring-2 focus:ring-[#d7a686]/30 ${
+                                                fieldErrors.last_name
+                                                    ? "border-rose-500 pr-11 focus:border-rose-400"
+                                                    : "border-white/10 focus:border-[#d7a686]"
+                                            }`}
+                                        />
+                                        {fieldErrors.last_name && (
+                                            <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-rose-300" />
+                                        )}
+                                    </div>
+                                    <InputError className="mt-2" message={fieldErrors.last_name} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <InputLabel value="Email" className="text-white/84" />
+                            <input
+                                value={checkout.email}
+                                disabled
+                                className="mt-2 block w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white/75 transition-all duration-200"
+                            />
+                        </div>
+
+                        <div>
+                            <InputLabel value="Mobile Phone" className="text-white/84" />
+                            <input
+                                value={checkout.phone}
+                                disabled
+                                className="mt-2 block w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-white/75 transition-all duration-200"
+                            />
+                        </div>
+
+                        <div>
+                            <InputLabel value="Billing Postcode" className="text-white/84" />
+                            <div className="relative mt-2">
+                                <input
+                                    value={formData.billing_postcode}
+                                    onChange={(event) =>
+                                        setFieldValue("billing_postcode", event.target.value)
+                                    }
+                                    className={`block w-full rounded-2xl border bg-black/30 px-4 py-3 text-white transition-all duration-200 placeholder:text-white/28 focus:outline-none focus:ring-2 focus:ring-[#d7a686]/30 ${
+                                        fieldErrors.billing_postcode
+                                            ? "border-rose-500 pr-11 focus:border-rose-400"
+                                            : "border-white/10 focus:border-[#d7a686]"
+                                    }`}
+                                />
+                                {fieldErrors.billing_postcode && (
+                                    <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-rose-300" />
+                                )}
+                            </div>
+                            <InputError className="mt-2" message={fieldErrors.billing_postcode} />
+                        </div>
+
+                        <div>
+                            <InputLabel value="Billing Country" className="text-white/84" />
+                            <div className="relative mt-2">
+                                <input
+                                    value={formData.billing_country}
+                                    onChange={(event) =>
+                                        setFieldValue("billing_country", event.target.value)
+                                    }
+                                    className={`block w-full rounded-2xl border bg-black/30 px-4 py-3 text-white transition-all duration-200 placeholder:text-white/28 focus:outline-none focus:ring-2 focus:ring-[#d7a686]/30 ${
+                                        fieldErrors.billing_country
+                                            ? "border-rose-500 pr-11 focus:border-rose-400"
+                                            : "border-white/10 focus:border-[#d7a686]"
+                                    }`}
+                                />
+                                {fieldErrors.billing_country && (
+                                    <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-rose-300" />
+                                )}
+                            </div>
+                            <InputError className="mt-2" message={fieldErrors.billing_country} />
+                        </div>
                     </div>
 
-                    <div>
-                        <InputLabel value="Last Name" className="text-white/84" />
-                        <input
-                            value={formData.last_name}
-                            onChange={(event) =>
-                                setFieldValue("last_name", event.target.value)
-                            }
-                            className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/30 px-4 py-3 text-white focus:border-[#d7a686] focus:outline-none"
-                        />
-                        <InputError className="mt-2" message={fieldErrors.last_name} />
-                    </div>
+                    <div className="rounded-[20px] border border-white/8 bg-white/[0.045] p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/45">
+                                Billing address
+                            </p>
+                            <span className="text-xs text-white/38">
+                                Optional second line supported
+                            </span>
+                        </div>
 
-                    <div>
-                        <InputLabel value="Email" className="text-white/84" />
-                        <input
-                            value={checkout.email}
-                            disabled
-                            className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/20 px-4 py-3 text-white/75"
-                        />
-                    </div>
+                        <div className="mt-4 grid gap-5 md:grid-cols-2">
+                            <div>
+                                <InputLabel value="Billing Address Line 1" className="text-white/84" />
+                                <input
+                                    value={formData.billing_address_line_1}
+                                    onChange={(event) =>
+                                        setFieldValue(
+                                            "billing_address_line_1",
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-2 block w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white transition-all duration-200 placeholder:text-white/28 focus:border-[#d7a686] focus:outline-none focus:ring-2 focus:ring-[#d7a686]/30"
+                                />
+                            </div>
 
-                    <div>
-                        <InputLabel value="Mobile Phone" className="text-white/84" />
-                        <input
-                            value={checkout.phone}
-                            disabled
-                            className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/20 px-4 py-3 text-white/75"
-                        />
-                    </div>
-
-                    <div>
-                        <InputLabel value="Billing Postcode" className="text-white/84" />
-                        <input
-                            value={formData.billing_postcode}
-                            onChange={(event) =>
-                                setFieldValue("billing_postcode", event.target.value)
-                            }
-                            className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/30 px-4 py-3 text-white focus:border-[#d7a686] focus:outline-none"
-                        />
-                        <InputError className="mt-2" message={fieldErrors.billing_postcode} />
-                    </div>
-
-                    <div>
-                        <InputLabel value="Billing Country" className="text-white/84" />
-                        <input
-                            value={formData.billing_country}
-                            onChange={(event) =>
-                                setFieldValue("billing_country", event.target.value)
-                            }
-                            className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/30 px-4 py-3 text-white focus:border-[#d7a686] focus:outline-none"
-                        />
-                        <InputError className="mt-2" message={fieldErrors.billing_country} />
+                            <div>
+                                <InputLabel value="Billing Address Line 2" className="text-white/84" />
+                                <input
+                                    value={formData.billing_address_line_2}
+                                    onChange={(event) =>
+                                        setFieldValue(
+                                            "billing_address_line_2",
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-2 block w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white transition-all duration-200 placeholder:text-white/28 focus:border-[#d7a686] focus:outline-none focus:ring-2 focus:ring-[#d7a686]/30"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                        <InputLabel value="Billing Address Line 1" className="text-white/84" />
-                        <input
-                            value={formData.billing_address_line_1}
-                            onChange={(event) =>
-                                setFieldValue(
-                                    "billing_address_line_1",
-                                    event.target.value,
-                                )
-                            }
-                            className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/30 px-4 py-3 text-white focus:border-[#d7a686] focus:outline-none"
-                        />
-                    </div>
-
-                    <div>
-                        <InputLabel value="Billing Address Line 2" className="text-white/84" />
-                        <input
-                            value={formData.billing_address_line_2}
-                            onChange={(event) =>
-                                setFieldValue(
-                                    "billing_address_line_2",
-                                    event.target.value,
-                                )
-                            }
-                            className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/30 px-4 py-3 text-white focus:border-[#d7a686] focus:outline-none"
-                        />
+                <div className="rounded-[20px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.16)] backdrop-blur-sm">
+                    <div className="w-full">
+                        <InputLabel value="Payment Type" className="text-white/84" />
+                        <select
+                            value={paymentType}
+                            onChange={(event) => setPaymentType(event.target.value)}
+                            className="mt-2 block w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-200 focus:border-[#d7a686] focus:outline-none focus:ring-2 focus:ring-[#d7a686]/30"
+                        >
+                            <option value="pay_full">
+                                Pay in Full -{" "}
+                                {formatCurrency(
+                                    checkout.amount,
+                                    checkout.currency_code,
+                                )}
+                            </option>
+                            <option value="installment">
+                                Pay in 4 Installments -{" "}
+                                {formatCurrency(
+                                    installmentAmount,
+                                    checkout.currency_code,
+                                )}{" "}
+                                today
+                            </option>
+                        </select>
                     </div>
                 </div>
 
-                <div className="w-full">
-                    <InputLabel value="Payment Type" className="text-white/84" />
-                    <select
-                        value={paymentType}
-                        onChange={(event) => setPaymentType(event.target.value)}
-                        className="mt-2 block w-full rounded-2xl border border-white/12 bg-black/30 px-4 py-3 text-white focus:border-[#d7a686] focus:outline-none"
-                    >
-                        <option value="pay_full">
-                            Pay in Full -{" "}
-                            {formatCurrency(
-                                checkout.amount,
-                                checkout.currency_code,
-                            )}
-                        </option>
-                        <option value="installment">
-                            Pay in 4 Installments -{" "}
-                            {formatCurrency(
-                                installmentAmount,
-                                checkout.currency_code,
-                            )}{" "}
-                            today
-                        </option>
-                    </select>
-                </div>
-
-                <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-sm text-white/78">
+                <label
+                    className={`flex items-start gap-3 rounded-[20px] border px-4 py-4 text-sm text-white/78 transition-all duration-200 ${
+                        fieldErrors.terms_accepted
+                            ? "border-rose-500 bg-rose-500/10 ring-1 ring-rose-500/20"
+                            : "border-white/10 bg-white/[0.04] backdrop-blur-sm"
+                    }`}
+                >
                     <input
                         type="checkbox"
                         checked={formData.terms_accepted}
@@ -654,11 +718,14 @@ export default function Checkout({ checkout }) {
                         }
                         className="mt-1 h-4 w-4 rounded border-white/20 bg-black/20 text-[#d7a686] focus:ring-[#d7a686]"
                     />
-                    <span>
+                    <span className="flex-1">
                         I agree to continue with YogaFX payment processing and
                         understand that sensitive card data is handled directly
                         by PayPal-hosted secure components.
                     </span>
+                    {fieldErrors.terms_accepted && (
+                        <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-rose-300" />
+                    )}
                 </label>
                 <InputError className="-mt-3" message={fieldErrors.terms_accepted} />
 
@@ -681,7 +748,7 @@ export default function Checkout({ checkout }) {
                     </div>
                 )}
 
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                <div className="rounded-[20px] border border-white/10 bg-white/[0.05] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.2)] backdrop-blur-sm">
                     <h2 className="text-xl font-semibold text-white">
                         Payment Method
                     </h2>
@@ -694,7 +761,9 @@ export default function Checkout({ checkout }) {
                             !formData.terms_accepted ? "opacity-50" : "opacity-100"
                         }`}
                     >
-                        <div ref={paypalButtonsRef} />
+                        <div className="rounded-[20px] border border-white/10 bg-black/20 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                            <div ref={paypalButtonsRef} />
+                        </div>
                     </div>
 
                     {!sdkReady && (
@@ -706,7 +775,7 @@ export default function Checkout({ checkout }) {
                 </div>
 
                 {mockAvailable && (
-                    <div className="rounded-[24px] border border-dashed border-white/20 bg-black/15 p-5">
+                    <div className="rounded-[20px] border border-dashed border-white/20 bg-black/15 p-5 backdrop-blur-sm">
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div>
                                 <p className="text-sm font-semibold text-white">
