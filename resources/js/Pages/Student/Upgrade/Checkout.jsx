@@ -57,7 +57,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                         <select
                                             value={data.payment_type}
                                             onChange={(event) => setData('payment_type', event.target.value)}
-                                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-sm text-white focus:border-[#DB202C] focus:ring-[#DB202C]"
                                         >
                                             <option value="pay_full">
                                                 Pay in Full - {formatCurrency(upgrade.amount_due, upgrade.target_tier.currency_code)}
@@ -78,7 +78,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                         <select
                                             value={data.payment_method}
                                             onChange={(event) => setData('payment_method', event.target.value)}
-                                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                            className="mt-2 block w-full rounded-md border border-white/12 bg-[#171311] text-sm text-white focus:border-[#DB202C] focus:ring-[#DB202C]"
                                         >
                                             {(upgrade.payment_method_options ?? []).map((option) => (
                                                 <option key={option.value} value={option.value}>
@@ -108,7 +108,7 @@ export default function UpgradeCheckout({ upgrade }) {
                                     <Button
                                         type="submit"
                                         disabled={processing || isSimulating}
-                                        className="rounded-full bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                                        className="rounded-full bg-[#DB202C] px-6 text-white hover:bg-[#DB202C]"
                                     >
                                         {isSimulating ? 'Preparing upgrade...' : 'Pay Upgrade Now'}
                                     </Button>

@@ -77,7 +77,7 @@ export default function StudentEbooksIndex({ ebooks }) {
 
                                 <div className="flex flex-1 flex-col justify-between gap-4 p-5">
                                     <div className="inline-flex items-center gap-2 text-sm font-medium text-white/72">
-                                        <BookOpen className="size-4 text-[#f15b3a]" />
+                                        <BookOpen className="size-4 text-[#DB202C]" />
                                         Ready for preview
                                     </div>
 

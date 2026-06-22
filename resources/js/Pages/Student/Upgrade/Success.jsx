@@ -62,7 +62,7 @@ export default function UpgradePaymentSuccess({ upgrade }) {
 
                     <Button
                         asChild
-                        className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
+                        className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#DB202C]"
                     >
                         <Link href={upgrade.continue_url}>
                             {upgrade.cta_label ?? 'Return to Dashboard'}

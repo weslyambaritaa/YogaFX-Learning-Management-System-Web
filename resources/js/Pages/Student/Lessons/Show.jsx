@@ -497,7 +497,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             {lesson.audio_url && (
                                 <div className="rounded-[12px] border border-white/10 bg-white/[0.04] p-5">
                                     <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
-                                        <Volume2 className="size-4 text-[#f15b3a]" />
+                                        <Volume2 className="size-4 text-[#DB202C]" />
                                         Audio Companion
                                     </div>
                                     <audio controls src={lesson.audio_url} className="w-full">
@@ -570,7 +570,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         canOpenNextLesson ? (
                                             <Button
                                                 asChild
-                                                className="bg-[#e24848] text-white hover:bg-[#f05a5a]"
+                                                className="bg-[#DB202C] text-white hover:bg-[#DB202C]"
                                             >
                                                 <Link href={resolvedNextLessonUrl}>
                                                     Next Lesson
