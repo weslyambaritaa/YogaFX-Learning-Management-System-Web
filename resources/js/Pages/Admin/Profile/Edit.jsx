@@ -27,7 +27,7 @@ export default function Edit({ status, upgradeOptions = [] }) {
         why_yogafx: "Why YogaFX",
         how_did_you_find_us: "How Did You Find Us",
     };
-    const { data, setData, post, transform, errors, processing } = useForm({
+    const { data, setData, post, errors, processing } = useForm({
         _method: "patch",
         first_name: user.first_name ?? "",
         last_name: user.last_name ?? "",
@@ -52,10 +52,7 @@ export default function Edit({ status, upgradeOptions = [] }) {
     const submit = (e) => {
         e.preventDefault();
 
-        transform((currentData) => ({
-            ...currentData,
-            _method: "patch",
-        })).post(route("profile.update"), {
+        post(route("profile.update"), {
             forceFormData: true,
         });
     };
