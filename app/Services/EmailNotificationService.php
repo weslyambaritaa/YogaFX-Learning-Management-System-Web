@@ -632,19 +632,12 @@ class EmailNotificationService
         ]);
     }
 
-    private function ensurePasswordChangeVerificationBlock(
+    private function ensurePasswordChangeLinkBlock(
         string $renderedBody,
         string $templateBody,
         array $payload,
     ): string {
         $sections = [];
-
-        if (
-            ! str_contains($templateBody, 'otp_code')
-            && filled($payload['otp_code'] ?? null)
-        ) {
-            $sections[] = '<p>Your one-time password code: <strong>'.e((string) $payload['otp_code']).'</strong></p>';
-        }
 
         if (
             ! str_contains($templateBody, 'password_change_url')
@@ -676,6 +669,7 @@ class EmailNotificationService
             'user_email' => $user->email,
             'reset_url' => $resetUrl,
             'password_change_url' => $resetUrl,
+            'otp' => $otpCode,
             'otp_code' => $otpCode,
             'reset_expiry_minutes' => (string) $expiresInMinutes,
             'login_url' => route('login'),
@@ -688,7 +682,7 @@ class EmailNotificationService
             $body = $delivery['body'];
 
             if ($delivery['recipient_type'] === 'user') {
-                $body = $this->ensurePasswordChangeVerificationBlock(
+                $body = $this->ensurePasswordChangeLinkBlock(
                     $body,
                     (string) $template->body_user,
                     $payload,
@@ -738,6 +732,8 @@ class EmailNotificationService
                 'token' => 'sample-reset-token',
                 'email' => $sendTo,
             ]),
+            'otp' => '123456',
+            'otp_code' => '123456',
             'reset_expiry_minutes' => (string) config(
                 'auth.passwords.'.config('auth.defaults.passwords').'.expire',
                 60,

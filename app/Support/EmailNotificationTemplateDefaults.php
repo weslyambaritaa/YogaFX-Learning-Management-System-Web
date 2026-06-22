@@ -33,6 +33,7 @@ class EmailNotificationTemplateDefaults
                     '<p>Hi {user_name},</p>',
                     '<p>We received a request to reset your YogaFX password.</p>',
                     '<p><a href="{reset_url}">Click here to reset your password</a></p>',
+                    '<p>Your one-time password code: <strong>{otp}</strong></p>',
                     '<p>This link will expire in {reset_expiry_minutes} minutes.</p>',
                     '<p>If you did not request this, you can safely ignore this email.</p>',
                 ]),
