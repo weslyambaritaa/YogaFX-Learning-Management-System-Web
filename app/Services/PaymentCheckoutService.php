@@ -263,6 +263,53 @@ class PaymentCheckoutService
         );
     }
 
+    public function checkoutOrderCreateUrl(PendingRegistration $pendingRegistration): string
+    {
+        return URL::temporarySignedRoute(
+            'checkout.orders.store',
+            now()->addDays(7),
+            [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $pendingRegistration->accessTier->slug,
+            ],
+        );
+    }
+
+    public function checkoutOrderCaptureUrl(PendingRegistration $pendingRegistration, Invoice $invoice): string
+    {
+        return URL::temporarySignedRoute(
+            'checkout.orders.capture',
+            now()->addDays(7),
+            [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $pendingRegistration->accessTier->slug,
+                'invoice' => $invoice->id,
+            ],
+        );
+    }
+
+    public function checkoutOrderCancelUrl(PendingRegistration $pendingRegistration, Invoice $invoice): string
+    {
+        return URL::temporarySignedRoute(
+            'checkout.orders.cancel',
+            now()->addDays(7),
+            [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $pendingRegistration->accessTier->slug,
+                'invoice' => $invoice->id,
+            ],
+        );
+    }
+
+    public function checkoutStatusUrl(Invoice $invoice): string
+    {
+        return URL::temporarySignedRoute(
+            'checkout.status',
+            now()->addDays(7),
+            ['invoice' => $invoice->id],
+        );
+    }
+
     public function enrollmentUrl(OnboardingState $onboardingState): string
     {
         return URL::temporarySignedRoute(

@@ -225,18 +225,21 @@ Flow:
 
 ## Final Rule
 
-Untuk PayPal, gunakan:
+Untuk checkout public awal:
 
-- **Full Redirect** ke halaman resmi PayPal
+- tampilkan halaman checkout di sistem YogaFX sendiri
+- gunakan **PayPal JavaScript SDK** sebagai layer resmi di frontend
+- gunakan **PayPal Card Fields** untuk debit/credit card
+- gunakan **PayPal Buttons** untuk flow akun PayPal secara in-context semaksimal capability resmi PayPal
 
-Jangan gunakan embedded custom checkout sebagai basis utama.
+Jangan membuat form kartu buatan sendiri yang menangani raw card number, expiry, atau CVV di backend YogaFX.
 
-## Reason
+## Important Boundary
 
-1. lebih aman
-2. lebih sederhana
-3. lebih stabil
-4. lebih cocok untuk integrasi mobile/Flutter nantinya
+- data sensitif kartu harus langsung masuk ke komponen hosted milik PayPal
+- login / wallet / account-specific interaction PayPal tetap dikelola PayPal
+- jika PayPal membuka popup atau window in-context resmi, itu tetap dianggap valid
+- jangan paksa fake embedded login atau workaround tidak aman
 
 ---
 
@@ -475,7 +478,8 @@ Arsitektur payment final YogaFX LMS sekarang harus seperti ini:
 - `payment_activities` = event log transaksi
 - invoice dibuat saat klik `Pay Now`
 - payment activity dibuat saat klik `Pay Now`
-- PayPal memakai full redirect
+- checkout tetap berlangsung di halaman YogaFX
+- PayPal dipakai aman di belakang layar melalui SDK resmi
 - success capture diproses di success URL
 - webhook menjadi fallback penuh
 - idempotency wajib dijaga

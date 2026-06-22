@@ -34,10 +34,25 @@ class CheckoutPaymentRequest extends FormRequest
                 'string',
                 Rule::in([
                     Payment::METHOD_PAYPAL,
-                    Payment::METHOD_BANK_TRANSFER,
                     Payment::METHOD_MOCK,
                 ]),
             ],
+            'checkout_mode' => [
+                'nullable',
+                'string',
+                Rule::in([
+                    'card',
+                    'paypal',
+                    'mock',
+                ]),
+            ],
+            'first_name' => ['nullable', 'string', 'max:255'],
+            'last_name' => ['nullable', 'string', 'max:255'],
+            'billing_postcode' => ['nullable', 'string', 'max:50'],
+            'billing_country' => ['nullable', 'string', 'max:120'],
+            'billing_address_line_1' => ['nullable', 'string', 'max:255'],
+            'billing_address_line_2' => ['nullable', 'string', 'max:255'],
+            'terms_accepted' => ['required', 'accepted'],
         ];
     }
 }

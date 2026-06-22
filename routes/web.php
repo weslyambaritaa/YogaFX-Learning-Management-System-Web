@@ -69,6 +69,10 @@ Route::post('/webhooks/paypal', PayPalWebhookController::class)
 Route::middleware('signed')->group(function () {
     Route::get('/checkout/{pendingRegistration}/{accessTierSlug}', [CheckoutController::class, 'show'])->name('checkout.show');
     Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/pay', [CheckoutController::class, 'pay'])->name('checkout.pay');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders', [CheckoutController::class, 'createOrder'])->name('checkout.orders.store');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders/{invoice}/capture', [CheckoutController::class, 'captureOrder'])->name('checkout.orders.capture');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders/{invoice}/cancel', [CheckoutController::class, 'cancelOrder'])->name('checkout.orders.cancel');
+    Route::get('/checkout/invoices/{invoice}/status', [CheckoutController::class, 'status'])->name('checkout.status');
     Route::get('/onboarding/{onboardingState}/payment-success', [OnboardingController::class, 'showPaymentSuccess'])->name('onboarding.payment-success.show');
     Route::get('/upgrades/{invoice}/payment-success', [UpgradeController::class, 'success'])->name('student.upgrades.success');
     Route::get('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'showEnrollment'])->name('onboarding.enrollment.show');
