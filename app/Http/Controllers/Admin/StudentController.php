@@ -117,7 +117,7 @@ class StudentController extends Controller
                 'gender' => $student->gender,
                 'practicing_yoga_for' => StudentProfileValue::normalizePracticingYogaFor($student->practicing_yoga_for),
                 'yoga_sequence_experience' => StudentProfileValue::normalizeYogaSequenceExperience($student->yoga_sequence_experience),
-                'hours_per_week' => $student->hours_per_week,
+                'hours_per_week' => StudentProfileValue::normalizeHoursPerWeek($student->hours_per_week),
                 'current_fitness_level' => $student->current_fitness_level,
                 'flexibility_rating' => $student->flexibility_rating,
                 'motivation' => $student->motivation,

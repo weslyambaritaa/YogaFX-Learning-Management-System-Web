@@ -49,6 +49,21 @@ class StudentProfileValue
         'other' => 'other',
     ];
 
+    private const HOURS_PER_WEEK_MAP = [
+        '0-3' => '0_3',
+        '0_3' => '0_3',
+        '03' => '0_3',
+        '4-7' => '4_7',
+        '4_7' => '4_7',
+        '47' => '4_7',
+        '7-10' => '7_10',
+        '7_10' => '7_10',
+        '710' => '7_10',
+        '10+' => '10_plus',
+        '10_plus' => '10_plus',
+        '10plus' => '10_plus',
+    ];
+
     /**
      * @return array<int, string>
      */
@@ -117,6 +132,17 @@ class StudentProfileValue
         }
 
         return self::PRACTICING_YOGA_FOR_MAP[$normalized] ?? $normalized;
+    }
+
+    public static function normalizeHoursPerWeek(mixed $value): ?string
+    {
+        $normalized = self::normalizeString($value);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        return self::HOURS_PER_WEEK_MAP[strtolower($normalized)] ?? $normalized;
     }
 
     /**

@@ -125,7 +125,7 @@ class ProfileController extends Controller
             'gender' => $user->gender,
             'practicing_yoga_for' => $user->practicing_yoga_for,
             'yoga_sequence_experience' => $user->yoga_sequence_experience,
-            'hours_per_week' => $user->hours_per_week,
+            'hours_per_week' => StudentProfileValue::normalizeHoursPerWeek($user->hours_per_week),
             'current_fitness_level' => $user->current_fitness_level,
             'flexibility_rating' => $user->flexibility_rating,
             'motivation' => $user->motivation,

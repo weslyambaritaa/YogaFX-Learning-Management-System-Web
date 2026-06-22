@@ -51,6 +51,9 @@ class ProfileUpdateRequest extends FormRequest
             'yoga_sequence_experience' => StudentProfileValue::normalizeYogaSequenceExperience(
                 $this->input('yoga_sequence_experience'),
             ),
+            'hours_per_week' => StudentProfileValue::normalizeHoursPerWeek(
+                $this->input('hours_per_week'),
+            ),
             'how_did_you_find_us' => StudentProfileValue::normalizeHowDidYouFindUs(
                 $this->input('how_did_you_find_us'),
             ),
