@@ -39,7 +39,7 @@ class ProfileController extends Controller
         $user->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $user->birth_date;
         $user->syncDisplayName();
 
-        $user->profile_photo = $this->storeUploadedFileToBunny(
+        $user->profile_photo = $this->storeUploadedFileToBunnyWithLocalFallback(
             $request->file('profile_photo'),
             'users/profile-photos',
             $user->profile_photo,

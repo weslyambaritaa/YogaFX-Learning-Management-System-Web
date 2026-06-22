@@ -11,6 +11,7 @@ use App\Models\Ebook;
 use App\Models\Lesson;
 use App\Models\QuestionOption;
 use App\Models\Module;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -103,6 +104,12 @@ class ContentFileController extends Controller
                     'image' => ['download' => false],
                 ],
             ],
+            'user' => [
+                'model' => User::class,
+                'fields' => [
+                    'profile_photo' => ['download' => false],
+                ],
+            ],
             default => abort(404),
         };
     }
@@ -160,6 +167,15 @@ class ContentFileController extends Controller
         if ($record instanceof AssignmentSubmission) {
             abort_unless(
                 $user->isAdmin() || $record->user_id === $user->id,
+                403,
+            );
+
+            return;
+        }
+
+        if ($record instanceof User) {
+            abort_unless(
+                $user->isAdmin() || $record->is($user),
                 403,
             );
 

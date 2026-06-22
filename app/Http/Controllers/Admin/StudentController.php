@@ -155,7 +155,7 @@ class StudentController extends Controller
         $student->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $student->birth_date;
         $student->syncDisplayName();
 
-        $student->profile_photo = $this->storeUploadedFileToBunny(
+        $student->profile_photo = $this->storeUploadedFileToBunnyWithLocalFallback(
             $request->file('profile_photo'),
             'users/profile-photos',
             $student->profile_photo,

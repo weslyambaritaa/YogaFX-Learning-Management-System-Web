@@ -3,7 +3,8 @@ import StudentManagementLayout from '@/Components/admin/students/StudentManageme
 import { router, useForm } from '@inertiajs/react';
 
 export default function EditStudent({ student, accessTiers, status }) {
-    const { data, setData, patch, errors, processing } = useForm({
+    const { data, setData, patch, post, transform, errors, processing } = useForm({
+        _method: 'patch',
         is_active: Boolean(student.is_active),
         access_tier_id: student.access_tier_id ?? '',
         first_name: student.first_name ?? '',
@@ -28,7 +29,10 @@ export default function EditStudent({ student, accessTiers, status }) {
 
     const submit = (event) => {
         event.preventDefault();
-        patch(route('admin.students.update', student.id), {
+        transform((currentData) => ({
+            ...currentData,
+            _method: 'patch',
+        })).post(route('admin.students.update', student.id), {
             forceFormData: true,
         });
     };
