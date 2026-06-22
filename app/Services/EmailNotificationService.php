@@ -15,6 +15,7 @@ use App\Support\EmailNotificationTemplateDefaults;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Throwable;
 use RuntimeException;
 
@@ -213,7 +214,7 @@ class EmailNotificationService
         event(new ResetPasswordRequested([
             'user_name' => $user->name,
             'user_email' => $user->email,
-            'reset_url' => route('password.reset', [
+            'reset_url' => $this->publicRoute('password.reset', [
                 'token' => $token,
                 'email' => $user->email,
             ]),
@@ -225,48 +226,28 @@ class EmailNotificationService
         ], 'user', $user->id));
     }
 
+    public function sendPasswordResetRequestedWithOtp(
+        User $user,
+        string $resetUrl,
+        string $otpCode,
+        int $expiresInMinutes,
+    ): void {
+        $this->sendPasswordResetForContext($user, $resetUrl, $otpCode, $expiresInMinutes, 'user');
+    }
+
     public function sendStudentPasswordChangeRequested(
         User $user,
         string $changePasswordUrl,
         string $otpCode,
         int $expiresInMinutes,
     ): void {
-        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
-        $payload = [
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'reset_url' => $changePasswordUrl,
-            'password_change_url' => $changePasswordUrl,
-            'otp_code' => $otpCode,
-            'reset_expiry_minutes' => (string) $expiresInMinutes,
-            'login_url' => route('login'),
-        ];
-
-        $deliveries = $this->buildDeliveries($template, $payload);
-
-        foreach ($deliveries as $delivery) {
-            $body = $delivery['body'];
-
-            if ($delivery['recipient_type'] === 'user') {
-                $body = $this->ensurePasswordChangeVerificationBlock(
-                    $body,
-                    (string) $template->body_user,
-                    $payload,
-                );
-            }
-
-            $this->deliver(
-                template: $template,
-                notificationType: EmailNotificationTypeRegistry::RESET_PASSWORD,
-                subject: $delivery['subject'],
-                body: $body,
-                recipientEmail: $delivery['recipient_email'],
-                recipientType: $delivery['recipient_type'],
-                referenceType: 'student_password_change',
-                referenceId: $user->id,
-                variantLabel: $delivery['variant_label'],
-            );
-        }
+        $this->sendPasswordResetForContext(
+            user: $user,
+            resetUrl: $changePasswordUrl,
+            otpCode: $otpCode,
+            expiresInMinutes: $expiresInMinutes,
+            referenceType: 'student_password_change',
+        );
     }
 
     public function sendInactivityReminders(): int
@@ -676,6 +657,51 @@ class EmailNotificationService
         return $renderedBody.implode('', $sections);
     }
 
+    private function sendPasswordResetForContext(
+        User $user,
+        string $resetUrl,
+        string $otpCode,
+        int $expiresInMinutes,
+        string $referenceType,
+    ): void {
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
+        $payload = [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'reset_url' => $resetUrl,
+            'password_change_url' => $resetUrl,
+            'otp_code' => $otpCode,
+            'reset_expiry_minutes' => (string) $expiresInMinutes,
+            'login_url' => route('login'),
+        ];
+
+        $deliveries = $this->buildDeliveries($template, $payload);
+
+        foreach ($deliveries as $delivery) {
+            $body = $delivery['body'];
+
+            if ($delivery['recipient_type'] === 'user') {
+                $body = $this->ensurePasswordChangeVerificationBlock(
+                    $body,
+                    (string) $template->body_user,
+                    $payload,
+                );
+            }
+
+            $this->deliver(
+                template: $template,
+                notificationType: EmailNotificationTypeRegistry::RESET_PASSWORD,
+                subject: $delivery['subject'],
+                body: $body,
+                recipientEmail: $delivery['recipient_email'],
+                recipientType: $delivery['recipient_type'],
+                referenceType: $referenceType,
+                referenceId: $user->id,
+                variantLabel: $delivery['variant_label'],
+            );
+        }
+    }
+
     private function samplePayloadFor(string $notificationType, string $sendTo, ?int $moduleId = null): array
     {
         $selectedModule = $moduleId !== null
@@ -701,7 +727,7 @@ class EmailNotificationService
             'access_tier' => 'master_class',
             'access_tier_label' => 'Masterclass',
             'registration_date' => now()->toDateString(),
-            'reset_url' => route('password.reset', [
+            'reset_url' => $this->publicRoute('password.reset', [
                 'token' => 'sample-reset-token',
                 'email' => $sendTo,
             ]),
@@ -793,5 +819,17 @@ class EmailNotificationService
     private function studentSessionSchemaReady(): bool
     {
         return Schema::hasTable('user_sessions');
+    }
+
+    private function publicRoute(string $routeName, array $parameters = []): string
+    {
+        $relativePath = URL::route($routeName, $parameters, false);
+
+        return $this->publicAppUrl().$relativePath;
+    }
+
+    private function publicAppUrl(): string
+    {
+        return rtrim((string) config('app.public_url', config('app.url')), '/');
     }
 }

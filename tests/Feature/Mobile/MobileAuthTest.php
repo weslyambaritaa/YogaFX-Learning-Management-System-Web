@@ -4,10 +4,14 @@ namespace Tests\Feature\Mobile;
 
 use App\Models\AccessTier;
 use App\Models\AuthEmailOtpChallenge;
+use App\Models\EmailLog;
+use App\Models\StudentPasswordChangeRequest;
 use App\Models\User;
 use App\Services\EmailOtpChallengeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class MobileAuthTest extends TestCase
@@ -124,6 +128,98 @@ class MobileAuthTest extends TestCase
                 'message' => 'Your student account is inactive.',
                 'errors' => [],
             ]);
+    }
+
+    public function test_mobile_forgot_password_sends_reset_email_with_otp(): void
+    {
+        config()->set('app.url', 'http://127.0.0.1:8000');
+        config()->set('app.public_url', 'http://192.168.0.11:8000');
+
+        $student = User::factory()->student()->create([
+            'email' => 'mobile-reset@yogafx.test',
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/forgot-password', [
+            'email' => $student->email,
+        ])->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Password reset email and OTP sent successfully.')
+            ->assertJsonPath('data.email', $student->email)
+            ->assertJsonPath('data.otp_required', true);
+
+        $this->assertDatabaseHas('student_password_change_requests', [
+            'user_id' => $student->id,
+            'email' => $student->email,
+        ]);
+
+        $emailLog = EmailLog::query()
+            ->where('notification_type', 'reset_password')
+            ->where('reference_type', 'user')
+            ->where('reference_id', $student->id)
+            ->where('recipient_type', 'user')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($emailLog);
+        $this->assertStringContainsString('http://192.168.0.11:8000/reset-password/', $emailLog->body_snapshot);
+        $this->assertStringContainsString('one-time password code', strtolower($emailLog->body_snapshot));
+    }
+
+    public function test_mobile_reset_password_requires_a_valid_otp_code(): void
+    {
+        $student = User::factory()->student()->create();
+        $token = Password::broker()->createToken($student);
+
+        StudentPasswordChangeRequest::query()->create([
+            'user_id' => $student->id,
+            'email' => $student->email,
+            'token_hash' => hash('sha256', $token),
+            'otp_hash' => Hash::make('123456'),
+            'expires_at' => now()->addMinutes(60),
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/reset-password', [
+            'token' => $token,
+            'email' => $student->email,
+            'otp_code' => '999999',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath(
+                'errors.otp_code.0',
+                'The OTP code is invalid. Please check the email you received and try again.',
+            );
+    }
+
+    public function test_mobile_reset_password_succeeds_with_valid_token_and_otp(): void
+    {
+        $student = User::factory()->student()->create();
+        $token = Password::broker()->createToken($student);
+
+        StudentPasswordChangeRequest::query()->create([
+            'user_id' => $student->id,
+            'email' => $student->email,
+            'token_hash' => hash('sha256', $token),
+            'otp_hash' => Hash::make('123456'),
+            'expires_at' => now()->addMinutes(60),
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/reset-password', [
+            'token' => $token,
+            'email' => $student->email,
+            'otp_code' => '123456',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Password reset successfully.')
+            ->assertJsonPath('data.password_reset', true)
+            ->assertJsonPath('data.email', $student->email);
+
+        $this->assertNotNull(
+            StudentPasswordChangeRequest::query()->where('user_id', $student->id)->first()?->used_at
+        );
     }
 
     public function test_student_can_verify_mobile_login_otp_and_receive_a_mobile_token(): void

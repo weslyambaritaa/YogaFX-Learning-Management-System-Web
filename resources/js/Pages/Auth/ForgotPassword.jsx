@@ -21,7 +21,7 @@ export default function ForgotPassword({ status }) {
 
             <div className="mb-4 text-sm text-gray-600">
                 Enter the email address associated with your YogaFX LMS account.
-                We will send a password reset link if the account exists.
+                We will send a password reset link and OTP code if the account exists.
             </div>
 
             {status && (
@@ -45,7 +45,7 @@ export default function ForgotPassword({ status }) {
 
                 <div className="mt-4 flex items-center justify-end">
                     <PrimaryButton className="ms-4" disabled={processing}>
-                        Send Reset Link
+                        Send Reset Link & OTP
                     </PrimaryButton>
                 </div>
             </form>

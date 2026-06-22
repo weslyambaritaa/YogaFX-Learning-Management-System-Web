@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public Application URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used for links that must be opened from another device,
+    | such as password reset links sent by email. Set this to a LAN IP or
+    | environment domain when APP_URL points to localhost.
+    |
+    */
+
+    'public_url' => env('APP_PUBLIC_URL', env('APP_URL', 'http://localhost')),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
