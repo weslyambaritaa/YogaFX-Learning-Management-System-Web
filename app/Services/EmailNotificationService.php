@@ -158,7 +158,13 @@ class EmailNotificationService
             return;
         }
 
-        foreach ($this->buildDeliveries($template, $payload) as $delivery) {
+        $deliveries = $this->buildDeliveries($template, $payload);
+
+        if ($notificationType === EmailNotificationTypeRegistry::RESET_PASSWORD) {
+            $deliveries = $this->excludeUserEmailFromAdminDeliveries($deliveries, $payload);
+        }
+
+        foreach ($deliveries as $delivery) {
             $this->deliver(
                 template: $template,
                 notificationType: $notificationType,
@@ -676,6 +682,7 @@ class EmailNotificationService
         ];
 
         $deliveries = $this->buildDeliveries($template, $payload);
+        $deliveries = $this->excludeUserEmailFromAdminDeliveries($deliveries, $payload);
 
         foreach ($deliveries as $delivery) {
             $body = $delivery['body'];
@@ -750,6 +757,27 @@ class EmailNotificationService
         $base['notification_type'] = $notificationType;
 
         return $base;
+    }
+
+    /**
+     * @param  array<int, array{recipient_type: string, recipient_email: string, subject: string, body: string, variant_label: string}>  $deliveries
+     * @return array<int, array{recipient_type: string, recipient_email: string, subject: string, body: string, variant_label: string}>
+     */
+    private function excludeUserEmailFromAdminDeliveries(array $deliveries, array $payload): array
+    {
+        $userEmail = strtolower(trim((string) ($payload['user_email'] ?? '')));
+
+        if ($userEmail === '') {
+            return $deliveries;
+        }
+
+        return collect($deliveries)
+            ->reject(function (array $delivery) use ($userEmail): bool {
+                return $delivery['recipient_type'] === 'admin'
+                    && strtolower(trim($delivery['recipient_email'])) === $userEmail;
+            })
+            ->values()
+            ->all();
     }
 
     private function latestStudentAccessAt(User $user)

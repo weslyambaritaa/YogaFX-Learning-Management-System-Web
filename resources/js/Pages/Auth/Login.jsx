@@ -26,31 +26,18 @@ export default function Login({ status, canResetPassword }) {
 
             <div className="min-h-screen bg-black text-white">
                 <div className="relative mx-auto flex min-h-screen max-w-[1280px] flex-col px-4 py-6 sm:px-6 lg:px-10">
-                    {/* Header */}
-                    <header className="flex items-center justify-center mt-10">
+                    <header className="mt-10 flex items-center justify-center">
                         <Link href="/">
                             <img
                                 src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
                                 alt="YogaFX"
-                                className="h-16 w-auto object-contain"
+                                className="h-24 w-auto object-contain sm:h-28"
                             />
                         </Link>
                     </header>
 
-                    {/* Konten di tengah halaman */}
-                    <main className="flex flex-1 items-start justify-center py-6 lg:py-8">
+                    <main className="flex flex-1 items-center justify-center py-6 lg:py-8">
                         <div className="w-full max-w-xl">
-                            <div className="space-y-3 text-start">
-                                <h1 className="text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
-                                    Log in to continue your YogaFX journey
-                                </h1>
-                                <p className="text-sm leading-7 text-white/70 sm:text-base">
-                                    Enter your email and password. After signing
-                                    in, we'll send a one-time code to your email
-                                    so the session can open safely.
-                                </p>
-                            </div>
-
                             <div className="py-8">
                                 <form onSubmit={submit} className="space-y-6">
                                     {status && (
@@ -136,12 +123,7 @@ export default function Login({ status, canResetPassword }) {
                                         )}
                                     </div>
 
-                                    <div className="flex flex-wrap items-center justify-between gap-4">
-                                        <p className="text-sm text-gray-500">
-                                            Signed in sessions are confirmed via
-                                            a one-time email code.
-                                        </p>
-
+                                    <div className="flex justify-end">
                                         <Button
                                             type="submit"
                                             disabled={processing}
@@ -153,20 +135,6 @@ export default function Login({ status, canResetPassword }) {
                                         </Button>
                                     </div>
                                 </form>
-
-                                <div className="mt-8 border-t border-white/10 pt-6 text-center">
-                                    <p className="text-sm text-white/60">
-                                        New to YogaFX?
-                                    </p>
-                                    <Link
-                                        href={route(
-                                            "lead-registration.create",
-                                        )}
-                                        className="mt-3 inline-flex items-center justify-center text-sm font-medium text-white underline underline-offset-4 transition hover:text-white/80"
-                                    >
-                                        Sign up and start your journey
-                                    </Link>
-                                </div>
                             </div>
                         </div>
                     </main>
