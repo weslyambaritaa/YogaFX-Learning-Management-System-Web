@@ -37,7 +37,7 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                             <p className="text-xs uppercase tracking-[0.24em] text-white/48">
                                 Student Password Flow
                             </p>
-                            <h1 className="text-3xl font-semibold tracking-tight">
+                            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                                 Verify your email code and set a new password
                             </h1>
                             <p className="max-w-2xl text-sm leading-7 text-white/62">
@@ -62,7 +62,7 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                             <h2 className="text-lg font-semibold text-slate-900">
                                 Password verification
                             </h2>
-                            <p className="mt-1 text-sm leading-6 text-slate-600">
+                            <p className="mt-1 break-all text-sm leading-6 text-slate-600">
                                 Email destination: <strong>{email}</strong>
                                 {expires_at ? (
                                     <>. This request stays active until {new Date(expires_at).toLocaleString()}.</>
@@ -121,7 +121,7 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                         </div>
 
                         <div className="flex justify-end pt-2">
-                            <Button type="submit" disabled={processing}>
+                            <Button type="submit" disabled={processing} className="w-full sm:w-auto">
                                 {processing ? 'Saving...' : 'Save New Password'}
                             </Button>
                         </div>

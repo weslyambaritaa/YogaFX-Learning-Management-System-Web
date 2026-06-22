@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
@@ -52,7 +53,7 @@ class ProfilePasswordController extends Controller
             'expires_at' => now()->addMinutes($expiresInMinutes),
         ]);
 
-        $changePasswordUrl = route('profile.password.change.edit', [
+        $changePasswordUrl = $this->publicRoute('profile.password.change.edit', [
             'token' => $token,
             'email' => $user->email,
         ]);
@@ -158,5 +159,12 @@ class ProfilePasswordController extends Controller
             ->where('token_hash', hash('sha256', $token))
             ->latest('id')
             ->first();
+    }
+
+    private function publicRoute(string $routeName, array $parameters = []): string
+    {
+        $relativePath = URL::route($routeName, $parameters, false);
+
+        return rtrim((string) config('app.public_url', config('app.url')), '/').$relativePath;
     }
 }
