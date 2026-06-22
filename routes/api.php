@@ -5,10 +5,8 @@ use App\Http\Controllers\Mobile\V1\AssignmentController;
 use App\Http\Controllers\Mobile\V1\AssessmentController;
 use App\Http\Controllers\Mobile\V1\CertificateController;
 use App\Http\Controllers\Mobile\V1\CertificateMediaController;
-use App\Http\Controllers\Mobile\V1\ContentImageController;
 use App\Http\Controllers\Mobile\V1\CourseController;
 use App\Http\Controllers\Mobile\V1\DashboardController;
-use App\Http\Controllers\Mobile\V1\DialogController;
 use App\Http\Controllers\Mobile\V1\EbookController;
 use App\Http\Controllers\Mobile\V1\EbookMediaController;
 use App\Http\Controllers\Mobile\V1\LessonController;
@@ -23,41 +21,33 @@ Route::prefix('mobile/v1')
     ->as('mobile.api.v1.')
     ->group(function (): void {
         Route::post('/auth/login', [AuthController::class, 'store'])->name('auth.login');
-        Route::post('/auth/login/request-otp', [AuthController::class, 'store'])->name('auth.login.request-otp');
-        Route::post('/auth/login/verify-otp', [AuthController::class, 'verifyOtp'])->name('auth.login.verify-otp');
-        Route::post('/auth/login/resend-otp', [AuthController::class, 'resendOtp'])->name('auth.login.resend-otp');
         Route::post('/auth/forgot-password', [PasswordRecoveryController::class, 'forgot'])->name('auth.password.forgot');
         Route::post('/auth/reset-password', [PasswordRecoveryController::class, 'reset'])->name('auth.password.reset');
         Route::get('/media/lessons/{lesson}/audio', [LessonMediaController::class, 'audio'])
-            ->middleware('mobile.signed')
+            ->middleware('signed')
             ->name('lesson-media.audio');
         Route::get('/media/lessons/{lesson}/workbook', [LessonMediaController::class, 'workbook'])
-            ->middleware('mobile.signed')
+            ->middleware('signed')
             ->name('lesson-media.workbook');
         Route::get('/media/lessons/{lesson}/workbook/download', [LessonMediaController::class, 'downloadWorkbook'])
-            ->middleware('mobile.signed')
+            ->middleware('signed')
             ->name('lesson-media.workbook.download');
         Route::get('/media/ebooks/{ebook}/open', [EbookMediaController::class, 'open'])
-            ->middleware('mobile.signed')
+            ->middleware('signed')
             ->name('ebooks.media.open');
         Route::get('/media/ebooks/{ebook}/download', [EbookMediaController::class, 'download'])
-            ->middleware('mobile.signed')
+            ->middleware('signed')
             ->name('ebooks.media.download');
         Route::get('/media/certificates/{certificate}/open', [CertificateMediaController::class, 'open'])
-            ->middleware('mobile.signed')
+            ->middleware('signed')
             ->name('certificates.media.open');
         Route::get('/media/certificates/{certificate}/download', [CertificateMediaController::class, 'download'])
-            ->middleware('mobile.signed')
+            ->middleware('signed')
             ->name('certificates.media.download');
-        Route::get('/media/content/{entity}/{id}/{field}', [ContentImageController::class, 'show'])
-            ->middleware('mobile.signed')
-            ->name('content-images.show');
 
         Route::middleware(['auth:sanctum', 'mobile.student'])->group(function (): void {
             Route::get('/me', MeController::class)->name('me.show');
             Route::get('/dashboard', DashboardController::class)->name('dashboard.show');
-            Route::get('/dialogs', [DialogController::class, 'index'])->name('dialogs.index');
-            Route::get('/dialogs/{key}', [DialogController::class, 'show'])->name('dialogs.show');
             Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
             Route::get('/modules/{module}', [ModuleController::class, 'show'])->name('modules.show');
             Route::get('/ebooks', [EbookController::class, 'index'])->name('ebooks.index');

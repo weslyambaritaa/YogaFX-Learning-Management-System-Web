@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Services\EmailNotificationService;
+use App\Support\StudentProfileValue;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -79,7 +80,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
             'is_active' => 'boolean',
-            'hours_per_week' => 'integer',
             'total_access_duration_seconds' => 'integer',
             'password' => 'hashed',
         ];
@@ -201,15 +201,26 @@ class User extends Authenticatable
             return true;
         }
 
-        foreach (self::STUDENT_PROFILE_COMPLETION_FIELDS as $field) {
-            $value = $this->{$field};
+        return $this->missingStudentProfileFields() === [];
+    }
 
-            if ($value === null || $value === '') {
-                return false;
-            }
+    /**
+     * @return array<int, string>
+     */
+    public function missingStudentProfileFields(): array
+    {
+        if (! $this->isStudent()) {
+            return [];
         }
 
-        return true;
+        return collect(self::STUDENT_PROFILE_COMPLETION_FIELDS)
+            ->filter(function (string $field) {
+                $value = $this->{$field};
+
+                return ! StudentProfileValue::isFilled($value);
+            })
+            ->values()
+            ->all();
     }
 
     public function syncDisplayName(): void

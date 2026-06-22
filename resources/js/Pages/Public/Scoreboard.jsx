@@ -125,10 +125,10 @@ export default function Scoreboard({ accessTiers }) {
                             value="First Name"
                             className="text-white/80"
                         />
-                        <TextInput
-                            id="first_name"
-                            value={data.first_name}
-                            className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                            <TextInput
+                                id="first_name"
+                                value={data.first_name}
+                                className="mt-2 block w-full border-[#DB202C] bg-white/10 text-white placeholder:text-white/30 focus:border-[#DB202C] focus:ring-[#DB202C]"
                             onChange={(event) =>
                                 setData("first_name", event.target.value)
                             }
@@ -146,10 +146,10 @@ export default function Scoreboard({ accessTiers }) {
                             value="Last Name"
                             className="text-white/80"
                         />
-                        <TextInput
-                            id="last_name"
-                            value={data.last_name}
-                            className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                            <TextInput
+                                id="last_name"
+                                value={data.last_name}
+                                className="mt-2 block w-full border-[#DB202C] bg-white/10 text-white placeholder:text-white/30 focus:border-[#DB202C] focus:ring-[#DB202C]"
                             onChange={(event) =>
                                 setData("last_name", event.target.value)
                             }
@@ -167,11 +167,11 @@ export default function Scoreboard({ accessTiers }) {
                             value="Email"
                             className="text-white/80"
                         />
-                        <TextInput
-                            id="email"
-                            type="email"
-                            value={data.email}
-                            className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                            <TextInput
+                                id="email"
+                                type="email"
+                                value={data.email}
+                                className="mt-2 block w-full border-[#DB202C] bg-white/10 text-white placeholder:text-white/30 focus:border-[#DB202C] focus:ring-[#DB202C]"
                             onChange={(event) =>
                                 setData("email", event.target.value)
                             }
@@ -199,7 +199,7 @@ export default function Scoreboard({ accessTiers }) {
                                         event.target.value,
                                     )
                                 }
-                                className="block w-full rounded-md border border-white/20 bg-white/10 text-white focus:border-white focus:ring-white"
+                                className="block w-full rounded-md border border-[#DB202C] bg-white/10 text-white focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 required
                             >
                                 {phoneCountryCodeOptions.map((option) => (
@@ -208,6 +208,7 @@ export default function Scoreboard({ accessTiers }) {
                                         value={option.value}
                                         className="bg-gray-900 text-white"
                                     >
+                                        {option.flag ? `${option.flag} ` : ''}
                                         {option.label}
                                     </option>
                                 ))}
@@ -215,7 +216,7 @@ export default function Scoreboard({ accessTiers }) {
                             <TextInput
                                 id="phone_number"
                                 value={data.phone_number}
-                                className="block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                                className="block w-full border-[#DB202C] bg-white/10 text-white placeholder:text-white/30 focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 onChange={(event) =>
                                     setData("phone_number", event.target.value)
                                 }
@@ -242,7 +243,7 @@ export default function Scoreboard({ accessTiers }) {
                         <select
                             id="country"
                             value={data.country}
-                            className="mt-2 block w-full rounded-md border border-white/20 bg-white/10 text-white focus:border-white focus:ring-white"
+                            className="mt-2 block w-full rounded-md border border-[#DB202C] bg-white/10 text-white focus:border-[#DB202C] focus:ring-[#DB202C]"
                             onChange={(event) => {
                                 const value = event.target.value;
                                 setData("country", value);
@@ -268,6 +269,7 @@ export default function Scoreboard({ accessTiers }) {
                                     value={option.value}
                                     className="bg-gray-900 text-white"
                                 >
+                                    {option.flag ? `${option.flag} ` : ''}
                                     {option.label}
                                 </option>
                             ))}
@@ -290,7 +292,7 @@ export default function Scoreboard({ accessTiers }) {
                             onChange={(event) =>
                                 setData("access_tier_id", event.target.value)
                             }
-                            className="mt-2 block w-full rounded-md border border-white/20 bg-white/10 text-white focus:border-white focus:ring-white"
+                            className="mt-2 block w-full rounded-md border border-[#DB202C] bg-white/10 text-white focus:border-[#DB202C] focus:ring-[#DB202C]"
                             required
                         >
                             {accessTiers.map((tier) => (

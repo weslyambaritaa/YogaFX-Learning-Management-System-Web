@@ -15,13 +15,15 @@ export default function Enrollment({ onboarding, student }) {
         birth_date: student.birth_date ?? "",
         gender: student.gender ?? "",
         practicing_yoga_for: student.practicing_yoga_for ?? "",
-        yoga_sequence_experience: student.yoga_sequence_experience ?? "",
+        yoga_sequence_experience: student.yoga_sequence_experience ?? [],
         hours_per_week: student.hours_per_week ?? "",
         current_fitness_level: student.current_fitness_level ?? "",
         flexibility_rating: student.flexibility_rating ?? "",
         motivation: student.motivation ?? "",
         why_yogafx: student.why_yogafx ?? "",
-        how_did_you_find_us: student.how_did_you_find_us ?? "",
+        how_did_you_find_us: student.how_did_you_find_us ?? [],
+        terms_accepted: false,
+        recaptcha_confirmed: false,
     });
 
     const submit = (event) => {
@@ -59,6 +61,7 @@ export default function Enrollment({ onboarding, student }) {
                 onSubmit={submit}
                 submitLabel="Save Enrollment and Continue"
                 variant="scoreboard"
+                mode="enrollment"
                 currentProfilePhotoUrl={student.profile_photo_url}
             />
         </PublicFlowLayout>

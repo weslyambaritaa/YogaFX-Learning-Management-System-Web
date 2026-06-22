@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Models\AccessTier;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Support\StudentProfileValue;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -52,8 +53,11 @@ class ProfileController extends Controller
         $user = $request->user();
         $validated = $request->validated();
         unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+        $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
+        $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
 
         $user->fill($validated);
+        $user->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $user->birth_date;
         $user->syncDisplayName();
 
         $user->profile_photo = $this->storeUploadedFileToBunny(

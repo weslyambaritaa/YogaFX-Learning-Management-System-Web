@@ -74,9 +74,18 @@ class ModuleCatalogController extends Controller
             $resourceModuleVisitMap,
         );
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
+        $lastOpenedLessonIds = $lessonProgressMap
+            ->sortByDesc(fn (LessonProgress $progress) => sprintf(
+                '%010d-%010d',
+                $progress->updated_at?->getTimestamp() ?? 0,
+                $progress->id,
+            ))
+            ->pluck('lesson_id')
+            ->map(fn ($lessonId) => (int) $lessonId)
+            ->values();
 
         return Inertia::render('Student/Modules/Index', [
-            'modules' => $modules->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $completedAssessmentIds, $moduleAccessMap) {
+            'modules' => $modules->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $completedAssessmentIds, $moduleAccessMap, $lessonUnlockMap, $lastOpenedLessonIds) {
                 $moduleAccess = $moduleAccessMap->get($module->id, [
                     'is_visible' => false,
                     'status' => 'locked',
@@ -92,6 +101,11 @@ class ModuleCatalogController extends Controller
                     );
                 })->count();
                 $isActive = $module->lessons->contains(fn (Lesson $lesson) => $lesson->id === $activeLessonId);
+                $continueLesson = $module->lessons->first(
+                    fn (Lesson $lesson) => $lastOpenedLessonIds->contains((int) $lesson->id),
+                ) ?? $module->lessons->first(
+                    fn (Lesson $lesson) => (bool) ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false),
+                );
                 $status = $moduleAccess['status'] === 'available' && $isActive
                     ? 'active'
                     : $moduleAccess['status'];
@@ -114,6 +128,11 @@ class ModuleCatalogController extends Controller
                         : (($moduleAccess['is_complete'] ?? false) ? 100 : 0),
                     'show_progress' => $totalLessons > 0,
                     'status' => $status,
+                    'status_label' => match ($status) {
+                        'completed' => 'Completed',
+                        'locked' => 'Locked',
+                        default => 'Available',
+                    },
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'module',
                         $module->id,
@@ -121,6 +140,9 @@ class ModuleCatalogController extends Controller
                         $module->thumbnail,
                         versionSeed: $module->updated_at,
                     ),
+                    'continue_url' => $continueLesson && ($moduleAccess['is_visible'] ?? false)
+                        ? route('lessons.show', $continueLesson)
+                        : null,
                 ];
             }),
         ]);
@@ -220,6 +242,8 @@ class ModuleCatalogController extends Controller
         $lessons = $currentModule->lessons;
         $lessonUnlockMap = $this->lessonUnlockMap($user?->id, $modules, $lessonProgressMap);
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
+        $continueLesson = $lessons->first(fn (Lesson $lesson) => $lesson->id === $activeLessonId)
+            ?? $lessons->first(fn (Lesson $lesson) => (bool) ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false));
         $completedLessons = $lessons->filter(fn (Lesson $lesson) => $this->isLessonFullyComplete(
             $lesson,
             $lessonProgressMap->get($lesson->id),
@@ -240,6 +264,14 @@ class ModuleCatalogController extends Controller
                     : (($currentModuleAccess['is_complete'] ?? false) ? 100 : 0),
                 'show_progress' => $lessons->count() > 0,
                 'status' => $currentModuleAccess['status'] ?? 'available',
+                'status_label' => match ($currentModuleAccess['status'] ?? 'available') {
+                    'completed' => 'Completed',
+                    'locked' => 'Locked',
+                    default => 'Available',
+                },
+                'continue_last_lesson_url' => $continueLesson
+                    ? route('lessons.show', $continueLesson)
+                    : null,
                 'certificate_enabled' => (bool) $module->certificate_enabled,
                 'ebook_enabled' => (bool) $module->ebook_enabled,
                 'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
@@ -274,6 +306,7 @@ class ModuleCatalogController extends Controller
                         'url' => ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false)
                             ? route('lessons.show', $lesson)
                             : null,
+                        'module_sort_order' => $module->sort_order,
                     ]),
                 'assignments' => $currentModule->assignments
                     ->map(function ($assignment) use ($assignmentSubmissionMap) {

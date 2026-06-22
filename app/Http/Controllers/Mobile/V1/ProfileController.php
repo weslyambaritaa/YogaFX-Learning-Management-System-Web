@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
+use App\Support\StudentProfileValue;
 use App\Support\MobileApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -31,8 +32,11 @@ class ProfileController extends Controller
         $user = $request->user();
         $validated = $request->validated();
         unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+        $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
+        $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
 
         $user->fill($validated);
+        $user->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $user->birth_date;
         $user->syncDisplayName();
 
         $user->profile_photo = $this->storeUploadedFileToBunny(

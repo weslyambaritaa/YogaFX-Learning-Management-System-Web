@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Support\CountryDirectory;
+use App\Support\StudentProfileValue;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -68,15 +69,16 @@ class HandleInertiaRequests extends Middleware
                     'country' => $user->country,
                     'birth_date' => optional($user->birth_date)->toDateString(),
                     'gender' => $user->gender,
-                    'practicing_yoga_for' => $user->practicing_yoga_for,
-                    'yoga_sequence_experience' => $user->yoga_sequence_experience,
+                    'practicing_yoga_for' => StudentProfileValue::normalizePracticingYogaFor($user->practicing_yoga_for),
+                    'yoga_sequence_experience' => StudentProfileValue::normalizeYogaSequenceExperience($user->yoga_sequence_experience),
                     'hours_per_week' => $user->hours_per_week,
                     'current_fitness_level' => $user->current_fitness_level,
                     'flexibility_rating' => $user->flexibility_rating,
                     'motivation' => $user->motivation,
                     'why_yogafx' => $user->why_yogafx,
-                    'how_did_you_find_us' => $user->how_did_you_find_us,
+                    'how_did_you_find_us' => StudentProfileValue::normalizeHowDidYouFindUs($user->how_did_you_find_us),
                     'profile_is_complete' => $user->hasCompletedStudentProfile(),
+                    'missing_profile_fields' => $user->missingStudentProfileFields(),
                 ] : null,
             ],
             'directory' => [

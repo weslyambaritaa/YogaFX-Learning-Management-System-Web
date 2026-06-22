@@ -78,7 +78,7 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                                 id="otp_code"
                                 value={data.otp_code}
                                 onChange={(event) => setData('otp_code', event.target.value)}
-                                className="mt-1 block w-full"
+                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 inputMode="numeric"
                                 autoComplete="one-time-code"
                                 placeholder="Enter the 6-digit code"
@@ -93,7 +93,7 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                                 type="password"
                                 value={data.new_password}
                                 onChange={(event) => setData('new_password', event.target.value)}
-                                className="mt-1 block w-full"
+                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="new-password"
                             />
                             <InputError message={errors.new_password} className="mt-2" />
@@ -111,7 +111,7 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                                 onChange={(event) =>
                                     setData('new_password_confirmation', event.target.value)
                                 }
-                                className="mt-1 block w-full"
+                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="new-password"
                             />
                             <InputError

@@ -74,7 +74,7 @@ export default function ResetPassword({ token, email, expires_at }) {
                                 type="email"
                                 name="email"
                                 value={data.email}
-                                className="mt-1 block w-full"
+                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="username"
                                 onChange={(e) => setData('email', e.target.value)}
                             />
@@ -88,7 +88,7 @@ export default function ResetPassword({ token, email, expires_at }) {
                             <TextInput
                                 id="otp_code"
                                 value={data.otp_code}
-                                className="mt-1 block w-full"
+                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 inputMode="numeric"
                                 autoComplete="one-time-code"
                                 placeholder="Enter the 6-digit code"
@@ -107,7 +107,7 @@ export default function ResetPassword({ token, email, expires_at }) {
                                 type="password"
                                 name="password"
                                 value={data.password}
-                                className="mt-1 block w-full"
+                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="new-password"
                                 onChange={(e) => setData('password', e.target.value)}
                             />
@@ -126,7 +126,7 @@ export default function ResetPassword({ token, email, expires_at }) {
                                 id="password_confirmation"
                                 name="password_confirmation"
                                 value={data.password_confirmation}
-                                className="mt-1 block w-full"
+                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="new-password"
                                 onChange={(e) =>
                                     setData('password_confirmation', e.target.value)
