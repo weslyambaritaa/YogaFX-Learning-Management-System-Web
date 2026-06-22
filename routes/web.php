@@ -41,6 +41,24 @@ Route::redirect('/', '/login');
 Route::get('/scoreboard', [LeadRegistrationController::class, 'create'])->name('lead-registration.create');
 Route::post('/scoreboard', [LeadRegistrationController::class, 'store'])->name('lead-registration.store');
 Route::get('/scoreboard/submitted/{pendingRegistration}', [LeadRegistrationController::class, 'submitted'])->name('lead-registration.submitted');
+Route::get('/online', [LeadRegistrationController::class, 'showProductPaymentLink'])
+    ->defaults('paymentLinkSlug', 'online')
+    ->name('lead-registration.products.online');
+Route::post('/online', [LeadRegistrationController::class, 'store'])
+    ->defaults('paymentLinkSlug', 'online')
+    ->name('lead-registration.products.online.store');
+Route::get('/starter-kit', [LeadRegistrationController::class, 'showProductPaymentLink'])
+    ->defaults('paymentLinkSlug', 'starter-kit')
+    ->name('lead-registration.products.starter-kit');
+Route::post('/starter-kit', [LeadRegistrationController::class, 'store'])
+    ->defaults('paymentLinkSlug', 'starter-kit')
+    ->name('lead-registration.products.starter-kit.store');
+Route::get('/masterclass', [LeadRegistrationController::class, 'showProductPaymentLink'])
+    ->defaults('paymentLinkSlug', 'masterclass')
+    ->name('lead-registration.products.masterclass');
+Route::post('/masterclass', [LeadRegistrationController::class, 'store'])
+    ->defaults('paymentLinkSlug', 'masterclass')
+    ->name('lead-registration.products.masterclass.store');
 
 Route::get('/paypal/checkout/{invoice}/success', [PayPalCheckoutController::class, 'success'])->name('paypal.success');
 Route::get('/paypal/checkout/{invoice}/cancel', [PayPalCheckoutController::class, 'cancel'])->name('paypal.cancel');

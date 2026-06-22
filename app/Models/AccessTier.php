@@ -8,8 +8,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
-#[Fillable(['name', 'slug', 'description', 'thumbnail', 'price', 'currency_code', 'level', 'is_active'])]
+#[Fillable(['name', 'slug', 'description', 'thumbnail', 'price', 'currency_code', 'level', 'is_active', 'payment_link'])]
 class AccessTier extends Model
 {
     /** @use HasFactory<AccessTierFactory> */
@@ -28,6 +29,12 @@ class AccessTier extends Model
         self::CURRENCY_USD,
         self::CURRENCY_GBP,
         self::CURRENCY_EUR,
+    ];
+
+    public const PUBLIC_PAYMENT_PATHS = [
+        self::SLUG_ONLINE => '/online',
+        self::SLUG_STARTER_KIT => '/starter-kit',
+        self::SLUG_MASTER_CLASS => '/masterclass',
     ];
 
     /**
@@ -77,5 +84,27 @@ class AccessTier extends Model
     public function setPriceAmountAttribute(mixed $value): void
     {
         $this->attributes['price'] = $value;
+    }
+
+    public static function canonicalSlug(string $slug): string
+    {
+        $normalized = Str::lower(trim($slug));
+
+        return match ($normalized) {
+            'starter-kit', 'starter_kit', 'starterkit' => self::SLUG_STARTER_KIT,
+            'masterclass', 'master_class', 'master-class' => self::SLUG_MASTER_CLASS,
+            'online' => self::SLUG_ONLINE,
+            default => Str::slug($normalized, '_'),
+        };
+    }
+
+    public static function publicPaymentPathForSlug(string $slug): ?string
+    {
+        return self::PUBLIC_PAYMENT_PATHS[self::canonicalSlug($slug)] ?? null;
+    }
+
+    public function resolvedPublicPaymentPath(): ?string
+    {
+        return self::publicPaymentPathForSlug($this->slug);
     }
 }

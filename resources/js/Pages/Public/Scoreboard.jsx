@@ -6,7 +6,12 @@ import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { formatCurrency } from "@/lib/currency";
 import { useForm, usePage } from "@inertiajs/react";
 
-export default function Scoreboard({ accessTiers }) {
+export default function Scoreboard({
+    accessTiers,
+    submit_url,
+    selected_access_tier_id,
+    is_access_tier_locked = false,
+}) {
     const { directory = {} } = usePage().props;
     const countryOptions = directory.countries ?? [];
     const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
@@ -17,7 +22,8 @@ export default function Scoreboard({ accessTiers }) {
         phone_country_code: "+62",
         phone_number: "",
         country: "",
-        access_tier_id: accessTiers[0]?.id ?? "",
+        access_tier_id:
+            selected_access_tier_id ?? accessTiers[0]?.id ?? "",
     });
 
     const selectedTier =
@@ -28,7 +34,7 @@ export default function Scoreboard({ accessTiers }) {
 
     const submit = (event) => {
         event.preventDefault();
-        post(route("lead-registration.store"));
+        post(submit_url);
     };
 
     return (
@@ -286,31 +292,47 @@ export default function Scoreboard({ accessTiers }) {
                             value="Program / Tier"
                             className="text-white/80"
                         />
-                        <select
-                            id="access_tier_id"
-                            value={data.access_tier_id}
-                            onChange={(event) =>
-                                setData("access_tier_id", event.target.value)
-                            }
-                            className="mt-2 block w-full rounded-md border border-[#DB202C] bg-white/10 text-white focus:border-[#DB202C] focus:ring-[#DB202C]"
-                            required
-                        >
-                            {accessTiers.map((tier) => (
-                                <option
-                                    key={tier.id}
-                                    value={tier.id}
-                                    className="bg-gray-900 text-white"
-                                >
-                                    {tier.name} -{" "}
-                                    {Number(tier.price) > 0
+                        {is_access_tier_locked && selectedTier ? (
+                            <div className="mt-2 rounded-md border border-white/20 bg-white/10 px-4 py-3 text-white">
+                                <div className="font-medium">
+                                    {selectedTier.name}
+                                </div>
+                                <div className="mt-1 text-sm text-white/70">
+                                    {Number(selectedTier.price) > 0
                                         ? formatCurrency(
-                                              tier.price,
-                                              tier.currency_code,
+                                              selectedTier.price,
+                                              selectedTier.currency_code,
                                           )
                                         : "Price not set yet"}
-                                </option>
-                            ))}
-                        </select>
+                                </div>
+                            </div>
+                        ) : (
+                            <select
+                                id="access_tier_id"
+                                value={data.access_tier_id}
+                                onChange={(event) =>
+                                    setData("access_tier_id", event.target.value)
+                                }
+                                className="mt-2 block w-full rounded-md border border-white/20 bg-white/10 text-white focus:border-white focus:ring-white"
+                                required
+                            >
+                                {accessTiers.map((tier) => (
+                                    <option
+                                        key={tier.id}
+                                        value={tier.id}
+                                        className="bg-gray-900 text-white"
+                                    >
+                                        {tier.name} -{" "}
+                                        {Number(tier.price) > 0
+                                            ? formatCurrency(
+                                                  tier.price,
+                                                  tier.currency_code,
+                                              )
+                                            : "Price not set yet"}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                         <InputError
                             className="mt-2 text-red-400"
                             message={errors.access_tier_id}

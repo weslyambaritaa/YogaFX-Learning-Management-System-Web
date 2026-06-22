@@ -22,9 +22,12 @@ class AccessTierFactory extends Factory
     {
         $name = fake()->unique()->words(2, true);
 
+        $slug = AccessTier::canonicalSlug(Str::slug($name, '_'));
+
         return [
             'name' => Str::title($name),
-            'slug' => Str::slug($name, '_'),
+            'slug' => $slug,
+            'payment_link' => AccessTier::publicPaymentPathForSlug($slug),
             'description' => fake()->sentence(),
             'thumbnail' => null,
             'price' => fake()->randomFloat(2, 49, 999),
