@@ -13,10 +13,12 @@ use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Jobs\SendOnboardingContinuationEmailJob;
 use App\Jobs\SendUpgradeWelcomeEmailJob;
+use App\Services\PayPalService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\PaymentCheckoutService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
@@ -85,6 +87,48 @@ class PaymentAndModuleCompletionTest extends TestCase
         Queue::assertPushed(SendOnboardingContinuationEmailJob::class);
     }
 
+    public function test_public_checkout_page_includes_paypal_client_configuration_for_onsite_components(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_ONLINE,
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Sora',
+            'last_name' => 'Blake',
+            'email' => 'sora@example.com',
+            'phone' => '+6281234567111',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499.00,
+            'status' => PendingRegistration::STATUS_CREATED,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('generateClientToken')
+                ->once()
+                ->andReturn('PAYPAL-CLIENT-TOKEN-001');
+            $mock->shouldReceive('clientId')
+                ->once()
+                ->andReturn('PAYPAL-CLIENT-ID-001');
+        });
+
+        $this->get(
+            URL::temporarySignedRoute('checkout.show', now()->addDay(), [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $tier->slug,
+            ]),
+        )
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/Checkout')
+                ->where('checkout.paypal.client_id', 'PAYPAL-CLIENT-ID-001')
+                ->where('checkout.paypal.client_token', 'PAYPAL-CLIENT-TOKEN-001')
+                ->where('checkout.access_tier.slug', $tier->slug));
+    }
+
     public function test_mock_payment_is_blocked_in_production(): void
     {
         $this->app['env'] = 'production';
@@ -115,6 +159,282 @@ class PaymentAndModuleCompletionTest extends TestCase
         } catch (HttpException $exception) {
             $this->assertSame(422, $exception->getStatusCode());
         }
+    }
+
+    public function test_public_checkout_creates_paypal_order_for_onsite_flow_without_redirecting_the_browser(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_ONLINE,
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Maya',
+            'last_name' => 'Cole',
+            'email' => 'maya@example.com',
+            'phone' => '+6281234567888',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499.00,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('createOrder')
+                ->once()
+                ->andReturn([
+                    'order_id' => 'PAYPAL-ONSITE-ORDER-001',
+                    'approval_url' => 'https://www.paypal.com/checkoutnow?token=PAYPAL-ONSITE-ORDER-001',
+                ]);
+            $mock->shouldReceive('clientId')->andReturn('test-client-id');
+        });
+
+        $response = $this->postJson(
+            URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $tier->slug,
+            ]),
+            [
+                'payment_type' => Payment::TYPE_PAY_FULL,
+                'payment_method' => Payment::METHOD_PAYPAL,
+                'checkout_mode' => 'card',
+                'first_name' => 'Maya',
+                'last_name' => 'Cole',
+                'billing_postcode' => '90123',
+                'billing_country' => 'Indonesia',
+                'terms_accepted' => true,
+            ],
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'created')
+            ->assertJsonPath('order_id', 'PAYPAL-ONSITE-ORDER-001')
+            ->assertJsonStructure([
+                'capture_url',
+                'cancel_url',
+                'invoice_id',
+            ]);
+
+        $this->assertDatabaseHas('payment_activities', [
+            'payment_reference' => 'PAYPAL-ONSITE-ORDER-001',
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'status' => Payment::STATUS_PENDING,
+        ]);
+    }
+
+    public function test_public_paypal_create_order_only_requires_terms_from_checkout_request(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_ONLINE,
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Mika',
+            'last_name' => 'Dunn',
+            'email' => 'mika@example.com',
+            'phone' => '+6281234567222',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499.00,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('createOrder')
+                ->once()
+                ->andReturn([
+                    'order_id' => 'PAYPAL-ONSITE-ORDER-TERMS-ONLY-001',
+                    'approval_url' => 'https://www.paypal.com/checkoutnow?token=PAYPAL-ONSITE-ORDER-TERMS-ONLY-001',
+                ]);
+            $mock->shouldReceive('clientId')->andReturn('test-client-id');
+        });
+
+        $this->postJson(
+            URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $tier->slug,
+            ]),
+            [
+                'payment_type' => Payment::TYPE_PAY_FULL,
+                'payment_method' => Payment::METHOD_PAYPAL,
+                'checkout_mode' => 'paypal',
+                'terms_accepted' => true,
+            ],
+        )
+            ->assertOk()
+            ->assertJsonPath('status', 'created')
+            ->assertJsonPath('order_id', 'PAYPAL-ONSITE-ORDER-TERMS-ONLY-001');
+    }
+
+    public function test_public_checkout_capture_success_marks_invoice_paid_and_returns_success_redirect(): void
+    {
+        Queue::fake();
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_ONLINE,
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Luna',
+            'last_name' => 'Reed',
+            'email' => 'luna@example.com',
+            'phone' => '+6281234567666',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499.00,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+        ]);
+
+        $invoice = Invoice::query()->create([
+            'invoice_number' => 'INV-ONSITE-0001',
+            'pending_registration_id' => $pendingRegistration->id,
+            'access_tier_id' => $tier->id,
+            'type' => Invoice::TYPE_INITIAL,
+            'payment_type' => Invoice::PAYMENT_TYPE_FULL,
+            'total_amount' => 499.00,
+            'balance_due' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+            'status' => Invoice::STATUS_UNPAID,
+            'issued_at' => now(),
+        ]);
+
+        Payment::query()->create([
+            'invoice_id' => $invoice->id,
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'payment_type' => Payment::TYPE_PAY_FULL,
+            'payment_reference' => 'PAYPAL-CAPTURE-SUCCESS-001',
+            'amount_paid' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+            'status' => Payment::STATUS_PENDING,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('captureOrder')
+                ->once()
+                ->with('PAYPAL-CAPTURE-SUCCESS-001')
+                ->andReturn([
+                    'status' => 'COMPLETED',
+                ]);
+            $mock->shouldReceive('clientId')->andReturn('test-client-id');
+        });
+
+        $response = $this->postJson(
+            URL::temporarySignedRoute('checkout.orders.capture', now()->addDay(), [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $tier->slug,
+                'invoice' => $invoice->id,
+            ]),
+            [
+                'order_id' => 'PAYPAL-CAPTURE-SUCCESS-001',
+            ],
+        );
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'success');
+
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoice->id,
+            'status' => Invoice::STATUS_PAID_FULL,
+            'balance_due' => 0,
+        ]);
+
+        $this->assertDatabaseHas('payment_activities', [
+            'invoice_id' => $invoice->id,
+            'payment_reference' => 'PAYPAL-CAPTURE-SUCCESS-001',
+            'status' => Payment::STATUS_SUCCESS,
+        ]);
+
+        Queue::assertPushed(SendOnboardingContinuationEmailJob::class);
+    }
+
+    public function test_public_checkout_capture_pending_keeps_payment_pending_and_returns_pending_status_page(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_ONLINE,
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Ari',
+            'last_name' => 'Snow',
+            'email' => 'ari@example.com',
+            'phone' => '+6281234567555',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499.00,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+        ]);
+
+        $invoice = Invoice::query()->create([
+            'invoice_number' => 'INV-ONSITE-0002',
+            'pending_registration_id' => $pendingRegistration->id,
+            'access_tier_id' => $tier->id,
+            'type' => Invoice::TYPE_INITIAL,
+            'payment_type' => Invoice::PAYMENT_TYPE_FULL,
+            'total_amount' => 499.00,
+            'balance_due' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+            'status' => Invoice::STATUS_UNPAID,
+            'issued_at' => now(),
+        ]);
+
+        Payment::query()->create([
+            'invoice_id' => $invoice->id,
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'payment_type' => Payment::TYPE_PAY_FULL,
+            'payment_reference' => 'PAYPAL-CAPTURE-PENDING-001',
+            'amount_paid' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+            'status' => Payment::STATUS_PENDING,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('captureOrder')
+                ->once()
+                ->with('PAYPAL-CAPTURE-PENDING-001')
+                ->andReturn([
+                    'status' => 'PENDING',
+                ]);
+            $mock->shouldReceive('clientId')->andReturn('test-client-id');
+        });
+
+        $response = $this->postJson(
+            URL::temporarySignedRoute('checkout.orders.capture', now()->addDay(), [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $tier->slug,
+                'invoice' => $invoice->id,
+            ]),
+            [
+                'order_id' => 'PAYPAL-CAPTURE-PENDING-001',
+            ],
+        );
+
+        $response
+            ->assertStatus(202)
+            ->assertJsonPath('status', 'pending')
+            ->assertJsonPath('redirect_url', URL::temporarySignedRoute('checkout.status', now()->addDays(7), [
+                'invoice' => $invoice->id,
+            ]));
+
+        $this->assertDatabaseHas('invoices', [
+            'id' => $invoice->id,
+            'status' => Invoice::STATUS_UNPAID,
+            'balance_due' => 499,
+        ]);
+
+        $this->assertDatabaseHas('payment_activities', [
+            'invoice_id' => $invoice->id,
+            'payment_reference' => 'PAYPAL-CAPTURE-PENDING-001',
+            'status' => Payment::STATUS_PENDING,
+        ]);
     }
 
     public function test_upgrade_payment_marks_previous_invoice_upgraded_and_dispatches_upgrade_email(): void

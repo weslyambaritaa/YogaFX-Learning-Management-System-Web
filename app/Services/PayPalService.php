@@ -10,6 +10,29 @@ use Illuminate\Validation\ValidationException;
 
 class PayPalService
 {
+    public function clientId(): string
+    {
+        return (string) config('services.paypal.client_id');
+    }
+
+    public function generateClientToken(): string
+    {
+        $response = $this->authenticatedHttp()
+            ->post('/v1/identity/generate-token', (object) [])
+            ->throw()
+            ->json();
+
+        $token = $response['client_token'] ?? null;
+
+        if (! is_string($token) || $token === '') {
+            throw ValidationException::withMessages([
+                'payment_method' => 'PayPal client token could not be generated.',
+            ]);
+        }
+
+        return $token;
+    }
+
     /**
      * @return array{order_id: string, approval_url: string}
      */

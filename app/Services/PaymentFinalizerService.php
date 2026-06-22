@@ -131,6 +131,44 @@ class PaymentFinalizerService
         });
     }
 
+    public function failPendingPayment(Payment $paymentActivity, ?string $notes = null): Payment
+    {
+        return DB::transaction(function () use ($paymentActivity, $notes): Payment {
+            /** @var Payment $paymentActivity */
+            $paymentActivity = Payment::query()
+                ->lockForUpdate()
+                ->findOrFail($paymentActivity->id);
+
+            if ($paymentActivity->status !== Payment::STATUS_SUCCESS) {
+                $paymentActivity->forceFill([
+                    'status' => Payment::STATUS_FAILED,
+                    'notes' => $notes ?: $paymentActivity->notes,
+                ])->save();
+            }
+
+            return $paymentActivity->fresh();
+        });
+    }
+
+    public function keepPaymentPending(Payment $paymentActivity, ?string $notes = null): Payment
+    {
+        return DB::transaction(function () use ($paymentActivity, $notes): Payment {
+            /** @var Payment $paymentActivity */
+            $paymentActivity = Payment::query()
+                ->lockForUpdate()
+                ->findOrFail($paymentActivity->id);
+
+            if ($paymentActivity->status !== Payment::STATUS_SUCCESS) {
+                $paymentActivity->forceFill([
+                    'status' => Payment::STATUS_PENDING,
+                    'notes' => $notes ?: $paymentActivity->notes,
+                ])->save();
+            }
+
+            return $paymentActivity->fresh();
+        });
+    }
+
     /**
      * @return array{0: User, 1: OnboardingState}
      */
