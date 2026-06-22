@@ -150,6 +150,17 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-wrap items-center gap-4">
+                                                    {accessTier.payment_link && (
+                                                        <a
+                                                            href={accessTier.payment_link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-sm font-medium text-emerald-600 hover:text-emerald-800"
+                                                        >
+                                                            Open Link
+                                                        </a>
+                                                    )}
+
                                                     <Link
                                                         href={route(
                                                             'admin.access-tiers.edit',
