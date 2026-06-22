@@ -4,6 +4,49 @@ namespace App\Support;
 
 class CountryDirectory
 {
+    private const FLAG_MAP = [
+        'Argentina' => '🇦🇷',
+        'Australia' => '🇦🇺',
+        'Austria' => '🇦🇹',
+        'Belgium' => '🇧🇪',
+        'Brazil' => '🇧🇷',
+        'Canada' => '🇨🇦',
+        'China' => '🇨🇳',
+        'Denmark' => '🇩🇰',
+        'Egypt' => '🇪🇬',
+        'Finland' => '🇫🇮',
+        'France' => '🇫🇷',
+        'Germany' => '🇩🇪',
+        'Hong Kong' => '🇭🇰',
+        'India' => '🇮🇳',
+        'Indonesia' => '🇮🇩',
+        'Ireland' => '🇮🇪',
+        'Italy' => '🇮🇹',
+        'Japan' => '🇯🇵',
+        'Malaysia' => '🇲🇾',
+        'Mexico' => '🇲🇽',
+        'Netherlands' => '🇳🇱',
+        'New Zealand' => '🇳🇿',
+        'Norway' => '🇳🇴',
+        'Philippines' => '🇵🇭',
+        'Portugal' => '🇵🇹',
+        'Qatar' => '🇶🇦',
+        'Saudi Arabia' => '🇸🇦',
+        'Singapore' => '🇸🇬',
+        'South Africa' => '🇿🇦',
+        'South Korea' => '🇰🇷',
+        'Spain' => '🇪🇸',
+        'Sweden' => '🇸🇪',
+        'Switzerland' => '🇨🇭',
+        'Taiwan' => '🇹🇼',
+        'Thailand' => '🇹🇭',
+        'Turkey' => '🇹🇷',
+        'United Arab Emirates' => '🇦🇪',
+        'United Kingdom' => '🇬🇧',
+        'United States' => '🇺🇸',
+        'Vietnam' => '🇻🇳',
+    ];
+
     /**
      * @return array<int, array{value: string, label: string, dial_code: string}>
      */
@@ -62,6 +105,7 @@ class CountryDirectory
             fn (array $country): array => [
                 'value' => $country['value'],
                 'label' => $country['label'],
+                'flag' => self::FLAG_MAP[$country['value']] ?? '🌍',
             ],
             self::countries(),
         );
@@ -76,6 +120,7 @@ class CountryDirectory
             fn (array $country): array => [
                 'value' => $country['dial_code'],
                 'label' => $country['label'].' ('.$country['dial_code'].')',
+                'flag' => self::FLAG_MAP[$country['value']] ?? '🌍',
             ],
             self::countries(),
         ));

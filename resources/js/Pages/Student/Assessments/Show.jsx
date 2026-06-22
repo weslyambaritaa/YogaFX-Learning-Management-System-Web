@@ -1,6 +1,7 @@
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
+import StudentBackButton from '@/Components/student/StudentBackButton';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
@@ -297,20 +298,23 @@ export default function AssessmentShow({
             studentVariant="immersive"
             studentContentClassName="bg-[#050505]"
             header={
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
+                <div className="flex flex-col gap-4">
+                    <StudentBackButton fallbackHref={route('lessons.show', lesson.id)} />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
                         <div className="text-sm text-white/52">{lesson.title}</div>
                         <h2 className="text-2xl font-semibold text-white">
                             {assessment.title}
                         </h2>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-                        <div className="rounded-lg border border-red-400/20 bg-red-500/15 px-4 py-2 text-sm font-semibold text-red-100">
-                            {remaining}
                         </div>
-                        <div className="rounded-lg border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-white/72">
-                            {assessment.progress.current} out of{' '}
-                            {assessment.progress.total}
+                        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                            <div className="rounded-lg border border-red-400/20 bg-red-500/15 px-4 py-2 text-sm font-semibold text-red-100">
+                                {remaining}
+                            </div>
+                            <div className="rounded-lg border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-white/72">
+                                {assessment.progress.current} out of{' '}
+                                {assessment.progress.total}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -378,13 +382,10 @@ export default function AssessmentShow({
                     <div className="rounded-[16px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.4)] backdrop-blur md:p-10">
                         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                             <div className="space-y-3">
-                                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-red-200/90">
-                                    Assessment
-                                </div>
                                 <h3 className="max-w-3xl text-3xl font-semibold tracking-tight text-white md:text-4xl">
                                     {question.title || 'Untitled question'}
                                 </h3>
-                                <div className="text-sm uppercase tracking-[0.18em] text-white/40">
+                                <div className="text-xs uppercase tracking-[0.18em] text-white/40">
                                     {assessment.progress.current} out of{' '}
                                     {assessment.progress.total}
                                 </div>
@@ -405,7 +406,7 @@ export default function AssessmentShow({
                             )}
 
                             <div
-                                className="max-w-4xl text-lg leading-8 text-white/82"
+                                className="max-w-4xl text-xl leading-9 text-white/82 md:text-2xl"
                                 dangerouslySetInnerHTML={{
                                     __html:
                                         question.question_text

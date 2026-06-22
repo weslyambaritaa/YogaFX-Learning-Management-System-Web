@@ -9,6 +9,7 @@ use App\Http\Requests\SignupCompletionRequest;
 use App\Models\OnboardingState;
 use App\Services\EmailOtpChallengeService;
 use App\Services\PaymentCheckoutService;
+use App\Support\StudentProfileValue;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -93,14 +94,14 @@ class OnboardingController extends Controller
                 'country' => $user->country,
                 'birth_date' => optional($user->birth_date)->toDateString(),
                 'gender' => $user->gender,
-                'practicing_yoga_for' => $user->practicing_yoga_for,
-                'yoga_sequence_experience' => $user->yoga_sequence_experience,
+                'practicing_yoga_for' => StudentProfileValue::normalizePracticingYogaFor($user->practicing_yoga_for),
+                'yoga_sequence_experience' => StudentProfileValue::normalizeYogaSequenceExperience($user->yoga_sequence_experience),
                 'hours_per_week' => $user->hours_per_week,
                 'current_fitness_level' => $user->current_fitness_level,
                 'flexibility_rating' => $user->flexibility_rating,
                 'motivation' => $user->motivation,
                 'why_yogafx' => $user->why_yogafx,
-                'how_did_you_find_us' => $user->how_did_you_find_us,
+                'how_did_you_find_us' => StudentProfileValue::normalizeHowDidYouFindUs($user->how_did_you_find_us),
             ],
         ]);
     }
@@ -111,8 +112,11 @@ class OnboardingController extends Controller
     ): RedirectResponse {
         $validated = $request->validated();
         unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+        $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
+        $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
 
         $user = $onboardingState->user;
+        $validated['birth_date'] = $validated['birth_date'] ?? $request->input('birth_date');
         $validated['profile_photo'] = $this->storeUploadedFileToBunny(
             $request->file('profile_photo'),
             'users/profile-photos',

@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Services\BunnyStorageService;
 use App\Services\StudentSessionTrackingService;
 use App\Support\CountryDirectory;
+use App\Support\StudentProfileValue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\RedirectResponse;
@@ -114,14 +115,14 @@ class StudentController extends Controller
                 'country' => $student->country,
                 'birth_date' => optional($student->birth_date)->toDateString(),
                 'gender' => $student->gender,
-                'practicing_yoga_for' => $student->practicing_yoga_for,
-                'yoga_sequence_experience' => $student->yoga_sequence_experience,
+                'practicing_yoga_for' => StudentProfileValue::normalizePracticingYogaFor($student->practicing_yoga_for),
+                'yoga_sequence_experience' => StudentProfileValue::normalizeYogaSequenceExperience($student->yoga_sequence_experience),
                 'hours_per_week' => $student->hours_per_week,
                 'current_fitness_level' => $student->current_fitness_level,
                 'flexibility_rating' => $student->flexibility_rating,
                 'motivation' => $student->motivation,
                 'why_yogafx' => $student->why_yogafx,
-                'how_did_you_find_us' => $student->how_did_you_find_us,
+                'how_did_you_find_us' => StudentProfileValue::normalizeHowDidYouFindUs($student->how_did_you_find_us),
                 'profile_is_complete' => $student->hasCompletedStudentProfile(),
                 'access_time_summary' => $this->sessionTrackingService->summaryForUser(
                     $student,
@@ -147,8 +148,11 @@ class StudentController extends Controller
 
         $validated = $request->validated();
         unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+        $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
+        $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
 
         $student->fill($validated);
+        $student->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $student->birth_date;
         $student->syncDisplayName();
 
         $student->profile_photo = $this->storeUploadedFileToBunny(

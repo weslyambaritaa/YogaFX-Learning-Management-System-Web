@@ -9,6 +9,24 @@ export default function Edit({ status, upgradeOptions = [] }) {
     const studentName = user.first_name ?? user.name ?? 'Student';
     const accessTierName = user.access_tier?.name ?? 'Not assigned yet';
     const profileComplete = Boolean(user.profile_is_complete);
+    const missingProfileFields = user.missing_profile_fields ?? [];
+    const missingFieldLabels = {
+        first_name: 'First Name',
+        last_name: 'Last Name',
+        email: 'Email',
+        whatsapp: 'WhatsApp',
+        country: 'Country',
+        birth_date: 'Birth Date',
+        gender: 'Gender',
+        practicing_yoga_for: 'Current Yoga Experience',
+        yoga_sequence_experience: 'Yoga Sequence Experience',
+        hours_per_week: 'How Many Hours Per Week',
+        current_fitness_level: 'Current Fitness Level',
+        flexibility_rating: 'Flexibility Rating',
+        motivation: 'Motivation',
+        why_yogafx: 'Why YogaFX',
+        how_did_you_find_us: 'How Did You Find Us',
+    };
     const { data, setData, patch, errors, processing } = useForm({
         first_name: user.first_name ?? '',
         last_name: user.last_name ?? '',
@@ -21,13 +39,13 @@ export default function Edit({ status, upgradeOptions = [] }) {
         birth_date: user.birth_date ?? '',
         gender: user.gender ?? '',
         practicing_yoga_for: user.practicing_yoga_for ?? '',
-        yoga_sequence_experience: user.yoga_sequence_experience ?? '',
+        yoga_sequence_experience: user.yoga_sequence_experience ?? [],
         hours_per_week: user.hours_per_week ?? '',
         current_fitness_level: user.current_fitness_level ?? '',
         flexibility_rating: user.flexibility_rating ?? '',
         motivation: user.motivation ?? '',
         why_yogafx: user.why_yogafx ?? '',
-        how_did_you_find_us: user.how_did_you_find_us ?? '',
+        how_did_you_find_us: user.how_did_you_find_us ?? [],
     });
 
     const submit = (e) => {
@@ -74,6 +92,11 @@ export default function Edit({ status, upgradeOptions = [] }) {
                 {!profileComplete && (
                     <div className="rounded-[12px] border border-amber-300/15 bg-[linear-gradient(160deg,rgba(217,119,6,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-amber-50/90">
                         Complete the required profile fields before entering the dashboard.
+                        {missingProfileFields.length ? (
+                            <div className="mt-2 text-amber-50/80">
+                                Missing: {missingProfileFields.map((field) => missingFieldLabels[field] ?? field).join(', ')}.
+                            </div>
+                        ) : null}
                     </div>
                 )}
 
@@ -109,6 +132,7 @@ export default function Edit({ status, upgradeOptions = [] }) {
                         onSubmit={submit}
                         submitLabel="Save Profile"
                         variant="immersive"
+                        mode="profile"
                         currentProfilePhotoUrl={user.profile_photo}
                     />
                 </section>

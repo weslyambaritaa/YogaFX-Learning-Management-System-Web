@@ -39,6 +39,7 @@ class LessonCatalogController extends Controller
         $accessibleModules = $this->accessibleModulesWithLessons($user?->access_tier_id);
         $lessonNavigation = optional($accessibleModules->firstWhere('id', $lesson->module_id))->lessons
             ?? collect();
+        $orderedLessons = $accessibleModules->flatMap(fn (Module $module) => $module->lessons)->values();
 
         $progressMap = LessonProgress::query()
             ->where('user_id', $user->id)
@@ -58,11 +59,11 @@ class LessonCatalogController extends Controller
         ))->count();
         $currentProgress = $progressMap->get($lesson->id);
         $videoState = $this->videoStateForLesson($lesson);
-        $currentLessonIndex = $lessonNavigation->search(
+        $currentLessonIndex = $orderedLessons->search(
             fn (Lesson $item) => $item->id === $lesson->id,
         );
         $nextLesson = $currentLessonIndex !== false
-            ? $lessonNavigation->get($currentLessonIndex + 1)
+            ? $orderedLessons->get($currentLessonIndex + 1)
             : null;
 
         return Inertia::render('Student/Lessons/Show', [
@@ -100,6 +101,7 @@ class LessonCatalogController extends Controller
                     'id' => $lesson->module->id,
                     'title' => $lesson->module->title,
                     'url_slug' => $lesson->module->url_slug,
+                    'sort_order' => $lesson->module->sort_order,
                     'lesson_count' => $lessonNavigation->count(),
                     'completed_lessons' => $completedLessons,
                     'progress_percentage' => $lessonNavigation->count() > 0
@@ -115,6 +117,9 @@ class LessonCatalogController extends Controller
                         $currentProgress,
                         $completedAssessmentIds,
                     ),
+                    'requires_workbook_download' => filled($lesson->workbook),
+                    'is_video_locked_until_workbook_downloaded' => filled($lesson->workbook)
+                        && ! (bool) ($currentProgress?->is_workbook_downloaded ?? false),
                 ],
                 'autoplay' => $request->boolean('autoplay'),
                 'thumbnail_url' => $this->protectedMediaUrl(
@@ -147,12 +152,15 @@ class LessonCatalogController extends Controller
                     'url' => ($lessonUnlockMap->get($item->id)['is_unlocked'] ?? false)
                         ? route('lessons.show', $item)
                         : null,
+                    'module_sort_order' => $item->module?->sort_order ?? $lesson->module?->sort_order,
                 ]),
                 'next_lesson' => $nextLesson ? [
                     'id' => $nextLesson->id,
                     'title' => $nextLesson->title,
                     'sort_order' => $nextLesson->sort_order,
-                    'thumbnail_url' => $this->lessonThumbnailUrl($nextLesson, $lesson->module),
+                    'module_sort_order' => $nextLesson->module?->sort_order,
+                    'module_title' => $nextLesson->module?->title,
+                    'thumbnail_url' => $this->lessonThumbnailUrl($nextLesson, $nextLesson->module),
                     'is_unlocked' => (bool) ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false),
                     'lock_reason' => $lessonUnlockMap->get($nextLesson->id)['reason'] ?? null,
                     'url' => ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false)
@@ -441,6 +449,13 @@ class LessonCatalogController extends Controller
         Collection $completedAssessmentIds,
     ): array {
         $watchProgress = (float) ($lessonProgress?->watch_progress ?? 0);
+
+        if (filled($lesson->workbook) && ! (bool) ($lessonProgress?->is_workbook_downloaded ?? false)) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Download the workbook before continuing.',
+            ];
+        }
 
         if ($lesson->lesson_video_id !== null && $watchProgress < 95) {
             return [

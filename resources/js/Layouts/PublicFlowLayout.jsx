@@ -1,3 +1,4 @@
+import StudentBackButton from '@/Components/student/StudentBackButton';
 import { Head, Link } from "@inertiajs/react";
 
 export default function PublicFlowLayout({
@@ -17,6 +18,10 @@ export default function PublicFlowLayout({
                 <div className="absolute inset-0" />
 
                 <div className="relative mx-auto flex min-h-screen max-w-[1280px] flex-col px-4 py-6 sm:px-6 lg:px-10">
+                    <div className="pt-4">
+                        <StudentBackButton fallbackHref={route('login')} />
+                    </div>
+
                     {/* Header */}
                     <header className="flex items-center justify-center mt-10">
                         <Link href="/">

@@ -1,362 +1,96 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { formatCurrency } from '@/lib/currency';
-import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
-import {
-    ChevronRight,
-    Play,
-    Info,
-    CheckCircle2,
-    Lock,
-    Download,
-    X,
-} from 'lucide-react';
+import LockedContentDialog from "@/Components/student/LockedContentDialog";
+import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
+import { Button } from "@/Components/ui/button";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link } from "@inertiajs/react";
+import { Check, ChevronRight, Download, Play, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+const ONBOARDING_KEY = "yogafx_onboarding_done";
+
+const SLIDES = [
+    {
+        title: "Welcome to YogaFX",
+        body: "A premium learning platform built for focus with a cleaner module flow across desktop and mobile.",
+    },
+    {
+        title: "Keep moving forward",
+        body: "Continue from your latest lesson, track what is completed, and see what is still locked before opening it.",
+    },
+    {
+        title: "Everything stays guided",
+        body: "Your next step, module access, and supporting resources stay visible without turning the experience into a school portal.",
+    },
+];
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
     return {
-        hours: String(Math.floor(safeSeconds / 3600)).padStart(2, '0'),
-        minutes: String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, '0'),
-        seconds: String(Math.floor(safeSeconds % 60)).padStart(2, '0'),
+        hours: String(Math.floor(safeSeconds / 3600)).padStart(2, "0"),
+        minutes: String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, "0"),
+        seconds: String(Math.floor(safeSeconds % 60)).padStart(2, "0"),
     };
 }
 
-const ONBOARDING_KEY = 'yogafx_onboarding_done';
-
-const SLIDES = [
-    {
-        title: 'Welcome to YogaFX',
-        body: 'A premium learning platform built for focus. Find everything you need in one clean, intuitive interface.',
-    },
-    {
-        title: 'Pick up where you left off',
-        body: 'Your active module always appears at the top. Hit Continue and you land directly on your last lesson — no extra steps.',
-    },
-    {
-        title: 'Browse all modules',
-        body: 'Scroll through the module rows below. Click any card to preview lessons inside, then jump straight in.',
-    },
-];
-
 function OnboardingOverlay({ onDone }) {
     const [slide, setSlide] = useState(0);
-    const isLast = slide === SLIDES.length - 1;
     const current = SLIDES[slide];
+    const isLast = slide === SLIDES.length - 1;
 
     const finish = () => {
-        localStorage.setItem(ONBOARDING_KEY, '1');
+        localStorage.setItem(ONBOARDING_KEY, "1");
         onDone();
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-            <div className="relative w-full max-w-md rounded-[16px] border border-white/15 bg-[#1a1210] p-8 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
+            <div className="relative w-full max-w-md rounded-[18px] border border-white/10 bg-[#141110] p-8 text-white">
                 <button
+                    type="button"
                     onClick={finish}
-                    className="absolute right-5 top-5 text-white/40 hover:text-white/70 transition"
-                    aria-label="Skip"
+                    className="absolute right-5 top-5 text-white/45 transition hover:text-white"
                 >
-                    <X className="size-5" />
+                    <X className="size-4" />
                 </button>
-
-                <div className="flex gap-2 mb-8">
-                    {SLIDES.map((_, i) => (
+                <div className="mb-8 flex gap-2">
+                    {SLIDES.map((_, index) => (
                         <div
-                            key={i}
+                            key={index}
                             className={[
-                                'h-1 rounded-full transition-all duration-300',
-                                i === slide ? 'w-8 bg-[#DB202C]' : i < slide ? 'w-4 bg-white/40' : 'w-4 bg-white/15',
-                            ].join(' ')}
+                                "h-1 rounded-full transition-all",
+                                index === slide
+                                    ? "w-10 bg-[#DB202C]"
+                                    : "w-4 bg-white/15",
+                            ].join(" ")}
                         />
                     ))}
                 </div>
-
                 <div className="space-y-3 text-center">
-                    <h2 className="text-2xl font-semibold text-white tracking-tight">{current.title}</h2>
-                    <p className="text-sm leading-7 text-white/55 max-w-sm mx-auto">{current.body}</p>
+                    <h2 className="text-2xl font-semibold">{current.title}</h2>
+                    <p className="text-sm leading-7 text-white/60">
+                        {current.body}
+                    </p>
                 </div>
-
                 <div className="mt-8 flex items-center justify-between">
-                    <button onClick={finish} className="text-sm text-white/35 hover:text-white/60 transition">
+                    <button
+                        type="button"
+                        onClick={finish}
+                        className="text-sm text-white/40 transition hover:text-white/70"
+                    >
                         Skip
                     </button>
-                    <button
-                        onClick={() => (isLast ? finish() : setSlide(s => s + 1))}
-                        className="flex items-center gap-2 rounded-lg bg-[#DB202C] px-6 py-2.5 text-sm font-medium text-white hover:bg-[#b91c26] transition"
+                    <Button
+                        type="button"
+                        onClick={() =>
+                            isLast ? finish() : setSlide((value) => value + 1)
+                        }
+                        className="rounded-[12px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
                     >
-                        {isLast ? 'Get Started' : 'Next'}
-                        <ChevronRight className="size-4" />
-                    </button>
+                        {isLast ? "Get Started" : "Next"}
+                    </Button>
                 </div>
             </div>
         </div>
-    );
-}
-
-function LessonRow({ lesson }) {
-    const isCompleted = lesson.status === 'completed';
-    const isLocked = lesson.status === 'locked';
-    const isInProgress = lesson.status === 'in_progress';
-
-    const icon = isCompleted
-        ? <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
-        : isLocked
-        ? <Lock className="size-4 text-white/25 shrink-0" />
-        : <Play className="size-4 text-[#DB202C] shrink-0" />;
-
-    const content = (
-        <div className="flex items-center gap-3 rounded-[6px] border border-white/8 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition">
-            {icon}
-            <div className="flex-1 min-w-0">
-                <p className={['text-sm truncate', isLocked ? 'text-white/35' : 'text-white'].join(' ')}>
-                    {lesson.title}
-                </p>
-                <p className="text-[11px] text-white/35 mt-0.5 uppercase tracking-[0.18em]">
-                    Lesson {lesson.sort_order}
-                </p>
-            </div>
-            {isCompleted && (
-                <span className="text-[10px] uppercase tracking-[0.18em] text-emerald-400/70 shrink-0">Done</span>
-            )}
-            {isInProgress && (
-                <span className="text-[10px] uppercase tracking-[0.18em] text-[#f2d9c8]/80 shrink-0">In Progress</span>
-            )}
-            {!isCompleted && !isLocked && lesson.progress_percentage > 0 && (
-                <span className="text-[11px] text-white/40 shrink-0">{lesson.progress_percentage}%</span>
-            )}
-        </div>
-    );
-
-    if (isLocked) return <div key={lesson.id}>{content}</div>;
-
-    return (
-        <Link key={lesson.id} href={lesson.url}>
-            {content}
-        </Link>
-    );
-}
-
-function ModuleModal({ module, onClose }) {
-    useEffect(() => {
-        document.body.style.overflow = 'hidden';
-        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-        window.addEventListener('keydown', onKey);
-        return () => {
-            document.body.style.overflow = '';
-            window.removeEventListener('keydown', onKey);
-        };
-    }, [onClose]);
-
-    if (!module) return null;
-
-    const lessons = module.lessons ?? [];
-    const progressPct = module.progress_percentage ?? 0;
-    const isCompleted = module.status === 'completed';
-    const isLocked = module.status === 'locked';
-
-    return (
-        <div
-            className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-sm px-0 sm:px-4"
-            onClick={onClose}
-        >
-            <div
-                className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-t-[8px] sm:rounded-[10px] border border-white/10 bg-[#141110] shadow-2xl"
-                onClick={e => e.stopPropagation()}
-            >
-                <div className="relative aspect-[16/7] overflow-hidden rounded-t-[8px]">
-                    {module.thumbnail_url ? (
-                        <img src={module.thumbnail_url} alt={module.title} className="h-full w-full object-cover" />
-                    ) : (
-                        <div className="h-full w-full bg-[radial-gradient(circle_at_20%_20%,rgba(213,70,47,0.5),transparent_40%),linear-gradient(160deg,#2d1a14,#0d0b0a)]" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#141110] via-[#141110]/40 to-transparent" />
-
-                    <button
-                        onClick={onClose}
-                        className="absolute right-4 top-4 rounded-lg border border-white/15 bg-black/50 p-2 text-white/70 hover:text-white backdrop-blur transition"
-                    >
-                        <X className="size-4" />
-                    </button>
-
-                    <div className="absolute left-4 bottom-4">
-                        <span className={[
-                            'rounded-md border px-3 py-1 text-[10px] uppercase tracking-[0.2em] backdrop-blur',
-                            isCompleted
-                                ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
-                                : module.status === 'in_progress'
-                                ? 'border-[#DB202C]/40 bg-[#DB202C]/20 text-[#ffcfc7]'
-                                : module.status === 'locked'
-                                ? 'border-white/10 bg-black/40 text-white/40'
-                                : 'border-white/15 bg-black/30 text-white/65',
-                        ].join(' ')}>
-                            {module.status_label ?? 'Available'}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="p-6 space-y-5">
-                    <div className="space-y-1.5">
-                        <p className="text-[10px] uppercase tracking-[0.26em] text-[#f2d9c8]">
-                            Module {module.sort_order}
-                        </p>
-                        <h2 className="text-xl font-semibold tracking-tight text-white">{module.title}</h2>
-                        {module.description && (
-                            <p className="text-sm leading-6 text-white/55">{module.description}</p>
-                        )}
-                    </div>
-
-                    {module.show_progress && (
-                        <div className="space-y-1.5">
-                            <div className="flex justify-between text-[11px] uppercase tracking-[0.18em] text-white/40">
-                                <span>{module.completed_lessons} of {module.lesson_count} lessons done</span>
-                                <span>{progressPct}%</span>
-                            </div>
-                            <div className="h-1.5 rounded-[2px] bg-white/10 overflow-hidden">
-                                <div
-                                    className={['h-full rounded-[2px]', isCompleted ? 'bg-emerald-400' : 'bg-[#DB202C]'].join(' ')}
-                                    style={{ width: `${progressPct}%` }}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {module.continue_url ?? module.cta_url ? (
-                        <Link
-                            href={module.continue_url ?? module.cta_url}
-                            className="flex items-center justify-center gap-2 w-full rounded-lg bg-[#DB202C] py-3 text-sm font-semibold text-white hover:bg-[#b91c26] transition"
-                        >
-                            <Play className="size-4 fill-current" />
-                            {module.cta_label ?? 'Open Module'}
-                        </Link>
-                    ) : (
-                        <div className="flex items-center justify-center gap-2 w-full rounded-lg border border-white/10 bg-white/[0.04] py-3 text-sm font-semibold text-white/40">
-                            {isLocked ? <Lock className="size-4" /> : <Play className="size-4 fill-current" />}
-                            {module.cta_label ?? 'Open Module'}
-                        </div>
-                    )}
-
-                    {lessons.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/35 pt-1">
-                                Lessons in this module
-                            </p>
-                            <div className="space-y-1.5">
-                                {lessons.map(lesson => (
-                                    <LessonRow key={lesson.id} lesson={lesson} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {lessons.length === 0 && (
-                        <p className="text-center text-sm text-white/35 py-4">
-                            No lessons available in this module yet.
-                        </p>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function ModuleCard({ module, onClick }) {
-    const isCompleted = module.status === 'completed';
-    const isInProgress = module.status === 'in_progress';
-    const isLocked = module.status === 'locked';
-
-    return (
-        <button
-            onClick={() => onClick(module)}
-            className="group relative shrink-0 w-[240px] sm:w-[260px] rounded-[10px] overflow-hidden border border-white/10 bg-[#120f0e] transition duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[0_20px_60px_rgba(0,0,0,0.55)] text-left"
-        >
-            <div className="relative aspect-[16/10] overflow-hidden">
-                {module.thumbnail_url ? (
-                    <img
-                        src={module.thumbnail_url}
-                        alt={module.title}
-                        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.06]"
-                    />
-                ) : (
-                    <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,rgba(213,70,47,0.4),transparent_30%),linear-gradient(160deg,#2b1d16,#120f0e)]" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
-
-                <div className="absolute left-3 top-3">
-                    <span className={[
-                        'rounded-md border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] backdrop-blur',
-                        isCompleted
-                            ? 'border-emerald-400/30 bg-emerald-400/15 text-emerald-300'
-                            : isInProgress
-                            ? 'border-[#DB202C]/40 bg-[#DB202C]/20 text-[#ffcfc7]'
-                            : isLocked
-                            ? 'border-white/10 bg-black/40 text-white/40'
-                            : 'border-white/15 bg-black/30 text-white/60',
-                    ].join(' ')}>
-                        {module.status_label ?? 'Available'}
-                    </span>
-                </div>
-
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
-                    <div className="rounded-full border-2 border-white/80 bg-black/40 p-3 backdrop-blur">
-                        <Play className="size-5 fill-white text-white" />
-                    </div>
-                </div>
-
-                <div className="absolute bottom-2.5 right-3 text-[10px] uppercase tracking-[0.18em] text-white/40">
-                    Module {module.sort_order}
-                </div>
-            </div>
-
-            <div className="p-4 space-y-2">
-                <h3 className="text-sm font-semibold text-white leading-snug line-clamp-2">{module.title}</h3>
-                <p className="text-xs text-white/40">
-                    {module.lesson_count > 0 ? `${module.lesson_count} lesson${module.lesson_count !== 1 ? 's' : ''}` : 'Module resource'}
-                </p>
-                {module.show_progress && (
-                    <div className="h-[3px] rounded-[2px] bg-white/10 overflow-hidden">
-                        <div
-                            className={['h-full rounded-[2px]', isCompleted ? 'bg-emerald-400' : 'bg-[#DB202C]'].join(' ')}
-                            style={{ width: `${module.progress_percentage}%` }}
-                        />
-                    </div>
-                )}
-            </div>
-        </button>
-    );
-}
-
-function ModuleRow({ title, modules, onCardClick }) {
-    const ref = useRef(null);
-    if (!modules?.length) return null;
-    const scroll = (d) => ref.current?.scrollBy({ left: d * 290, behavior: 'smooth' });
-
-    return (
-        <section className="space-y-4">
-            <h2 className="text-base font-semibold text-white px-4 sm:px-6 lg:px-10 tracking-tight">
-                {title}
-            </h2>
-            <div className="relative group/row">
-                <button
-                    onClick={() => scroll(-1)}
-                    className="absolute left-1 top-1/2 -translate-y-1/2 z-10 rounded-lg border border-white/15 bg-black/60 p-2 text-white/65 hover:text-white backdrop-blur opacity-0 group-hover/row:opacity-100 transition"
-                >
-                    <ChevronRight className="size-4 rotate-180" />
-                </button>
-                <div
-                    ref={ref}
-                    className="flex gap-4 overflow-x-auto pb-3 px-4 sm:px-6 lg:px-10 scroll-smooth"
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                >
-                    {modules.map(m => <ModuleCard key={m.id} module={m} onClick={onCardClick} />)}
-                </div>
-                <button
-                    onClick={() => scroll(1)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 z-10 rounded-lg border border-white/15 bg-black/60 p-2 text-white/65 hover:text-white backdrop-blur opacity-0 group-hover/row:opacity-100 transition"
-                >
-                    <ChevronRight className="size-4" />
-                </button>
-            </div>
-        </section>
     );
 }
 
@@ -366,24 +100,33 @@ function AccessTimeCard({ accessTimeSummary }) {
     );
 
     useEffect(() => {
-        setLiveSeconds(accessTimeSummary?.running_total_access_duration_seconds ?? 0);
-
-        if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
-            return;
+        if (
+            !accessTimeSummary?.currently_active ||
+            !accessTimeSummary?.active_session_login_at
+        ) {
+            setLiveSeconds(
+                accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+            );
+            return undefined;
         }
 
-        const loginAt = new Date(accessTimeSummary.active_session_login_at).getTime();
-
+        const loginAt = new Date(
+            accessTimeSummary.active_session_login_at,
+        ).getTime();
         const tick = () => {
-            const elapsed = Math.max(0, Math.floor((Date.now() - loginAt) / 1000));
+            const elapsed = Math.max(
+                0,
+                Math.floor((Date.now() - loginAt) / 1000),
+            );
             setLiveSeconds(
-                (accessTimeSummary.running_total_access_duration_seconds ?? 0) + elapsed,
+                (accessTimeSummary.running_total_access_duration_seconds ?? 0) +
+                    elapsed,
             );
         };
 
         tick();
-        const interval = setInterval(tick, 1000);
-        return () => clearInterval(interval);
+        const interval = window.setInterval(tick, 1000);
+        return () => window.clearInterval(interval);
     }, [
         accessTimeSummary?.active_session_login_at,
         accessTimeSummary?.currently_active,
@@ -393,103 +136,366 @@ function AccessTimeCard({ accessTimeSummary }) {
     const parts = formatDurationParts(liveSeconds);
 
     return (
-        <div className="inline-flex items-center gap-5 rounded-[14px] border border-white/10 bg-black/40 px-7 py-5 backdrop-blur-md">
-            <div className="leading-tight">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+        <div className="inline-flex items-center gap-5 rounded-[16px] border border-white/10 bg-black/45 px-6 py-4 text-white backdrop-blur">
+            <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
                     Running Total
-                </p>
-                <p className="text-xs uppercase tracking-[0.18em] text-white/45">
+                </div>
+                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
                     Login Time
-                </p>
+                </div>
             </div>
-            <div className="text-4xl font-semibold tracking-[0.06em] text-white tabular-nums">
+            <div className="text-3xl font-semibold tracking-[0.08em]">
                 {parts.hours}:{parts.minutes}:{parts.seconds}
             </div>
         </div>
     );
 }
 
-function HeroSection({ homeExperience, continueLearning, studentName, onInfoClick, accessTimeSummary }) {
-    const isNew = homeExperience?.state === 'new_student' || homeExperience?.state === 'catalog_empty';
-    const thumbnail = continueLearning?.thumbnail_url ?? null;
-    const title = continueLearning?.title ?? homeExperience?.hero_title ?? 'Start your learning journey';
-    const description = continueLearning?.description ?? homeExperience?.hero_description ?? '';
+function LessonRow({ lesson, onLockedClick }) {
+    const row = (
+        <div className="flex items-center justify-between gap-4 rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.06]">
+            <div className="min-w-0">
+                <div className="text-sm font-medium text-white">
+                    {lesson.title}
+                </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-white/45">
+                    Lesson {lesson.sort_order}
+                </div>
+            </div>
+            <div className="flex items-center gap-3">
+                <StudentStatusBadge
+                    status={
+                        lesson.status === "in_progress"
+                            ? "available"
+                            : lesson.status
+                    }
+                    label={lesson.status === "in_progress" ? "Available" : null}
+                />
+                <div className="text-xs text-white/55">
+                    {lesson.progress_percentage}%
+                </div>
+            </div>
+        </div>
+    );
 
-    const ctaLabel = continueLearning?.cta_label ?? homeExperience?.primary_cta_label ?? (isNew ? 'Start First Lesson' : 'Continue Learning');
-    const ctaUrl = continueLearning?.cta_url ?? homeExperience?.primary_cta_url ?? route('modules.index');
+    if (!lesson.url || lesson.status === "locked") {
+        return (
+            <button
+                type="button"
+                onClick={onLockedClick}
+                className="w-full text-left"
+            >
+                {row}
+            </button>
+        );
+    }
 
-    const progressPct = continueLearning?.progress_percentage ?? 0;
-    const moduleCtx = continueLearning?.module ?? null;
-    const lessonCtx = continueLearning?.lesson ?? null;
+    return <Link href={lesson.url}>{row}</Link>;
+}
+
+function ModuleModal({ module, onClose, onLockedLessonClick }) {
+    useEffect(() => {
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, []);
 
     return (
-        <section className="relative min-h-screen flex items-end overflow-hidden">
-            {thumbnail ? (
-                <img src={thumbnail} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),radial-gradient(circle_at_78%_18%,rgba(245,158,11,0.10),transparent_26%),linear-gradient(160deg,#1e1210,#0a0908)]" />
-            )}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%),linear-gradient(to_top,rgba(0,0,0,0.96)_0%,rgba(0,0,0,0.38)_32%,transparent_62%)]" />
+        <div
+            className="fixed inset-0 z-40 flex items-end justify-center bg-black/75 px-0 backdrop-blur-sm sm:items-center sm:px-4"
+            onClick={onClose}
+        >
+            <div
+                className="relative w-full max-w-3xl rounded-t-[18px] border border-white/10 bg-[#141110] sm:rounded-[18px]"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="absolute right-4 top-4 z-10 rounded-full border border-white/15 bg-black/45 p-2 text-white/70 transition hover:text-white"
+                >
+                    <X className="size-4" />
+                </button>
 
-            {accessTimeSummary && (
-                <div className="absolute right-4 bottom-24 z-10 sm:right-6 sm:bottom-28 lg:right-10 lg:bottom-32">
-                    <AccessTimeCard accessTimeSummary={accessTimeSummary} />
+                <div className="relative aspect-video overflow-hidden rounded-t-[18px] sm:rounded-t-[18px]">
+                    {module.thumbnail_url ? (
+                        <img
+                            src={module.thumbnail_url}
+                            alt={module.title}
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,rgba(223,103,57,0.45),transparent_28%),linear-gradient(160deg,#2b1d16_0%,#120f0e_100%)]" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                    <div className="absolute bottom-5 left-5 space-y-3">
+                        <StudentStatusBadge
+                            status={
+                                module.status === "in_progress"
+                                    ? "available"
+                                    : module.status
+                            }
+                            label={module.status_label}
+                        />
+                        <div className="text-3xl font-semibold text-white">
+                            {module.title}
+                        </div>
+                        <div className="text-3xl font-semibold text-white">
+                            Module {module.sort_order}
+                        </div>
+                    </div>
                 </div>
-            )}
 
-            <div className="relative w-full px-4 pb-20 pt-24 sm:px-6 lg:px-10 lg:pb-28 max-w-[1400px] mx-auto">
-                <div className="max-w-2xl space-y-5">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-[#f2d9c8]">
-                        {isNew ? `Hello, ${studentName}` : `Welcome back, ${studentName}`}
-                    </p>
+                <div className="space-y-6 p-6">
+                    {module.description ? (
+                        <p className="text-sm leading-7 text-white/65">
+                            {module.description}
+                        </p>
+                    ) : null}
 
-                    <h1 className="text-4xl font-bold tracking-[-0.03em] text-white sm:text-5xl xl:text-6xl leading-[1.08]">
-                        {title}
-                    </h1>
-
-                    {description && (
-                        <p className="text-sm leading-7 text-white/65 sm:text-[15px] max-w-xl">{description}</p>
-                    )}
-
-                    {moduleCtx && lessonCtx && (
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.2em] text-white/45">
-                            <span>{moduleCtx.title}</span>
-                            <span className="h-1 w-1 rounded-full bg-white/25" />
-                            <span>Lesson {lessonCtx.sort_order}</span>
-                        </div>
-                    )}
-
-                    {!isNew && progressPct > 0 && (
-                        <div className="flex items-center gap-3 max-w-xs">
-                            <div className="flex-1 h-[3px] overflow-hidden rounded-full bg-white/20">
-                                <div className="h-full rounded-full bg-[#DB202C]" style={{ width: `${progressPct}%` }} />
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
+                            <div className="text-xs uppercase tracking-[0.18em] text-white/45">
+                                Lessons
                             </div>
-                            <span className="text-[11px] text-white/45 shrink-0">{progressPct}%</span>
+                            <div className="mt-2 text-3xl font-semibold">
+                                {module.lesson_count}
+                            </div>
                         </div>
-                    )}
+                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
+                            <div className="text-xs uppercase tracking-[0.18em] text-white/45">
+                                Progress
+                            </div>
+                            <div className="mt-2 text-3xl font-semibold">
+                                {module.progress_percentage}%
+                            </div>
+                        </div>
+                    </div>
 
-                    <div className="flex flex-wrap items-center gap-3 pt-1">
-                        <Link
-                            href={ctaUrl}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#DB202C] px-7 py-3 text-sm font-bold text-white hover:bg-[#b91c26] transition shadow-lg"
+                    {module.continue_url ? (
+                        <Button
+                            asChild
+                            className="w-full rounded-[14px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
                         >
-                            <Play className="size-4 fill-white" />
-                            {ctaLabel}
-                        </Link>
+                            <Link href={module.continue_url}>
+                                {module.cta_label ?? "Open Module"}
+                            </Link>
+                        </Button>
+                    ) : null}
 
-                        {onInfoClick && moduleCtx && (
-                            <button
-                                onClick={onInfoClick}
-                                className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-6 py-3 text-sm font-medium text-white hover:bg-white/18 transition backdrop-blur"
-                            >
-                                <Info className="size-4" />
-                                More Info
-                            </button>
-                        )}
+                    <div className="space-y-3">
+                        <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+                            Lessons in this module
+                        </div>
+                        <div className="space-y-2">
+                            {(module.lessons ?? []).map((lesson) => (
+                                <LessonRow
+                                    key={lesson.id}
+                                    lesson={lesson}
+                                    onLockedClick={onLockedLessonClick}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    );
+}
+
+function ModuleCard({ module, onLockedClick }) {
+    const [isHoverOpen, setIsHoverOpen] = useState(false);
+    const hoverTimeoutRef = useRef(null);
+
+    const openHover = () => {
+        if (hoverTimeoutRef.current) {
+            window.clearTimeout(hoverTimeoutRef.current);
+        }
+
+        hoverTimeoutRef.current = window.setTimeout(() => {
+            setIsHoverOpen(true);
+        }, 300);
+    };
+
+    const closeHover = () => {
+        if (hoverTimeoutRef.current) {
+            window.clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+
+        setIsHoverOpen(false);
+    };
+
+    useEffect(
+        () => () => {
+            if (hoverTimeoutRef.current) {
+                window.clearTimeout(hoverTimeoutRef.current);
+            }
+        },
+        [],
+    );
+
+    const mobileCard = (
+        <div className="space-y-2 p-3.5 md:hidden">
+            <div className="relative aspect-video overflow-hidden rounded-[18px]">
+                {module.thumbnail_url ? (
+                    <img
+                        src={module.thumbnail_url}
+                        alt={module.title}
+                        className="h-full w-full object-cover"
+                    />
+                ) : (
+                    <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,rgba(223,103,57,0.45),transparent_28%),linear-gradient(160deg,#2b1d16_0%,#120f0e_100%)]" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/72 via-black/10 to-transparent" />
+            </div>
+
+            <div className="space-y-2">
+                <div className="space-y-1">
+                    <div className="line-clamp-2 text-sm font-semibold leading-5 text-white sm:text-base">
+                        {module.title}
+                    </div>
+                    <div className="text-sm font-semibold text-white/82 sm:text-base">
+                        Module {module.sort_order}
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-white/62 sm:text-xs">
+                    <span>{module.lesson_count} lessons</span>
+                    <span>{module.progress_percentage}%</span>
+                </div>
+
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                        className={[
+                            "h-full rounded-full",
+                            module.status === "completed"
+                                ? "bg-emerald-500"
+                                : module.status === "locked"
+                                  ? "bg-[#DB202C]"
+                                  : "bg-white",
+                        ].join(" ")}
+                        style={{ width: `${module.progress_percentage}%` }}
+                    />
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
+                    {module.status === "locked"
+                        ? "Complete Previous Module"
+                        : null}
+                    <ChevronRight className="size-3.5" />
+                </div>
+            </div>
+        </div>
+    );
+
+    const desktopCard = (
+        <div
+            className={`relative hidden md:block ${isHoverOpen ? "z-50" : "z-10"}`}
+            onMouseEnter={openHover}
+            onMouseLeave={closeHover}
+        >
+            <div className="aspect-video overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04] shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition duration-300">
+                {module.thumbnail_url ? (
+                    <img
+                        src={module.thumbnail_url}
+                        alt={module.title}
+                        className="h-full w-full object-cover transition duration-500"
+                    />
+                ) : (
+                    <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,rgba(223,103,57,0.45),transparent_28%),linear-gradient(160deg,#2b1d16_0%,#120f0e_100%)]" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/58 via-transparent to-transparent" />
+            </div>
+
+            <div
+                className={[
+                    "pointer-events-none absolute left-1/2 top-1/2 w-[112%] min-w-[320px] max-w-[380px] -translate-x-1/2 rounded-[22px] border border-white/12 bg-[#141110] shadow-[0_34px_90px_rgba(0,0,0,0.55)] transition-all duration-300",
+                    isHoverOpen
+                        ? "-translate-y-[52%] scale-100 opacity-100"
+                        : "-translate-y-1/2 scale-95 opacity-0",
+                ].join(" ")}
+            >
+                <div className="overflow-hidden rounded-t-[22px]">
+                    <div className="relative aspect-video">
+                        {module.thumbnail_url ? (
+                            <img
+                                src={module.thumbnail_url}
+                                alt={module.title}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,rgba(223,103,57,0.45),transparent_28%),linear-gradient(160deg,#2b1d16_0%,#120f0e_100%)]" />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                    </div>
+                </div>
+
+                <div className="space-y-4 p-5">
+                    <div className="space-y-1.5">
+                        <div className="text-xs font-medium uppercase tracking-[0.18em] text-white/48">
+                            Module {module.sort_order}
+                        </div>
+                        <div className="text-xl font-semibold leading-7 text-white">
+                            {module.title}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm text-white/65">
+                        <span>{module.lesson_count} lessons</span>
+                        <span>{module.progress_percentage}%</span>
+                    </div>
+
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div
+                            className={[
+                                "h-full rounded-full",
+                                module.status === "completed"
+                                    ? "bg-emerald-500"
+                                    : module.status === "locked"
+                                      ? "bg-[#DB202C]"
+                                      : "bg-white",
+                            ].join(" ")}
+                            style={{ width: `${module.progress_percentage}%` }}
+                        />
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-white/78">
+                        {module.status === "locked"
+                            ? "Complete Previous Module"
+                            : "Open Module"}
+                        <ChevronRight className="size-4" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const card = (
+        <>
+            {desktopCard}
+            {mobileCard}
+        </>
+    );
+
+    if (module.status === "locked" || !module.cta_url) {
+        return (
+            <button
+                type="button"
+                onClick={onLockedClick}
+                className="w-full text-left"
+            >
+                {card}
+            </button>
+        );
+    }
+
+    return (
+        <Link href={module.cta_url} className="block w-full text-left">
+            {card}
+        </Link>
     );
 }
 
@@ -497,112 +503,223 @@ export default function StudentHome({
     studentContext,
     accessTimeSummary,
     continueLearning,
-    progressSummary,
     availableModulesSection,
     assignmentMilestone,
     certificateMilestone,
     homeExperience,
-    sequentialAwareness,
 }) {
-    const hasReloadedRef = useRef(false);
-    const studentName = studentContext?.display_name ?? 'Student';
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [selectedModule, setSelectedModule] = useState(null);
-
-    useEffect(() => {
-        if (!localStorage.getItem(ONBOARDING_KEY)) setShowOnboarding(true);
-    }, []);
-
-    useEffect(() => {
-        if (hasReloadedRef.current) return;
-        hasReloadedRef.current = true;
-        router.reload({
-            only: ['availableModulesSection', 'progressSummary', 'homeExperience'],
-            preserveScroll: true,
-            preserveState: true,
-        });
-    }, []);
-
+    const [lockedModuleOpen, setLockedModuleOpen] = useState(false);
+    const [lockedLessonOpen, setLockedLessonOpen] = useState(false);
+    const bootedRef = useRef(false);
     const rawModules = availableModulesSection?.items ?? [];
-    const inProgress = rawModules.filter(m => m.status === 'in_progress');
+    const inProgressModules = useMemo(
+        () => rawModules.filter((module) => module.status === "in_progress"),
+        [rawModules],
+    );
+    const studentName = studentContext?.display_name ?? "Student";
 
-    const activeModuleSlug = continueLearning?.module?.url_slug ?? null;
-    const heroModule = activeModuleSlug
-        ? rawModules.find(m => m.url_slug === activeModuleSlug) ?? null
-        : null;
+    useEffect(() => {
+        if (!bootedRef.current && !localStorage.getItem(ONBOARDING_KEY)) {
+            setShowOnboarding(true);
+        }
+        bootedRef.current = true;
+    }, []);
 
-        const enrichModule = (m) => ({
-        ...m,
-        continue_url: m.cta_url,
-        lessons: m.lessons ?? [],
-    });
     return (
-        <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-20">
+        <AuthenticatedLayout
+            studentVariant="immersive"
+            studentContentClassName="pb-16"
+        >
             <Head title="Home" />
 
-            {showOnboarding && <OnboardingOverlay onDone={() => setShowOnboarding(false)} />}
-
-            {selectedModule && (
-                <ModuleModal
-                    module={enrichModule(selectedModule)}
-                    onClose={() => setSelectedModule(null)}
-                />
-            )}
-
-            <HeroSection
-                homeExperience={homeExperience}
-                continueLearning={continueLearning}
-                studentName={studentName}
-                onInfoClick={heroModule ? () => setSelectedModule(heroModule) : null}
-                accessTimeSummary={accessTimeSummary}
+            {showOnboarding ? (
+                <OnboardingOverlay onDone={() => setShowOnboarding(false)} />
+            ) : null}
+            <LockedContentDialog
+                open={lockedModuleOpen}
+                onOpenChange={setLockedModuleOpen}
+                kind="module"
             />
-
-            <div className="relative z-10 space-y-10 pt-10">
-
-                {inProgress.length > 0 && (
-                    <ModuleRow
-                        title="In Progress"
-                        modules={inProgress}
-                        onCardClick={setSelectedModule}
-                    />
-                )}
-
-                <ModuleRow
-                    title={inProgress.length > 0 ? 'All Modules' : 'Start Here'}
-                    modules={rawModules}
-                    onCardClick={setSelectedModule}
+            <LockedContentDialog
+                open={lockedLessonOpen}
+                onOpenChange={setLockedLessonOpen}
+                kind="lesson"
+            />
+            {selectedModule ? (
+                <ModuleModal
+                    module={selectedModule}
+                    onClose={() => setSelectedModule(null)}
+                    onLockedLessonClick={() => setLockedLessonOpen(true)}
                 />
+            ) : null}
 
-                {rawModules.length === 0 && (
-                    <div className="px-4 sm:px-6 lg:px-10">
-                        <div className="rounded-[14px] border border-white/8 bg-white/[0.02] px-8 py-16 text-center">
-                            <p className="text-sm text-white/45">No modules are available for your current access tier.</p>
-                            <p className="mt-2 text-xs text-white/25">Contact your administrator for more information.</p>
+            <section className="relative overflow-hidden">
+                <div className="absolute inset-0">
+                    {continueLearning?.thumbnail_url ? (
+                        <img
+                            src={continueLearning.thumbnail_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className="h-full w-full bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),linear-gradient(160deg,#1e1210,#0a0908)]" />
+                    )}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%),linear-gradient(to_top,rgba(0,0,0,0.96)_0%,rgba(0,0,0,0.38)_32%,transparent_62%)]" />
+                </div>
+
+                <div className="relative mx-auto flex min-h-screen max-w-[1400px] flex-col justify-end gap-8 px-4 pb-20 pt-24 sm:px-6 lg:px-10 lg:pb-28">
+                    <div className="max-w-2xl space-y-5 text-white">
+                        <div className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
+                            {homeExperience?.state === "new_student"
+                                ? `Hello, ${studentName}`
+                                : `Welcome back, ${studentName}`}
                         </div>
-                    </div>
-                )}
-
-                {(certificateMilestone?.state === 'download_available' || assignmentMilestone?.state === 'approved') && (
-                    <div className="px-4 sm:px-6 lg:px-10 pb-4">
+                        <h1 className="text-4xl font-bold tracking-[-0.03em] sm:text-5xl xl:text-6xl">
+                            {continueLearning?.title ??
+                                homeExperience?.hero_title ??
+                                "Start your learning journey"}
+                        </h1>
+                        <p className="text-sm leading-7 text-white/68 sm:text-base">
+                            {continueLearning?.description ??
+                                homeExperience?.hero_description}
+                        </p>
                         <div className="flex flex-wrap gap-3">
-                            {certificateMilestone?.state === 'download_available' && (
-                                <a
-                                    href={certificateMilestone.cta_url ?? '#'}
-                                    className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-5 py-2.5 text-xs font-medium text-emerald-300 hover:bg-emerald-400/15 transition"
+                            <Button
+                                asChild
+                                className="rounded-[14px] bg-[#DB202C] px-7 text-white hover:bg-[#c31c28]"
+                            >
+                                <Link
+                                    href={
+                                        continueLearning?.cta_url ??
+                                        route("modules.index")
+                                    }
                                 >
-                                    <Download className="size-3.5" />
-                                    {certificateMilestone.cta_label ?? 'Download Certificate'}
-                                </a>
-                            )}
-                            {assignmentMilestone?.state === 'approved' && (
-                                <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/25 bg-emerald-400/10 px-5 py-2.5 text-xs font-medium text-emerald-300">
-                                    <CheckCircle2 className="size-3.5" />
-                                    Assignment approved
-                                </div>
-                            )}
+                                    <Play className="mr-2 size-4 fill-white" />
+                                    {continueLearning?.cta_label ??
+                                        homeExperience?.primary_cta_label ??
+                                        "Continue Learning"}
+                                </Link>
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    const activeModuleSlug =
+                                        continueLearning?.module?.url_slug ??
+                                        null;
+                                    const targetModule = activeModuleSlug
+                                        ? rawModules.find(
+                                              (module) =>
+                                                  module.url_slug ===
+                                                  activeModuleSlug,
+                                          )
+                                        : (rawModules[0] ?? null);
+                                    if (targetModule?.status === "locked") {
+                                        setLockedModuleOpen(true);
+                                        return;
+                                    }
+                                    setSelectedModule(targetModule ?? null);
+                                }}
+                                className="rounded-[14px] border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+                            >
+                                More Info
+                            </Button>
                         </div>
                     </div>
-                )}
+
+                    {accessTimeSummary ? (
+                        <div className="flex justify-start lg:justify-end">
+                            <AccessTimeCard
+                                accessTimeSummary={accessTimeSummary}
+                            />
+                        </div>
+                    ) : null}
+                </div>
+            </section>
+
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-4 pt-10 sm:px-6 lg:px-10">
+                {inProgressModules.length ? (
+                    <section className="space-y-4">
+                        <div>
+                            <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+                                On Progress
+                            </p>
+                            <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">
+                                Continue where you left off
+                            </h2>
+                        </div>
+                        <div className="py-6">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {inProgressModules.map((module) => (
+                                    <div key={module.id} className="w-full">
+                                        <ModuleCard
+                                            module={module}
+                                            onLockedClick={() =>
+                                                setLockedModuleOpen(true)
+                                            }
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+                ) : null}
+
+                <section className="space-y-4">
+                    <div>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+                            All Modules
+                        </p>
+                        <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">
+                            Browse your learning path
+                        </h2>
+                    </div>
+                    <div className="py-6">
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {rawModules.map((module) => (
+                                <div key={module.id} className="w-full">
+                                    <ModuleCard
+                                        module={module}
+                                        onLockedClick={() =>
+                                            setLockedModuleOpen(true)
+                                        }
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    {!rawModules.length ? (
+                        <div className="rounded-[16px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/60">
+                            No modules are available for your current access
+                            tier.
+                        </div>
+                    ) : null}
+                </section>
+
+                {certificateMilestone?.state === "download_available" ||
+                assignmentMilestone?.state === "approved" ? (
+                    <section className="flex flex-wrap gap-3 pb-4">
+                        {certificateMilestone?.state ===
+                        "download_available" ? (
+                            <a
+                                href={certificateMilestone.cta_url ?? "#"}
+                                className="inline-flex items-center gap-2 rounded-[14px] border border-emerald-500 bg-emerald-500 px-5 py-3 text-sm font-semibold text-white"
+                            >
+                                <Download className="size-4" />
+                                {certificateMilestone.cta_label ??
+                                    "Download Certificate"}
+                            </a>
+                        ) : null}
+                        {assignmentMilestone?.state === "approved" ? (
+                            <div className="inline-flex items-center gap-2 rounded-[14px] border border-emerald-500 bg-emerald-500 px-5 py-3 text-sm font-semibold text-white">
+                                <Check className="size-4" />
+                                Assignment Approved
+                            </div>
+                        ) : null}
+                    </section>
+                ) : null}
             </div>
         </AuthenticatedLayout>
     );
