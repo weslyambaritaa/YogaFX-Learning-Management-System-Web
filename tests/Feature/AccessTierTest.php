@@ -31,7 +31,7 @@ class AccessTierTest extends TestCase
 
         $response = $this->actingAs($admin)->post(route('admin.access-tiers.store'), [
             'name' => 'Master Class',
-            'slug' => 'master_class',
+            'slug' => 'masterclass',
             'description' => 'Advanced tier for premium learning access.',
             'level' => 3,
             'price' => 199,
@@ -43,6 +43,7 @@ class AccessTierTest extends TestCase
         $this->assertDatabaseHas('access_tiers', [
             'name' => 'Master Class',
             'slug' => 'master_class',
+            'payment_link' => '/masterclass',
             'level' => 3,
             'price' => 199,
             'currency_code' => 'GBP',
@@ -64,7 +65,7 @@ class AccessTierTest extends TestCase
 
         $response = $this->actingAs($admin)->patch(route('admin.access-tiers.update', $accessTier), [
             'name' => 'Starter Kit Updated',
-            'slug' => 'starter_kit_updated',
+            'slug' => 'starter-kit',
             'description' => 'Updated starter tier description.',
             'level' => 2,
             'price' => 79,
@@ -77,7 +78,8 @@ class AccessTierTest extends TestCase
         $this->assertDatabaseHas('access_tiers', [
             'id' => $accessTier->id,
             'name' => 'Starter Kit Updated',
-            'slug' => 'starter_kit_updated',
+            'slug' => 'starter_kit',
+            'payment_link' => '/starter-kit',
             'level' => 2,
             'price' => 79,
             'currency_code' => 'EUR',

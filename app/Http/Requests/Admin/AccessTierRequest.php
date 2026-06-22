@@ -6,7 +6,6 @@ use App\Models\AccessTier;
 use App\Support\UploadConstraints;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AccessTierRequest extends FormRequest
@@ -20,7 +19,7 @@ class AccessTierRequest extends FormRequest
     {
         if ($this->filled('slug')) {
             $this->merge([
-                'slug' => Str::slug((string) $this->input('slug'), '_'),
+                'slug' => AccessTier::canonicalSlug((string) $this->input('slug')),
             ]);
         }
     }

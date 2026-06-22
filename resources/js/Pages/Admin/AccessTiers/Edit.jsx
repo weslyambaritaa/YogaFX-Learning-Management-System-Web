@@ -71,6 +71,24 @@ export default function EditAccessTier({ accessTier, status }) {
                                     {accessTier.is_active ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
+                            <div className="mt-4 text-sm text-gray-500">
+                                Public Payment Link
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-3">
+                                <span className="text-sm font-medium text-gray-900">
+                                    {accessTier.payment_link || '-'}
+                                </span>
+                                {accessTier.payment_link && (
+                                    <a
+                                        href={accessTier.payment_link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                                    >
+                                        Open Payment Link
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
 

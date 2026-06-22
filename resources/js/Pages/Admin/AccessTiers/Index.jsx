@@ -74,6 +74,9 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                             Price
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
+                                            Payment Link
+                                        </th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Status
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
@@ -114,6 +117,21 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                             <td className="px-4 py-3 text-gray-700">
                                                 {formatCurrency(accessTier.price, accessTier.currency_code)}
                                             </td>
+                                            <td className="px-4 py-3 text-gray-700">
+                                                <div className="space-y-2">
+                                                    <div>{accessTier.payment_link || '-'}</div>
+                                                    {accessTier.payment_link && (
+                                                        <a
+                                                            href={accessTier.payment_link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                                                        >
+                                                            Open Payment Link
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="px-4 py-3">
                                                 <span
                                                     className={
@@ -131,7 +149,7 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                                 {accessTier.users_count}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex flex-wrap items-center gap-4">
                                                     <Link
                                                         href={route(
                                                             'admin.access-tiers.edit',
