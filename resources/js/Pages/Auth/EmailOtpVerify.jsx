@@ -49,25 +49,6 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
                             )}
                         </div>
                     </div>
-
-                    {/* Why this step card */}
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
-                        <div className="flex justify-end">
-                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
-                                Why this step
-                            </p>
-                        </div>
-                        <div className="mt-7 space-y-3 text-sm leading-6 text-white/70">
-                            <p>
-                                The OTP code confirms this email address belongs
-                                to you before the session continues.
-                            </p>
-                            <p>
-                                Codes are single-use and expire after a short
-                                window for security.
-                            </p>
-                        </div>
-                    </div>
                 </div>
             }
         >
