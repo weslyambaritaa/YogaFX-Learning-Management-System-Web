@@ -23,7 +23,7 @@ export default function StudentBackButton({
             type="button"
             onClick={handleClick}
             className={[
-                'inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10',
+                'inline-flex w-fit shrink-0 items-center gap-2 self-start rounded-full border border-white/12 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white shadow-[0_10px_30px_rgba(0,0,0,0.18)] transition-colors hover:border-white/20 hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-white/20',
                 className,
             ].join(' ')}
         >

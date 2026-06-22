@@ -1,11 +1,11 @@
-import LockedContentDialog from '@/Components/student/LockedContentDialog';
-import StudentBackButton from '@/Components/student/StudentBackButton';
-import StudentStatusBadge from '@/Components/student/StudentStatusBadge';
-import { Button } from '@/Components/ui/button';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, Check, FileText } from 'lucide-react';
-import { useState } from 'react';
+import LockedContentDialog from "@/Components/student/LockedContentDialog";
+import StudentBackButton from "@/Components/student/StudentBackButton";
+import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
+import { Button } from "@/Components/ui/button";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link } from "@inertiajs/react";
+import { ArrowRight, Check, FileText, Play } from "lucide-react";
+import { useState } from "react";
 
 function LessonCard({ lesson, onLockedClick }) {
     const body = (
@@ -35,13 +35,13 @@ function LessonCard({ lesson, onLockedClick }) {
                         </p>
                         <p className="text-xs leading-6 text-white/62">
                             {[
-                                lesson.has_workbook ? 'Workbook' : null,
-                                lesson.has_video ? 'Video' : null,
-                                lesson.has_audio ? 'Audio' : null,
-                                lesson.has_content ? 'Content' : null,
+                                lesson.has_workbook ? "Workbook" : null,
+                                lesson.has_video ? "Video" : null,
+                                lesson.has_audio ? "Audio" : null,
+                                lesson.has_content ? "Content" : null,
                             ]
                                 .filter(Boolean)
-                                .join(' • ') || 'Learning content ready'}
+                                .join(" • ") || "Learning content ready"}
                         </p>
                     </div>
                 </div>
@@ -54,15 +54,19 @@ function LessonCard({ lesson, onLockedClick }) {
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                         <div
                             className={[
-                                'h-full rounded-full',
-                                lesson.status === 'completed' ? 'bg-emerald-500' : lesson.status === 'locked' ? 'bg-[#DB202C]' : 'bg-white',
-                            ].join(' ')}
+                                "h-full rounded-full",
+                                lesson.status === "completed"
+                                    ? "bg-emerald-500"
+                                    : lesson.status === "locked"
+                                      ? "bg-[#DB202C]"
+                                      : "bg-white",
+                            ].join(" ")}
                             style={{ width: `${lesson.progress_percentage}%` }}
                         />
                     </div>
 
                     <div className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
-                        {lesson.is_locked ? 'Complete previous lesson' : null}
+                        {lesson.is_locked ? "Complete previous lesson" : null}
                         <ArrowRight className="size-3.5 transition group-hover:translate-x-1" />
                     </div>
                 </div>
@@ -85,7 +89,10 @@ export default function StudentModuleShow({ module }) {
     const [lockedDialogOpen, setLockedDialogOpen] = useState(false);
 
     return (
-        <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-16">
+        <AuthenticatedLayout
+            studentVariant="immersive"
+            studentContentClassName="pb-16"
+        >
             <Head title={module.title} />
 
             <LockedContentDialog
@@ -95,7 +102,7 @@ export default function StudentModuleShow({ module }) {
             />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
-                <StudentBackButton fallbackHref={route('modules.index')} />
+                <StudentBackButton fallbackHref={route("modules.index")} />
 
                 <section className="relative overflow-hidden rounded-[16px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                     <div className="absolute inset-0">
@@ -121,26 +128,37 @@ export default function StudentModuleShow({ module }) {
                                 {module.title}
                             </h1>
                             {module.description ? (
-                                <p className="max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
+                                <p className="max-w-2xl text-sm sm:text-base leading-7 font-medium text-white">
                                     {module.description}
                                 </p>
                             ) : null}
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
-                            <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
-                                {module.completed_lessons} / {module.lesson_count} completed
-                            </div>
-                            <div className="rounded-full border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/78 backdrop-blur">
-                                {module.progress_percentage}% module progress
-                            </div>
+                        {/* UPDATE: Buttons & Progress badges with Netflix styling */}
+                        <div className="flex flex-wrap gap-3 pt-2">
                             {module.continue_last_lesson_url ? (
-                                <Button asChild className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]">
-                                    <Link href={module.continue_last_lesson_url}>
+                                <Button
+                                    asChild
+                                    className="h-auto rounded-md bg-white px-7 py-3 text-[1.05rem] font-bold text-black transition-colors hover:bg-white/80"
+                                >
+                                    <Link
+                                        href={module.continue_last_lesson_url}
+                                        className="flex items-center"
+                                    >
+                                        <Play className="mr-2.5 size-6 fill-black text-black" />
                                         Continue Last Lesson
                                     </Link>
                                 </Button>
                             ) : null}
+
+                            <div className="flex items-center h-auto rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white">
+                                {module.completed_lessons} /{" "}
+                                {module.lesson_count} completed
+                            </div>
+
+                            <div className="flex items-center h-auto rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white">
+                                {module.progress_percentage}% module progress
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -148,10 +166,8 @@ export default function StudentModuleShow({ module }) {
                 {module.lessons.length ? (
                     <section className="space-y-5">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/40">
-                                Lesson Access
-                            </p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                            {/* UPDATE: Dihapus "Lesson Access" dan margins disesuaikan */}
+                            <h2 className="text-2xl font-semibold tracking-tight text-white">
                                 Lessons
                             </h2>
                         </div>
@@ -161,7 +177,9 @@ export default function StudentModuleShow({ module }) {
                                 <LessonCard
                                     key={lesson.id}
                                     lesson={lesson}
-                                    onLockedClick={() => setLockedDialogOpen(true)}
+                                    onLockedClick={() =>
+                                        setLockedDialogOpen(true)
+                                    }
                                 />
                             ))}
                         </div>
@@ -186,7 +204,10 @@ export default function StudentModuleShow({ module }) {
                                     className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5"
                                 >
                                     <div className="space-y-3">
-                                        <StudentStatusBadge status="available" label="Available" />
+                                        <StudentStatusBadge
+                                            status="available"
+                                            label="Available"
+                                        />
                                         <h3 className="text-xl font-semibold tracking-tight text-white">
                                             {ebook.title}
                                         </h3>
@@ -200,7 +221,11 @@ export default function StudentModuleShow({ module }) {
 
                                     {ebook.download_url ? (
                                         <div className="mt-6">
-                                            <Button asChild variant="outline" className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white">
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                            >
                                                 <a href={ebook.download_url}>
                                                     <FileText className="mr-2 size-4" />
                                                     Access Ebook
@@ -267,8 +292,18 @@ export default function StudentModuleShow({ module }) {
                                 >
                                     <div className="space-y-3">
                                         <StudentStatusBadge
-                                            status={assignment.submission_status === 'approved' ? 'completed' : 'available'}
-                                            label={assignment.submission_status === 'approved' ? 'Completed' : 'Available'}
+                                            status={
+                                                assignment.submission_status ===
+                                                "approved"
+                                                    ? "completed"
+                                                    : "available"
+                                            }
+                                            label={
+                                                assignment.submission_status ===
+                                                "approved"
+                                                    ? "Completed"
+                                                    : "Available"
+                                            }
                                         />
                                         <h3 className="text-xl font-semibold tracking-tight text-white">
                                             {assignment.title}
@@ -277,7 +312,8 @@ export default function StudentModuleShow({ module }) {
                                             Assignment {assignment.sort_order}
                                         </p>
                                         <p className="text-sm leading-7 text-white/62">
-                                            {assignment.description || 'Open this assignment to upload your submission.'}
+                                            {assignment.description ||
+                                                "Open this assignment to upload your submission."}
                                         </p>
                                     </div>
                                 </Link>
@@ -316,17 +352,30 @@ export default function StudentModuleShow({ module }) {
                                     </div>
 
                                     <div className="space-y-4 p-5">
-                                        <StudentStatusBadge status={course.video?.is_ready ? 'available' : 'locked'} />
+                                        <StudentStatusBadge
+                                            status={
+                                                course.video?.is_ready
+                                                    ? "available"
+                                                    : "locked"
+                                            }
+                                        />
                                         <h3 className="text-xl font-semibold tracking-tight text-white">
                                             {course.title}
                                         </h3>
                                         <p className="text-sm leading-7 text-white/62">
-                                            {course.description || 'Premium YogaFX lecture content ready for viewing.'}
+                                            {course.description ||
+                                                "Premium YogaFX lecture content ready for viewing."}
                                         </p>
 
-                                        {course.video?.is_ready && course.url ? (
-                                            <Button asChild className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]">
-                                                <Link href={course.url}>Open Video</Link>
+                                        {course.video?.is_ready &&
+                                        course.url ? (
+                                            <Button
+                                                asChild
+                                                className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                            >
+                                                <Link href={course.url}>
+                                                    Open Video
+                                                </Link>
                                             </Button>
                                         ) : (
                                             <div className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/60">

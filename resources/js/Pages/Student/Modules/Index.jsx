@@ -106,49 +106,7 @@ export default function StudentModulesIndex({ modules }) {
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
                 <StudentBackButton fallbackHref={route('student.dashboard')} />
 
-                <section className="relative overflow-hidden rounded-[16px] border border-white/10 bg-[#110f0f] px-6 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:px-8 lg:px-10">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,_rgba(196,91,49,0.32),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.05)_0%,_rgba(255,255,255,0)_36%),linear-gradient(180deg,_rgba(12,10,10,0.22)_0%,_rgba(12,10,10,0.82)_100%)]" />
-                    <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="max-w-3xl space-y-4">
-                            <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
-                                YogaFX Learning Catalog
-                            </p>
-                            <h1 className="text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
-                                Modules
-                            </h1>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="rounded-[12px] border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
-                                <div className="text-sm uppercase tracking-[0.2em] text-white/45">
-                                    Modules
-                                </div>
-                                <div className="mt-3 text-5xl font-semibold text-white">
-                                    {modules.length}
-                                </div>
-                            </div>
-                            <div className="rounded-[12px] border border-white/10 bg-white/5 px-8 py-6 backdrop-blur">
-                                <div className="text-sm uppercase tracking-[0.2em] text-white/45">
-                                    Completed
-                                </div>
-                                <div className="mt-3 text-5xl font-semibold text-white">
-                                    {modules.filter((module) => module.status === 'completed').length}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 <section className="space-y-5">
-                    <div>
-                        <p className="text-xs uppercase tracking-[0.24em] text-white/40">
-                            Library
-                        </p>
-                        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                            Browse modules
-                        </h2>
-                    </div>
-
                     <div className="grid gap-5 xl:grid-cols-2">
                         {modules.map((module) => (
                             <ModuleCard

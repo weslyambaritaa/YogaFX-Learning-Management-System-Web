@@ -1,7 +1,7 @@
-import LockedContentDialog from '@/Components/student/LockedContentDialog';
-import StudentBackButton from '@/Components/student/StudentBackButton';
-import StudentStatusBadge from '@/Components/student/StudentStatusBadge';
-import { Button } from '@/Components/ui/button';
+import LockedContentDialog from "@/Components/student/LockedContentDialog";
+import StudentBackButton from "@/Components/student/StudentBackButton";
+import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
+import { Button } from "@/Components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -9,18 +9,24 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-} from '@/Components/ui/dialog';
-import VideoJsPlayer from '@/Components/VideoJsPlayer';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, router } from '@inertiajs/react';
-import { Check, ChevronRight, FileText, Volume2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+} from "@/Components/ui/dialog";
+import VideoJsPlayer from "@/Components/VideoJsPlayer";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link, router } from "@inertiajs/react";
+import { Check, ChevronRight, FileText, Volume2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
-    const hours = Math.floor(safeSeconds / 3600).toString().padStart(2, '0');
-    const minutes = Math.floor((safeSeconds % 3600) / 60).toString().padStart(2, '0');
-    const seconds = Math.floor(safeSeconds % 60).toString().padStart(2, '0');
+    const hours = Math.floor(safeSeconds / 3600)
+        .toString()
+        .padStart(2, "0");
+    const minutes = Math.floor((safeSeconds % 3600) / 60)
+        .toString()
+        .padStart(2, "0");
+    const seconds = Math.floor(safeSeconds % 60)
+        .toString()
+        .padStart(2, "0");
 
     return { hours, minutes, seconds };
 }
@@ -55,7 +61,10 @@ function LessonNavCard({ item, onLockedClick }) {
                                 {item.title}
                             </p>
                         </div>
-                        <StudentStatusBadge status={item.status} className="scale-[0.92] origin-right" />
+                        <StudentStatusBadge
+                            status={item.status}
+                            className="scale-[0.92] origin-right"
+                        />
                     </div>
                 </div>
 
@@ -67,16 +76,20 @@ function LessonNavCard({ item, onLockedClick }) {
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                         <div
                             className={[
-                                'h-full rounded-full',
-                                item.status === 'completed' ? 'bg-emerald-500' : item.status === 'locked' ? 'bg-[#DB202C]' : 'bg-white',
-                            ].join(' ')}
+                                "h-full rounded-full",
+                                item.status === "completed"
+                                    ? "bg-emerald-500"
+                                    : item.status === "locked"
+                                      ? "bg-[#DB202C]"
+                                      : "bg-white",
+                            ].join(" ")}
                             style={{ width: `${item.progress_percentage}%` }}
                         />
                     </div>
                 </div>
 
                 <div className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
-                    {item.is_locked ? 'Complete previous lesson' : null}
+                    {item.is_locked ? "Complete previous lesson" : null}
                     <ChevronRight className="size-3.5 transition group-hover:translate-x-1" />
                 </div>
             </div>
@@ -95,18 +108,27 @@ function LessonNavCard({ item, onLockedClick }) {
 }
 
 export default function StudentLessonShow({ lesson, accessTimeSummary }) {
-    const initialWorkbookDownloaded = Boolean(lesson.progress?.is_workbook_downloaded)
-        || (typeof window !== 'undefined'
-            && window.localStorage.getItem(workbookStorageKey(lesson.id)) === '1');
+    const initialWorkbookDownloaded =
+        Boolean(lesson.progress?.is_workbook_downloaded) ||
+        (typeof window !== "undefined" &&
+            window.localStorage.getItem(workbookStorageKey(lesson.id)) === "1");
     const [playerWarning, setPlayerWarning] = useState(null);
-    const [watchProgress, setWatchProgress] = useState(lesson.progress?.watch_progress ?? 0);
-    const [isLessonDone, setIsLessonDone] = useState(Boolean(lesson.progress?.is_done));
+    const [watchProgress, setWatchProgress] = useState(
+        lesson.progress?.watch_progress ?? 0,
+    );
+    const [isLessonDone, setIsLessonDone] = useState(
+        Boolean(lesson.progress?.is_done),
+    );
     const [assessmentState, setAssessmentState] = useState(lesson.assessment);
     const [moduleState, setModuleState] = useState(lesson.module);
-    const [navigationItems, setNavigationItems] = useState(lesson.navigation ?? []);
+    const [navigationItems, setNavigationItems] = useState(
+        lesson.navigation ?? [],
+    );
     const [nextLesson, setNextLesson] = useState(lesson.next_lesson);
     const [autoNextCountdown, setAutoNextCountdown] = useState(null);
-    const [workbookDownloaded, setWorkbookDownloaded] = useState(initialWorkbookDownloaded);
+    const [workbookDownloaded, setWorkbookDownloaded] = useState(
+        initialWorkbookDownloaded,
+    );
     const [showWorkbookDialog, setShowWorkbookDialog] = useState(false);
     const [showLockedDialog, setShowLockedDialog] = useState(false);
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
@@ -120,19 +142,21 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const autoNextStartedRef = useRef(false);
     const lessonVideoUrl = lesson.video?.hls_url ?? null;
     const playbackErrorMessage =
-        typeof playerWarning === 'string'
+        typeof playerWarning === "string"
             ? playerWarning
-            : playerWarning?.message ?? null;
+            : (playerWarning?.message ?? null);
     const canAutoAdvance = Boolean(
         lesson.lesson_video_id && !assessmentState && nextLesson?.id,
     );
     const totalAccessParts = formatDurationParts(totalAccessSeconds);
     const workbookBlocksVideo = Boolean(
-        lesson.progress?.requires_workbook_download
-        && lesson.progress?.is_video_locked_until_workbook_downloaded
-        && !workbookDownloaded,
+        lesson.progress?.requires_workbook_download &&
+        lesson.progress?.is_video_locked_until_workbook_downloaded &&
+        !workbookDownloaded,
     );
-    const canOpenNextLesson = Boolean(nextLesson?.is_unlocked && nextLesson?.url);
+    const canOpenNextLesson = Boolean(
+        nextLesson?.is_unlocked && nextLesson?.url,
+    );
     const autoNextProgress = useMemo(() => {
         if (autoNextCountdown === null) {
             return 0;
@@ -142,8 +166,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     }, [autoNextCountdown]);
 
     useEffect(() => {
-        const persistedWorkbookDownloaded = typeof window !== 'undefined'
-            && window.localStorage.getItem(workbookStorageKey(lesson.id)) === '1';
+        const persistedWorkbookDownloaded =
+            typeof window !== "undefined" &&
+            window.localStorage.getItem(workbookStorageKey(lesson.id)) === "1";
 
         setWatchProgress(lesson.progress?.watch_progress ?? 0);
         setIsLessonDone(Boolean(lesson.progress?.is_done));
@@ -152,7 +177,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         setNavigationItems(lesson.navigation ?? []);
         setNextLesson(lesson.next_lesson);
         setAutoNextCountdown(null);
-        setWorkbookDownloaded(Boolean(lesson.progress?.is_workbook_downloaded) || persistedWorkbookDownloaded);
+        setWorkbookDownloaded(
+            Boolean(lesson.progress?.is_workbook_downloaded) ||
+                persistedWorkbookDownloaded,
+        );
         autoNextStartedRef.current = false;
         progressRequestRef.current = {
             inFlight: false,
@@ -162,14 +190,14 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     }, [lesson]);
 
     useEffect(() => {
-        if (typeof window === 'undefined') {
+        if (typeof window === "undefined") {
             return;
         }
 
         const storageKey = workbookStorageKey(lesson.id);
 
         if (workbookDownloaded) {
-            window.localStorage.setItem(storageKey, '1');
+            window.localStorage.setItem(storageKey, "1");
             return;
         }
 
@@ -182,7 +210,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         }
 
         if (autoNextCountdown <= 0) {
-            router.visit(route('lessons.show', { lesson: nextLesson.id, autoplay: 1 }));
+            router.visit(
+                route("lessons.show", { lesson: nextLesson.id, autoplay: 1 }),
+            );
 
             return undefined;
         }
@@ -197,7 +227,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     }, [autoNextCountdown, nextLesson]);
 
     useEffect(() => {
-        if (!accessTimeSummary?.currently_active || !accessTimeSummary?.active_session_login_at) {
+        if (
+            !accessTimeSummary?.currently_active ||
+            !accessTimeSummary?.active_session_login_at
+        ) {
             setTotalAccessSeconds(
                 accessTimeSummary?.running_total_access_duration_seconds ?? 0,
             );
@@ -209,10 +242,14 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             const loginAt = new Date(
                 accessTimeSummary.active_session_login_at,
             ).getTime();
-            const elapsed = Math.max(0, Math.floor((Date.now() - loginAt) / 1000));
+            const elapsed = Math.max(
+                0,
+                Math.floor((Date.now() - loginAt) / 1000),
+            );
 
             setTotalAccessSeconds(
-                (accessTimeSummary.total_access_duration_seconds ?? 0) + elapsed,
+                (accessTimeSummary.total_access_duration_seconds ?? 0) +
+                    elapsed,
             );
         };
 
@@ -230,7 +267,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     useEffect(() => {
         const refreshLessonState = () => {
             router.reload({
-                only: ['lesson', 'accessTimeSummary'],
+                only: ["lesson", "accessTimeSummary"],
                 preserveScroll: true,
                 preserveState: true,
             });
@@ -243,26 +280,31 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         };
 
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
+            if (document.visibilityState === "visible") {
                 refreshLessonState();
             }
         };
 
-        window.addEventListener('pageshow', handlePageShow);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener("pageshow", handlePageShow);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
 
         return () => {
-            window.removeEventListener('pageshow', handlePageShow);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener("pageshow", handlePageShow);
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange,
+            );
         };
     }, []);
 
     const readXsrfToken = () => {
         const xsrfCookie = document.cookie
-            .split('; ')
-            .find((item) => item.startsWith('XSRF-TOKEN='));
+            .split("; ")
+            .find((item) => item.startsWith("XSRF-TOKEN="));
 
-        return xsrfCookie ? decodeURIComponent(xsrfCookie.split('=').slice(1).join('=')) : '';
+        return xsrfCookie
+            ? decodeURIComponent(xsrfCookie.split("=").slice(1).join("="))
+            : "";
     };
 
     const flushProgressUpdate = async () => {
@@ -272,7 +314,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
         const pendingProgress = progressRequestRef.current.pending;
 
-        if (pendingProgress === null || pendingProgress <= progressRequestRef.current.latestSent) {
+        if (
+            pendingProgress === null ||
+            pendingProgress <= progressRequestRef.current.latestSent
+        ) {
             return;
         }
 
@@ -280,26 +325,33 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         progressRequestRef.current.pending = null;
 
         try {
-            const response = await fetch(route('lessons.progress.update', lesson.id), {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-XSRF-TOKEN': readXsrfToken(),
+            const response = await fetch(
+                route("lessons.progress.update", lesson.id),
+                {
+                    method: "POST",
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-XSRF-TOKEN": readXsrfToken(),
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        watch_progress: pendingProgress,
+                    }),
                 },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    watch_progress: pendingProgress,
-                }),
-            });
+            );
 
             if (!response.ok) {
-                throw new Error(`Failed to persist lesson progress (${response.status}).`);
+                throw new Error(
+                    `Failed to persist lesson progress (${response.status}).`,
+                );
             }
 
             const result = await response.json();
-            const persistedProgress = Number(result?.watch_progress ?? pendingProgress);
+            const persistedProgress = Number(
+                result?.watch_progress ?? pendingProgress,
+            );
             const completedNow = Boolean(result?.is_done);
 
             progressRequestRef.current.latestSent = persistedProgress;
@@ -309,7 +361,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 current
                     ? {
                           ...current,
-                          is_unlocked: current.is_unlocked || Boolean(result?.assessment_unlocked),
+                          is_unlocked:
+                              current.is_unlocked ||
+                              Boolean(result?.assessment_unlocked),
                       }
                     : current,
             );
@@ -319,7 +373,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         ? {
                               ...item,
                               progress_percentage: persistedProgress,
-                              status: completedNow ? 'completed' : 'current',
+                              status: completedNow ? "completed" : "current",
                           }
                         : item,
                 ),
@@ -341,7 +395,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         completed_lessons: completedLessons,
                         progress_percentage:
                             Number(current.lesson_count ?? 0) > 0
-                                ? Math.round((completedLessons / Number(current.lesson_count)) * 100)
+                                ? Math.round(
+                                      (completedLessons /
+                                          Number(current.lesson_count)) *
+                                          100,
+                                  )
                                 : 0,
                     };
                 });
@@ -353,8 +411,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                   ...item,
                                   is_locked: false,
                                   lock_reason: null,
-                                  status: item.status === 'locked' ? 'available' : item.status,
-                                  url: nextLesson?.url ?? route('lessons.show', nextLesson.id),
+                                  status:
+                                      item.status === "locked"
+                                          ? "available"
+                                          : item.status,
+                                  url:
+                                      nextLesson?.url ??
+                                      route("lessons.show", nextLesson.id),
                               }
                             : item,
                     ),
@@ -365,13 +428,15 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                               ...current,
                               is_unlocked: true,
                               lock_reason: null,
-                              url: current.url ?? route('lessons.show', current.id),
+                              url:
+                                  current.url ??
+                                  route("lessons.show", current.id),
                           }
                         : current,
                 );
             }
         } catch (error) {
-            console.error('Failed to persist lesson watch progress.', error);
+            console.error("Failed to persist lesson watch progress.", error);
             progressRequestRef.current.pending = Math.max(
                 pendingProgress,
                 progressRequestRef.current.pending ?? 0,
@@ -380,8 +445,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             progressRequestRef.current.inFlight = false;
 
             if (
-                progressRequestRef.current.pending !== null
-                && progressRequestRef.current.pending > progressRequestRef.current.latestSent
+                progressRequestRef.current.pending !== null &&
+                progressRequestRef.current.pending >
+                    progressRequestRef.current.latestSent
             ) {
                 void flushProgressUpdate();
             }
@@ -389,7 +455,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     };
 
     const handleProgressUpdate = (nextProgress) => {
-        const normalizedProgress = Math.max(0, Math.min(100, Math.round(Number(nextProgress) || 0)));
+        const normalizedProgress = Math.max(
+            0,
+            Math.min(100, Math.round(Number(nextProgress) || 0)),
+        );
 
         if (normalizedProgress <= watchProgress) {
             return;
@@ -432,10 +501,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
     const moduleLabel = lesson.module?.sort_order
         ? `Module ${lesson.module.sort_order} - ${lesson.module.title}`
-        : lesson.module?.title ?? 'Lesson';
+        : (lesson.module?.title ?? "Lesson");
 
     return (
-        <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-16">
+        <AuthenticatedLayout
+            studentVariant="immersive"
+            studentContentClassName="pb-16"
+        >
             <Head title={lesson.title} />
 
             <LockedContentDialog
@@ -444,7 +516,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 kind="lesson"
             />
 
-            <Dialog open={showWorkbookDialog} onOpenChange={setShowWorkbookDialog}>
+            <Dialog
+                open={showWorkbookDialog}
+                onOpenChange={setShowWorkbookDialog}
+            >
                 <DialogContent
                     className="max-w-md border-white/10 bg-[#141110] p-0 text-white ring-white/10"
                     overlayClassName="bg-black/65 backdrop-blur-sm"
@@ -455,13 +530,17 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 Download Workbook First
                             </DialogTitle>
                             <DialogDescription className="text-sm leading-7 text-white/65">
-                                Download the workbook before watching this lesson video.
+                                Download the workbook before watching this
+                                lesson video.
                             </DialogDescription>
                         </DialogHeader>
                     </div>
                     <DialogFooter className="border-white/10 bg-white/[0.03]">
                         {lesson.workbook_url ? (
-                            <Button asChild className="bg-[#DB202C] text-white hover:bg-[#c31c28]">
+                            <Button
+                                asChild
+                                className="bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                            >
                                 <a
                                     href={lesson.workbook_url}
                                     onClick={() => {
@@ -478,7 +557,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             </Dialog>
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
-                <StudentBackButton fallbackHref={route('modules.show', lesson.module?.url_slug)} />
+                <StudentBackButton
+                    fallbackHref={route(
+                        "modules.show",
+                        lesson.module?.url_slug,
+                    )}
+                />
 
                 <section className="space-y-6">
                     <div className="space-y-4">
@@ -497,10 +581,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     {workbookBlocksVideo ? (
                                         <button
                                             type="button"
-                                            onClick={() => setShowWorkbookDialog(true)}
+                                            onClick={() =>
+                                                setShowWorkbookDialog(true)
+                                            }
                                             className="flex aspect-video w-full items-center justify-center rounded-[14px] border border-[#DB202C]/30 bg-[#DB202C]/10 px-6 text-center text-white"
                                         >
-                                            Download the workbook first before watching this video.
+                                            Download the workbook first before
+                                            watching this video.
                                         </button>
                                     ) : (
                                         <VideoJsPlayer
@@ -509,8 +596,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             className="overflow-hidden rounded-[14px]"
                                             autoplay={Boolean(lesson.autoplay)}
                                             onPlaybackError={setPlayerWarning}
-                                            onProgressUpdate={handleProgressUpdate}
-                                            onTimeUpdate={handlePlayerTimeUpdate}
+                                            onProgressUpdate={
+                                                handleProgressUpdate
+                                            }
+                                            onTimeUpdate={
+                                                handlePlayerTimeUpdate
+                                            }
                                         />
                                     )}
                                 </div>
@@ -525,7 +616,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             )}
 
                             <div className="absolute left-5 top-5">
-                                <StudentStatusBadge status={isLessonDone ? 'completed' : 'available'} />
+                                <StudentStatusBadge
+                                    status={
+                                        isLessonDone ? "completed" : "available"
+                                    }
+                                />
                             </div>
 
                             {autoNextCountdown !== null && nextLesson?.title ? (
@@ -539,19 +634,27 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 {nextLesson.title}
                                             </div>
                                             <div className="text-sm text-white/70">
-                                                Continue in {autoNextCountdown} seconds
+                                                Continue in {autoNextCountdown}{" "}
+                                                seconds
                                             </div>
                                         </div>
                                         {nextLesson.url ? (
-                                            <Button asChild className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]">
-                                                <Link href={nextLesson.url}>Next Lesson</Link>
+                                            <Button
+                                                asChild
+                                                className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                            >
+                                                <Link href={nextLesson.url}>
+                                                    Next Lesson
+                                                </Link>
                                             </Button>
                                         ) : null}
                                     </div>
                                     <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
                                         <div
                                             className="h-full rounded-full bg-[#DB202C]"
-                                            style={{ width: `${autoNextProgress}%` }}
+                                            style={{
+                                                width: `${autoNextProgress}%`,
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -573,14 +676,18 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     >
                                         <a
                                             href={lesson.workbook_url}
-                                            onClick={() => setWorkbookDownloaded(true)}
+                                            onClick={() =>
+                                                setWorkbookDownloaded(true)
+                                            }
                                         >
                                             {workbookDownloaded ? (
                                                 <Check className="mr-2 size-4 rounded-full bg-emerald-500 p-0.5 text-white" />
                                             ) : (
                                                 <FileText className="mr-2 size-4" />
                                             )}
-                                            {workbookDownloaded ? 'Workbook Downloaded' : 'Download Workbook'}
+                                            {workbookDownloaded
+                                                ? "Workbook Downloaded"
+                                                : "Download Workbook"}
                                         </a>
                                     </Button>
                                 ) : null}
@@ -592,8 +699,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         <Volume2 className="size-4 text-[#f15b3a]" />
                                         Audio Companion
                                     </div>
-                                    <audio controls src={lesson.audio_url} className="w-full">
-                                        Your browser does not support the audio element.
+                                    <audio
+                                        controls
+                                        src={lesson.audio_url}
+                                        className="w-full"
+                                    >
+                                        Your browser does not support the audio
+                                        element.
                                     </audio>
                                 </div>
                             )}
@@ -601,11 +713,14 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             {lesson.content ? (
                                 <div
                                     className="prose prose-invert max-w-none prose-p:text-white/72 prose-headings:text-white prose-strong:text-white"
-                                    dangerouslySetInnerHTML={{ __html: lesson.content }}
+                                    dangerouslySetInnerHTML={{
+                                        __html: lesson.content,
+                                    }}
                                 />
                             ) : (
                                 <div className="rounded-[12px] border border-white/10 bg-white/[0.04] px-5 py-6 text-sm leading-7 text-white/60">
-                                    Lesson content will appear here when this learning material includes written guidance.
+                                    Lesson content will appear here when this
+                                    learning material includes written guidance.
                                 </div>
                             )}
 
@@ -618,21 +733,29 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             </div>
                                             <p className="mt-1 text-sm text-white/70">
                                                 {assessmentState.is_completed
-                                                    ? 'This assessment has already been completed.'
+                                                    ? "This assessment has already been completed."
                                                     : assessmentState.is_unlocked
-                                                        ? 'This assessment is ready to start.'
-                                                        : 'Assessment unlocks after your lesson watch progress reaches 95%.'}
+                                                      ? "This assessment is ready to start."
+                                                      : "Assessment unlocks after your lesson watch progress reaches 95%."}
                                             </p>
                                         </div>
 
                                         {assessmentState.is_unlocked ? (
-                                            <Button asChild className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]">
-                                                <Link href={route('assessments.intro', lesson.id)}>
+                                            <Button
+                                                asChild
+                                                className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                            >
+                                                <Link
+                                                    href={route(
+                                                        "assessments.intro",
+                                                        lesson.id,
+                                                    )}
+                                                >
                                                     {assessmentState.current_attempt_id
-                                                        ? 'Resume Assessment'
+                                                        ? "Resume Assessment"
                                                         : assessmentState.is_completed
-                                                            ? 'View Assessment Result'
-                                                            : 'Open Assessment'}
+                                                          ? "View Assessment Result"
+                                                          : "Open Assessment"}
                                                 </Link>
                                             </Button>
                                         ) : (
@@ -643,14 +766,26 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             )}
 
                             <div className="flex flex-wrap items-center gap-3">
-                                <Button asChild variant="outline" className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white">
-                                    <Link href={route('modules.show', lesson.module.url_slug)}>
+                                <Button
+                                    asChild
+                                    variant="outline"
+                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                >
+                                    <Link
+                                        href={route(
+                                            "modules.show",
+                                            lesson.module.url_slug,
+                                        )}
+                                    >
                                         Back to module
                                     </Link>
                                 </Button>
                                 {nextLesson ? (
                                     canOpenNextLesson ? (
-                                        <Button asChild className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]">
+                                        <Button
+                                            asChild
+                                            className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                        >
                                             <Link href={nextLesson.url}>
                                                 Next Lesson
                                             </Link>
@@ -658,7 +793,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     ) : (
                                         <Button
                                             type="button"
-                                            onClick={() => setShowLockedDialog(true)}
+                                            onClick={() =>
+                                                setShowLockedDialog(true)
+                                            }
                                             className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
                                         >
                                             Next Lesson
@@ -672,25 +809,28 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                 <section className="space-y-5">
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                        {/* UPDATE: Progress section Netflix Style */}
                         <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5">
-                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                Progress
-                            </p>
-                            <h2 className="mt-3 text-2xl font-semibold text-white">
-                                {moduleState?.completed_lessons ?? 0} of {moduleState?.lesson_count ?? 0} lessons completed
+                            <h2 className="text-2xl font-semibold tracking-tight text-white">
+                                {moduleState?.completed_lessons ?? 0} of{" "}
+                                {moduleState?.lesson_count ?? 0} lessons
+                                completed
                             </h2>
                             <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
                                 <div
                                     className="h-full rounded-full bg-emerald-500"
-                                    style={{ width: `${moduleState?.progress_percentage ?? 0}%` }}
+                                    style={{
+                                        width: `${moduleState?.progress_percentage ?? 0}%`,
+                                    }}
                                 />
                             </div>
                         </div>
 
+                        {/* UPDATE: Total Access Time section Netflix Style */}
                         <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5">
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                            <h2 className="text-xl font-semibold tracking-tight text-white">
                                 Total Access Time
-                            </p>
+                            </h2>
                             <div className="mt-3 text-3xl font-semibold tracking-[0.08em] text-white">
                                 {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
                             </div>
@@ -698,11 +838,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                     </div>
 
                     <div className="space-y-4">
+                        {/* UPDATE: Lesson Navigation Netflix Style */}
                         <div>
-                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                Lesson Navigation
-                            </p>
-                            <h2 className="mt-2 text-xl font-semibold text-white">
+                            <h2 className="text-2xl font-semibold tracking-tight text-white">
                                 More lessons in this module
                             </h2>
                         </div>
@@ -712,7 +850,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 <LessonNavCard
                                     key={item.id}
                                     item={item}
-                                    onLockedClick={() => setShowLockedDialog(true)}
+                                    onLockedClick={() =>
+                                        setShowLockedDialog(true)
+                                    }
                                 />
                             ))}
                         </div>
