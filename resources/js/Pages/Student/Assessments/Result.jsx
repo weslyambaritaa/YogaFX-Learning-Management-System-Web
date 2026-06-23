@@ -7,7 +7,12 @@ function completionIntroStorageKey(attemptId) {
     return `assessment-result-intro-seen-${attemptId}`;
 }
 
-export default function AssessmentResult({ lesson, assessment, attempt }) {
+export default function AssessmentResult({
+    lesson,
+    assessment,
+    attempt,
+    nextLesson,
+}) {
     const [stage, setStage] = useState('loading');
     const [countdown, setCountdown] = useState(5);
 
@@ -171,10 +176,21 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                                 </div>
 
                                 <div className="mt-8 flex flex-wrap justify-center gap-3">
+                                    {nextLesson?.url && (
+                                        <Button
+                                            asChild
+                                            size="lg"
+                                            className="bg-[#e24848] text-white hover:bg-[#f05a5a]"
+                                        >
+                                            <Link href={nextLesson.url}>
+                                                Next Lesson
+                                            </Link>
+                                        </Button>
+                                    )}
                                     <Button
                                         asChild
                                         size="lg"
-                                        className="bg-[#e24848] text-white hover:bg-[#f05a5a]"
+                                        className="bg-white/10 text-white hover:bg-white/15"
                                     >
                                         <Link href={route('lessons.show', lesson.id)}>
                                             Return to Lesson

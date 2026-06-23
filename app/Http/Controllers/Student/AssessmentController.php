@@ -12,8 +12,11 @@ use App\Models\AssessmentProgress;
 use App\Models\AssessmentResultRange;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
+use App\Models\Module;
 use App\Models\Question;
 use App\Models\QuestionOption;
+use App\Models\User;
+use App\Services\StudentLearningPathService;
 use App\Services\StudentLearningMilestoneEmailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +30,7 @@ class AssessmentController extends Controller
     use BuildsProtectedMediaUrls;
 
     public function __construct(
+        private readonly StudentLearningPathService $studentLearningPathService,
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
     ) {
     }
@@ -312,6 +316,7 @@ class AssessmentController extends Controller
         ]);
 
         $resultMetrics = $this->buildAttemptResultMetrics($attempt);
+        $nextLesson = $this->resolveNextLesson($user, $lesson);
 
         return Inertia::render('Student/Assessments/Result', [
             'lesson' => [
@@ -339,6 +344,13 @@ class AssessmentController extends Controller
                 'gradable_questions' => $resultMetrics['gradable_questions'],
                 'percentage_correct' => $resultMetrics['percentage_correct'],
             ],
+            'nextLesson' => $nextLesson ? [
+                'id' => $nextLesson->id,
+                'title' => $nextLesson->title,
+                'module_title' => $nextLesson->module?->title,
+                'module_sort_order' => $nextLesson->module?->sort_order,
+                'url' => route('lessons.show', $nextLesson),
+            ] : null,
         ]);
     }
 
@@ -512,6 +524,122 @@ class AssessmentController extends Controller
     {
         return $assessment->resultRanges
             ->first(fn (AssessmentResultRange $range) => $totalScore >= (float) $range->min_score && $totalScore <= (float) $range->max_score);
+    }
+
+    private function resolveNextLesson(User $user, Lesson $lesson): ?Lesson
+    {
+        $accessibleModules = $this->studentLearningPathService->accessibleModulesForStudent($user, true);
+        $orderedLessons = $accessibleModules->flatMap(fn (Module $module) => $module->lessons)->values();
+        $currentLessonIndex = $orderedLessons->search(
+            fn (Lesson $item) => $item->id === $lesson->id,
+        );
+
+        if ($currentLessonIndex === false) {
+            return null;
+        }
+
+        $nextLesson = $orderedLessons->get($currentLessonIndex + 1);
+
+        if (! $nextLesson) {
+            return null;
+        }
+
+        $progressMap = LessonProgress::query()
+            ->where('user_id', $user->id)
+            ->whereIn('lesson_id', $orderedLessons->pluck('id'))
+            ->get()
+            ->keyBy('lesson_id');
+        $lessonUnlockMap = $this->lessonUnlockMap($user->id, $accessibleModules, $progressMap);
+
+        return ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false)
+            ? $nextLesson
+            : null;
+    }
+
+    private function lessonUnlockMap(?int $userId, Collection $modules, Collection $lessonProgressMap): Collection
+    {
+        $orderedLessons = $modules->flatMap(fn (Module $module) => $module->lessons)->values();
+        $completedAssessmentIds = $this->completedAssessmentIds(
+            $userId,
+            $orderedLessons->pluck('assessment_id')->filter(),
+        );
+        $unlockMap = collect();
+
+        foreach ($orderedLessons as $index => $lesson) {
+            if ($index === 0) {
+                $unlockMap->put($lesson->id, [
+                    'is_unlocked' => true,
+                    'reason' => null,
+                ]);
+
+                continue;
+            }
+
+            $previousLesson = $orderedLessons[$index - 1];
+            $previousProgress = $lessonProgressMap->get($previousLesson->id);
+
+            $unlockMap->put(
+                $lesson->id,
+                $this->lessonAdvanceGate($previousLesson, $previousProgress, $completedAssessmentIds),
+            );
+        }
+
+        return $unlockMap;
+    }
+
+    private function completedAssessmentIds(?int $userId, Collection $assessmentIds): Collection
+    {
+        if (! $userId || $assessmentIds->isEmpty()) {
+            return collect();
+        }
+
+        return AssessmentAttempt::query()
+            ->where('user_id', $userId)
+            ->whereIn('assessment_id', $assessmentIds)
+            ->where('status', AssessmentAttempt::STATUS_COMPLETED)
+            ->pluck('assessment_id')
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values();
+    }
+
+    private function lessonAdvanceGate(
+        Lesson $lesson,
+        ?LessonProgress $lessonProgress,
+        Collection $completedAssessmentIds,
+    ): array {
+        $watchProgress = (float) ($lessonProgress?->watch_progress ?? 0);
+
+        if (filled($lesson->workbook) && ! (bool) ($lessonProgress?->is_workbook_downloaded ?? false)) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Download the workbook before continuing.',
+            ];
+        }
+
+        if ($lesson->lesson_video_id !== null && $watchProgress < 95) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Complete the lesson video to at least 95% before continuing.',
+            ];
+        }
+
+        if (
+            $lesson->assessment_id !== null
+            && $lesson->assessment?->status === Assessment::STATUS_LIVE
+            && $lesson->assessment?->is_active
+            && ! $completedAssessmentIds->contains((int) $lesson->assessment_id)
+        ) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Complete the lesson assessment before continuing.',
+            ];
+        }
+
+        return [
+            'is_unlocked' => true,
+            'reason' => null,
+        ];
     }
 
     private function persistQuestionAnswer(Request $request, AssessmentAttempt $attempt, Question $question, Collection $questions): ?Question
