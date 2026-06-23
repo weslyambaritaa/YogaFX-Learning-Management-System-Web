@@ -2,6 +2,10 @@ import StudentProfileForm from "@/Components/StudentProfileForm";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { useForm } from "@inertiajs/react";
 
+// Single source of truth for the font so it can't be silently
+// overridden by an older font-family declared elsewhere in the tree.
+const FONT_FAMILY = "'Montserrat', sans-serif";
+
 export default function Enrollment({ onboarding, student }) {
     const { data, setData, post, errors, processing } = useForm({
         first_name: student.first_name ?? "",
@@ -36,15 +40,61 @@ export default function Enrollment({ onboarding, student }) {
     return (
         <PublicFlowLayout
             title="Enrollment"
-            heading="Complete your YogaFX enrollment before creating your final password"
-            description="Your payment is complete. Finish your profile before creating the final password."
+            heading={
+                <span
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "48px",
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                    }}
+                >
+                    Complete your YogaFX enrollment before creating your
+                    final password
+                </span>
+            }
+            description={
+                <div
+                    className="rounded-[5px] px-[10px] py-[8px]"
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        backgroundColor: "#00B14F",
+                    }}
+                >
+                    <span
+                        className="text-white"
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "14px",
+                            fontWeight: 400,
+                        }}
+                    >
+                        Your payment is complete. Finish your profile before
+                        creating the final password.
+                    </span>
+                </div>
+            }
             aside={
-                <div className="space-y-6">
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
-                        <p className="text-sm font-semibold text-white">
+                <div className="space-y-6" style={{ fontFamily: FONT_FAMILY }}>
+                    <div className="rounded-[5px] border border-white/10 bg-white/5 p-5">
+                        <p
+                            className="text-white"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 600,
+                            }}
+                        >
                             Enrollment status
                         </p>
-                        <div className="mt-5 space-y-3 text-sm leading-6 text-white/70">
+                        <div
+                            className="mt-5 space-y-3 text-white/70"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                            }}
+                        >
                             <p>Payment status: success</p>
                             <p>Onboarding status: {onboarding.status}</p>
                             <p>Tier access: {onboarding.access_tier.name}</p>
