@@ -138,6 +138,7 @@ function ChoiceGrid({
     options,
     onChange,
     multiple = false,
+    theme,
 }) {
     const selectedValues = Array.isArray(value) ? value : [];
 
@@ -147,10 +148,10 @@ function ChoiceGrid({
                 <InputLabel
                     htmlFor={id}
                     value={label}
-                    className="text-base font-bold text-white"
+                    className={theme.labelClassName}
                 />
                 {description ? (
-                    <p className="mt-1 text-sm font-semibold text-white/70">
+                    <p className={theme.choiceDescriptionClassName}>
                         {description}
                     </p>
                 ) : null}
@@ -168,8 +169,8 @@ function ChoiceGrid({
                             className={[
                                 "flex cursor-pointer items-center gap-3 rounded-[12px] border px-5 py-4 transition-colors",
                                 checked
-                                    ? "border-[#DB202C] bg-[#DB202C]/15 text-white shadow-[0_0_12px_rgba(219,32,44,0.2)]"
-                                    : "border-white/20 bg-transparent text-white/80 hover:border-[#DB202C]/50 hover:bg-[#DB202C]/5",
+                                    ? theme.choiceCheckedClassName
+                                    : theme.choiceUncheckedClassName,
                             ].join(" ")}
                         >
                             <input
@@ -197,8 +198,8 @@ function ChoiceGrid({
                                 className={[
                                     "flex size-5 shrink-0 items-center justify-center rounded-full border",
                                     checked
-                                        ? "border-[#DB202C] bg-[#DB202C] text-white"
-                                        : "border-white/40 bg-transparent text-transparent",
+                                        ? theme.choiceIndicatorCheckedClassName
+                                        : theme.choiceIndicatorUncheckedClassName,
                                 ].join(" ")}
                             >
                                 <Check className="size-3.5" />
@@ -212,34 +213,38 @@ function ChoiceGrid({
             </div>
             <InputError
                 message={error}
-                className="text-[#ffb4a8] font-semibold"
+                className={theme.errorClassName}
             />
         </div>
     );
 }
 
-function SelectField({ id, label, value, onChange, error, options }) {
+function SelectField({ id, label, value, onChange, error, options, theme }) {
     return (
         <div>
             <InputLabel
                 htmlFor={id}
                 value={label}
-                className="text-base font-bold text-white mb-2"
+                className={theme.labelWithSpacingClassName}
             />
             <select
                 id={id}
                 value={value ?? ""}
                 onChange={(event) => onChange(event.target.value)}
-                className="block w-full rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 text-base font-semibold text-white shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:invert"
+                className={theme.selectClassName}
             >
-                <option value="" disabled className="text-black font-semibold">
+                <option
+                    value=""
+                    disabled
+                    className={theme.selectOptionClassName}
+                >
                     Select an option
                 </option>
                 {options.map((option) => (
                     <option
                         key={option.value}
                         value={option.value}
-                        className="text-black font-semibold text-base"
+                        className={theme.selectOptionClassName}
                     >
                         {option.flag ? `${option.flag} ` : ""}
                         {option.label}
@@ -248,35 +253,43 @@ function SelectField({ id, label, value, onChange, error, options }) {
             </select>
             <InputError
                 message={error}
-                className="text-[#ffb4a8] font-semibold mt-2"
+                className={`${theme.errorClassName} mt-2`}
             />
         </div>
     );
 }
 
-function TextAreaField({ id, label, value, onChange, error, helper = null }) {
+function TextAreaField({
+    id,
+    label,
+    value,
+    onChange,
+    error,
+    helper = null,
+    theme,
+}) {
     return (
         <div>
             <InputLabel
                 htmlFor={id}
                 value={label}
-                className="text-base font-bold text-white mb-2"
+                className={theme.labelWithSpacingClassName}
             />
             <textarea
                 id={id}
                 rows={5}
                 value={value ?? ""}
                 onChange={(event) => onChange(event.target.value)}
-                className="block w-full rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 text-base font-semibold text-white shadow-sm placeholder:text-white/30 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]"
+                className={theme.textareaClassName}
             />
             {helper ? (
-                <p className="mt-2 text-sm font-semibold text-white/60">
+                <p className={theme.helperClassName}>
                     {helper}
                 </p>
             ) : null}
             <InputError
                 message={error}
-                className="text-[#ffb4a8] font-semibold"
+                className={theme.errorClassName}
             />
         </div>
     );
@@ -298,6 +311,7 @@ export default function StudentProfileForm({
     const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
     const isScoreboard = variant === "scoreboard";
     const isEnrollment = mode === "enrollment";
+    const isAdminMode = mode === "admin";
     const [localErrors, setLocalErrors] = useState({});
 
     // --- State Cropper Gambar ---
@@ -322,11 +336,115 @@ export default function StudentProfileForm({
 
     // Desain Form Tanpa Frame
     const sectionClassName = "space-y-8 pt-8";
-    const titleClassName = "text-3xl font-bold tracking-tight text-white mb-2";
-    const descriptionClassName =
-        "text-base font-semibold leading-6 text-white/70";
-    const inputClassName =
-        "!border-[#DB202C] bg-transparent text-white text-base font-semibold placeholder:text-white/30 focus:!border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]";
+    const theme = isAdminMode
+        ? {
+              labelClassName: "text-base font-bold text-slate-900",
+              labelWithSpacingClassName:
+                  "mb-2 text-base font-bold text-slate-900",
+              choiceDescriptionClassName:
+                  "mt-1 text-sm font-medium text-slate-600",
+              choiceCheckedClassName:
+                  "border-[#DB202C] bg-rose-50 text-slate-900 shadow-[0_0_12px_rgba(219,32,44,0.12)]",
+              choiceUncheckedClassName:
+                  "border-slate-400 bg-white text-slate-700 hover:border-[#DB202C]/50 hover:bg-rose-50/50",
+              choiceIndicatorCheckedClassName:
+                  "border-[#DB202C] bg-[#DB202C] text-white",
+              choiceIndicatorUncheckedClassName:
+                  "border-slate-400 bg-white text-transparent",
+              errorClassName: "font-semibold text-rose-600",
+              titleClassName:
+                  "mb-2 text-3xl font-bold tracking-tight text-slate-900",
+              descriptionClassName:
+                  "text-base font-medium leading-6 text-slate-600",
+              inputClassName:
+                  "!border-slate-400 bg-white text-slate-900 text-base font-semibold placeholder:text-slate-400 focus:!border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              selectClassName:
+                  "block w-full rounded-[12px] border border-slate-400 bg-white px-4 py-3.5 text-base font-semibold text-slate-900 shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              selectOptionClassName: "bg-white text-slate-900 text-base font-semibold",
+              textareaClassName:
+                  "block w-full rounded-[12px] border border-slate-400 bg-white px-4 py-3.5 text-base font-semibold text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              helperClassName: "mt-2 text-sm font-medium text-slate-500",
+              sectionDividerClassName: "mb-6 border-b border-slate-200 pb-4",
+              footerDividerClassName: "flex items-center border-t border-slate-200 pt-8",
+              dialogContentClassName:
+                  "max-w-xl border-slate-200 bg-white text-slate-900",
+              dialogTitleClassName: "text-xl font-bold text-slate-900",
+              dialogZoomLabelClassName: "text-sm font-semibold text-slate-700",
+              dialogFooterClassName: "mt-6 border-t border-slate-200 pt-4",
+              dialogCancelButtonClassName:
+                  "border-slate-400 bg-white text-slate-900 hover:bg-slate-100",
+              dialogSaveButtonClassName:
+                  "bg-[#DB202C] text-white hover:bg-[#c31c28]",
+              photoPreviewFrameClassName:
+                  "relative flex h-[160px] w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-[50%] border-[3px] border-[#DB202C] bg-slate-100 shadow-[0_0_15px_rgba(219,32,44,0.18)]",
+              photoFallbackClassName:
+                  "flex flex-col items-center justify-center text-slate-400",
+              photoHelperClassName:
+                  "text-sm font-medium leading-relaxed text-slate-600",
+              dateInputStyle: undefined,
+              dateInputClassName:
+                  "block w-full appearance-none rounded-[12px] border border-slate-400 bg-white px-4 py-3.5 pr-12 text-base font-semibold text-slate-900 shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
+              dateIconClassName:
+                  "pointer-events-none absolute right-4 top-1/2 z-10 size-5 -translate-y-1/2 text-slate-500",
+              primaryButtonClassName:
+                  "rounded-full bg-slate-900 px-10 py-4 text-lg font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-slate-800",
+          }
+        : {
+              labelClassName: "text-base font-bold text-white",
+              labelWithSpacingClassName:
+                  "mb-2 text-base font-bold text-white",
+              choiceDescriptionClassName:
+                  "mt-1 text-sm font-semibold text-white/70",
+              choiceCheckedClassName:
+                  "border-[#DB202C] bg-[#DB202C]/15 text-white shadow-[0_0_12px_rgba(219,32,44,0.2)]",
+              choiceUncheckedClassName:
+                  "border-white/20 bg-transparent text-white/80 hover:border-[#DB202C]/50 hover:bg-[#DB202C]/5",
+              choiceIndicatorCheckedClassName:
+                  "border-[#DB202C] bg-[#DB202C] text-white",
+              choiceIndicatorUncheckedClassName:
+                  "border-white/40 bg-transparent text-transparent",
+              errorClassName: "font-semibold text-[#ffb4a8]",
+              titleClassName:
+                  "mb-2 text-3xl font-bold tracking-tight text-white",
+              descriptionClassName:
+                  "text-base font-semibold leading-6 text-white/70",
+              inputClassName:
+                  "!border-[#DB202C] bg-transparent text-white text-base font-semibold placeholder:text-white/30 focus:!border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              selectClassName:
+                  "block w-full rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 text-base font-semibold text-white shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:invert",
+              selectOptionClassName:
+                  "text-base font-semibold text-black",
+              textareaClassName:
+                  "block w-full rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 text-base font-semibold text-white shadow-sm placeholder:text-white/30 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              helperClassName: "mt-2 text-sm font-semibold text-white/60",
+              sectionDividerClassName: "mb-6 border-b border-white/20 pb-4",
+              footerDividerClassName: "flex items-center border-t border-white/20 pt-8",
+              dialogContentClassName:
+                  "max-w-xl border-white/10 bg-[#141110] text-white",
+              dialogTitleClassName: "text-xl font-bold text-white",
+              dialogZoomLabelClassName: "text-sm font-semibold text-white/80",
+              dialogFooterClassName: "mt-6 border-t border-white/10 pt-4",
+              dialogCancelButtonClassName:
+                  "border-white/20 bg-transparent text-white hover:bg-white/10",
+              dialogSaveButtonClassName:
+                  "bg-[#DB202C] text-white hover:bg-[#c31c28]",
+              photoPreviewFrameClassName:
+                  "relative flex h-[160px] w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-[50%] border-[3px] border-[#DB202C] bg-black/40 shadow-[0_0_15px_rgba(219,32,44,0.3)]",
+              photoFallbackClassName:
+                  "flex flex-col items-center justify-center text-white/50",
+              photoHelperClassName:
+                  "text-sm font-semibold leading-relaxed text-white/70",
+              dateInputStyle: { colorScheme: "dark" },
+              dateInputClassName:
+                  "block w-full appearance-none rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 pr-12 text-base font-semibold text-white shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
+              dateIconClassName:
+                  "pointer-events-none absolute right-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/70",
+              primaryButtonClassName:
+                  "rounded-full bg-white px-10 py-4 text-lg font-bold text-black transition-all hover:-translate-y-0.5 hover:bg-white/80",
+          };
+    const titleClassName = theme.titleClassName;
+    const descriptionClassName = theme.descriptionClassName;
+    const inputClassName = theme.inputClassName;
 
     // Handler untuk File Input Upload
     const onFileChange = async (e) => {
@@ -387,9 +505,9 @@ export default function StudentProfileForm({
         <>
             {/* Modal Cropper */}
             <Dialog open={isCropModalOpen} onOpenChange={setIsCropModalOpen}>
-                <DialogContent className="max-w-xl border-white/10 bg-[#141110] text-white">
+                <DialogContent className={theme.dialogContentClassName}>
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-white">
+                        <DialogTitle className={theme.dialogTitleClassName}>
                             Adjust Profile Photo
                         </DialogTitle>
                     </DialogHeader>
@@ -411,7 +529,7 @@ export default function StudentProfileForm({
                     </div>
 
                     <div className="mt-4 px-2">
-                        <label className="text-sm font-semibold text-white/80">
+                        <label className={theme.dialogZoomLabelClassName}>
                             Zoom
                         </label>
                         <input
@@ -426,17 +544,17 @@ export default function StudentProfileForm({
                         />
                     </div>
 
-                    <DialogFooter className="mt-6 border-t border-white/10 pt-4">
+                    <DialogFooter className={theme.dialogFooterClassName}>
                         <Button
                             variant="outline"
                             onClick={() => setIsCropModalOpen(false)}
-                            className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                            className={theme.dialogCancelButtonClassName}
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleSaveCrop}
-                            className="bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                            className={theme.dialogSaveButtonClassName}
                         >
                             Crop & Save
                         </Button>
@@ -459,7 +577,7 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="first_name"
                                 value="First Name"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
                             />
                             <TextInput
                                 id="first_name"
@@ -472,7 +590,7 @@ export default function StudentProfileForm({
                             />
                             <InputError
                                 message={firstError(errors, "first_name")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -480,7 +598,7 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="last_name"
                                 value="Last Name"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
                             />
                             <TextInput
                                 id="last_name"
@@ -492,7 +610,7 @@ export default function StudentProfileForm({
                             />
                             <InputError
                                 message={firstError(errors, "last_name")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -500,7 +618,7 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="email"
                                 value="Email"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
                             />
                             <TextInput
                                 id="email"
@@ -513,7 +631,7 @@ export default function StudentProfileForm({
                             />
                             <InputError
                                 message={firstError(errors, "email")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -521,7 +639,7 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="whatsapp_number"
                                 value="WhatsApp"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
                             />
                             <div className="mt-2 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
                                 <select
@@ -533,13 +651,13 @@ export default function StudentProfileForm({
                                             event.target.value,
                                         )
                                     }
-                                    className="block w-full rounded-[12px] border border-[#DB202C] bg-transparent px-3 py-3.5 text-base font-semibold text-white shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]"
+                                    className={theme.selectClassName}
                                 >
                                     {phoneCountryCodeOptions.map((option) => (
                                         <option
                                             key={`${option.value}-${option.label}`}
                                             value={option.value}
-                                            className="text-black font-semibold"
+                                            className={theme.selectOptionClassName}
                                         >
                                             {option.flag
                                                 ? `${option.flag} `
@@ -570,7 +688,7 @@ export default function StudentProfileForm({
                                     ) ??
                                     firstError(errors, "whatsapp")
                                 }
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -579,12 +697,12 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="profile_photo"
                                 value="Please Upload Your Preferred Certificate Picture"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
                             />
 
                             <div className="mt-4 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
                                 {/* Area Preview Berbentuk Lonjong (Oval) */}
-                                <div className="relative shrink-0 flex h-[160px] w-[120px] items-center justify-center overflow-hidden rounded-[50%] border-[3px] border-[#DB202C] bg-black/40 shadow-[0_0_15px_rgba(219,32,44,0.3)]">
+                                <div className={theme.photoPreviewFrameClassName}>
                                     {photoPreview ? (
                                         <img
                                             src={photoPreview}
@@ -592,7 +710,7 @@ export default function StudentProfileForm({
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center text-white/50">
+                                        <div className={theme.photoFallbackClassName}>
                                             <UploadCloud className="size-8 mb-2 text-[#DB202C]" />
                                         </div>
                                     )}
@@ -600,7 +718,7 @@ export default function StudentProfileForm({
 
                                 <div className="flex-1 space-y-4">
                                     <div>
-                                        <p className="text-sm font-semibold text-white/70 leading-relaxed">
+                                        <p className={theme.photoHelperClassName}>
                                             Upload a clear portrait photo. Click
                                             the button below to upload and
                                             adjust your photo perfectly into the
@@ -632,7 +750,7 @@ export default function StudentProfileForm({
                                             errors,
                                             "profile_photo",
                                         )}
-                                        className="text-[#ffb4a8] font-semibold"
+                                        className={theme.errorClassName}
                                     />
                                 </div>
                             </div>
@@ -642,7 +760,7 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="instagram"
                                 value="Instagram (Optional)"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
                             />
                             <TextInput
                                 id="instagram"
@@ -654,7 +772,7 @@ export default function StudentProfileForm({
                             />
                             <InputError
                                 message={firstError(errors, "instagram")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -682,13 +800,14 @@ export default function StudentProfileForm({
                             }}
                             error={errors.country}
                             options={countryOptions}
+                            theme={theme}
                         />
 
                         <div>
                             <InputLabel
                                 htmlFor="birth_date"
                                 value="Birth Date"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
                             />
                             <div className="relative mt-2">
                                 <input
@@ -710,14 +829,14 @@ export default function StudentProfileForm({
                                             event.target.value,
                                         )
                                     }
-                                    style={{ colorScheme: "dark" }}
-                                    className="block w-full appearance-none rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 pr-12 text-base font-semibold text-white shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                    style={theme.dateInputStyle}
+                                    className={theme.dateInputClassName}
                                 />
-                                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/70" />
+                                <CalendarDays className={theme.dateIconClassName} />
                             </div>
                             <InputError
                                 message={firstError(errors, "birth_date")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -729,13 +848,14 @@ export default function StudentProfileForm({
                                 error={firstError(errors, "gender")}
                                 options={GENDER_OPTIONS}
                                 onChange={(value) => setData("gender", value)}
+                                theme={theme}
                             />
                         </div>
                     </div>
                 </section>
 
                 <section className={sectionClassName}>
-                    <div className="border-b border-white/20 pb-4 mb-6">
+                    <div className={theme.sectionDividerClassName}>
                         <h3 className={titleClassName}>Learning Background</h3>
                         <p className={descriptionClassName}>
                             Your practice background.
@@ -753,6 +873,7 @@ export default function StudentProfileForm({
                             onChange={(value) =>
                                 setData("practicing_yoga_for", value)
                             }
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -768,6 +889,7 @@ export default function StudentProfileForm({
                                 setData("yoga_sequence_experience", value)
                             }
                             multiple={true}
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -779,6 +901,7 @@ export default function StudentProfileForm({
                             onChange={(value) =>
                                 setData("hours_per_week", value)
                             }
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -790,6 +913,7 @@ export default function StudentProfileForm({
                             onChange={(value) =>
                                 setData("current_fitness_level", value)
                             }
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -801,12 +925,13 @@ export default function StudentProfileForm({
                             onChange={(value) =>
                                 setData("flexibility_rating", value)
                             }
+                            theme={theme}
                         />
                     </div>
                 </section>
 
                 <section className={sectionClassName}>
-                    <div className="border-b border-white/20 pb-4 mb-6">
+                    <div className={theme.sectionDividerClassName}>
                         <h3 className={titleClassName}>Motivation</h3>
                         <p className={descriptionClassName}>
                             Keep each answer within 50 words.
@@ -821,6 +946,7 @@ export default function StudentProfileForm({
                             onChange={(value) => setData("motivation", value)}
                             error={firstError(errors, "motivation")}
                             helper={`${wordsCount(data.motivation)}/50 words`}
+                            theme={theme}
                         />
 
                         <TextAreaField
@@ -830,6 +956,7 @@ export default function StudentProfileForm({
                             onChange={(value) => setData("why_yogafx", value)}
                             error={firstError(errors, "why_yogafx")}
                             helper={`${wordsCount(data.why_yogafx)}/50 words`}
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -842,13 +969,14 @@ export default function StudentProfileForm({
                                 setData("how_did_you_find_us", value)
                             }
                             multiple={true}
+                            theme={theme}
                         />
                     </div>
                 </section>
 
                 {isEnrollment ? (
                     <section className={sectionClassName}>
-                        <div className="border-b border-white/20 pb-4 mb-6">
+                        <div className={theme.sectionDividerClassName}>
                             <h3 className={titleClassName}>
                                 Terms & Confirmation
                             </h3>
@@ -876,7 +1004,7 @@ export default function StudentProfileForm({
                             </label>
                             <InputError
                                 message={localErrors.terms_accepted}
-                                className="text-[#ffb4a8] font-semibold"
+                                className={theme.errorClassName}
                             />
 
                             <div className="grid gap-6 md:grid-cols-2">
@@ -918,17 +1046,17 @@ export default function StudentProfileForm({
                             </label>
                             <InputError
                                 message={localErrors.recaptcha_confirmed}
-                                className="text-[#ffb4a8] font-semibold"
+                                className={theme.errorClassName}
                             />
                         </div>
                     </section>
                 ) : null}
 
-                <div className="flex items-center pt-8 border-t border-white/20">
+                <div className={theme.footerDividerClassName}>
                     <Button
                         type="submit"
                         disabled={processing}
-                        className="rounded-full bg-white px-10 py-4 text-lg font-bold text-black hover:bg-white/80 transition-all hover:-translate-y-0.5"
+                        className={theme.primaryButtonClassName}
                     >
                         {submitLabel}
                     </Button>

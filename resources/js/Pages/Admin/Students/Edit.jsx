@@ -141,7 +141,7 @@ export default function EditStudent({ student, accessTiers, status }) {
                                             : Number(event.target.value),
                                     )
                                 }
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="mt-1 block w-full rounded-md border border-slate-400 bg-white text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
                                 <option value="">Not assigned</option>
                                 {accessTiers.map((accessTier) => (
@@ -182,7 +182,7 @@ export default function EditStudent({ student, accessTiers, status }) {
                                 onChange={(event) =>
                                     setData('is_active', event.target.value === '1')
                                 }
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                className="mt-1 block w-full rounded-md border border-slate-400 bg-white text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
                                 <option value="1">Active</option>
                                 <option value="0">Inactive</option>
