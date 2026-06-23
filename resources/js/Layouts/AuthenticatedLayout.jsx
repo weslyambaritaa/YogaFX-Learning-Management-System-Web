@@ -179,6 +179,14 @@ const adminNavigationItems = [
                 match: ['admin.email-notifications.show'],
                 activeWhen: { notificationType: 'reminder' },
             },
+            {
+                label: 'Workbook Sent',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'workbook_sent' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'workbook_sent' },
+            },
         ],
     },
 ];

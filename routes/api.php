@@ -65,6 +65,7 @@ Route::prefix('mobile/v1')
             Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
             Route::get('/courses/{course}', [CourseController::class, 'show'])->name('courses.show');
             Route::get('/lessons/{lesson}', [LessonController::class, 'show'])->name('lessons.show');
+            Route::post('/lessons/{lesson}/workbook/trigger', [LessonController::class, 'triggerWorkbook'])->name('lessons.workbook.trigger');
             Route::post('/lessons/{lesson}/progress', [LessonController::class, 'updateProgress'])->name('lessons.progress.update');
             Route::get('/lessons/{lesson}/assessment', [AssessmentController::class, 'intro'])->name('assessments.intro');
             Route::post('/lessons/{lesson}/assessment/start', [AssessmentController::class, 'start'])->name('assessments.start');

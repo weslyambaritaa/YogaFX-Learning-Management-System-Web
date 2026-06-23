@@ -11,6 +11,7 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
 use App\Models\UserSession;
+use App\Models\Lesson;
 use App\Support\EmailNotificationTemplateDefaults;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Support\Facades\Mail;
@@ -175,6 +176,45 @@ class EmailNotificationService
                 referenceType: $referenceType,
                 referenceId: $referenceId,
                 variantLabel: $delivery['variant_label'],
+            );
+        }
+    }
+
+    /**
+     * @param  array{name: string, mime: string, data: string}  $attachment
+     */
+    public function sendWorkbookSentNotification(
+        User $user,
+        Lesson $lesson,
+        array $attachment,
+    ): void {
+        $template = $this->preparedTemplate(EmailNotificationTypeRegistry::WORKBOOK_SENT);
+
+        if (! $template->is_enabled) {
+            return;
+        }
+
+        $payload = [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'lesson_title' => $lesson->title,
+            'module_title' => $lesson->module?->title ?? '',
+            'workbook_file_name' => $attachment['name'],
+            'dashboard_url' => route('student.dashboard'),
+        ];
+
+        foreach ($this->buildDeliveries($template, $payload) as $delivery) {
+            $this->deliver(
+                template: $template,
+                notificationType: EmailNotificationTypeRegistry::WORKBOOK_SENT,
+                subject: $delivery['subject'],
+                body: $delivery['body'],
+                recipientEmail: $delivery['recipient_email'],
+                recipientType: $delivery['recipient_type'],
+                referenceType: 'lesson_workbook',
+                referenceId: $lesson->id,
+                variantLabel: $delivery['variant_label'],
+                attachments: $delivery['recipient_type'] === 'user' ? [$attachment] : [],
             );
         }
     }
@@ -419,10 +459,11 @@ class EmailNotificationService
         ?string $referenceType,
         ?int $referenceId,
         string $variantLabel,
+        array $attachments = [],
     ): void {
         try {
             Mail::to($recipientEmail)->send(
-                new TemplatedNotificationMail($subject, $body, $variantLabel),
+                new TemplatedNotificationMail($subject, $body, $variantLabel, $attachments),
             );
 
             $this->storeLog(
@@ -746,6 +787,7 @@ class EmailNotificationService
             'completion_date' => now()->toDateString(),
             'last_activity_date' => now()->subDays(8)->toDateString(),
             'inactive_days' => '8',
+            'workbook_file_name' => 'sample-workbook.pdf',
             'dashboard_url' => route('student.dashboard'),
             'login_url' => route('login'),
         ];

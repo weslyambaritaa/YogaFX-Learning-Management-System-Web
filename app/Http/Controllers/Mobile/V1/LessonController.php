@@ -87,4 +87,35 @@ class LessonController extends Controller
             'Mobile lesson progress updated successfully.',
         );
     }
+
+    public function triggerWorkbook(Request $request, Lesson $lesson)
+    {
+        $result = $this->studentLessonApiService->triggerWorkbookForUser(
+            $request->user(),
+            $lesson,
+        );
+
+        if (! $result) {
+            return MobileApiResponse::error(
+                'Lesson not found for the authenticated student.',
+                Response::HTTP_NOT_FOUND,
+            );
+        }
+
+        if (($result['is_locked'] ?? false) === true) {
+            return MobileApiResponse::error(
+                'This lesson is still locked for the authenticated student.',
+                Response::HTTP_FORBIDDEN,
+                [
+                    'lesson_id' => $lesson->id,
+                    'lock_reason' => $result['lock_reason'] ?? null,
+                ],
+            );
+        }
+
+        return MobileApiResponse::success(
+            $result,
+            'Mobile workbook trigger completed successfully.',
+        );
+    }
 }

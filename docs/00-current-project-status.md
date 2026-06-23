@@ -103,6 +103,9 @@ Keputusan terbaru yang aktif:
 - daftar module sesuai tier
 - detail module dan daftar lesson sesuai tier
 - detail lesson
+- lesson video tetap langsung terbuka dan autoplay saat lesson dibuka
+- workbook lesson dengan file aktif akan auto-trigger download satu kali per student per lesson saat lesson pertama kali dibuka
+- workbook auto-trigger mengirim email workbook ke student sebagai attachment dan tetap menyediakan fallback manual download
 - daftar ebook sesuai tier
 - preview ebook, terutama PDF, sebelum download
 - daftar course sesuai tier
@@ -149,7 +152,7 @@ Area detail aktif:
 
 ### 2.8 Email Notification
 - menu Email di sidebar admin
-- 10 child menu:
+- 11 child menu:
   - Module Completion
   - Assignments Review
   - Assignments Approved
@@ -160,6 +163,7 @@ Area detail aktif:
   - Assessment Complete
   - Course Complete
   - Reminder
+  - Workbook Sent
 - tiap child menu punya:
   - enable notification
   - admin recipients
@@ -224,7 +228,6 @@ Domain berikut masih planned atau baru sebagian kecil disiapkan:
 - autosave assessment
 - timer assessment
 - lesson watch progress automation
-- workbook download tracking automation dari student side
 - sequential lesson locking
 - student assignment submission page
 - student certificate page

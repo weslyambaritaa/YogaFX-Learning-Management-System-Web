@@ -16,7 +16,7 @@ Dokumen ini mencakup:
 
 ## 1. Active Notification Types
 
-Saat ini sistem mendukung 10 notification type:
+Saat ini sistem mendukung 11 notification type:
 
 1. `module_completion`
 2. `assignment_review`
@@ -28,6 +28,7 @@ Saat ini sistem mendukung 10 notification type:
 8. `assessment_complete`
 9. `course_complete`
 10. `reminder`
+11. `workbook_sent`
 
 ---
 
@@ -47,6 +48,7 @@ Child menu:
 - Assessment Complete
 - Course Complete
 - Reminder
+- Workbook Sent
 
 Setiap child menu membuka satu halaman detail template.
 
@@ -173,6 +175,16 @@ Scheduler:
 Catatan implementasi aktif:
 - threshold testing saat ini 1 jam
 - implementasi disiapkan agar threshold mudah diubah ke 1 minggu
+
+#### Workbook Sent
+Dipicu saat student membuka lesson yang memiliki workbook dan workbook tersebut belum pernah dipicu sebelumnya untuk student itu.
+
+Aturan:
+- trigger ini hanya berjalan satu kali per kombinasi student + lesson
+- email dikirim ke student saat auto-download workbook pertama kali dipicu
+- workbook dikirim sebagai attachment pada email user
+- admin copy tetap mengikuti konfigurasi template existing bila diisi
+- trigger ulang manual download tidak mengirim email kedua
 
 ---
 

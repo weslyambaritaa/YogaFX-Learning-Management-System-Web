@@ -5,12 +5,17 @@ namespace Tests\Feature\Mobile;
 use App\Models\AccessTier;
 use App\Models\Assignment;
 use App\Models\Certificate;
+use App\Models\EmailTemplate;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
+use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use App\Mail\TemplatedNotificationMail;
 use Tests\TestCase;
 
 class MobileLearningFlowTest extends TestCase
@@ -158,6 +163,98 @@ class MobileLearningFlowTest extends TestCase
             'lesson_id' => $lesson->id,
             'watch_progress' => 60.00,
         ]);
+    }
+
+    public function test_mobile_lesson_detail_exposes_workbook_trigger_url_without_locking_video(): void
+    {
+        Storage::fake('local');
+
+        [$student, $tier] = $this->createActiveStudentWithTier();
+
+        $module = Module::factory()->create();
+        $module->accessTiers()->sync([$tier->id]);
+
+        $workbookPath = 'lessons/workbooks/mobile-workbook.pdf';
+        Storage::disk('local')->put($workbookPath, 'mobile workbook content');
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'sort_order' => 1,
+            'workbook' => $workbookPath,
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
+        Sanctum::actingAs($student);
+
+        $this->getJson("/api/mobile/v1/lessons/{$lesson->id}")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $lesson->id)
+            ->assertJsonPath('data.progress.is_workbook_downloaded', false)
+            ->assertJsonPath('data.workbook.is_available', true)
+            ->assertJsonPath('data.workbook.trigger_url', route('mobile.api.v1.lessons.workbook.trigger', ['lesson' => $lesson->id]));
+    }
+
+    public function test_mobile_workbook_trigger_marks_progress_once_and_sends_email_once(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+
+        [$student, $tier] = $this->createActiveStudentWithTier();
+
+        $module = Module::factory()->create([
+            'title' => 'Mobile Workbook Module',
+        ]);
+        $module->accessTiers()->sync([$tier->id]);
+
+        $workbookPath = 'lessons/workbooks/mobile-trigger-workbook.pdf';
+        Storage::disk('local')->put($workbookPath, 'mobile trigger workbook content');
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'sort_order' => 1,
+            'title' => 'Mobile Workbook Lesson',
+            'workbook' => $workbookPath,
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::WORKBOOK_SENT,
+            'notification_name' => 'Workbook Sent',
+            'is_enabled' => true,
+            'admin_recipients' => 'mobile-ops@yogafx.test',
+            'subject_user' => 'Workbook {{ lesson_title }}',
+            'body_user' => '{{ workbook_file_name }}',
+            'subject_admin' => 'Workbook sent {{ user_email }}',
+            'body_admin' => '{{ lesson_title }}',
+        ]);
+
+        Sanctum::actingAs($student);
+
+        $this->postJson("/api/mobile/v1/lessons/{$lesson->id}/workbook/trigger")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.lesson_id', $lesson->id)
+            ->assertJsonPath('data.was_first_trigger', true)
+            ->assertJsonPath('data.workbook.is_workbook_downloaded', true);
+
+        $this->assertDatabaseHas('lesson_progress', [
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'is_workbook_downloaded' => true,
+        ]);
+
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+
+        Mail::fake();
+
+        $this->postJson("/api/mobile/v1/lessons/{$lesson->id}/workbook/trigger")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.was_first_trigger', false)
+            ->assertJsonPath('data.workbook.is_workbook_downloaded', true);
+
+        Mail::assertNothingSent();
     }
 
     public function test_mobile_assignment_detail_respects_locked_module_gate(): void
