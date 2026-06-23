@@ -29,28 +29,28 @@ Route::prefix('mobile/v1')
         Route::post('/auth/forgot-password', [PasswordRecoveryController::class, 'forgot'])->name('auth.password.forgot');
         Route::post('/auth/reset-password', [PasswordRecoveryController::class, 'reset'])->name('auth.password.reset');
         Route::get('/media/lessons/{lesson}/audio', [LessonMediaController::class, 'audio'])
-            ->middleware('signed')
+            ->middleware('mobile.signed')
             ->name('lesson-media.audio');
         Route::get('/media/lessons/{lesson}/workbook', [LessonMediaController::class, 'workbook'])
-            ->middleware('signed')
+            ->middleware('mobile.signed')
             ->name('lesson-media.workbook');
         Route::get('/media/lessons/{lesson}/workbook/download', [LessonMediaController::class, 'downloadWorkbook'])
-            ->middleware('signed')
+            ->middleware('mobile.signed')
             ->name('lesson-media.workbook.download');
         Route::get('/media/ebooks/{ebook}/open', [EbookMediaController::class, 'open'])
-            ->middleware('signed')
+            ->middleware('mobile.signed')
             ->name('ebooks.media.open');
         Route::get('/media/ebooks/{ebook}/download', [EbookMediaController::class, 'download'])
-            ->middleware('signed')
+            ->middleware('mobile.signed')
             ->name('ebooks.media.download');
         Route::get('/media/certificates/{certificate}/open', [CertificateMediaController::class, 'open'])
-            ->middleware('signed')
+            ->middleware('mobile.signed')
             ->name('certificates.media.open');
         Route::get('/media/certificates/{certificate}/download', [CertificateMediaController::class, 'download'])
-            ->middleware('signed')
+            ->middleware('mobile.signed')
             ->name('certificates.media.download');
         Route::get('/media/content-images/{entity}/{id}/{field}', [ContentImageController::class, 'show'])
-            ->middleware('signed')
+            ->middleware('mobile.signed')
             ->name('content-images.show');
 
         Route::middleware(['auth:sanctum', 'mobile.student'])->group(function (): void {
