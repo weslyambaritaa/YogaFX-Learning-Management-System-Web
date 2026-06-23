@@ -174,55 +174,152 @@ export default function StudentModuleShow({ module }) {
                     </section>
                 ) : null}
 
+                {/* --- EBOOK SECTION --- */}
                 {module.ebooks?.length ? (
                     <section className="space-y-5">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                            <h2 className="text-2xl font-semibold tracking-tight text-white">
                                 Ebooks
-                            </p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                Browse your ebook library
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 xl:grid-cols-2">
-                            {module.ebooks.map((ebook) => (
-                                <div
-                                    key={ebook.id}
-                                    className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5"
-                                >
-                                    <div className="space-y-3">
-                                        <StudentStatusBadge
-                                            status="available"
-                                            label="Available"
-                                        />
-                                        <h3 className="text-xl font-semibold tracking-tight text-white">
-                                            {ebook.title}
-                                        </h3>
-                                        <p className="text-xl font-semibold tracking-tight text-white">
-                                            Ebook {ebook.sort_order}
-                                        </p>
-                                        <p className="text-sm leading-7 text-white/62">
-                                            {ebook.file_name}
-                                        </p>
-                                    </div>
-
-                                    {ebook.download_url ? (
-                                        <div className="mt-6">
-                                            <Button
-                                                asChild
-                                                variant="outline"
-                                                className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                            >
-                                                <a href={ebook.download_url}>
-                                                    <FileText className="mr-2 size-4" />
-                                                    Access Ebook
-                                                </a>
-                                            </Button>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {module.ebooks.map((ebook) => {
+                                const cardContent = (
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="space-y-3">
+                                            <StudentStatusBadge
+                                                status="available"
+                                                label="Available"
+                                            />
+                                            <h3 className="text-xl font-semibold tracking-tight text-white">
+                                                {ebook.title}
+                                            </h3>
                                         </div>
-                                    ) : null}
-                                </div>
-                            ))}
+
+                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition group-hover:scale-110 group-hover:border-white/20 group-hover:bg-white/10 group-hover:text-[#DB202C]">
+                                            <FileText className="size-5" />
+                                        </div>
+                                    </div>
+                                );
+
+                                if (!ebook.download_url) {
+                                    return (
+                                        <div
+                                            key={ebook.id}
+                                            className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5 opacity-60"
+                                        >
+                                            {cardContent}
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <a
+                                        key={ebook.id}
+                                        href={ebook.download_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="group block rounded-[14px] border border-white/10 bg-white/[0.04] p-5 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06] hover:shadow-[0_8px_30px_rgba(219,32,44,0.15)]"
+                                    >
+                                        {cardContent}
+                                    </a>
+                                );
+                            })}
+                        </div>
+                    </section>
+                ) : null}
+
+                {/* --- VIDEO LECTURER SECTION --- */}
+                {module.video_lecturers?.length ? (
+                    <section className="space-y-5">
+                        <div>
+                            <h2 className="text-2xl font-semibold tracking-tight text-white">
+                                Video Lecturer
+                            </h2>
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {module.video_lecturers.map((course) => {
+                                const isReady =
+                                    course.video?.is_ready && course.url;
+
+                                const cardBody = (
+                                    <div className="group block h-full rounded-[14px] border border-white/10 bg-white/[0.04] p-3.5 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
+                                        <div className="space-y-3">
+                                            <div className="relative overflow-hidden rounded-[12px] bg-[#161211]">
+                                                {course.thumbnail_url ? (
+                                                    <img
+                                                        src={
+                                                            course.thumbnail_url
+                                                        }
+                                                        alt={course.title}
+                                                        className="aspect-video h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                                                    />
+                                                ) : (
+                                                    <div className="aspect-video bg-[radial-gradient(circle_at_30%_20%,_rgba(223,103,57,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                                                )}
+
+                                                {isReady && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition duration-300 group-hover:opacity-100">
+                                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#DB202C]/90 text-white shadow-[0_0_15px_rgba(219,32,44,0.5)] backdrop-blur-sm">
+                                                            <Play className="ml-1 size-5 fill-current" />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <StudentStatusBadge
+                                                    status={
+                                                        isReady
+                                                            ? "available"
+                                                            : "locked"
+                                                    }
+                                                />
+
+                                                <div className="space-y-1.5">
+                                                    <h3 className="line-clamp-2 text-base font-semibold tracking-tight text-white">
+                                                        {course.title}
+                                                    </h3>
+                                                </div>
+
+                                                <div className="pt-2">
+                                                    <div className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
+                                                        {isReady
+                                                            ? "Watch Video"
+                                                            : "Video Not Ready"}
+                                                        {isReady && (
+                                                            <ArrowRight className="size-3.5 transition group-hover:translate-x-1" />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+
+                                if (isReady) {
+                                    return (
+                                        <Link
+                                            key={course.id}
+                                            href={course.url}
+                                            className="block text-left"
+                                        >
+                                            {cardBody}
+                                        </Link>
+                                    );
+                                }
+
+                                return (
+                                    <div
+                                        key={course.id}
+                                        className="block text-left opacity-70 cursor-not-allowed"
+                                    >
+                                        {cardBody}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </section>
                 ) : null}
@@ -238,7 +335,7 @@ export default function StudentModuleShow({ module }) {
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 xl:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2">
                             {module.certificates.map((certificate) => (
                                 <a
                                     key={certificate.id}
@@ -271,7 +368,7 @@ export default function StudentModuleShow({ module }) {
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 xl:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2">
                             {module.assignments.map((assignment) => (
                                 <Link
                                     key={assignment.id}
@@ -305,73 +402,6 @@ export default function StudentModuleShow({ module }) {
                                         </p>
                                     </div>
                                 </Link>
-                            ))}
-                        </div>
-                    </section>
-                ) : null}
-
-                {module.video_lecturers?.length ? (
-                    <section className="space-y-5">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/40">
-                                Video Lecturer
-                            </p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-                                Browse your lecturer videos
-                            </h2>
-                        </div>
-
-                        <div className="grid gap-4 xl:grid-cols-2">
-                            {module.video_lecturers.map((course) => (
-                                <div
-                                    key={course.id}
-                                    className="overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.04]"
-                                >
-                                    <div className="relative overflow-hidden">
-                                        {course.thumbnail_url ? (
-                                            <img
-                                                src={course.thumbnail_url}
-                                                alt={course.title}
-                                                className="aspect-video h-full w-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="aspect-video bg-[radial-gradient(circle_at_24%_20%,_rgba(223,103,57,0.45),_transparent_28%),linear-gradient(160deg,_#2b1d16_0%,_#120f0e_100%)]" />
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-4 p-5">
-                                        <StudentStatusBadge
-                                            status={
-                                                course.video?.is_ready
-                                                    ? "available"
-                                                    : "locked"
-                                            }
-                                        />
-                                        <h3 className="text-xl font-semibold tracking-tight text-white">
-                                            {course.title}
-                                        </h3>
-                                        <p className="text-sm leading-7 text-white/62">
-                                            {course.description ||
-                                                "Premium YogaFX lecture content ready for viewing."}
-                                        </p>
-
-                                        {course.video?.is_ready &&
-                                        course.url ? (
-                                            <Button
-                                                asChild
-                                                className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
-                                            >
-                                                <Link href={course.url}>
-                                                    Open Video
-                                                </Link>
-                                            </Button>
-                                        ) : (
-                                            <div className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/60">
-                                                Video Not Ready
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
                             ))}
                         </div>
                     </section>

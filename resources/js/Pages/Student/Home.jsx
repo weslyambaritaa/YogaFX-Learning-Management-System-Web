@@ -3,7 +3,7 @@ import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link } from "@inertiajs/react";
-import { Check, ChevronRight, Download, Info, Play, X } from "lucide-react";
+import { Check, ChevronRight, Download, Play, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const ONBOARDING_KEY = "yogafx_onboarding_done";
@@ -610,32 +610,6 @@ export default function StudentHome({
                                         "Continue Learning"}
                                 </Link>
                             </Button>
-
-                            {/* Tombol Secondary (Info) - Desain Netflix */}
-                            <Button
-                                type="button"
-                                onClick={() => {
-                                    const activeModuleSlug =
-                                        continueLearning?.module?.url_slug ??
-                                        null;
-                                    const targetModule = activeModuleSlug
-                                        ? rawModules.find(
-                                              (module) =>
-                                                  module.url_slug ===
-                                                  activeModuleSlug,
-                                          )
-                                        : (rawModules[0] ?? null);
-                                    if (targetModule?.status === "locked") {
-                                        setLockedModuleOpen(true);
-                                        return;
-                                    }
-                                    setSelectedModule(targetModule ?? null);
-                                }}
-                                className="h-auto rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white transition-colors hover:bg-[#5a5c5f]/60"
-                            >
-                                <Info className="mr-2.5 size-6" />
-                                More Info
-                            </Button>
                         </div>
                     </div>
 
@@ -708,26 +682,12 @@ export default function StudentHome({
                     ) : null}
                 </section>
 
-                {certificateMilestone?.state === "download_available" ||
-                assignmentMilestone?.state === "approved" ? (
+                {assignmentMilestone?.state === "approved" ? (
                     <section className="flex flex-wrap gap-3 pb-4">
-                        {certificateMilestone?.state ===
-                        "download_available" ? (
-                            <a
-                                href={certificateMilestone.cta_url ?? "#"}
-                                className="inline-flex items-center gap-2 rounded-[14px] border border-emerald-500 bg-emerald-500 px-5 py-3 text-sm font-semibold text-white"
-                            >
-                                <Download className="size-4" />
-                                {certificateMilestone.cta_label ??
-                                    "Download Certificate"}
-                            </a>
-                        ) : null}
-                        {assignmentMilestone?.state === "approved" ? (
-                            <div className="inline-flex items-center gap-2 rounded-[14px] border border-emerald-500 bg-emerald-500 px-5 py-3 text-sm font-semibold text-white">
-                                <Check className="size-4" />
-                                Assignment Approved
-                            </div>
-                        ) : null}
+                        <div className="inline-flex items-center gap-2 rounded-[14px] border border-emerald-500 bg-emerald-500 px-5 py-3 text-sm font-semibold text-white">
+                            <Check className="size-4" />
+                            Assignment Approved
+                        </div>
                     </section>
                 ) : null}
             </div>
