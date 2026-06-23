@@ -59,6 +59,8 @@ Dokumen ini mencerminkan **scope aktual yang sudah diimplementasikan** di reposi
 - daftar module sesuai tier
 - detail module dan daftar lesson sesuai tier
 - detail lesson
+- lesson video harus tetap langsung play saat student membuka lesson
+- workbook lesson yang tersedia harus dapat dikirim otomatis satu kali per student per lesson, dengan fallback manual download
 - daftar ebook sesuai tier
 - preview ebook sebelum download
 - daftar course sesuai tier
@@ -74,7 +76,7 @@ Dokumen ini mencerminkan **scope aktual yang sudah diimplementasikan** di reposi
 - send test
 - automated trigger wiring
 - email logs
-- 10 notification types
+- 11 notification types
 
 ---
 
@@ -188,7 +190,7 @@ Aturan implementasi saat ini:
   - Yoga Alliance Certification
 
 ### 6.11 Email Notification
-- sistem harus mendukung 10 notification type:
+- sistem harus mendukung 11 notification type:
   - `module_completion`
   - `assignment_review`
   - `assignment_approved`
@@ -199,6 +201,7 @@ Aturan implementasi saat ini:
   - `assessment_complete`
   - `course_complete`
   - `reminder`
+  - `workbook_sent`
 - setiap template punya:
   - enable flag
   - admin recipients
@@ -207,6 +210,7 @@ Aturan implementasi saat ini:
   - send test
 - semua email test dan automated harus dicatat ke email logs
 - reminder harus memakai inactivity login student dan hanya berlaku untuk student yang belum complete seluruh perjalanan module tier-nya
+- `workbook_sent` harus dikirim sekali saat auto-download workbook pertama kali dipicu untuk kombinasi student + lesson dan workbook dikirim sebagai attachment
 
 ### 6.12 Upload Rules
 - semua upload file yang relevan dibatasi maksimal 10 MB
@@ -237,7 +241,6 @@ Fitur berikut belum menjadi implementasi aktif saat ini:
 - assessment CRUD dan assessment player
 - assessment page/question/option builder
 - watch progress otomatis
-- workbook download tracking dari student action nyata
 - sequential lesson locking
 - student assignment submission UI
 - student certificate page

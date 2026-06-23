@@ -14,6 +14,7 @@ class EmailNotificationTypeRegistry
     public const ASSESSMENT_COMPLETE = 'assessment_complete';
     public const COURSE_COMPLETE = 'course_complete';
     public const REMINDER = 'reminder';
+    public const WORKBOOK_SENT = 'workbook_sent';
 
     /**
      * @return array<int, array{
@@ -161,6 +162,20 @@ class EmailNotificationTypeRegistry
                     '{{ inactive_days }}',
                     '{{ dashboard_url }}',
                     '{{ login_url }}',
+                ],
+            ],
+            [
+                'value' => self::WORKBOOK_SENT,
+                'label' => 'Workbook Sent',
+                'description' => 'Deliver the workbook automatically when a student opens a lesson with a workbook for the first time.',
+                'trigger' => 'Triggered the first time a student opens a lesson that has a workbook and the workbook auto-download flow starts.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ lesson_title }}',
+                    '{{ module_title }}',
+                    '{{ workbook_file_name }}',
+                    '{{ dashboard_url }}',
                 ],
             ],
         ];

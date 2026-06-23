@@ -2,18 +2,10 @@ import LockedContentDialog from "@/Components/student/LockedContentDialog";
 import StudentBackButton from "@/Components/student/StudentBackButton";
 import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/Components/ui/dialog";
 import VideoJsPlayer from "@/Components/VideoJsPlayer";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
-import { Check, ChevronRight, FileText, Volume2 } from "lucide-react";
+import { Check, ChevronRight, FileText, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 function formatDurationParts(totalSeconds) {
@@ -108,6 +100,7 @@ function LessonNavCard({ item, onLockedClick }) {
 }
 
 export default function StudentLessonShow({ lesson, accessTimeSummary }) {
+    const hasWorkbook = Boolean(lesson.workbook_download_url);
     const initialWorkbookDownloaded =
         Boolean(lesson.progress?.is_workbook_downloaded) ||
         (typeof window !== "undefined" &&
@@ -129,7 +122,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const [workbookDownloaded, setWorkbookDownloaded] = useState(
         initialWorkbookDownloaded,
     );
-    const [showWorkbookDialog, setShowWorkbookDialog] = useState(false);
+    const [isTriggeringWorkbook, setIsTriggeringWorkbook] = useState(false);
+    const [downloadNotice, setDownloadNotice] = useState(null);
     const [showLockedDialog, setShowLockedDialog] = useState(false);
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
@@ -140,6 +134,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         pending: null,
     });
     const autoNextStartedRef = useRef(false);
+    const workbookTriggerAttemptedRef = useRef(false);
     const lessonVideoUrl = lesson.video?.hls_url ?? null;
     const playbackErrorMessage =
         typeof playerWarning === "string"
@@ -149,11 +144,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         lesson.lesson_video_id && !assessmentState && nextLesson?.id,
     );
     const totalAccessParts = formatDurationParts(totalAccessSeconds);
-    const workbookBlocksVideo = Boolean(
-        lesson.progress?.requires_workbook_download &&
-        lesson.progress?.is_video_locked_until_workbook_downloaded &&
-        !workbookDownloaded,
-    );
     const canOpenNextLesson = Boolean(
         nextLesson?.is_unlocked && nextLesson?.url,
     );
@@ -177,11 +167,14 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         setNavigationItems(lesson.navigation ?? []);
         setNextLesson(lesson.next_lesson);
         setAutoNextCountdown(null);
+        setDownloadNotice(null);
+        setIsTriggeringWorkbook(false);
         setWorkbookDownloaded(
             Boolean(lesson.progress?.is_workbook_downloaded) ||
                 persistedWorkbookDownloaded,
         );
         autoNextStartedRef.current = false;
+        workbookTriggerAttemptedRef.current = false;
         progressRequestRef.current = {
             inFlight: false,
             latestSent: Number(lesson.progress?.watch_progress ?? 0),
@@ -297,6 +290,21 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         };
     }, []);
 
+    const triggerBrowserDownload = (downloadUrl) => {
+        if (typeof window === "undefined" || !downloadUrl) {
+            return;
+        }
+
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = downloadUrl;
+        document.body.appendChild(iframe);
+
+        window.setTimeout(() => {
+            iframe.remove();
+        }, 60000);
+    };
+
     const readXsrfToken = () => {
         const xsrfCookie = document.cookie
             .split("; ")
@@ -306,6 +314,85 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             ? decodeURIComponent(xsrfCookie.split("=").slice(1).join("="))
             : "";
     };
+
+    useEffect(() => {
+        if (
+            typeof window === "undefined" ||
+            !hasWorkbook ||
+            workbookDownloaded ||
+            isTriggeringWorkbook ||
+            !lesson.workbook_trigger_url ||
+            workbookTriggerAttemptedRef.current
+        ) {
+            return;
+        }
+
+        workbookTriggerAttemptedRef.current = true;
+        setIsTriggeringWorkbook(true);
+
+        const triggerWorkbookDelivery = async () => {
+            try {
+                const response = await fetch(lesson.workbook_trigger_url, {
+                    method: "POST",
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-XSRF-TOKEN": readXsrfToken(),
+                    },
+                    credentials: "same-origin",
+                    body: JSON.stringify({}),
+                });
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to trigger workbook delivery (${response.status}).`,
+                    );
+                }
+
+                const result = await response.json();
+                const downloadUrl =
+                    result?.download_url ?? lesson.workbook_download_url;
+
+                setWorkbookDownloaded(
+                    Boolean(result?.is_workbook_downloaded ?? true),
+                );
+
+                if (downloadUrl) {
+                    triggerBrowserDownload(downloadUrl);
+                }
+
+                setDownloadNotice({
+                    tone: "success",
+                    title: result?.was_first_trigger
+                        ? "Workbook download started"
+                        : "Workbook ready",
+                    message: result?.was_first_trigger
+                        ? "Your workbook is being downloaded. We also sent it to your email as an attachment."
+                        : "This workbook was already delivered before. You can download it again manually anytime.",
+                });
+            } catch (error) {
+                console.error("Failed to trigger workbook delivery.", error);
+                workbookTriggerAttemptedRef.current = false;
+                setDownloadNotice({
+                    tone: "warning",
+                    title: "Workbook download needs manual fallback",
+                    message:
+                        "Your browser or device may have blocked the automatic download. Use the manual download button below.",
+                });
+            } finally {
+                setIsTriggeringWorkbook(false);
+            }
+        };
+
+        void triggerWorkbookDelivery();
+    }, [
+        hasWorkbook,
+        isTriggeringWorkbook,
+        lesson.workbook_download_url,
+        lesson.workbook_trigger_url,
+        workbookDownloaded,
+    ]);
 
     const flushProgressUpdate = async () => {
         if (progressRequestRef.current.inFlight) {
@@ -473,7 +560,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     };
 
     const handlePlayerTimeUpdate = ({ remainingSeconds, isEnded }) => {
-        if (!canAutoAdvance || workbookBlocksVideo) {
+        if (!canAutoAdvance) {
             return;
         }
 
@@ -516,46 +603,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 kind="lesson"
             />
 
-            <Dialog
-                open={showWorkbookDialog}
-                onOpenChange={setShowWorkbookDialog}
-            >
-                <DialogContent
-                    className="max-w-md border-white/10 bg-[#141110] p-0 text-white ring-white/10"
-                    overlayClassName="bg-black/65 backdrop-blur-sm"
-                >
-                    <div className="p-6">
-                        <DialogHeader className="space-y-4">
-                            <DialogTitle className="text-xl font-semibold text-white">
-                                Download Workbook First
-                            </DialogTitle>
-                            <DialogDescription className="text-sm leading-7 text-white/65">
-                                Download the workbook before watching this
-                                lesson video.
-                            </DialogDescription>
-                        </DialogHeader>
-                    </div>
-                    <DialogFooter className="border-white/10 bg-white/[0.03]">
-                        {lesson.workbook_url ? (
-                            <Button
-                                asChild
-                                className="bg-[#DB202C] text-white hover:bg-[#c31c28]"
-                            >
-                                <a
-                                    href={lesson.workbook_url}
-                                    onClick={() => {
-                                        setWorkbookDownloaded(true);
-                                        setShowWorkbookDialog(false);
-                                    }}
-                                >
-                                    Download Workbook
-                                </a>
-                            </Button>
-                        ) : null}
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
             {/* UPDATE: pt-8 diubah menjadi pt-4 dan gap diperkecil agar tampilan lebih naik */}
             <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-10">
                 <StudentBackButton
@@ -575,6 +622,32 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         </h1>
                     </div>
 
+                    {downloadNotice ? (
+                        <div
+                            className={[
+                                "flex items-start justify-between gap-4 rounded-[14px] border px-5 py-4 text-sm leading-7",
+                                downloadNotice.tone === "warning"
+                                    ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
+                                    : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
+                            ].join(" ")}
+                        >
+                            <div className="space-y-1">
+                                <p className="text-sm font-semibold text-white">
+                                    {downloadNotice.title}
+                                </p>
+                                <p>{downloadNotice.message}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setDownloadNotice(null)}
+                                className="rounded-full border border-white/10 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                                aria-label="Dismiss workbook notice"
+                            >
+                                <X className="size-4" />
+                            </button>
+                        </div>
+                    ) : null}
+
                     <div className="overflow-hidden rounded-[16px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                         {/* UPDATE: Memberikan bg-black pada wrapper area video agar tampak seperti theater */}
                         <div className="relative bg-black border-b border-white/10">
@@ -582,36 +655,23 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 <div className="p-4 sm:p-6 lg:p-8">
                                     {/* UPDATE: Membatasi ukuran maksimal video dengan max-w-5xl (1024px) agar tinggi tetap ideal di layar */}
                                     <div className="mx-auto w-full max-w-5xl aspect-video">
-                                        {workbookBlocksVideo ? (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setShowWorkbookDialog(true)
-                                                }
-                                                className="flex h-full w-full items-center justify-center rounded-[14px] border border-[#DB202C]/30 bg-[#DB202C]/10 px-6 text-center text-white"
-                                            >
-                                                Download the workbook first
-                                                before watching this video.
-                                            </button>
-                                        ) : (
-                                            <VideoJsPlayer
-                                                src={lessonVideoUrl}
-                                                poster={lesson.thumbnail_url}
-                                                className="h-full w-full overflow-hidden rounded-[14px] shadow-2xl"
-                                                autoplay={Boolean(
-                                                    lesson.autoplay,
-                                                )}
-                                                onPlaybackError={
-                                                    setPlayerWarning
-                                                }
-                                                onProgressUpdate={
-                                                    handleProgressUpdate
-                                                }
-                                                onTimeUpdate={
-                                                    handlePlayerTimeUpdate
-                                                }
-                                            />
-                                        )}
+                                        <VideoJsPlayer
+                                            src={lessonVideoUrl}
+                                            poster={lesson.thumbnail_url}
+                                            className="h-full w-full overflow-hidden rounded-[14px] shadow-2xl"
+                                            autoplay={Boolean(
+                                                lesson.autoplay,
+                                            )}
+                                            onPlaybackError={
+                                                setPlayerWarning
+                                            }
+                                            onProgressUpdate={
+                                                handleProgressUpdate
+                                            }
+                                            onTimeUpdate={
+                                                handlePlayerTimeUpdate
+                                            }
+                                        />
                                     </div>
                                 </div>
                             ) : lesson.thumbnail_url ? (
@@ -684,16 +744,22 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             )}
 
                             <div className="flex flex-wrap gap-3">
-                                {lesson.workbook_url ? (
+                                {lesson.workbook_download_url ? (
                                     <Button
                                         asChild
                                         className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
                                     >
                                         <a
-                                            href={lesson.workbook_url}
-                                            onClick={() =>
-                                                setWorkbookDownloaded(true)
-                                            }
+                                            href={lesson.workbook_download_url}
+                                            onClick={() => {
+                                                setWorkbookDownloaded(true);
+                                                setDownloadNotice({
+                                                    tone: "success",
+                                                    title: "Manual workbook download",
+                                                    message:
+                                                        "If the automatic download did not start on your device, this manual download will open the workbook now.",
+                                                });
+                                            }}
                                         >
                                             {workbookDownloaded ? (
                                                 <Check className="mr-2 size-4 rounded-full bg-emerald-500 p-0.5 text-white" />
@@ -705,6 +771,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 : "Download Workbook"}
                                         </a>
                                     </Button>
+                                ) : null}
+                                {hasWorkbook && isTriggeringWorkbook ? (
+                                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70">
+                                        Starting workbook download...
+                                    </div>
                                 ) : null}
                             </div>
 

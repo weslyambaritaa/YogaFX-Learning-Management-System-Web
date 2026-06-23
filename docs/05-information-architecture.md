@@ -163,6 +163,7 @@ Child aktif:
 8. Assessment Complete
 9. Course Complete
 10. Reminder
+11. Workbook Sent
 
 ### 8.3 Email Detail Page
 Setiap child membuka satu halaman detail template yang berisi:

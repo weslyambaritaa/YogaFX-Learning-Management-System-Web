@@ -118,6 +118,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/modules', [ModuleCatalogController::class, 'index'])->name('modules.index');
         Route::get('/modules/{module:url_slug}', [ModuleCatalogController::class, 'show'])->name('modules.show');
         Route::get('/lessons/{lesson}', [LessonCatalogController::class, 'show'])->name('lessons.show');
+        Route::post('/lessons/{lesson}/workbook/trigger', [LessonCatalogController::class, 'triggerWorkbook'])->name('lessons.workbook.trigger');
         Route::get('/lessons/{lesson}/workbook/download', [LessonCatalogController::class, 'downloadWorkbook'])->name('lessons.workbook.download');
         Route::get('/assignments/{assignment}', [StudentAssignmentController::class, 'show'])->name('assignments.show');
         Route::post('/assignments/{assignment}/submit', [StudentAssignmentController::class, 'store'])->name('assignments.submit');
