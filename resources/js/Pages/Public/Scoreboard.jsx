@@ -28,6 +28,10 @@ async function parseJsonSafely(response) {
     }
 }
 
+// Single source of truth for the new font so it can't be silently
+// overridden by an older font-family declared elsewhere in the tree.
+const FONT_FAMILY = "'Montserrat', sans-serif";
+
 export default function Scoreboard({
     accessTiers,
     submit_url,
@@ -130,16 +134,37 @@ export default function Scoreboard({
     return (
         <PublicFlowLayout
             title="Scoreboard"
-            heading="Start your YogaFX Journey!"
+            heading={
+                // Heading is rendered by PublicFlowLayout, so we pass an
+                // explicitly styled node instead of a plain string to
+                // guarantee Montserrat / 48px / 700 regardless of any
+                // default heading styles the layout applies.
+                <span
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "48px",
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                    }}
+                >
+                    Start your YogaFX Journey!
+                </span>
+            }
             aside={
                 <div className="space-y-6">
                 </div>
             }
         >
-            <div className="space-y-10">
-                <form id="scoreboard-form" onSubmit={submit} className="space-y-8">
+            {/* Root font-family applied here so any element below that
+                doesn't set its own font-family inherits Montserrat,
+                preventing an old global/legacy font from leaking in. */}
+            <div className="space-y-10" style={{ fontFamily: FONT_FAMILY }}>
+                <form id="scoreboard-form" onSubmit={submit} className="space-y-8" style={{ fontFamily: FONT_FAMILY }}>
                     {errors.general && (
-                        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100">
+                        <div
+                            className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             {errors.general}
                         </div>
                     )}
@@ -151,12 +176,14 @@ export default function Scoreboard({
                                 htmlFor="first_name"
                                 value="First Name"
                                 className="text-sm font-medium text-white/90"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
                             <TextInput
                                 id="first_name"
                                 value={data.first_name}
                                 disabled={isIdentityLocked}
-                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                 onChange={(event) =>
                                     setFieldValue("first_name", event.target.value)
                                 }
@@ -164,6 +191,7 @@ export default function Scoreboard({
                             />
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
                                 message={errors.first_name}
                             />
                         </div>
@@ -174,12 +202,14 @@ export default function Scoreboard({
                                 htmlFor="last_name"
                                 value="Last Name"
                                 className="text-sm font-medium text-white/90"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
                             <TextInput
                                 id="last_name"
                                 value={data.last_name}
                                 disabled={isIdentityLocked}
-                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                 onChange={(event) =>
                                     setFieldValue("last_name", event.target.value)
                                 }
@@ -187,6 +217,7 @@ export default function Scoreboard({
                             />
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
                                 message={errors.last_name}
                             />
                         </div>
@@ -197,13 +228,15 @@ export default function Scoreboard({
                                 htmlFor="email"
                                 value="Email"
                                 className="text-sm font-medium text-white/90"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
                             <TextInput
                                 id="email"
                                 type="email"
                                 value={data.email}
                                 disabled={isIdentityLocked}
-                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                 onChange={(event) =>
                                     setFieldValue("email", event.target.value)
                                 }
@@ -211,6 +244,7 @@ export default function Scoreboard({
                             />
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
                                 message={errors.email}
                             />
                         </div>
@@ -221,6 +255,7 @@ export default function Scoreboard({
                                 htmlFor="phone_number"
                                 value="Mobile Phone"
                                 className="text-sm font-medium text-white/90"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
                             <div className="mt-2 grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)]">
                                 <select
@@ -233,7 +268,8 @@ export default function Scoreboard({
                                             event.target.value,
                                         )
                                     }
-                                    className="block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                    className="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                     required
                                 >
                                     {phoneCountryCodeOptions.map((option) => (
@@ -241,6 +277,7 @@ export default function Scoreboard({
                                             key={option.value}
                                             value={option.value}
                                             className="bg-gray-900 text-white"
+                                            style={{ fontFamily: FONT_FAMILY }}
                                         >
                                             {option.flag ? `${option.flag} ` : ""}
                                             {option.label}
@@ -251,7 +288,8 @@ export default function Scoreboard({
                                     id="phone_number"
                                     value={data.phone_number}
                                     disabled={isIdentityLocked}
-                                    className="block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                    className="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                     onChange={(event) =>
                                         setFieldValue("phone_number", event.target.value)
                                     }
@@ -261,6 +299,7 @@ export default function Scoreboard({
                             </div>
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
                                 message={
                                     errors.phone_number ??
                                     errors.phone_country_code ??
@@ -275,12 +314,14 @@ export default function Scoreboard({
                                 htmlFor="country"
                                 value="Country"
                                 className="text-sm font-medium text-white/90"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
                             <select
                                 id="country"
                                 value={data.country}
                                 disabled={isIdentityLocked}
-                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                 onChange={(event) => {
                                     const value = event.target.value;
                                     setFieldValue("country", value);
@@ -297,7 +338,7 @@ export default function Scoreboard({
                                 }}
                                 required
                             >
-                                <option value="" className="bg-gray-900 text-white">
+                                <option value="" className="bg-gray-900 text-white" style={{ fontFamily: FONT_FAMILY }}>
                                     Select a country
                                 </option>
                                 {countryOptions.map((option) => (
@@ -305,6 +346,7 @@ export default function Scoreboard({
                                         key={option.value}
                                         value={option.value}
                                         className="bg-gray-900 text-white"
+                                        style={{ fontFamily: FONT_FAMILY }}
                                     >
                                         {option.flag ? `${option.flag} ` : ""}
                                         {option.label}
@@ -313,6 +355,7 @@ export default function Scoreboard({
                             </select>
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
                                 message={errors.country}
                             />
                         </div>
@@ -323,21 +366,25 @@ export default function Scoreboard({
                                 htmlFor="access_tier_id"
                                 value="Program / Tier"
                                 className="text-sm font-medium text-white/90"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
                             {is_access_tier_locked && selectedTier ? (
-                                <div className="mt-2 min-h-[52px] rounded-xl border border-[#DB202C]/50 bg-black/20 px-5 py-4 text-white shadow-sm">
-                                    <div className="text-base font-medium">
-                                        {selectedTier.name}
-                                    </div>
-                                    <div className="mt-1 text-sm text-white/70">
-                                        {Number(selectedTier.price) > 0
-                                            ? formatCurrency(
-                                                  selectedTier.price,
-                                                  selectedTier.currency_code,
-                                              )
-                                            : "Price not set yet"}
-                                    </div>
-                                </div>
+                                <div
+    className="mt-2 min-h-[52px] rounded-[5px] bg-[#ffffff] px-5 py-4 text-black shadow-sm"
+    style={{ fontFamily: FONT_FAMILY }}
+>
+    <div className="text-sm font-medium text-black" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}>
+        {selectedTier.name}
+    </div>
+    <div className="mt-1 text-sm font-normal text-black" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}>
+        {Number(selectedTier.price) > 0
+            ? formatCurrency(
+                  selectedTier.price,
+                  selectedTier.currency_code,
+              )
+            : "Price not set yet"}
+    </div>
+</div>
                             ) : (
                                 <select
                                     id="access_tier_id"
@@ -349,7 +396,8 @@ export default function Scoreboard({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                    className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                     required
                                 >
                                     {accessTiers.map((tier) => (
@@ -357,6 +405,7 @@ export default function Scoreboard({
                                             key={tier.id}
                                             value={tier.id}
                                             className="bg-gray-900 text-white"
+                                            style={{ fontFamily: FONT_FAMILY }}
                                         >
                                             {tier.name} -{" "}
                                             {Number(tier.price) > 0
@@ -371,6 +420,7 @@ export default function Scoreboard({
                             )}
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
                                 message={errors.access_tier_id}
                             />
                         </div>
@@ -385,7 +435,8 @@ export default function Scoreboard({
                                     accessTiers.length === 0 ||
                                     !selectedTierHasPrice
                                 }
-                                className="min-h-[52px] rounded-xl bg-[#DB202C] px-8 py-4 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:bg-[#c01a25] hover:shadow-xl disabled:pointer-events-none disabled:opacity-60"
+                                className="rounded-[5px] bg-[#DB202C] px-2.5 py-2 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:bg-[#c01a25] hover:shadow-xl disabled:pointer-events-none disabled:opacity-60"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             >
                                 {processing
                                     ? "Preparing Payment..."
@@ -399,11 +450,12 @@ export default function Scoreboard({
 
                 {checkout ? (
                     <section ref={checkoutRef} className="space-y-6">
-                        <div className="border-t border-white/10 pt-10">
-                            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#DB202C]">
-                                Payment
-                            </p>
-                        </div>
+                       <p
+    className="text-[#DB202C]"
+    style={{ fontFamily: FONT_FAMILY, fontSize: "22px", fontWeight: 500 }}
+>
+    Payment
+</p>
 
                         <PublicCheckoutPanel checkout={checkout} />
                     </section>
