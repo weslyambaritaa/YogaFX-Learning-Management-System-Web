@@ -77,6 +77,7 @@ class StudentModuleApiService
                 'is_complete' => false,
             ]);
             $totalLessons = $module->lessons->count();
+            $totalAssignments = $module->assignments->count();
             $completedLessons = $module->lessons->filter(
                 fn (Lesson $lesson) => $this->isLessonFullyComplete(
                     $lesson,
@@ -89,6 +90,28 @@ class StudentModuleApiService
                 ? 'active'
                 : $moduleAccess['status'];
 
+            // --- SOURCE OF TRUTH UNTUK MOBILE LIST ---
+            $viewTypes = [];
+            if ($totalLessons > 0) $viewTypes[] = 'lesson';
+            if ($module->ebook_enabled) $viewTypes[] = 'ebook';
+            if ($module->video_lecturer_enabled) $viewTypes[] = 'video_lecturer';
+            if ($module->certificate_enabled) $viewTypes[] = 'certificate';
+            if ($totalAssignments > 0) $viewTypes[] = 'assignment';
+
+            $primaryCtaLabel = 'Open Module';
+            $primaryCtaKind = 'play';
+            if ($module->certificate_enabled) {
+                $primaryCtaLabel = 'View Certificate';
+                $primaryCtaKind = 'download';
+            } elseif ($module->ebook_enabled && ! $module->video_lecturer_enabled && $totalLessons === 0) {
+                $primaryCtaLabel = 'Read Ebook';
+                $primaryCtaKind = 'document';
+            } elseif ($totalLessons > 0) {
+                $primaryCtaLabel = 'Continue Last Lesson';
+                $primaryCtaKind = 'play';
+            }
+            // --- END SOURCE OF TRUTH ---
+
             return [
                 'id' => $module->id,
                 'title' => $module->title,
@@ -96,7 +119,7 @@ class StudentModuleApiService
                 'description' => $moduleAccess['description'] ?? $module->description,
                 'sort_order' => $module->sort_order,
                 'lesson_count' => $totalLessons,
-                'assignments_count' => $module->assignments->count(),
+                'assignments_count' => $totalAssignments,
                 'completed_lessons' => $completedLessons,
                 'progress_percentage' => $totalLessons > 0
                     ? (int) round(($completedLessons / $totalLessons) * 100)
@@ -105,6 +128,12 @@ class StudentModuleApiService
                 'status' => $status,
                 'is_visible' => (bool) ($moduleAccess['is_visible'] ?? false),
                 'is_complete' => (bool) ($moduleAccess['is_complete'] ?? false),
+                
+                // Fields Source of Truth (Baru ditambahkan)
+                'view_types' => $viewTypes,
+                'primary_cta_label' => $primaryCtaLabel,
+                'primary_cta_kind' => $primaryCtaKind,
+                
                 'certificate_enabled' => (bool) $module->certificate_enabled,
                 'ebook_enabled' => (bool) $module->ebook_enabled,
                 'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
@@ -270,6 +299,9 @@ class StudentModuleApiService
                 'description' => $currentModule->description,
                 'sort_order' => $currentModule->sort_order,
                 'view_type' => 'certificate_download',
+                'view_types' => ['certificate'],
+                'primary_cta_label' => 'View Certificate',
+                'primary_cta_kind' => 'download',
                 'status' => $currentModuleAccess['status'] ?? 'available',
                 'is_visible' => true,
                 'is_complete' => (bool) ($currentModuleAccess['is_complete'] ?? false),
@@ -289,6 +321,32 @@ class StudentModuleApiService
             )
         )->count();
 
+        // --- SOURCE OF TRUTH UNTUK MOBILE DETAIL ---
+        $viewTypes = [];
+        if ($lessons->count() > 0) $viewTypes[] = 'lesson';
+        if ($currentModule->ebook_enabled) $viewTypes[] = 'ebook';
+        if ($currentModule->video_lecturer_enabled) $viewTypes[] = 'video_lecturer';
+        if ($currentModule->certificate_enabled) $viewTypes[] = 'certificate';
+        if ($currentModule->assignments->count() > 0) $viewTypes[] = 'assignment';
+
+        $primaryCtaLabel = 'Open Module';
+        $primaryCtaKind = 'play';
+
+        if ($currentModule->certificate_enabled) {
+            $primaryCtaLabel = 'View Certificates';
+            $primaryCtaKind = 'download';
+        } elseif ($currentModule->ebook_enabled && ! $currentModule->video_lecturer_enabled && $lessons->count() === 0) {
+            $primaryCtaLabel = 'Browse Ebooks';
+            $primaryCtaKind = 'document';
+        } elseif ($lessons->count() > 0) {
+            $primaryCtaLabel = 'Continue Last Lesson';
+            $primaryCtaKind = 'play';
+        } elseif ($currentModule->video_lecturer_enabled) {
+            $primaryCtaLabel = 'Watch Videos';
+            $primaryCtaKind = 'play';
+        }
+        // --- END SOURCE OF TRUTH ---
+
         return [
             'id' => $currentModule->id,
             'title' => $currentModule->title,
@@ -305,7 +363,13 @@ class StudentModuleApiService
             'status' => $currentModuleAccess['status'] ?? 'available',
             'is_visible' => true,
             'is_complete' => (bool) ($currentModuleAccess['is_complete'] ?? false),
-            'view_type' => 'learning',
+            'view_type' => 'learning', // Menjaga kompatibilitas jika mobile membutuhkannya
+
+            // Fields Source of Truth (Baru ditambahkan)
+            'view_types' => $viewTypes,
+            'primary_cta_label' => $primaryCtaLabel,
+            'primary_cta_kind' => $primaryCtaKind,
+
             'certificate_enabled' => (bool) $currentModule->certificate_enabled,
             'ebook_enabled' => (bool) $currentModule->ebook_enabled,
             'video_lecturer_enabled' => (bool) $currentModule->video_lecturer_enabled,
@@ -758,11 +822,6 @@ class StudentModuleApiService
             ->all();
     }
 
-    // private function isCertificateDownloadModule(Module $module): bool
-    // {
-    //     return $module->url_slug === self::CERTIFICATE_DOWNLOAD_SLUG;
-    // }
-
     private function certificateAccessState(
         User $user,
         Collection $modules,
@@ -835,13 +894,13 @@ class StudentModuleApiService
 
     /**
      * @return array{
-     *     video_id: string|null,
-     *     hls_url: string|null,
-     *     is_ready: bool,
-     *     is_configured: bool,
-     *     is_valid_id: bool,
-     *     is_found_in_library: bool|null,
-     *     warning_message: string|null
+     * video_id: string|null,
+     * hls_url: string|null,
+     * is_ready: bool,
+     * is_configured: bool,
+     * is_valid_id: bool,
+     * is_found_in_library: bool|null,
+     * warning_message: string|null
      * }
      */
     private function videoStateForCourse(Course $course): array
