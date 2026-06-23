@@ -84,7 +84,7 @@ function OnboardingOverlay({ onDone }) {
                         onClick={() =>
                             isLast ? finish() : setSlide((value) => value + 1)
                         }
-                        className="rounded-[12px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                        className="rounded-[5px] bg-[#DB202C] px-6 py-2.5 text-white hover:bg-[#c31c28]"
                     >
                         {isLast ? "Get Started" : "Next"}
                     </Button>
@@ -256,7 +256,7 @@ function ModuleModal({ module, onClose, onLockedLessonClick }) {
                     ) : null}
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
+                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
                             <div className="text-xs uppercase tracking-[0.18em] text-white/45">
                                 Lessons
                             </div>
@@ -264,7 +264,7 @@ function ModuleModal({ module, onClose, onLockedLessonClick }) {
                                 {module.lesson_count}
                             </div>
                         </div>
-                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
+                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
                             <div className="text-xs uppercase tracking-[0.18em] text-white/45">
                                 Progress
                             </div>
@@ -277,7 +277,7 @@ function ModuleModal({ module, onClose, onLockedLessonClick }) {
                     {module.continue_url ? (
                         <Button
                             asChild
-                            className="w-full rounded-[14px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                            className="w-full rounded-[5px] bg-[#DB202C] py-2.5 text-white hover:bg-[#c31c28]"
                         >
                             <Link href={module.continue_url}>
                                 {module.cta_label ?? "Open Module"}
@@ -588,7 +588,7 @@ export default function StudentHome({
                         <div className="flex flex-wrap gap-3">
                             <Button
                                 asChild
-                                className="rounded-[14px] bg-[#DB202C] px-7 text-white hover:bg-[#c31c28]"
+                                className="rounded-[5px] bg-[#DB202C] px-6 py-2.5 text-white hover:bg-[#c31c28]"
                             >
                                 <Link
                                     href={
@@ -622,7 +622,7 @@ export default function StudentHome({
                                     }
                                     setSelectedModule(targetModule ?? null);
                                 }}
-                                className="rounded-[14px] border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white"
+                                className="rounded-[5px] border-white/25 bg-white/10 text-white hover:bg-white/15 hover:text-white"
                             >
                                 More Info
                             </Button>
@@ -669,11 +669,9 @@ export default function StudentHome({
 
                 <section className="space-y-4">
                     <div>
-                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-                            All Modules
-                        </p>
+                        
                         <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">
-                            Browse your learning path
+                            All Modules
                         </h2>
                     </div>
                     <div className="py-6">

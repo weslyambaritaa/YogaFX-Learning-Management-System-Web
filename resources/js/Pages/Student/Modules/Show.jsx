@@ -135,7 +135,7 @@ export default function StudentModuleShow({ module }) {
                                 {module.progress_percentage}% module progress
                             </div>
                             {module.continue_last_lesson_url ? (
-                                <Button asChild className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]">
+                                <Button asChild className="rounded-[5px] bg-[#DB202C] px-6 py-2.5 text-white hover:bg-[#c31c28]">
                                     <Link href={module.continue_last_lesson_url}>
                                         Continue Last Lesson
                                     </Link>
