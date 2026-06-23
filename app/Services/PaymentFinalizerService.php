@@ -188,7 +188,7 @@ class PaymentFinalizerService
             $user = User::query()->create([
                 'name' => $pendingRegistration->fullName(),
                 'role' => User::ROLE_STUDENT,
-                'is_active' => true,
+                'is_active' => false,
                 'access_tier_id' => $invoice->access_tier_id,
                 'email' => Str::lower($pendingRegistration->email),
                 'password' => Hash::make(Str::random(40)),

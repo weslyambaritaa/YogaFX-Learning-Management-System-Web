@@ -53,6 +53,10 @@ Route::get('/starter-kit', [LeadRegistrationController::class, 'showProductPayme
 Route::post('/starter-kit', [LeadRegistrationController::class, 'store'])
     ->defaults('paymentLinkSlug', 'starter-kit')
     ->name('lead-registration.products.starter-kit.store');
+Route::get('/starterkit', [LeadRegistrationController::class, 'showProductPaymentLink'])
+    ->defaults('paymentLinkSlug', 'starterkit');
+Route::post('/starterkit', [LeadRegistrationController::class, 'store'])
+    ->defaults('paymentLinkSlug', 'starterkit');
 Route::get('/masterclass', [LeadRegistrationController::class, 'showProductPaymentLink'])
     ->defaults('paymentLinkSlug', 'masterclass')
     ->name('lead-registration.products.masterclass');

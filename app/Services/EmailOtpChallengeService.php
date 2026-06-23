@@ -88,6 +88,7 @@ class EmailOtpChallengeService
             abort_if($user->id !== $onboardingState->user_id, 409, 'This signup verification no longer matches the onboarding account.');
 
             $user->forceFill([
+                'is_active' => true,
                 'password' => $payload['password_hash'] ?? $user->password,
                 'remember_token' => Str::random(60),
             ])->save();

@@ -41,7 +41,6 @@ class PaymentCheckoutService
         ]);
 
         $pendingRegistration->setRelation('accessTier', $accessTier);
-        $this->sendCheckoutLinkEmail($pendingRegistration);
 
         return $pendingRegistration;
     }
@@ -310,6 +309,36 @@ class PaymentCheckoutService
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function checkoutPayload(PendingRegistration $pendingRegistration): array
+    {
+        $pendingRegistration->loadMissing('accessTier', 'onboardingState');
+
+        return [
+            'id' => $pendingRegistration->id,
+            'first_name' => $pendingRegistration->first_name,
+            'last_name' => $pendingRegistration->last_name,
+            'email' => $pendingRegistration->email,
+            'phone' => $pendingRegistration->phone,
+            'country' => $pendingRegistration->country,
+            'amount' => (float) $pendingRegistration->accessTier->price,
+            'currency_code' => $pendingRegistration->accessTier->currency_code,
+            'status' => $pendingRegistration->status,
+            'access_tier' => [
+                'id' => $pendingRegistration->accessTier->id,
+                'name' => $pendingRegistration->accessTier->name,
+                'slug' => $pendingRegistration->accessTier->slug,
+                'price' => (float) $pendingRegistration->accessTier->price,
+                'currency_code' => $pendingRegistration->accessTier->currency_code,
+            ],
+            'pay_url' => $this->checkoutPayUrl($pendingRegistration),
+            'create_order_url' => $this->checkoutOrderCreateUrl($pendingRegistration),
+            'payment_method_options' => $this->availablePaymentMethodOptions(),
+        ];
+    }
+
     public function enrollmentUrl(OnboardingState $onboardingState): string
     {
         return URL::temporarySignedRoute(
@@ -392,6 +421,7 @@ class PaymentCheckoutService
             abort_unless($user instanceof User, 404);
 
             $user->forceFill([
+                'is_active' => true,
                 'password' => Hash::make($password),
                 'remember_token' => Str::random(60),
             ])->save();
@@ -516,27 +546,5 @@ class PaymentCheckoutService
             ->orderByDesc('paid_at')
             ->orderByDesc('id')
             ->first();
-    }
-
-    private function sendCheckoutLinkEmail(PendingRegistration $pendingRegistration): void
-    {
-        $checkoutUrl = $this->checkoutUrl($pendingRegistration);
-
-        $subject = 'Your YogaFX checkout link is ready';
-        $body = implode('', [
-            '<p>Hi '.e($pendingRegistration->fullName()).',</p>',
-            '<p>Thank you for starting your YogaFX journey.</p>',
-            '<p>Your selected tier: <strong>'.e($pendingRegistration->accessTier->name).'</strong></p>',
-            '<p>Your current amount: <strong>'.e($pendingRegistration->accessTier->currency_code.' '.number_format((float) $pendingRegistration->accessTier->price, 2)).'</strong></p>',
-            '<p>Continue to your signed checkout here: <a href="'.e($checkoutUrl).'">'.e($checkoutUrl).'</a></p>',
-        ]);
-
-        try {
-            \Illuminate\Support\Facades\Mail::to($pendingRegistration->email)->send(
-                new \App\Mail\TemplatedNotificationMail($subject, $body, 'Checkout Link'),
-            );
-        } catch (\Throwable $throwable) {
-            report($throwable);
-        }
     }
 }

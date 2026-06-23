@@ -1,10 +1,32 @@
+import PublicCheckoutPanel from "@/Components/public/PublicCheckoutPanel";
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
 import { Button } from "@/Components/ui/button";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { formatCurrency } from "@/lib/currency";
-import { useForm, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
+import { useEffect, useRef, useState } from "react";
+
+function getCsrfToken() {
+    return document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content");
+}
+
+async function parseJsonSafely(response) {
+    const text = await response.text();
+
+    if (!text) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        return {};
+    }
+}
 
 export default function Scoreboard({
     accessTiers,
@@ -15,331 +37,378 @@ export default function Scoreboard({
     const { directory = {} } = usePage().props;
     const countryOptions = directory.countries ?? [];
     const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
-    const { data, setData, post, processing, errors } = useForm({
+    const [data, setData] = useState({
         first_name: "",
         last_name: "",
         email: "",
         phone_country_code: "+62",
         phone_number: "",
         country: "",
-        access_tier_id:
-            selected_access_tier_id ?? accessTiers[0]?.id ?? "",
+        access_tier_id: selected_access_tier_id ?? accessTiers[0]?.id ?? "",
     });
+    const [errors, setErrors] = useState({});
+    const [processing, setProcessing] = useState(false);
+    const [checkout, setCheckout] = useState(null);
+    const checkoutRef = useRef(null);
 
     const selectedTier =
         accessTiers.find(
             (tier) => String(tier.id) === String(data.access_tier_id),
         ) ?? null;
     const selectedTierHasPrice = Number(selectedTier?.price ?? 0) > 0;
+    const isIdentityLocked = checkout !== null;
 
-    const submit = (event) => {
+    useEffect(() => {
+        if (!checkoutRef.current) {
+            return;
+        }
+
+        checkoutRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
+    }, [checkout]);
+
+    const setFieldValue = (field, value) => {
+        setData((current) => ({
+            ...current,
+            [field]: value,
+        }));
+
+        setErrors((current) => ({
+            ...current,
+            [field]: "",
+        }));
+    };
+
+    const submit = async (event) => {
         event.preventDefault();
-        post(submit_url);
+        setProcessing(true);
+        setErrors({});
+
+        const response = await fetch(submit_url, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-CSRF-TOKEN": getCsrfToken() ?? "",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify(data),
+        });
+
+        const payload = await parseJsonSafely(response);
+
+        if (!response.ok) {
+            setProcessing(false);
+
+            if (response.status === 422 && payload.errors) {
+                setErrors(
+                    Object.fromEntries(
+                        Object.entries(payload.errors).map(([key, value]) => [
+                            key,
+                            Array.isArray(value) ? value[0] : value,
+                        ]),
+                    ),
+                );
+                return;
+            }
+
+            setErrors({
+                general:
+                    payload.message ??
+                    "The checkout flow could not be prepared. Please try again.",
+            });
+            return;
+        }
+
+        setCheckout(payload.checkout ?? null);
+        setProcessing(false);
     };
 
     return (
         <PublicFlowLayout
             title="Scoreboard"
-            heading="Start your YogaFX journey with a calm, guided first step"
-            description="This process captures your initial identity and chosen program, seamlessly transitioning you into the simulated checkout flow without making it feel like a school-style registration portal."
-            footer={
-                <Button
-                    type="submit"
-                    form="scoreboard-form"
-                    disabled={
-                        processing ||
-                        accessTiers.length === 0 ||
-                        !selectedTierHasPrice
-                    }
-                    className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
-                >
-                    {selectedTierHasPrice
-                        ? "Continue to Checkout"
-                        : "Set Tier Price First"}
-                </Button>
-            }
+            heading="Start your YogaFX Journey!"
             aside={
                 <div className="space-y-6">
-                    {/* What Happens Next */}
-                    <div>
-                        <p className="text-sm font-semibold text-white">
-                            What happens next
-                        </p>
-                        <div className="mt-4 space-y-3">
-                            {[
-                                "1. We save your pending registration.",
-                                "2. We generate a signed checkout link for the selected tier.",
-                                "3. Proceed to secure payment, onboarding, and final sign-up.",
-                            ].map((item) => (
-                                <p
-                                    key={item}
-                                    className="text-sm leading-6 text-white/70"
-                                >
-                                    {item}
-                                </p>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Selected Program */}
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
-                        <div className="flex justify-end">
-                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
-                                Selected program
-                            </p>
-                        </div>
-                        {selectedTier ? (
-                            <div className="mt-7 space-y-3">
-                                <div className="text-2xl font-semibold text-white">
-                                    {selectedTier.name}
-                                </div>
-                                <p className="text-sm leading-6 text-white/70">
-                                    {selectedTier.description}
-                                </p>
-                                <div className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white">
-                                    {formatCurrency(
-                                        selectedTier.price,
-                                        selectedTier.currency_code,
-                                    )}
-                                </div>
-                                {!selectedTierHasPrice && (
-                                    <div className="rounded-2xl border border-amber-300/15 bg-[linear-gradient(160deg,rgba(217,119,6,0.16),rgba(255,255,255,0.03))] px-4 py-3 text-sm leading-6 text-amber-50/90">
-                                        This tier is visible now, but its
-                                        program price is still empty. Set the
-                                        price in admin before continuing to
-                                        checkout.
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="mt-4 text-sm leading-6 text-white/60">
-                                No paid access tier is configured yet. Set a
-                                tier price in admin first before opening this
-                                flow.
-                            </p>
-                        )}
-                    </div>
                 </div>
             }
         >
-            {/* Form di dalam inner card */}
-            <form id="scoreboard-form" onSubmit={submit} className="space-y-6">
-                <div className="grid gap-5 md:grid-cols-2">
-                    <div>
-                        <InputLabel
-                            htmlFor="first_name"
-                            value="First Name"
-                            className="text-white/80"
-                        />
+            <div className="space-y-10">
+                <form id="scoreboard-form" onSubmit={submit} className="space-y-8">
+                    {errors.general && (
+                        <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100">
+                            {errors.general}
+                        </div>
+                    )}
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                        {/* First Name */}
+                        <div>
+                            <InputLabel
+                                htmlFor="first_name"
+                                value="First Name"
+                                className="text-sm font-medium text-white/90"
+                            />
                             <TextInput
                                 id="first_name"
                                 value={data.first_name}
-                                className="mt-2 block w-full border-[#DB202C] bg-white/10 text-white placeholder:text-white/30 focus:border-[#DB202C] focus:ring-[#DB202C]"
-                            onChange={(event) =>
-                                setData("first_name", event.target.value)
-                            }
-                            required
-                        />
-                        <InputError
-                            className="mt-2 text-red-400"
-                            message={errors.first_name}
-                        />
-                    </div>
+                                disabled={isIdentityLocked}
+                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                onChange={(event) =>
+                                    setFieldValue("first_name", event.target.value)
+                                }
+                                required
+                            />
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                message={errors.first_name}
+                            />
+                        </div>
 
-                    <div>
-                        <InputLabel
-                            htmlFor="last_name"
-                            value="Last Name"
-                            className="text-white/80"
-                        />
+                        {/* Last Name */}
+                        <div>
+                            <InputLabel
+                                htmlFor="last_name"
+                                value="Last Name"
+                                className="text-sm font-medium text-white/90"
+                            />
                             <TextInput
                                 id="last_name"
                                 value={data.last_name}
-                                className="mt-2 block w-full border-[#DB202C] bg-white/10 text-white placeholder:text-white/30 focus:border-[#DB202C] focus:ring-[#DB202C]"
-                            onChange={(event) =>
-                                setData("last_name", event.target.value)
-                            }
-                            required
-                        />
-                        <InputError
-                            className="mt-2 text-red-400"
-                            message={errors.last_name}
-                        />
-                    </div>
+                                disabled={isIdentityLocked}
+                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                onChange={(event) =>
+                                    setFieldValue("last_name", event.target.value)
+                                }
+                                required
+                            />
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                message={errors.last_name}
+                            />
+                        </div>
 
-                    <div>
-                        <InputLabel
-                            htmlFor="email"
-                            value="Email"
-                            className="text-white/80"
-                        />
+                        {/* Email */}
+                        <div className="md:col-span-2">
+                            <InputLabel
+                                htmlFor="email"
+                                value="Email"
+                                className="text-sm font-medium text-white/90"
+                            />
                             <TextInput
                                 id="email"
                                 type="email"
                                 value={data.email}
-                                className="mt-2 block w-full border-[#DB202C] bg-white/10 text-white placeholder:text-white/30 focus:border-[#DB202C] focus:ring-[#DB202C]"
-                            onChange={(event) =>
-                                setData("email", event.target.value)
-                            }
-                            required
-                        />
-                        <InputError
-                            className="mt-2 text-red-400"
-                            message={errors.email}
-                        />
-                    </div>
-
-                    <div>
-                        <InputLabel
-                            htmlFor="phone_number"
-                            value="Mobile Phone"
-                            className="text-white/80"
-                        />
-                        <div className="mt-2 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-                            <select
-                                id="phone_country_code"
-                                value={data.phone_country_code}
+                                disabled={isIdentityLocked}
+                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
                                 onChange={(event) =>
-                                    setData(
-                                        "phone_country_code",
-                                        event.target.value,
-                                    )
+                                    setFieldValue("email", event.target.value)
                                 }
-                                className="block w-full rounded-md border border-[#DB202C] bg-white/10 text-white focus:border-[#DB202C] focus:ring-[#DB202C]"
+                                required
+                            />
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                message={errors.email}
+                            />
+                        </div>
+
+                        {/* Mobile Phone */}
+                        <div className="md:col-span-2">
+                            <InputLabel
+                                htmlFor="phone_number"
+                                value="Mobile Phone"
+                                className="text-sm font-medium text-white/90"
+                            />
+                            <div className="mt-2 grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)]">
+                                <select
+                                    id="phone_country_code"
+                                    value={data.phone_country_code}
+                                    disabled={isIdentityLocked}
+                                    onChange={(event) =>
+                                        setFieldValue(
+                                            "phone_country_code",
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                    required
+                                >
+                                    {phoneCountryCodeOptions.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.value}
+                                            className="bg-gray-900 text-white"
+                                        >
+                                            {option.flag ? `${option.flag} ` : ""}
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                <TextInput
+                                    id="phone_number"
+                                    value={data.phone_number}
+                                    disabled={isIdentityLocked}
+                                    className="block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                    onChange={(event) =>
+                                        setFieldValue("phone_number", event.target.value)
+                                    }
+                                    placeholder="81234567890"
+                                    required
+                                />
+                            </div>
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                message={
+                                    errors.phone_number ??
+                                    errors.phone_country_code ??
+                                    errors.phone
+                                }
+                            />
+                        </div>
+
+                        {/* Country */}
+                        <div className="md:col-span-2">
+                            <InputLabel
+                                htmlFor="country"
+                                value="Country"
+                                className="text-sm font-medium text-white/90"
+                            />
+                            <select
+                                id="country"
+                                value={data.country}
+                                disabled={isIdentityLocked}
+                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                onChange={(event) => {
+                                    const value = event.target.value;
+                                    setFieldValue("country", value);
+                                    const matchedDialCode =
+                                        phoneCountryCodeOptions.find((option) =>
+                                            option.label.startsWith(`${value} (`),
+                                        );
+                                    if (matchedDialCode && !data.phone_number) {
+                                        setFieldValue(
+                                            "phone_country_code",
+                                            matchedDialCode.value,
+                                        );
+                                    }
+                                }}
                                 required
                             >
-                                {phoneCountryCodeOptions.map((option) => (
+                                <option value="" className="bg-gray-900 text-white">
+                                    Select a country
+                                </option>
+                                {countryOptions.map((option) => (
                                     <option
                                         key={option.value}
                                         value={option.value}
                                         className="bg-gray-900 text-white"
                                     >
-                                        {option.flag ? `${option.flag} ` : ''}
+                                        {option.flag ? `${option.flag} ` : ""}
                                         {option.label}
                                     </option>
                                 ))}
                             </select>
-                            <TextInput
-                                id="phone_number"
-                                value={data.phone_number}
-                                className="block w-full border-[#DB202C] bg-white/10 text-white placeholder:text-white/30 focus:border-[#DB202C] focus:ring-[#DB202C]"
-                                onChange={(event) =>
-                                    setData("phone_number", event.target.value)
-                                }
-                                placeholder="81234567890"
-                                required
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                message={errors.country}
                             />
                         </div>
-                        <InputError
-                            className="mt-2 text-red-400"
-                            message={
-                                errors.phone_number ??
-                                errors.phone_country_code ??
-                                errors.phone
-                            }
-                        />
-                    </div>
 
-                    <div>
-                        <InputLabel
-                            htmlFor="country"
-                            value="Country"
-                            className="text-white/80"
-                        />
-                        <select
-                            id="country"
-                            value={data.country}
-                            className="mt-2 block w-full rounded-md border border-[#DB202C] bg-white/10 text-white focus:border-[#DB202C] focus:ring-[#DB202C]"
-                            onChange={(event) => {
-                                const value = event.target.value;
-                                setData("country", value);
-                                const matchedDialCode =
-                                    phoneCountryCodeOptions.find((option) =>
-                                        option.label.startsWith(`${value} (`),
-                                    );
-                                if (matchedDialCode && !data.phone_number) {
-                                    setData(
-                                        "phone_country_code",
-                                        matchedDialCode.value,
-                                    );
-                                }
-                            }}
-                            required
-                        >
-                            <option value="" className="bg-gray-900 text-white">
-                                Select a country
-                            </option>
-                            {countryOptions.map((option) => (
-                                <option
-                                    key={option.value}
-                                    value={option.value}
-                                    className="bg-gray-900 text-white"
-                                >
-                                    {option.flag ? `${option.flag} ` : ''}
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                        <InputError
-                            className="mt-2 text-red-400"
-                            message={errors.country}
-                        />
-                    </div>
-
-                    <div>
-                        <InputLabel
-                            htmlFor="access_tier_id"
-                            value="Program / Tier"
-                            className="text-white/80"
-                        />
-                        {is_access_tier_locked && selectedTier ? (
-                            <div className="mt-2 rounded-md border border-white/20 bg-white/10 px-4 py-3 text-white">
-                                <div className="font-medium">
-                                    {selectedTier.name}
-                                </div>
-                                <div className="mt-1 text-sm text-white/70">
-                                    {Number(selectedTier.price) > 0
-                                        ? formatCurrency(
-                                              selectedTier.price,
-                                              selectedTier.currency_code,
-                                          )
-                                        : "Price not set yet"}
-                                </div>
-                            </div>
-                        ) : (
-                            <select
-                                id="access_tier_id"
-                                value={data.access_tier_id}
-                                onChange={(event) =>
-                                    setData("access_tier_id", event.target.value)
-                                }
-                                className="mt-2 block w-full rounded-md border border-white/20 bg-white/10 text-white focus:border-white focus:ring-white"
-                                required
-                            >
-                                {accessTiers.map((tier) => (
-                                    <option
-                                        key={tier.id}
-                                        value={tier.id}
-                                        className="bg-gray-900 text-white"
-                                    >
-                                        {tier.name} -{" "}
-                                        {Number(tier.price) > 0
+                        {/* Program / Tier */}
+                        <div className="md:col-span-2">
+                            <InputLabel
+                                htmlFor="access_tier_id"
+                                value="Program / Tier"
+                                className="text-sm font-medium text-white/90"
+                            />
+                            {is_access_tier_locked && selectedTier ? (
+                                <div className="mt-2 min-h-[52px] rounded-xl border border-[#DB202C]/50 bg-black/20 px-5 py-4 text-white shadow-sm">
+                                    <div className="text-base font-medium">
+                                        {selectedTier.name}
+                                    </div>
+                                    <div className="mt-1 text-sm text-white/70">
+                                        {Number(selectedTier.price) > 0
                                             ? formatCurrency(
-                                                  tier.price,
-                                                  tier.currency_code,
+                                                  selectedTier.price,
+                                                  selectedTier.currency_code,
                                               )
                                             : "Price not set yet"}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-                        <InputError
-                            className="mt-2 text-red-400"
-                            message={errors.access_tier_id}
-                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <select
+                                    id="access_tier_id"
+                                    value={data.access_tier_id}
+                                    disabled={isIdentityLocked}
+                                    onChange={(event) =>
+                                        setFieldValue(
+                                            "access_tier_id",
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:ring-2 focus:ring-[#DB202C]/30 disabled:opacity-60"
+                                    required
+                                >
+                                    {accessTiers.map((tier) => (
+                                        <option
+                                            key={tier.id}
+                                            value={tier.id}
+                                            className="bg-gray-900 text-white"
+                                        >
+                                            {tier.name} -{" "}
+                                            {Number(tier.price) > 0
+                                                ? formatCurrency(
+                                                      tier.price,
+                                                      tier.currency_code,
+                                                  )
+                                                : "Price not set yet"}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                message={errors.access_tier_id}
+                            />
+                        </div>
                     </div>
-                </div>
-            </form>
+
+                    {!checkout && (
+                        <div className="mt-8 flex justify-start">
+                            <Button
+                                type="submit"
+                                disabled={
+                                    processing ||
+                                    accessTiers.length === 0 ||
+                                    !selectedTierHasPrice
+                                }
+                                className="min-h-[52px] rounded-xl bg-[#DB202C] px-8 py-4 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:bg-[#c01a25] hover:shadow-xl disabled:pointer-events-none disabled:opacity-60"
+                            >
+                                {processing
+                                    ? "Preparing Payment..."
+                                    : selectedTierHasPrice
+                                      ? "Continue to Payment"
+                                      : "Set Tier Price First"}
+                            </Button>
+                        </div>
+                    )}
+                </form>
+
+                {checkout ? (
+                    <section ref={checkoutRef} className="space-y-6">
+                        <div className="border-t border-white/10 pt-10">
+                            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#DB202C]">
+                                Payment
+                            </p>
+                        </div>
+
+                        <PublicCheckoutPanel checkout={checkout} />
+                    </section>
+                ) : null}
+            </div>
         </PublicFlowLayout>
     );
 }
