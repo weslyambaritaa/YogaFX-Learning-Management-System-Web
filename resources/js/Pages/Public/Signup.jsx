@@ -21,8 +21,8 @@ export default function Signup({ onboarding, student }) {
     return (
         <PublicFlowLayout
             title="Create Password"
-            heading="Create your final YogaFX password, then verify the code sent to your email"
-            description="Enrollment is complete. This last step prepares the final credential, then YogaFX sends an OTP code to the registered email before the LMS session is opened."
+            heading="Create your final YogaFX password to activate your account"
+            description="Enrollment is complete. This last step activates your YogaFX account so you can sign in with your new password."
             aside={
                 <div className="space-y-6">
                     {/* Account ready card */}
@@ -50,10 +50,6 @@ export default function Signup({ onboarding, student }) {
                             <p>
                                 Your password becomes the final credential for
                                 routine login.
-                            </p>
-                            <p>
-                                After submit, YogaFX emails you a verification
-                                code before auto-login continues.
                             </p>
                         </div>
                     </div>
@@ -145,8 +141,7 @@ export default function Signup({ onboarding, student }) {
                 {/* Footer + tombol */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <p className="text-sm text-gray-500">
-                        This is the final credential step before email OTP
-                        verification and LMS access.
+                        This is the final step before your account becomes active.
                     </p>
 
                     <Button
@@ -154,7 +149,7 @@ export default function Signup({ onboarding, student }) {
                         disabled={processing}
                         className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
                     >
-                        Create Password and Send OTP
+                        Create Password and Activate Account
                     </Button>
                 </div>
             </form>

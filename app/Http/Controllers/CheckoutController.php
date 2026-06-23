@@ -55,25 +55,7 @@ class CheckoutController extends Controller
 
         return Inertia::render('Public/Checkout', [
             'checkout' => [
-                'id' => $pendingRegistration->id,
-                'first_name' => $pendingRegistration->first_name,
-                'last_name' => $pendingRegistration->last_name,
-                'email' => $pendingRegistration->email,
-                'phone' => $pendingRegistration->phone,
-                'country' => $pendingRegistration->country,
-                'amount' => (float) $pendingRegistration->accessTier->price,
-                'currency_code' => $pendingRegistration->accessTier->currency_code,
-                'status' => $pendingRegistration->status,
-                'access_tier' => [
-                    'id' => $pendingRegistration->accessTier->id,
-                    'name' => $pendingRegistration->accessTier->name,
-                    'slug' => $pendingRegistration->accessTier->slug,
-                    'price' => (float) $pendingRegistration->accessTier->price,
-                    'currency_code' => $pendingRegistration->accessTier->currency_code,
-                ],
-                'pay_url' => $this->paymentFlow->checkoutPayUrl($pendingRegistration),
-                'create_order_url' => $this->paymentFlow->checkoutOrderCreateUrl($pendingRegistration),
-                'payment_method_options' => $this->paymentFlow->availablePaymentMethodOptions(),
+                ...$this->paymentFlow->checkoutPayload($pendingRegistration),
                 'paypal' => [
                     'client_id' => $this->paypalService->clientId(),
                     'client_token' => $clientToken,

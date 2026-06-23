@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\AccessTier;
 use App\Models\PendingRegistration;
+use App\Services\PayPalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -38,6 +40,24 @@ class PublicPaymentLinkTest extends TestCase
             ->has('accessTiers', 1)
             ->where('accessTiers.0.slug', AccessTier::SLUG_STARTER_KIT)
             ->where('accessTiers.0.payment_link', '/starter-kit'));
+    }
+
+    public function test_starterkit_alias_route_locks_scoreboard_to_matching_tier(): void
+    {
+        $starterTier = AccessTier::factory()->create([
+            'name' => 'Starter Kit',
+            'slug' => AccessTier::SLUG_STARTER_KIT,
+            'payment_link' => '/starter-kit',
+            'is_active' => true,
+        ]);
+
+        $this->get('/starterkit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/Scoreboard')
+                ->where('selected_access_tier_id', $starterTier->id)
+                ->where('is_access_tier_locked', true)
+                ->where('submit_url', url('/starterkit')));
     }
 
     public function test_product_payment_link_submission_creates_pending_registration_for_expected_tier_only(): void
@@ -114,10 +134,62 @@ class PublicPaymentLinkTest extends TestCase
 
         $response = $this->get(route('lead-registration.submitted', $pendingRegistration));
 
-        $response->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->component('Public/ScoreboardSubmitted')
-            ->where('registration.access_tier.slug', AccessTier::SLUG_ONLINE)
-            ->where('registration.checkout_url', fn (string $url) => str_contains($url, '/checkout/'.$pendingRegistration->id.'/online'))
-            ->where('registration.checkout_url', fn (string $url) => str_contains($url, 'signature=')));
+        $response
+            ->assertRedirect()
+            ->assertRedirectToSignedRoute('checkout.show', [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => AccessTier::SLUG_ONLINE,
+            ]);
+    }
+
+    public function test_public_scoreboard_submission_can_return_embedded_checkout_payload(): void
+    {
+        $onlineTier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => AccessTier::SLUG_ONLINE,
+            'payment_link' => '/online',
+            'price' => 299,
+            'is_active' => true,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('generateClientToken')
+                ->once()
+                ->andReturn('PAYPAL-CLIENT-TOKEN-INLINE-001');
+            $mock->shouldReceive('clientId')
+                ->once()
+                ->andReturn('PAYPAL-CLIENT-ID-INLINE-001');
+        });
+
+        $response = $this->postJson('/online', [
+            'first_name' => 'Lina',
+            'last_name' => 'West',
+            'email' => 'lina@example.com',
+            'phone_country_code' => '+62',
+            'phone_number' => '81234567000',
+            'country' => 'Indonesia',
+            'access_tier_id' => $onlineTier->id,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->firstOrFail();
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'checkout_ready')
+            ->assertJsonPath('checkout.access_tier.slug', AccessTier::SLUG_ONLINE)
+            ->assertJsonPath('checkout.paypal.client_id', 'PAYPAL-CLIENT-ID-INLINE-001')
+            ->assertJsonPath('checkout.paypal.client_token', 'PAYPAL-CLIENT-TOKEN-INLINE-001')
+            ->assertJsonPath(
+                'checkout.create_order_url',
+                URL::temporarySignedRoute('checkout.orders.store', now()->addDays(7), [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => AccessTier::SLUG_ONLINE,
+                ]),
+            );
+
+        $this->assertDatabaseHas('pending_registrations', [
+            'id' => $pendingRegistration->id,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+        ]);
     }
 }

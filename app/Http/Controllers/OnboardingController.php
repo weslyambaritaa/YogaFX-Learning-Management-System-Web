@@ -7,11 +7,9 @@ use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\EnrollmentUpdateRequest;
 use App\Http\Requests\SignupCompletionRequest;
 use App\Models\OnboardingState;
-use App\Services\EmailOtpChallengeService;
 use App\Services\PaymentCheckoutService;
 use App\Support\StudentProfileValue;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,10 +20,9 @@ class OnboardingController extends Controller
 
     public function __construct(
         private readonly PaymentCheckoutService $paymentFlow,
-        private readonly EmailOtpChallengeService $otpChallenges,
     ) {}
 
-    public function showPaymentSuccess(OnboardingState $onboardingState): Response|RedirectResponse
+    public function showPaymentSuccess(OnboardingState $onboardingState): RedirectResponse
     {
         $onboardingState->loadMissing('user', 'pendingRegistration.accessTier');
 
@@ -33,21 +30,11 @@ class OnboardingController extends Controller
             return redirect()->route('login')->with('status', 'Your YogaFX account is ready. Please sign in.');
         }
 
-        return Inertia::render('Public/PaymentSuccess', [
-            'onboarding' => [
-                'id' => $onboardingState->id,
-                'status' => $onboardingState->status,
-                'continue_url' => $this->paymentFlow->enrollmentUrl($onboardingState),
-                'access_tier' => [
-                    'name' => $onboardingState->pendingRegistration->accessTier->name,
-                    'slug' => $onboardingState->pendingRegistration->accessTier->slug,
-                ],
-            ],
-            'student' => [
-                'name' => $onboardingState->user->name,
-                'email' => $onboardingState->user->email,
-            ],
-        ]);
+        if ($onboardingState->status === OnboardingState::STATUS_AWAITING_SIGNUP) {
+            return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
+        }
+
+        return redirect()->away($this->paymentFlow->enrollmentUrl($onboardingState));
     }
 
     public function showEnrollment(OnboardingState $onboardingState): Response|RedirectResponse
@@ -161,14 +148,12 @@ class OnboardingController extends Controller
         SignupCompletionRequest $request,
         OnboardingState $onboardingState,
     ): RedirectResponse {
-        $onboardingState->loadMissing('user');
-        $challenge = $this->otpChallenges->createForSignup($onboardingState->user, [
-            'onboarding_state_id' => $onboardingState->id,
-            'password_hash' => Hash::make((string) $request->string('password')),
-        ]);
+        $this->paymentFlow->completeSignup(
+            $onboardingState,
+            (string) $request->string('password'),
+        );
 
-        return redirect()->route('auth.otp.show', [
-            'token' => $challenge['token'],
-        ]);
+        return redirect()->route('login')
+            ->with('status', 'Your YogaFX account is now active. Please sign in with your new password.');
     }
 }

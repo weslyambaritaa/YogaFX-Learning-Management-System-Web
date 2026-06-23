@@ -8,6 +8,7 @@ use App\Models\AssignmentSubmission;
 use App\Models\Course;
 use App\Models\Invoice;
 use App\Models\Module;
+use App\Models\OnboardingState;
 use App\Models\Payment;
 use App\Models\PendingRegistration;
 use App\Models\User;
@@ -82,6 +83,11 @@ class PaymentAndModuleCompletionTest extends TestCase
             'payment_method' => Payment::METHOD_MOCK,
             'payment_type' => Payment::TYPE_PAY_FULL,
             'status' => Payment::STATUS_SUCCESS,
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'ava@example.com',
+            'is_active' => false,
         ]);
 
         Queue::assertPushed(SendOnboardingContinuationEmailJob::class);
@@ -352,6 +358,70 @@ class PaymentAndModuleCompletionTest extends TestCase
         ]);
 
         Queue::assertPushed(SendOnboardingContinuationEmailJob::class);
+    }
+
+    public function test_signup_completion_activates_student_account_and_completes_onboarding(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_ONLINE,
+            'name' => 'Online',
+        ]);
+
+        $user = User::factory()->student()->create([
+            'first_name' => 'Signup',
+            'last_name' => 'Student',
+            'email' => 'signup@example.com',
+            'is_active' => false,
+            'access_tier_id' => $tier->id,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+            'phone' => '+6281234567999',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499.00,
+            'status' => PendingRegistration::STATUS_PAYMENT_SUCCESS,
+            'payment_succeeded_at' => now(),
+        ]);
+
+        $onboardingState = OnboardingState::query()->create([
+            'pending_registration_id' => $pendingRegistration->id,
+            'user_id' => $user->id,
+            'status' => OnboardingState::STATUS_AWAITING_SIGNUP,
+            'enrollment_completed_at' => now(),
+        ]);
+
+        $response = $this->post(
+            URL::temporarySignedRoute('onboarding.signup.store', now()->addDay(), [
+                'onboardingState' => $onboardingState->id,
+            ]),
+            [
+                'password' => 'StrongPassword123!',
+                'password_confirmation' => 'StrongPassword123!',
+            ],
+        );
+
+        $response
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'is_active' => true,
+        ]);
+
+        $this->assertDatabaseHas('onboarding_states', [
+            'id' => $onboardingState->id,
+            'status' => OnboardingState::STATUS_COMPLETED,
+        ]);
+
+        $this->assertDatabaseHas('pending_registrations', [
+            'id' => $pendingRegistration->id,
+            'status' => PendingRegistration::STATUS_COMPLETED,
+        ]);
     }
 
     public function test_public_checkout_capture_pending_keeps_payment_pending_and_returns_pending_status_page(): void
