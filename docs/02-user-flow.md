@@ -87,10 +87,23 @@ Student dashboard saat ini masih berupa halaman foundation, belum final premium 
    - audio URL/reference
    - text content
    - `assessment_id` jika tersedia sebagai placeholder relasi
+3. Jika lesson tidak punya workbook:
+   - lesson langsung terbuka
+   - video langsung play
+4. Jika lesson punya workbook dan workbook belum pernah dipicu untuk student itu:
+   - lesson tetap langsung terbuka
+   - video tetap langsung play
+   - sistem memicu auto-download workbook di background
+   - sistem menampilkan notifikasi bahwa workbook sedang atau baru mulai didownload
+   - sistem mengirim email workbook ke student sebagai attachment
+   - jika browser atau device memblok download otomatis, student tetap bisa memakai fallback manual download
+5. Jika workbook untuk lesson itu sudah pernah dipicu sebelumnya:
+   - sistem tidak mengulang auto-download
+   - indikator workbook downloaded tetap sinkron dari state progress lesson
 
 ### Important Notes
 - lesson locking belum aktif
-- workbook gating belum aktif
+- workbook gating yang memblok video belum aktif
 - watch progress automation belum aktif
 - assessment player belum aktif
 
@@ -265,6 +278,7 @@ Student dashboard saat ini masih berupa halaman foundation, belum final premium 
 - assessment_complete
 - course_complete
 - reminder
+- workbook_sent
 
 ---
 

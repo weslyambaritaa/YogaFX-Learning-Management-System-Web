@@ -12,6 +12,7 @@ use App\Models\Module;
 use App\Services\BunnyStreamService;
 use App\Services\StudentLearningMilestoneEmailService;
 use App\Services\StudentSessionTrackingService;
+use App\Services\StudentWorkbookDeliveryService;
 use App\Support\BunnyAssetPath;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -29,6 +30,7 @@ class LessonCatalogController extends Controller
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly StudentSessionTrackingService $sessionTrackingService,
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
+        private readonly StudentWorkbookDeliveryService $studentWorkbookDeliveryService,
     ) {}
 
     public function show(Request $request, Lesson $lesson): Response
@@ -118,8 +120,7 @@ class LessonCatalogController extends Controller
                         $completedAssessmentIds,
                     ),
                     'requires_workbook_download' => filled($lesson->workbook),
-                    'is_video_locked_until_workbook_downloaded' => filled($lesson->workbook)
-                        && ! (bool) ($currentProgress?->is_workbook_downloaded ?? false),
+                    'is_video_locked_until_workbook_downloaded' => false,
                 ],
                 'autoplay' => $request->boolean('autoplay'),
                 'thumbnail_url' => $this->protectedMediaUrl(
@@ -129,8 +130,18 @@ class LessonCatalogController extends Controller
                     $lesson->thumbnail,
                     versionSeed: $lesson->updated_at,
                 ),
-                'workbook_url' => $lesson->workbook
-                    ? route('lessons.workbook.download', $lesson)
+                'workbook_download_url' => $lesson->workbook
+                    ? $this->protectedMediaUrl(
+                        'lesson',
+                        $lesson->id,
+                        'workbook',
+                        $lesson->workbook,
+                        download: true,
+                        versionSeed: $lesson->updated_at,
+                    )
+                    : null,
+                'workbook_trigger_url' => $lesson->workbook
+                    ? route('lessons.workbook.trigger', $lesson)
                     : null,
                 'navigation' => $lessonNavigation->map(fn (Lesson $item) => [
                     'id' => $item->id,
@@ -179,16 +190,9 @@ class LessonCatalogController extends Controller
 
         abort_unless(filled($lesson->workbook), 404);
 
-        LessonProgress::query()->updateOrCreate(
-            [
-                'user_id' => $user?->id,
-                'lesson_id' => $lesson->id,
-            ],
-            [
-                'is_workbook_downloaded' => true,
-                'workbook_downloaded_at' => now(),
-            ],
-        );
+        if ($user) {
+            $this->studentWorkbookDeliveryService->triggerOnce($user, $lesson);
+        }
 
         $downloadUrl = $this->protectedMediaUrl(
             'lesson',
@@ -206,6 +210,30 @@ class LessonCatalogController extends Controller
         }
 
         return redirect($downloadUrl);
+    }
+
+    public function triggerWorkbook(Request $request, Lesson $lesson): JsonResponse
+    {
+        $user = $request->user();
+        $this->authorizeLessonAccess($request, $lesson);
+
+        abort_unless($user && filled($lesson->workbook), 404);
+
+        $result = $this->studentWorkbookDeliveryService->triggerOnce($user, $lesson);
+
+        return response()->json([
+            'was_first_trigger' => $result['was_first_trigger'],
+            'is_workbook_downloaded' => $result['is_workbook_downloaded'],
+            'workbook_downloaded_at' => $result['workbook_downloaded_at'],
+            'download_url' => $this->protectedMediaUrl(
+                'lesson',
+                $lesson->id,
+                'workbook',
+                $lesson->workbook,
+                download: true,
+                versionSeed: $lesson->updated_at,
+            ),
+        ]);
     }
 
     public function updateProgress(Request $request, Lesson $lesson): JsonResponse

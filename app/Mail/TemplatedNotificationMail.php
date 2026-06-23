@@ -18,6 +18,7 @@ class TemplatedNotificationMail extends Mailable
         public string $subjectLine,
         public string $bodyHtml,
         public string $variantLabel,
+        public array $attachmentPayloads = [],
     ) {
     }
 
@@ -31,9 +32,20 @@ class TemplatedNotificationMail extends Mailable
     public function build()
     {
         $initialHtml = $this->buildEmailHtml();
+        $mail = $this->subject($this->subjectLine)
+            ->html($initialHtml);
 
-        return $this->subject($this->subjectLine)
-            ->html($initialHtml)
+        foreach ($this->attachmentPayloads as $attachment) {
+            if (isset($attachment['data'], $attachment['name'])) {
+                $mail->attachData(
+                    $attachment['data'],
+                    $attachment['name'],
+                    ['mime' => $attachment['mime'] ?? 'application/octet-stream'],
+                );
+            }
+        }
+
+        return $mail
             ->withSymfonyMessage(function (Email $message) use ($initialHtml): void {
                 $message->html(
                     Str::contains($this->bodyHtml, '<img', true)

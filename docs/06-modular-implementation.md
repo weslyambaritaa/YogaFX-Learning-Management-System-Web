@@ -90,7 +90,7 @@ Sudah mencakup:
 - send test
 - automated trigger wiring
 - email logs
-- 10 notification types
+- 11 notification types
 - scheduled reminder command
 
 ---
@@ -114,7 +114,6 @@ Domain yang cukup stabil untuk dijadikan dependency:
 ### 4.1 Learning Progress Automation
 Belum selesai:
 - watch progress update dari student side
-- workbook download tracking otomatis
 - lesson completion automation
 - sequential unlock
 
@@ -244,7 +243,7 @@ Build order:
 - [x] send test
 - [x] automated triggers
 - [x] email logs
-- [x] 10 notification types
+- [x] 11 notification types
 
 ### 7.8 Not Completed Yet
 - [ ] learning progress automation

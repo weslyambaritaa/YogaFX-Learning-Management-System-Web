@@ -39,6 +39,7 @@ class EmailNotificationTest extends TestCase
             EmailNotificationTypeRegistry::ASSESSMENT_COMPLETE => 'Assessment Complete',
             EmailNotificationTypeRegistry::COURSE_COMPLETE => 'Course Complete',
             EmailNotificationTypeRegistry::REMINDER => 'Reminder',
+            EmailNotificationTypeRegistry::WORKBOOK_SENT => 'Workbook Sent',
         ] as $notificationType => $label) {
             $this->actingAs($admin)->get(
                 route('admin.email-notifications.show', ['notificationType' => $notificationType]),
@@ -647,6 +648,93 @@ class EmailNotificationTest extends TestCase
             ->assertExitCode(0);
 
         Mail::assertNothingSent();
+    }
+
+    public function test_workbook_trigger_sends_one_email_with_attachment_and_marks_progress_once(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+
+        $tier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => AccessTier::SLUG_ONLINE,
+        ]);
+        $student = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $tier->id,
+            'email' => 'student-workbook@yogafx.test',
+            'name' => 'Workbook Student',
+        ]);
+        $module = Module::factory()->create([
+            'title' => 'Workbook Module',
+        ]);
+        $module->accessTiers()->sync([$tier->id]);
+
+        $workbookPath = 'lessons/workbooks/lesson-workbook.pdf';
+        Storage::disk('local')->put($workbookPath, 'sample workbook pdf content');
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'title' => 'Workbook Lesson',
+            'workbook' => $workbookPath,
+        ]);
+        $lesson->accessTiers()->sync([$tier->id]);
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::WORKBOOK_SENT,
+            'notification_name' => 'Workbook Sent',
+            'is_enabled' => true,
+            'admin_recipients' => 'ops-workbook@yogafx.test',
+            'subject_user' => 'Workbook for {{ lesson_title }}',
+            'body_user' => 'Workbook file {{ workbook_file_name }}',
+            'subject_admin' => 'Workbook sent to {{ user_email }}',
+            'body_admin' => '{{ lesson_title }} workbook triggered',
+        ]);
+
+        $this->actingAs($student)
+            ->postJson(route('lessons.workbook.trigger', $lesson))
+            ->assertOk()
+            ->assertJson([
+                'was_first_trigger' => true,
+                'is_workbook_downloaded' => true,
+            ]);
+
+        $this->assertDatabaseHas('lesson_progress', [
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'is_workbook_downloaded' => true,
+        ]);
+
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail) use ($student): bool {
+            if ($mail->hasTo($student->email)) {
+                return count($mail->attachmentPayloads) === 1
+                    && $mail->attachmentPayloads[0]['name'] === 'lesson-workbook.pdf';
+            }
+
+            return true;
+        });
+
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::WORKBOOK_SENT,
+            'reference_type' => 'lesson_workbook',
+            'reference_id' => $lesson->id,
+            'recipient_type' => 'user',
+            'recipient_email' => $student->email,
+            'status' => 'sent',
+        ]);
+
+        Mail::fake();
+
+        $this->actingAs($student)
+            ->postJson(route('lessons.workbook.trigger', $lesson))
+            ->assertOk()
+            ->assertJson([
+                'was_first_trigger' => false,
+                'is_workbook_downloaded' => true,
+            ]);
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseCount('email_logs', 2);
     }
 
     /**

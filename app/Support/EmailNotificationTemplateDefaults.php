@@ -118,6 +118,17 @@ class EmailNotificationTemplateDefaults
                 ]),
                 'auto_enable' => true,
             ],
+            EmailNotificationTypeRegistry::WORKBOOK_SENT => [
+                'subject_user' => 'Your workbook is ready: {lesson_title}',
+                'body_user' => implode('', [
+                    '<p>Hi {user_name},</p>',
+                    '<p>Your workbook for <strong>{lesson_title}</strong> is attached to this email.</p>',
+                    '<p>Module: {module_title}</p>',
+                    '<p>Workbook file: {workbook_file_name}</p>',
+                    '<p>You can continue learning from your dashboard here: <a href="{dashboard_url}">{dashboard_url}</a></p>',
+                ]),
+                'auto_enable' => true,
+            ],
             default => [],
         };
     }

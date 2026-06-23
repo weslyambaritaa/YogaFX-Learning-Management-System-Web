@@ -6,6 +6,7 @@ use App\Models\AccessTier;
 use App\Models\Course;
 use App\Models\Ebook;
 use App\Models\Lesson;
+use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -614,6 +615,55 @@ class LearningContentTest extends TestCase
         $this->actingAs($student)
             ->get(route('lessons.show', $starterLesson))
             ->assertForbidden();
+    }
+
+    public function test_student_lesson_detail_keeps_video_playable_and_exposes_workbook_auto_delivery_urls(): void
+    {
+        Storage::fake('local');
+
+        $online = AccessTier::factory()->create(['name' => 'Online', 'slug' => 'online']);
+        $student = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $online->id,
+        ]);
+
+        $module = Module::factory()->create([
+            'title' => 'Lesson Module',
+        ]);
+        $module->accessTiers()->sync([$online->id]);
+
+        $workbookPath = 'lessons/workbooks/student-lesson-workbook.pdf';
+        Storage::disk('local')->put($workbookPath, 'pdf workbook content');
+
+        $lesson = Lesson::factory()->create([
+            'module_id' => $module->id,
+            'title' => 'Lesson With Workbook',
+            'workbook' => $workbookPath,
+        ]);
+        $lesson->accessTiers()->sync([$online->id]);
+
+        LessonProgress::factory()->create([
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'is_workbook_downloaded' => false,
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('lessons.show', $lesson))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Student/Lessons/Show')
+                ->where('lesson.id', $lesson->id)
+                ->where('lesson.progress.is_workbook_downloaded', false)
+                ->where('lesson.progress.is_video_locked_until_workbook_downloaded', false)
+                ->where('lesson.workbook_trigger_url', route('lessons.workbook.trigger', $lesson))
+                ->where('lesson.workbook_download_url', $this->protectedMediaUrl(
+                    'lesson',
+                    $lesson->id,
+                    'workbook',
+                    $lesson->workbook,
+                    $lesson->updated_at,
+                    true,
+                )));
     }
 
     public function test_student_only_sees_ebooks_and_courses_for_their_access_tier(): void
