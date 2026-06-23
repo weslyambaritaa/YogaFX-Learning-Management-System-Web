@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Services\BunnyStreamService;
 use App\Services\StudentLearningMilestoneEmailService;
+use App\Services\StudentWorkbookDeliveryService;
 use App\Support\MobileSignedUrl;
 use App\Support\MobileMediaPayload;
 use Illuminate\Support\Collection;
@@ -22,6 +23,7 @@ class StudentLessonApiService
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
+        private readonly StudentWorkbookDeliveryService $studentWorkbookDeliveryService,
     ) {}
 
     /**
@@ -96,6 +98,7 @@ class StudentLessonApiService
             'workbook' => [
                 'url' => $workbookOpenUrl,
                 'download_url' => $workbookDownloadUrl,
+                'trigger_url' => $this->mobileLessonWorkbookTriggerUrl($lesson),
                 'file_name' => $lesson->workbook ? basename((string) $lesson->workbook) : null,
                 'is_available' => filled($lesson->workbook),
                 'file' => MobileMediaPayload::file(
@@ -220,6 +223,51 @@ class StudentLessonApiService
             'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
             'is_done' => (bool) $lessonProgress->is_done,
             'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function triggerWorkbookForUser(User $user, Lesson $lesson): ?array
+    {
+        $detail = $this->lessonDetailForUser($user, $lesson);
+
+        if (! $detail || ($detail['is_locked'] ?? false)) {
+            return $detail;
+        }
+
+        if (! filled($lesson->workbook)) {
+            return [
+                'lesson_id' => $lesson->id,
+                'workbook' => [
+                    'is_available' => false,
+                ],
+            ];
+        }
+
+        $result = $this->studentWorkbookDeliveryService->triggerOnce($user, $lesson);
+
+        return [
+            'lesson_id' => $lesson->id,
+            'was_first_trigger' => $result['was_first_trigger'],
+            'workbook' => [
+                'is_available' => true,
+                'is_workbook_downloaded' => $result['is_workbook_downloaded'],
+                'workbook_downloaded_at' => $result['workbook_downloaded_at'],
+                'download_url' => $this->mobileLessonWorkbookDownloadUrl($user, $lesson),
+                'open_url' => $this->mobileLessonWorkbookOpenUrl($user, $lesson),
+                'trigger_url' => $this->mobileLessonWorkbookTriggerUrl($lesson),
+                'file_name' => basename((string) $lesson->workbook),
+            ],
+            'notification' => [
+                'title' => $result['was_first_trigger']
+                    ? 'Workbook download started'
+                    : 'Workbook already delivered',
+                'message' => $result['was_first_trigger']
+                    ? 'Workbook delivery was triggered successfully. You can start the download now and the workbook was also sent to email.'
+                    : 'This workbook was already triggered before for the authenticated student.',
+            ],
         ];
     }
 
@@ -356,6 +404,17 @@ class StudentLessonApiService
                 'student' => $user->id,
             ],
         );
+    }
+
+    private function mobileLessonWorkbookTriggerUrl(Lesson $lesson): ?string
+    {
+        if (! filled($lesson->workbook)) {
+            return null;
+        }
+
+        return route('mobile.api.v1.lessons.workbook.trigger', [
+            'lesson' => $lesson->id,
+        ]);
     }
 
     private function accessibleModulesWithLessons(?int $accessTierId): Collection
