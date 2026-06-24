@@ -35,12 +35,19 @@ class CheckoutController extends Controller
 
         $pendingRegistration->loadMissing('accessTier', 'onboardingState');
 
-        if ($pendingRegistration->status === PendingRegistration::STATUS_PAYMENT_SUCCESS && $pendingRegistration->onboardingState) {
-            return redirect()->away($this->paymentFlow->paymentSuccessUrl($pendingRegistration->onboardingState));
+        if (
+            $pendingRegistration->status === PendingRegistration::STATUS_PAYMENT_SUCCESS
+            && $pendingRegistration->onboardingState
+        ) {
+            return redirect()->away(
+                $this->paymentFlow->paymentSuccessUrl($pendingRegistration->onboardingState)
+            );
         }
 
         if ($pendingRegistration->status === PendingRegistration::STATUS_COMPLETED) {
-            return redirect()->route('login')->with('status', 'Your YogaFX account is already ready. Please sign in.');
+            return redirect()
+                ->route('login')
+                ->with('status', 'Your YogaFX account is already ready. Please sign in.');
         }
 
         $pendingRegistration = $this->paymentFlow->markCheckoutOpened($pendingRegistration);
@@ -88,7 +95,9 @@ class CheckoutController extends Controller
             }
 
             return redirect()->away($checkoutUrl)
-                ->withErrors(['payment_method' => 'Please use the onsite checkout form on this page.']);
+                ->withErrors([
+                    'payment_method' => 'Please use the onsite checkout form on this page.',
+                ]);
         }
 
         $result = $this->paymentFlow->startInitialCheckout($pendingRegistration, $validated);
@@ -112,7 +121,18 @@ class CheckoutController extends Controller
         abort_unless($pendingRegistration->access_tier_id === $accessTier->id, 404);
 
         $validated = $request->validated();
-        $result = $this->paymentFlow->startInitialCheckout($pendingRegistration, $validated);
+
+        try {
+            $result = $this->paymentFlow->startInitialCheckout($pendingRegistration, $validated);
+        } catch (\Throwable $throwable) {
+            report($throwable);
+
+            return $this->inlineCheckoutResponse(
+                'failed',
+                'The PayPal checkout could not be started. Please try again without re-entering your billing details.',
+                422
+            );
+        }
 
         if (($validated['payment_method'] ?? null) === Payment::METHOD_MOCK) {
             return response()->json([
@@ -127,8 +147,14 @@ class CheckoutController extends Controller
             'status' => 'created',
             'order_id' => (string) $result['payment_activity']->payment_reference,
             'invoice_id' => $result['invoice']->id,
-            'capture_url' => $this->paymentFlow->checkoutOrderCaptureUrl($pendingRegistration, $result['invoice']),
-            'cancel_url' => $this->paymentFlow->checkoutOrderCancelUrl($pendingRegistration, $result['invoice']),
+            'capture_url' => $this->paymentFlow->checkoutOrderCaptureUrl(
+                $pendingRegistration,
+                $result['invoice']
+            ),
+            'cancel_url' => $this->paymentFlow->checkoutOrderCancelUrl(
+                $pendingRegistration,
+                $result['invoice']
+            ),
         ]);
     }
 
@@ -167,10 +193,11 @@ class CheckoutController extends Controller
                 'PayPal capture failed before completion.',
             );
 
-            return response()->json([
-                'status' => 'failed',
-                'redirect_url' => $this->paymentFlow->checkoutStatusUrl($invoice),
-            ], 422);
+            return $this->inlineCheckoutResponse(
+                'failed',
+                'The payment could not be completed. Please try again from this checkout panel.',
+                422
+            );
         }
 
         $providerStatus = strtoupper((string) ($capture['status'] ?? ''));
@@ -181,7 +208,11 @@ class CheckoutController extends Controller
                 $validated['order_id'],
             );
 
-            abort_unless($result['onboarding_state'] !== null, 409, 'Onboarding continuation is not available for this invoice.');
+            abort_unless(
+                $result['onboarding_state'] !== null,
+                409,
+                'Onboarding continuation is not available for this invoice.'
+            );
 
             return response()->json([
                 'status' => 'success',
@@ -195,10 +226,14 @@ class CheckoutController extends Controller
                 'PayPal capture returned pending.',
             );
 
-            return response()->json([
-                'status' => 'pending',
-                'redirect_url' => $this->paymentFlow->checkoutStatusUrl($invoice),
-            ], 202);
+            return $this->inlineCheckoutResponse(
+                'pending',
+                'PayPal is still processing this transaction. Please wait for the final provider result before trying again.',
+                202,
+                [
+                    'can_retry' => false,
+                ]
+            );
         }
 
         $this->paymentFinalizer->failPendingPayment(
@@ -206,10 +241,11 @@ class CheckoutController extends Controller
             'PayPal capture returned unexpected status: '.$providerStatus,
         );
 
-        return response()->json([
-            'status' => 'failed',
-            'redirect_url' => $this->paymentFlow->checkoutStatusUrl($invoice),
-        ], 422);
+        return $this->inlineCheckoutResponse(
+            'failed',
+            'This payment did not complete. Please try again from the same checkout panel.',
+            422
+        );
     }
 
     public function cancelOrder(
@@ -239,10 +275,10 @@ class CheckoutController extends Controller
 
         $this->paymentFinalizer->cancelPendingPayment($paymentActivity);
 
-        return response()->json([
-            'status' => 'failed',
-            'redirect_url' => $this->paymentFlow->checkoutStatusUrl($invoice),
-        ]);
+        return $this->inlineCheckoutResponse(
+            'cancelled',
+            'The PayPal checkout was cancelled. Your billing details are still here, so you can try again right away.'
+        );
     }
 
     public function status(Invoice $invoice): InertiaResponse|RedirectResponse
@@ -289,5 +325,20 @@ class CheckoutController extends Controller
                 'currency_code' => $invoice->currency_code,
             ],
         ]);
+    }
+
+    private function inlineCheckoutResponse(
+        string $status,
+        string $message,
+        int $httpStatus = 200,
+        array $extra = [],
+    ): JsonResponse {
+        return response()->json([
+            'status' => $status,
+            'message' => $message,
+            'stay_on_checkout' => true,
+            'can_retry' => $status !== 'pending',
+            ...$extra,
+        ], $httpStatus);
     }
 }

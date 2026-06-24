@@ -85,6 +85,8 @@ export default function PublicCheckoutPanel({ checkout }) {
     const [sdkError, setSdkError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [debugInfo, setDebugInfo] = useState(null);
+    const [paymentAttemptState, setPaymentAttemptState] = useState("idle");
+    const [paypalButtonsVersion, setPaypalButtonsVersion] = useState(0);
 
     const paypalButtonsRef = useRef(null);
     const activeOrderRef = useRef(null);
@@ -188,6 +190,13 @@ export default function PublicCheckoutPanel({ checkout }) {
                 setGeneralError("");
                 setDebugInfo(null);
 
+                if (paymentAttemptState === "pending") {
+                    setGeneralError(
+                        "Your last payment attempt is still pending. Please wait for the final provider update before trying again.",
+                    );
+                    return actions.reject();
+                }
+
                 if (!validateCheckoutFields()) {
                     return actions.reject();
                 }
@@ -205,10 +214,15 @@ export default function PublicCheckoutPanel({ checkout }) {
                 await cancelActiveOrder(data.orderID);
             },
             onError: () => {
-                setGeneralError(
-                    "PayPal could not start the embedded checkout flow. Please try again.",
+                restoreInlineRetryState(
+                    "PayPal could not start the embedded checkout flow. Please try again without re-entering your billing details.",
+                    {
+                        stage: "paypal_sdk_error",
+                        payload: null,
+                        checkout_mode: "paypal",
+                        payment_method: "paypal",
+                    },
                 );
-                setIsSubmitting(false);
             },
         });
 
@@ -231,7 +245,13 @@ export default function PublicCheckoutPanel({ checkout }) {
             buttonsInstanceRef.current = null;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sdkReady, paymentType, checkout.create_order_url]);
+    }, [
+        sdkReady,
+        paymentType,
+        checkout.create_order_url,
+        paypalButtonsVersion,
+        paymentAttemptState,
+    ]);
 
     const setFieldValue = (field, value) => {
         setFormData((current) => {
@@ -287,13 +307,53 @@ export default function PublicCheckoutPanel({ checkout }) {
         return isValid;
     };
 
+    const rerenderPayPalButtons = () => {
+        activeOrderRef.current = null;
+        setPaypalButtonsVersion((current) => current + 1);
+    };
+
+    const restoreInlineRetryState = (message, nextDebugInfo = null) => {
+        if (nextDebugInfo) {
+            setDebugInfo(nextDebugInfo);
+        }
+
+        setGeneralError(
+            message ??
+                "This payment did not complete. Please try again without re-entering your billing details.",
+        );
+        setPaymentAttemptState("idle");
+        setIsSubmitting(false);
+        rerenderPayPalButtons();
+    };
+
+    const holdPendingState = (message, nextDebugInfo = null) => {
+        if (nextDebugInfo) {
+            setDebugInfo(nextDebugInfo);
+        }
+
+        setGeneralError(
+            message ??
+                "Your payment is still being processed. Please wait for the final result before trying again.",
+        );
+        activeOrderRef.current = null;
+        setPaymentAttemptState("pending");
+        setIsSubmitting(false);
+    };
+
+    const paymentInteractionLocked =
+        !formData.terms_accepted ||
+        isSubmitting ||
+        paymentAttemptState === "pending";
+
     const createOrderSession = async (paymentMethod) => {
         if (!validateCheckoutFields()) {
             setIsSubmitting(false);
+            setPaymentAttemptState("idle");
             throw new Error("Checkout form is incomplete.");
         }
 
         setIsSubmitting(true);
+        setPaymentAttemptState("creating");
         setGeneralError("");
         setDebugInfo(null);
 
@@ -334,6 +394,7 @@ export default function PublicCheckoutPanel({ checkout }) {
             };
 
             setDebugInfo(nextDebugInfo);
+            activeOrderRef.current = null;
 
             if (payload.errors) {
                 setFieldErrors((current) => ({
@@ -351,16 +412,24 @@ export default function PublicCheckoutPanel({ checkout }) {
                 payload.message ??
                     "The checkout session could not be created. Please try again.",
             );
+            setPaymentAttemptState("idle");
             setIsSubmitting(false);
             throw new Error("create-order");
         }
 
-        if (payload.status === "success" && payload.redirect_url) {
+        if (
+            paymentMethod === "mock" &&
+            payload.status === "success" &&
+            payload.redirect_url
+        ) {
             window.location.assign(payload.redirect_url);
             return payload;
         }
 
         activeOrderRef.current = payload;
+        setPaymentAttemptState("awaiting_approval");
+        setIsSubmitting(false);
+
         return payload;
     };
 
@@ -368,12 +437,20 @@ export default function PublicCheckoutPanel({ checkout }) {
         const activeOrder = activeOrderRef.current;
 
         if (!activeOrder?.capture_url) {
-            setGeneralError(
+            restoreInlineRetryState(
                 "The payment capture route was not prepared correctly.",
+                {
+                    stage: "capture_route_missing",
+                    payload: null,
+                    checkout_mode: "paypal",
+                    payment_method: "paypal",
+                },
             );
-            setIsSubmitting(false);
             return;
         }
+
+        setIsSubmitting(true);
+        setPaymentAttemptState("capturing");
 
         const response = await fetch(activeOrder.capture_url, {
             method: "POST",
@@ -388,26 +465,50 @@ export default function PublicCheckoutPanel({ checkout }) {
         });
 
         const payload = await parseJsonSafely(response);
-        const redirectUrl = payload.redirect_url;
+        const nextDebugInfo = {
+            stage: "capture_order_result",
+            http_status: response.status,
+            payload,
+            order_id: orderId,
+            checkout_mode: "paypal",
+            payment_method: "paypal",
+        };
 
-        if (redirectUrl) {
-            window.location.assign(redirectUrl);
+        if (payload.status === "success" && payload.redirect_url) {
+            window.location.assign(payload.redirect_url);
             return;
         }
 
-        setGeneralError(
+        if (payload.status === "pending") {
+            holdPendingState(
+                payload.message ??
+                    "Your payment is still being processed. Please wait for the final provider update.",
+                nextDebugInfo,
+            );
+            return;
+        }
+
+        restoreInlineRetryState(
             payload.message ??
-                "The payment was processed, but the next onboarding step could not be opened automatically.",
+                "The payment did not complete. Please try again without re-entering your billing details.",
+            nextDebugInfo,
         );
-        setIsSubmitting(false);
     };
 
     const cancelActiveOrder = async (orderId) => {
         const activeOrder = activeOrderRef.current;
 
         if (!activeOrder?.cancel_url) {
-            setGeneralError("The PayPal checkout was cancelled.");
-            setIsSubmitting(false);
+            restoreInlineRetryState(
+                "The PayPal checkout was cancelled. Your billing details are still here, so you can try again right away.",
+                {
+                    stage: "checkout_cancelled",
+                    payload: null,
+                    order_id: orderId,
+                    checkout_mode: "paypal",
+                    payment_method: "paypal",
+                },
+            );
             return;
         }
 
@@ -425,13 +526,18 @@ export default function PublicCheckoutPanel({ checkout }) {
 
         const payload = await parseJsonSafely(response);
 
-        if (payload.redirect_url) {
-            window.location.assign(payload.redirect_url);
-            return;
-        }
-
-        setGeneralError("The PayPal checkout was cancelled.");
-        setIsSubmitting(false);
+        restoreInlineRetryState(
+            payload.message ??
+                "The PayPal checkout was cancelled. Your billing details are still here, so you can try again right away.",
+            {
+                stage: "checkout_cancelled",
+                http_status: response.status,
+                payload,
+                order_id: orderId,
+                checkout_mode: "paypal",
+                payment_method: "paypal",
+            },
+        );
     };
 
     const runMockCheckout = async () => {
@@ -458,13 +564,16 @@ export default function PublicCheckoutPanel({ checkout }) {
 
             {/* Panel 1: Billing Identity & Address */}
             <div className="space-y-6 rounded-[16px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
-
                 <div className="grid gap-6 md:grid-cols-2">
                     {/* Billing Identity Header */}
                     <div className="md:col-span-2">
                         <p
                             className="text-sm font-semibold text-[#DB202C]"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 600,
+                            }}
                         >
                             Billing identity
                         </p>
@@ -475,15 +584,26 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <InputLabel
                             value="First Name"
                             className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                         />
                         <div className="relative mt-2">
                             <input
                                 value={formData.first_name}
                                 onChange={(event) =>
-                                    setFieldValue("first_name", event.target.value)
+                                    setFieldValue(
+                                        "first_name",
+                                        event.target.value,
+                                    )
                                 }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.first_name
                                         ? "border-rose-500 pr-11 focus:border-rose-500"
@@ -494,7 +614,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                 <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
                             )}
                         </div>
-                        <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.first_name} />
+                        <InputError
+                            className="mt-2 text-sm font-medium text-rose-400"
+                            style={{ fontFamily: FONT_FAMILY }}
+                            message={fieldErrors.first_name}
+                        />
                     </div>
 
                     {/* Last Name */}
@@ -502,15 +626,26 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <InputLabel
                             value="Last Name"
                             className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                         />
                         <div className="relative mt-2">
                             <input
                                 value={formData.last_name}
                                 onChange={(event) =>
-                                    setFieldValue("last_name", event.target.value)
+                                    setFieldValue(
+                                        "last_name",
+                                        event.target.value,
+                                    )
                                 }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.last_name
                                         ? "border-rose-500 pr-11 focus:border-rose-500"
@@ -521,7 +656,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                 <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
                             )}
                         </div>
-                        <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.last_name} />
+                        <InputError
+                            className="mt-2 text-sm font-medium text-rose-400"
+                            style={{ fontFamily: FONT_FAMILY }}
+                            message={fieldErrors.last_name}
+                        />
                     </div>
 
                     {/* Email (Full Width) */}
@@ -529,12 +668,20 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <InputLabel
                             value="Email"
                             className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                         />
                         <input
                             value={checkout.email}
                             disabled
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                            }}
                             className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white/60 opacity-70 transition-all duration-200"
                         />
                     </div>
@@ -544,12 +691,20 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <InputLabel
                             value="Mobile Phone"
                             className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                         />
                         <input
                             value={checkout.phone}
                             disabled
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                            }}
                             className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white/60 opacity-70 transition-all duration-200"
                         />
                     </div>
@@ -559,15 +714,26 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <InputLabel
                             value="Billing Postcode"
                             className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                         />
                         <div className="relative mt-2">
                             <input
                                 value={formData.billing_postcode}
                                 onChange={(event) =>
-                                    setFieldValue("billing_postcode", event.target.value)
+                                    setFieldValue(
+                                        "billing_postcode",
+                                        event.target.value,
+                                    )
                                 }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.billing_postcode
                                         ? "border-rose-500 pr-11 focus:border-rose-500"
@@ -578,7 +744,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                 <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
                             )}
                         </div>
-                        <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.billing_postcode} />
+                        <InputError
+                            className="mt-2 text-sm font-medium text-rose-400"
+                            style={{ fontFamily: FONT_FAMILY }}
+                            message={fieldErrors.billing_postcode}
+                        />
                     </div>
 
                     {/* Billing Country */}
@@ -586,15 +756,26 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <InputLabel
                             value="Billing Country"
                             className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                         />
                         <div className="relative mt-2">
                             <input
                                 value={formData.billing_country}
                                 onChange={(event) =>
-                                    setFieldValue("billing_country", event.target.value)
+                                    setFieldValue(
+                                        "billing_country",
+                                        event.target.value,
+                                    )
                                 }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.billing_country
                                         ? "border-rose-500 pr-11 focus:border-rose-500"
@@ -605,7 +786,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                 <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
                             )}
                         </div>
-                        <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.billing_country} />
+                        <InputError
+                            className="mt-2 text-sm font-medium text-rose-400"
+                            style={{ fontFamily: FONT_FAMILY }}
+                            message={fieldErrors.billing_country}
+                        />
                     </div>
                 </div>
 
@@ -617,11 +802,18 @@ export default function PublicCheckoutPanel({ checkout }) {
                     <div className="flex items-center justify-between gap-3">
                         <p
                             className="text-sm font-semibold text-[#DB202C]"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 600,
+                            }}
                         >
                             Billing address
                         </p>
-                        <span className="text-xs text-white/40" style={{ fontFamily: FONT_FAMILY }}>
+                        <span
+                            className="text-xs text-white/40"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Optional second line supported
                         </span>
                     </div>
@@ -631,7 +823,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                             <InputLabel
                                 value="Billing Address Line 1"
                                 className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             />
                             <input
                                 value={formData.billing_address_line_1}
@@ -641,7 +837,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                         event.target.value,
                                     )
                                 }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
                             />
                         </div>
@@ -650,7 +850,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                             <InputLabel
                                 value="Billing Address Line 2"
                                 className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             />
                             <input
                                 value={formData.billing_address_line_2}
@@ -660,7 +864,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                         event.target.value,
                                     )
                                 }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
                             />
                         </div>
@@ -674,22 +882,38 @@ export default function PublicCheckoutPanel({ checkout }) {
                     <InputLabel
                         value="Payment Type"
                         className="text-sm font-medium text-white/90"
-                        style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "14px",
+                            fontWeight: 500,
+                        }}
                     />
                     <select
                         value={paymentType}
                         onChange={(event) => setPaymentType(event.target.value)}
-                        style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "14px",
+                            fontWeight: 400,
+                        }}
                         className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
                     >
-                        <option value="pay_full" className="bg-gray-900 text-white" style={{ fontFamily: FONT_FAMILY }}>
+                        <option
+                            value="pay_full"
+                            className="bg-gray-900 text-white"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Pay in Full -{" "}
                             {formatCurrency(
                                 checkout.amount,
                                 checkout.currency_code,
                             )}
                         </option>
-                        <option value="installment" className="bg-gray-900 text-white" style={{ fontFamily: FONT_FAMILY }}>
+                        <option
+                            value="installment"
+                            className="bg-gray-900 text-white"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Pay in 4 Installments -{" "}
                             {formatCurrency(
                                 installmentAmount,
@@ -709,30 +933,44 @@ export default function PublicCheckoutPanel({ checkout }) {
                             ? "border-rose-500 bg-rose-500/10 ring-1 ring-rose-500/20"
                             : "border-white/10 bg-white/5 shadow-lg backdrop-blur-sm hover:border-white/30"
                     }`}
-                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "14px",
+                        fontWeight: 400,
+                    }}
                 >
                     <input
                         type="checkbox"
                         checked={formData.terms_accepted}
                         onChange={(event) =>
-                            setFieldValue("terms_accepted", event.target.checked)
+                            setFieldValue(
+                                "terms_accepted",
+                                event.target.checked,
+                            )
                         }
                         className="mt-1 h-5 w-5 flex-shrink-0 rounded border-white/20 bg-black/20 text-[#DB202C] transition-colors focus:ring-[#DB202C] focus:ring-offset-gray-900"
                     />
                     <span className="flex-1 leading-relaxed">
-                        I agree to continue with YogaFX payment processing
-                        and understand that sensitive card data is handled
-                        directly by PayPal-hosted secure components.
+                        I agree to continue with YogaFX payment processing and
+                        understand that sensitive card data is handled directly
+                        by PayPal-hosted secure components.
                     </span>
                     {fieldErrors.terms_accepted && (
                         <AlertCircle className="mt-1 h-5 w-5 flex-shrink-0 text-rose-400" />
                     )}
                 </label>
-                <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.terms_accepted} />
+                <InputError
+                    className="mt-2 text-sm font-medium text-rose-400"
+                    style={{ fontFamily: FONT_FAMILY }}
+                    message={fieldErrors.terms_accepted}
+                />
             </div>
 
             {debugInfo && (
-                <div className="rounded-xl border border-white/10 bg-black/20 px-5 py-4 text-sm leading-6 text-white/70" style={{ fontFamily: FONT_FAMILY }}>
+                <div
+                    className="rounded-xl border border-white/10 bg-black/20 px-5 py-4 text-sm leading-6 text-white/70"
+                    style={{ fontFamily: FONT_FAMILY }}
+                >
                     <p className="font-semibold text-white/90">
                         Checkout debug
                     </p>
@@ -754,28 +992,49 @@ export default function PublicCheckoutPanel({ checkout }) {
             <div className="rounded-[16px] border border-[#DB202C]/30 bg-white/5 p-6 shadow-xl backdrop-blur-sm">
                 <h2
                     className="text-white"
-                    style={{ fontFamily: FONT_FAMILY, fontSize: "22px", fontWeight: 500 }}
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "22px",
+                        fontWeight: 500,
+                    }}
                 >
                     Payment Method
                 </h2>
-                <p className="mt-2 text-sm font-normal leading-6 text-white/70" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}>
+                <p
+                    className="mt-2 text-sm font-normal leading-6 text-white/70"
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "14px",
+                        fontWeight: 400,
+                    }}
+                >
                     Pay with PayPal or your debit or credit card safely below.
                 </p>
 
                 <div
                     className={`mt-6 transition-opacity duration-300 ${
-                        !formData.terms_accepted
-                            ? "opacity-50 grayscale-[30%]"
+                        paymentInteractionLocked
+                            ? "pointer-events-none opacity-50 grayscale-[30%]"
                             : "opacity-100 grayscale-0"
                     }`}
                 >
                     <div className="rounded-[16px] border border-white/10 bg-black/20 p-5 shadow-inner">
                         <div ref={paypalButtonsRef} className="min-h-[48px]" />
                     </div>
+                    {paymentAttemptState === "pending" && (
+                        <div className="mt-4 rounded-[12px] border border-amber-300/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                            Your payment is still pending with PayPal. We kept
+                            your billing details on this page, but please wait
+                            for the final provider result before trying again.
+                        </div>
+                    )}
                 </div>
 
                 {!sdkReady && (
-                    <div className="mt-5 flex items-center gap-3 text-sm font-medium text-white/60" style={{ fontFamily: FONT_FAMILY }}>
+                    <div
+                        className="mt-5 flex items-center gap-3 text-sm font-medium text-white/60"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
                         <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
                         <span>Loading secure payment methods...</span>
                     </div>
@@ -786,12 +1045,26 @@ export default function PublicCheckoutPanel({ checkout }) {
                 <div className="rounded-[16px] border border-dashed border-white/20 bg-black/15 p-6 backdrop-blur-sm">
                     <div className="flex flex-wrap items-center justify-between gap-5">
                         <div>
-                            <p className="text-sm font-semibold text-white" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}>
+                            <p
+                                className="text-sm font-semibold text-white"
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 600,
+                                }}
+                            >
                                 Local testing
                             </p>
-                            <p className="mt-1 text-sm font-normal text-white/60" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}>
-                                Mock checkout stays available only
-                                outside production.
+                            <p
+                                className="mt-1 text-sm font-normal text-white/60"
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
+                            >
+                                Mock checkout stays available only outside
+                                production.
                             </p>
                         </div>
 
@@ -800,7 +1073,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                             variant="outline"
                             onClick={runMockCheckout}
                             disabled={isSubmitting}
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                             className="rounded-[5px] border-white/20 bg-transparent px-2.5 py-2 text-sm font-medium text-white hover:bg-white/10"
                         >
                             Run Mock Payment
