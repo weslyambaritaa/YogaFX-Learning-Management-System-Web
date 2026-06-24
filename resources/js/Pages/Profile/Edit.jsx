@@ -4,6 +4,8 @@ import StudentProfileForm from '@/Components/StudentProfileForm';
 import { Button } from '@/Components/ui/button';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 
+const FONT = { fontFamily: "'Montserrat', sans-serif" };
+
 export default function Edit({ status, upgradeOptions = [] }) {
     const user = usePage().props.auth.user;
     const studentName = user.first_name ?? user.name ?? 'Student';
@@ -27,6 +29,7 @@ export default function Edit({ status, upgradeOptions = [] }) {
         why_yogafx: 'Why YogaFX',
         how_did_you_find_us: 'How Did You Find Us',
     };
+
     const { data, setData, post, errors, processing } = useForm({
         _method: 'patch',
         first_name: user.first_name ?? '',
@@ -51,78 +54,77 @@ export default function Edit({ status, upgradeOptions = [] }) {
 
     const submit = (e) => {
         e.preventDefault();
-
-        post(route('profile.update'), {
-            forceFormData: true,
-        });
+        post(route('profile.update'), { forceFormData: true });
     };
 
     const requestPasswordChange = () => {
-        router.post(route('profile.password.request'), {}, {
-            preserveScroll: true,
-        });
+        router.post(route('profile.password.request'), {}, { preserveScroll: true });
     };
 
     return (
         <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-16">
             <Head title="Student Profile" />
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-6 sm:px-6 lg:px-10">
-                <section className="rounded-[16px] border border-white/10 bg-[#15110f] px-6 py-8 shadow-[0_30px_120px_rgba(0,0,0,0.45)] sm:px-8">
+            <div
+                className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-6 sm:px-6 lg:px-10"
+                style={FONT}
+            >
+                {/* ── Hero ── */}
+                <section>
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="space-y-3">
-                            <p className="text-xs font-medium uppercase tracking-[0.28em] text-[#f2d9c8]">
+                        <div className="space-y-2">
+                            <p className="text-[14px] font-medium text-[#f2d9c8]">
                                 Hi {studentName}
                             </p>
-                            <h1 className="text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
+                            <h1 className="text-[28px] font-semibold tracking-[-0.03em] text-white">
                                 Profile
                             </h1>
                         </div>
 
                         <div className="flex flex-wrap items-center gap-3">
-                            <div className="rounded-lg border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/80">
+                            <div className="rounded-[5px] border border-white/12 bg-white/5 px-[10px] py-[8px] text-[14px] font-medium text-white/80">
                                 {profileComplete ? 'Complete' : 'Needs completion'}
                             </div>
-                            <div className="rounded-lg border border-white/12 bg-white/5 px-4 py-2 text-sm text-white/80">
+                            <div className="rounded-[5px] border border-white/12 bg-white/5 px-[10px] py-[8px] text-[14px] font-medium text-white/80">
                                 {accessTierName}
                             </div>
                         </div>
                     </div>
                 </section>
 
+                {/* ── Alerts ── */}
                 {!profileComplete && (
-                    <div className="rounded-[12px] border border-amber-300/15 bg-[linear-gradient(160deg,rgba(217,119,6,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-amber-50/90">
+                    <div className="rounded-[5px] border border-amber-300/15 bg-[linear-gradient(160deg,rgba(217,119,6,0.16),rgba(255,255,255,0.03))] px-[10px] py-[8px] text-[14px] font-medium text-amber-50/90">
                         Complete the required profile fields before entering the dashboard.
                         {missingProfileFields.length ? (
                             <div className="mt-2 text-amber-50/80">
-                                Missing: {missingProfileFields.map((field) => missingFieldLabels[field] ?? field).join(', ')}.
+                                Missing: {missingProfileFields.map((f) => missingFieldLabels[f] ?? f).join(', ')}.
                             </div>
                         ) : null}
                     </div>
                 )}
 
                 {status === 'profile-updated' && (
-                    <div className="rounded-[12px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
+                    <div className="rounded-[5px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-[10px] py-[8px] text-[14px] font-medium text-emerald-50/90">
                         Profile updated.
                     </div>
                 )}
 
                 {status === 'student-password-change-email-sent' && (
-                    <div className="rounded-[12px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-5 py-4 text-sm text-emerald-50/90">
+                    <div className="rounded-[5px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-[10px] py-[8px] text-[14px] font-medium text-emerald-50/90">
                         Password change email sent.
                     </div>
                 )}
 
-                <section className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5 sm:p-6 lg:p-8">
-                    <div className="mb-6 flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                Student Profile
-                            </p>
-                            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                                Edit details
-                            </h2>
-                        </div>
+                {/* ── Student Profile ── */}
+                <section>
+                    <div className="mb-6">
+                        <p className="text-[14px] font-medium text-white/45">
+                            Student Profile
+                        </p>
+                        <h2 className="mt-1 text-[22px] font-medium tracking-tight text-white">
+                            Edit details
+                        </h2>
                     </div>
 
                     <StudentProfileForm
@@ -138,43 +140,42 @@ export default function Edit({ status, upgradeOptions = [] }) {
                     />
                 </section>
 
-                <section className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5 sm:p-6 lg:p-8">
-                    <div className="mb-6 flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                Security
-                            </p>
-                            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                                Change password
-                            </h2>
-                        </div>
+                {/* ── Security ── */}
+                <section className="border-t border-white/10 pt-8">
+                    <div className="mb-6">
+                        <p className="text-[14px] font-medium text-white/45">
+                            Security
+                        </p>
+                        <h2 className="mt-1 text-[22px] font-medium tracking-tight text-white">
+                            Change password
+                        </h2>
                     </div>
 
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-sm text-white/60">
+                        <p className="text-[14px] font-normal text-white/60">
                             Request a password change by email.
                         </p>
 
                         <Button
                             type="button"
                             onClick={requestPasswordChange}
-                            className="rounded-lg bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                            style={FONT}
+                            className="h-auto rounded-[5px] bg-[#db202c] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#db202c]"
                         >
                             Change Password
                         </Button>
                     </div>
                 </section>
 
-                <section className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5 sm:p-6 lg:p-8">
-                    <div className="mb-6 flex items-center justify-between gap-4">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.22em] text-white/45">
-                                Upgrade Access
-                            </p>
-                            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                                Upgrade tier
-                            </h2>
-                        </div>
+                {/* ── Upgrade Access ── */}
+                <section className="border-t border-white/10 pt-8">
+                    <div className="mb-6">
+                        <p className="text-[14px] font-medium text-white/45">
+                            Upgrade Access
+                        </p>
+                        <h2 className="mt-1 text-[22px] font-medium tracking-tight text-white">
+                            Upgrade tier
+                        </h2>
                     </div>
 
                     {upgradeOptions.length > 0 ? (
@@ -182,21 +183,22 @@ export default function Edit({ status, upgradeOptions = [] }) {
                             {upgradeOptions.map((tier) => (
                                 <div
                                     key={tier.id}
-                                    className="rounded-[14px] border border-white/10 bg-[#100d0c] p-5 sm:p-6"
+                                    className="rounded-[5px] border border-white/10 bg-white/[0.04] px-[10px] py-[8px]"
                                 >
                                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                         <div>
-                                            <h3 className="text-xl font-semibold text-white">
+                                            <h3 className="text-[14px] font-semibold text-white">
                                                 {tier.name}
                                             </h3>
-                                            <p className="mt-2 text-sm text-white/58">
+                                            <p className="mt-1 text-[14px] font-normal text-white/58">
                                                 {formatCurrency(tier.price, tier.currency_code)}
                                             </p>
                                         </div>
 
                                         <Button
                                             asChild
-                                            className="rounded-lg bg-[#d5462f] px-6 text-white hover:bg-[#e2553d]"
+                                            style={FONT}
+                                            className="h-auto rounded-[5px] bg-[#d5462f] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#db202c]"
                                         >
                                             <Link href={tier.upgrade_url}>Upgrade</Link>
                                         </Button>
@@ -205,9 +207,9 @@ export default function Edit({ status, upgradeOptions = [] }) {
                             ))}
                         </div>
                     ) : (
-                        <div className="rounded-[14px] border border-white/10 bg-[#100d0c] p-5 text-sm text-white/60 sm:p-6">
+                        <p className="text-[14px] font-normal text-white/60">
                             No upgrade is available right now.
-                        </div>
+                        </p>
                     )}
                 </section>
             </div>

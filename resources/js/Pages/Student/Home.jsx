@@ -3,10 +3,11 @@ import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link } from "@inertiajs/react";
-import { Check, ChevronRight, Download, Play, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronRight, Play, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const ONBOARDING_KEY = "yogafx_onboarding_done";
+const FONT_FAMILY = "'Montserrat', sans-serif";
 
 const SLIDES = [
     {
@@ -44,7 +45,10 @@ function OnboardingOverlay({ onDone }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
-            <div className="relative w-full max-w-md rounded-[18px] border border-white/10 bg-[#141110] p-8 text-white">
+            <div
+                className="relative w-full max-w-md rounded-[5px] border border-white/10 bg-[#141110] p-8 text-white"
+                style={{ fontFamily: FONT_FAMILY }}
+            >
                 <button
                     type="button"
                     onClick={finish}
@@ -84,7 +88,7 @@ function OnboardingOverlay({ onDone }) {
                         onClick={() =>
                             isLast ? finish() : setSlide((value) => value + 1)
                         }
-                        className="rounded-[12px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                        className="rounded-[5px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
                     >
                         {isLast ? "Get Started" : "Next"}
                     </Button>
@@ -136,12 +140,16 @@ function AccessTimeCard({ accessTimeSummary }) {
     const parts = formatDurationParts(liveSeconds);
 
     return (
-        <div className="inline-flex items-center gap-5 rounded-[16px] border border-white/10 bg-black/45 px-6 py-4 text-white backdrop-blur">
+        <div
+            className="inline-flex items-center gap-5 rounded-[5px] border border-white/10 bg-black/45 px-6 py-4 text-white backdrop-blur"
+            style={{ fontFamily: FONT_FAMILY }}
+        >
             <div>
-                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+                {/* Hapus uppercase dan tracking */}
+                <div className="text-xs text-white/45">
                     Running Total
                 </div>
-                <div className="text-xs uppercase tracking-[0.2em] text-white/45">
+                <div className="text-xs text-white/45">
                     Login Time
                 </div>
             </div>
@@ -154,7 +162,10 @@ function AccessTimeCard({ accessTimeSummary }) {
 
 function LessonRow({ lesson, onLockedClick }) {
     const row = (
-        <div className="flex items-center justify-between gap-4 rounded-[14px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.06]">
+        <div
+            className="flex items-center justify-between gap-4 rounded-[5px] border border-white/10 bg-white/[0.04] px-4 py-3 transition hover:bg-white/[0.06]"
+            style={{ fontFamily: FONT_FAMILY }}
+        >
             <div className="min-w-0">
                 <div className="text-sm font-medium text-white">
                     {lesson.title}
@@ -208,8 +219,9 @@ function ModuleModal({ module, onClose, onLockedLessonClick }) {
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-3xl rounded-t-[18px] border border-white/10 bg-[#141110] sm:rounded-[18px]"
+                className="relative w-full max-w-3xl rounded-t-[5px] border border-white/10 bg-[#141110] sm:rounded-[5px]"
                 onClick={(event) => event.stopPropagation()}
+                style={{ fontFamily: FONT_FAMILY }}
             >
                 <button
                     type="button"
@@ -219,7 +231,7 @@ function ModuleModal({ module, onClose, onLockedLessonClick }) {
                     <X className="size-4" />
                 </button>
 
-                <div className="relative aspect-video overflow-hidden rounded-t-[18px] sm:rounded-t-[18px]">
+                <div className="relative aspect-video overflow-hidden rounded-t-[5px]">
                     {module.thumbnail_url ? (
                         <img
                             src={module.thumbnail_url}
@@ -239,11 +251,25 @@ function ModuleModal({ module, onClose, onLockedLessonClick }) {
                             }
                             label={module.status_label}
                         />
-                        <div className="text-3xl font-semibold text-white">
-                            {module.title}
-                        </div>
-                        <div className="text-3xl font-semibold text-white">
+                        <div
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
+                            className="text-white"
+                        >
                             Module {module.sort_order}
+                        </div>
+                        <div
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "22px",
+                                fontWeight: 500,
+                            }}
+                            className="text-white"
+                        >
+                            {module.title}
                         </div>
                     </div>
                 </div>
@@ -256,19 +282,33 @@ function ModuleModal({ module, onClose, onLockedLessonClick }) {
                     ) : null}
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
+                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
                             <div className="text-xs uppercase tracking-[0.18em] text-white/45">
                                 Lessons
                             </div>
-                            <div className="mt-2 text-3xl font-semibold">
+                            <div
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
+                                className="mt-2"
+                            >
                                 {module.lesson_count}
                             </div>
                         </div>
-                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
+                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-4 text-white">
                             <div className="text-xs uppercase tracking-[0.18em] text-white/45">
                                 Progress
                             </div>
-                            <div className="mt-2 text-3xl font-semibold">
+                            <div
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
+                                className="mt-2"
+                            >
                                 {module.progress_percentage}%
                             </div>
                         </div>
@@ -277,7 +317,12 @@ function ModuleModal({ module, onClose, onLockedLessonClick }) {
                     {module.continue_url ? (
                         <Button
                             asChild
-                            className="w-full rounded-[14px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                            className="w-full rounded-[5px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                         >
                             <Link href={module.continue_url}>
                                 {module.cta_label ?? "Open Module"}
@@ -313,8 +358,6 @@ function ModuleCard({ module, onLockedClick }) {
         if (hoverTimeoutRef.current) {
             window.clearTimeout(hoverTimeoutRef.current);
         }
-
-        // UPDATE: Waktu tunggu popup diset tepat 200ms (0.2 detik)
         hoverTimeoutRef.current = window.setTimeout(() => {
             setIsHoverOpen(true);
         }, 200);
@@ -325,7 +368,6 @@ function ModuleCard({ module, onLockedClick }) {
             window.clearTimeout(hoverTimeoutRef.current);
             hoverTimeoutRef.current = null;
         }
-
         setIsHoverOpen(false);
     };
 
@@ -339,8 +381,11 @@ function ModuleCard({ module, onLockedClick }) {
     );
 
     const mobileCard = (
-        <div className="space-y-2 p-3.5 md:hidden">
-            <div className="relative aspect-video overflow-hidden rounded-[18px]">
+        <div
+            className="space-y-2 p-3.5 md:hidden"
+            style={{ fontFamily: FONT_FAMILY }}
+        >
+            <div className="relative aspect-video overflow-hidden rounded-[5px]">
                 {module.thumbnail_url ? (
                     <img
                         src={module.thumbnail_url}
@@ -397,9 +442,9 @@ function ModuleCard({ module, onLockedClick }) {
             className={`relative hidden md:block ${isHoverOpen ? "z-50" : "z-10"}`}
             onMouseEnter={openHover}
             onMouseLeave={closeHover}
+            style={{ fontFamily: FONT_FAMILY }}
         >
-            {/* UPDATE: Animasi transition dipercepat menjadi duration-200 (0.2s) */}
-            <div className="aspect-video overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.04] shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition duration-200">
+            <div className="aspect-video overflow-hidden rounded-[5px] border border-white/10 bg-white/[0.04] shadow-[0_16px_40px_rgba(0,0,0,0.22)] transition duration-200">
                 {module.thumbnail_url ? (
                     <img
                         src={module.thumbnail_url}
@@ -412,7 +457,6 @@ function ModuleCard({ module, onLockedClick }) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/58 via-transparent to-transparent" />
             </div>
 
-            {/* UPDATE: Animasi popup transition-all diset menjadi duration-200 (0.2s) */}
             <div
                 className={[
                     "pointer-events-none absolute left-1/2 top-1/2 w-[112%] min-w-[320px] max-w-[380px] -translate-x-1/2 rounded-[22px] border border-white/12 bg-[#141110] shadow-[0_34px_90px_rgba(0,0,0,0.55)] transition-all duration-200",
@@ -438,15 +482,36 @@ function ModuleCard({ module, onLockedClick }) {
 
                 <div className="space-y-4 p-5">
                     <div className="space-y-1.5">
-                        <div className="text-xs font-medium uppercase tracking-[0.18em] text-white/48">
+                        <div
+                            className="uppercase tracking-[0.18em] text-white/48"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
+                        >
                             Module {module.sort_order}
                         </div>
-                        <div className="text-xl font-semibold leading-7 text-white">
+                        <div
+                            className="leading-7 text-white"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "22px",
+                                fontWeight: 500,
+                            }}
+                        >
                             {module.title}
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-sm text-white/65">
+                    <div
+                        className="flex items-center justify-between text-white/65"
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "14px",
+                            fontWeight: 400,
+                        }}
+                    >
                         <span>{module.lesson_count} lessons</span>
                         <span>{module.progress_percentage}%</span>
                     </div>
@@ -465,7 +530,14 @@ function ModuleCard({ module, onLockedClick }) {
                         />
                     </div>
 
-                    <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-white/78">
+                    <div
+                        className="inline-flex items-center gap-2 uppercase tracking-[0.16em] text-white/78"
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "14px",
+                            fontWeight: 500,
+                        }}
+                    >
                         {module.status === "locked"
                             ? "Complete Previous Module"
                             : "Open Module"}
@@ -508,7 +580,6 @@ export default function StudentHome({
     continueLearning,
     availableModulesSection,
     assignmentMilestone,
-    certificateMilestone,
     homeExperience,
 }) {
     const [showOnboarding, setShowOnboarding] = useState(false);
@@ -517,10 +588,6 @@ export default function StudentHome({
     const [lockedLessonOpen, setLockedLessonOpen] = useState(false);
     const bootedRef = useRef(false);
     const rawModules = availableModulesSection?.items ?? [];
-    const inProgressModules = useMemo(
-        () => rawModules.filter((module) => module.status === "in_progress"),
-        [rawModules],
-    );
     const studentName = studentContext?.display_name ?? "Student";
 
     useEffect(() => {
@@ -574,28 +641,56 @@ export default function StudentHome({
 
                 <div className="relative mx-auto flex min-h-screen max-w-[1400px] flex-col justify-end gap-8 px-4 pb-20 pt-24 sm:px-6 lg:px-10 lg:pb-28">
                     <div className="max-w-2xl space-y-5 text-white">
-                        <div className="text-xs uppercase tracking-[0.28em] font-medium text-white">
+                        {/* "Welcome back, Rahel" → medium 14px, tanpa uppercase */}
+                        <div
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 600,
+                            }}
+                            className="text-white"
+                        >
                             {homeExperience?.state === "new_student"
                                 ? `Hello, ${studentName}`
                                 : `Welcome back, ${studentName}`}
                         </div>
 
-                        <h1 className="text-4xl font-bold tracking-[-0.03em] sm:text-5xl xl:text-6xl text-white">
+                        {/* Judul hero → bold 48px */}
+                        <h1
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "48px",
+                                fontWeight: 700,
+                            }}
+                            className="tracking-[-0.03em] text-white"
+                        >
                             {continueLearning?.title ??
                                 homeExperience?.hero_title ??
                                 "Start your learning journey"}
                         </h1>
 
-                        <p className="text-sm sm:text-base leading-7 font-medium text-white">
+                        {/* Deskripsi → regular 12px */}
+                        <p
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                            }}
+                            className="leading-7 text-white"
+                        >
                             {continueLearning?.description ??
                                 homeExperience?.hero_description}
                         </p>
 
                         <div className="flex flex-wrap gap-3 pt-2">
-                            {/* Tombol Primary (Play) - Desain Netflix */}
                             <Button
                                 asChild
-                                className="h-auto rounded-md bg-white px-7 py-3 text-[1.05rem] font-bold text-black transition-colors hover:bg-white/80"
+                                className="h-auto rounded-md bg-white px-7 py-3 text-black transition-colors hover:bg-white/80"
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             >
                                 <Link
                                     href={
@@ -624,41 +719,18 @@ export default function StudentHome({
             </section>
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-4 pt-10 sm:px-6 lg:px-10">
-                {inProgressModules.length ? (
-                    <section className="space-y-4">
-                        <div>
-                            <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-                                On Progress
-                            </p>
-                            <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">
-                                Continue where you left off
-                            </h2>
-                        </div>
-                        <div className="py-6">
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {inProgressModules.map((module) => (
-                                    <div key={module.id} className="w-full">
-                                        <ModuleCard
-                                            module={module}
-                                            onLockedClick={() =>
-                                                setLockedModuleOpen(true)
-                                            }
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-                ) : null}
-
                 <section className="space-y-4">
                     <div>
-                        <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+                        <h1
+                            className="mt-1 text-white"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "22px",
+                                fontWeight: 500,
+                            }}
+                        >
                             All Modules
-                        </p>
-                        <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">
-                            Browse your learning path
-                        </h2>
+                        </h1>
                     </div>
                     <div className="py-6">
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -675,7 +747,10 @@ export default function StudentHome({
                         </div>
                     </div>
                     {!rawModules.length ? (
-                        <div className="rounded-[16px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/60">
+                        <div
+                            className="rounded-[5px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/60"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             No modules are available for your current access
                             tier.
                         </div>
@@ -684,7 +759,10 @@ export default function StudentHome({
 
                 {assignmentMilestone?.state === "approved" ? (
                     <section className="flex flex-wrap gap-3 pb-4">
-                        <div className="inline-flex items-center gap-2 rounded-[14px] border border-emerald-500 bg-emerald-500 px-5 py-3 text-sm font-semibold text-white">
+                        <div
+                            className="inline-flex items-center gap-2 rounded-[5px] border border-emerald-500 bg-emerald-500 px-5 py-3 text-sm font-semibold text-white"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             <Check className="size-4" />
                             Assignment Approved
                         </div>

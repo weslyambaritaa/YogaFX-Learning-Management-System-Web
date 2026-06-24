@@ -27,17 +27,17 @@ function LessonCard({ lesson, onLockedClick }) {
                     <StudentStatusBadge status={lesson.status} />
 
                     <div className="space-y-1.5">
-                        <h3 className="line-clamp-2 text-base font-semibold tracking-tight text-white">
+                        <h3 className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
                             {lesson.title}
                         </h3>
-                        <p className="text-base font-semibold tracking-tight text-white/82">
+                        <p className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white/82">
                             Lesson {lesson.sort_order}
                         </p>
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-white/40">
+                    <div className="flex items-center justify-between font-['Montserrat'] text-[14px] font-medium text-white/40">
                         <span>Progress</span>
                         <span>{lesson.progress_percentage}%</span>
                     </div>
@@ -55,7 +55,7 @@ function LessonCard({ lesson, onLockedClick }) {
                         />
                     </div>
 
-                    <div className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
+                    <div className="inline-flex items-center gap-1.5 font-['Montserrat'] text-[14px] font-medium text-white/80">
                         {lesson.is_locked ? "Complete previous lesson" : null}
                         <ArrowRight className="size-3.5 transition group-hover:translate-x-1" />
                     </div>
@@ -94,7 +94,7 @@ export default function StudentModuleShow({ module }) {
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
                 <StudentBackButton fallbackHref={route("modules.index")} />
 
-                <section className="relative overflow-hidden rounded-[16px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+                <section className="relative overflow-hidden rounded-[5px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                     <div className="absolute inset-0">
                         {module.thumbnail_url ? (
                             <img
@@ -111,14 +111,14 @@ export default function StudentModuleShow({ module }) {
                     <div className="relative flex min-h-[420px] flex-col justify-end gap-6 px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
                         <div className="max-w-3xl space-y-4">
                             <StudentStatusBadge status={module.status} />
-                            <p className="text-xl font-semibold tracking-tight text-white">
+                            <p className="font-['Montserrat'] text-[22px] font-medium tracking-tight text-white">
                                 Module {module.sort_order}
                             </p>
-                            <h1 className="text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
+                            <h1 className="font-['Montserrat'] text-[48px] font-bold tracking-[-0.03em] text-white">
                                 {module.title}
                             </h1>
                             {module.description ? (
-                                <p className="max-w-2xl text-sm font-medium leading-7 text-white sm:text-base">
+                                <p className="max-w-2xl font-['Montserrat'] text-sm font-medium leading-7 text-white sm:text-base">
                                     {module.description}
                                 </p>
                             ) : null}
@@ -128,24 +128,24 @@ export default function StudentModuleShow({ module }) {
                             {module.continue_last_lesson_url ? (
                                 <Button
                                     asChild
-                                    className="h-auto rounded-md bg-white px-7 py-3 text-[1.05rem] font-bold text-black transition-colors hover:bg-white/80"
+                                    className="h-auto rounded-[5px] bg-white px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-black transition-colors hover:bg-white/80"
                                 >
                                     <Link
                                         href={module.continue_last_lesson_url}
                                         className="flex items-center"
                                     >
-                                        <Play className="mr-2.5 size-6 fill-black text-black" />
+                                        <Play className="mr-2.5 size-5 fill-black text-black" />
                                         Continue Last Lesson
                                     </Link>
                                 </Button>
                             ) : null}
 
-                            <div className="flex h-auto items-center rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white">
+                            <div className="flex h-auto items-center rounded-[5px] border-0 bg-[#5a5c5f]/80 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white">
                                 {module.completed_lessons} /{" "}
                                 {module.lesson_count} completed
                             </div>
 
-                            <div className="flex h-auto items-center rounded-md border-0 bg-[#5a5c5f]/80 px-7 py-3 text-[1.05rem] font-bold text-white">
+                            <div className="flex h-auto items-center rounded-[5px] border-0 bg-[#5a5c5f]/80 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white">
                                 {module.progress_percentage}% module progress
                             </div>
                         </div>
@@ -155,7 +155,7 @@ export default function StudentModuleShow({ module }) {
                 {module.lessons.length ? (
                     <section className="space-y-5">
                         <div>
-                            <h2 className="text-2xl font-semibold tracking-tight text-white">
+                            <h2 className="font-['Montserrat'] text-[22px] font-semibold tracking-tight text-white">
                                 Lessons
                             </h2>
                         </div>
@@ -178,7 +178,7 @@ export default function StudentModuleShow({ module }) {
                 {module.ebooks?.length ? (
                     <section className="space-y-5">
                         <div>
-                            <h2 className="text-2xl font-semibold tracking-tight text-white">
+                            <h2 className="font-['Montserrat'] text-2xl font-semibold tracking-tight text-white">
                                 Ebooks
                             </h2>
                         </div>
@@ -192,7 +192,7 @@ export default function StudentModuleShow({ module }) {
                                                 status="available"
                                                 label="Available"
                                             />
-                                            <h3 className="text-xl font-semibold tracking-tight text-white">
+                                            <h3 className="font-['Montserrat'] text-xl font-semibold tracking-tight text-white">
                                                 {ebook.title}
                                             </h3>
                                         </div>
@@ -234,7 +234,7 @@ export default function StudentModuleShow({ module }) {
                 {module.video_lecturers?.length ? (
                     <section className="space-y-5">
                         <div>
-                            <h2 className="text-2xl font-semibold tracking-tight text-white">
+                            <h2 className="font-['Montserrat'] text-2xl font-semibold tracking-tight text-white">
                                 Video Lecturer
                             </h2>
                         </div>
@@ -279,13 +279,13 @@ export default function StudentModuleShow({ module }) {
                                                 />
 
                                                 <div className="space-y-1.5">
-                                                    <h3 className="line-clamp-2 text-base font-semibold tracking-tight text-white">
+                                                    <h3 className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
                                                         {course.title}
                                                     </h3>
                                                 </div>
 
                                                 <div className="pt-2">
-                                                    <div className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
+                                                    <div className="inline-flex items-center gap-1.5 font-['Montserrat'] text-[14px] font-medium text-white/80">
                                                         {isReady
                                                             ? "Watch Video"
                                                             : "Video Not Ready"}
@@ -314,7 +314,7 @@ export default function StudentModuleShow({ module }) {
                                 return (
                                     <div
                                         key={course.id}
-                                        className="block text-left opacity-70 cursor-not-allowed"
+                                        className="block cursor-not-allowed text-left opacity-70"
                                     >
                                         {cardBody}
                                     </div>
@@ -327,10 +327,10 @@ export default function StudentModuleShow({ module }) {
                 {module.certificates?.length ? (
                     <section className="space-y-5">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                            <p className="font-['Montserrat'] text-xs font-medium uppercase tracking-[0.24em] text-white/40">
                                 Certificates
                             </p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                            <h2 className="mt-2 font-['Montserrat'] text-2xl font-semibold tracking-tight text-white">
                                 Download your generated certificates
                             </h2>
                         </div>
@@ -340,14 +340,14 @@ export default function StudentModuleShow({ module }) {
                                 <a
                                     key={certificate.id}
                                     href={certificate.download_url}
-                                    className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5"
+                                    className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5"
                                 >
                                     <div className="space-y-3">
                                         <StudentStatusBadge status="completed" />
-                                        <h3 className="text-xl font-semibold tracking-tight text-white">
+                                        <h3 className="font-['Montserrat'] text-xl font-semibold tracking-tight text-white">
                                             {certificate.type_label}
                                         </h3>
-                                        <p className="text-sm leading-7 text-white/62">
+                                        <p className="font-['Montserrat'] text-sm font-medium leading-7 text-white/62">
                                             Generated {certificate.generated_at}
                                         </p>
                                     </div>
@@ -360,10 +360,10 @@ export default function StudentModuleShow({ module }) {
                 {module.assignments?.length ? (
                     <section className="space-y-5">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/40">
+                            <p className="font-['Montserrat'] text-xs font-medium uppercase tracking-[0.24em] text-white/40">
                                 Assignment Submission
                             </p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+                            <h2 className="mt-2 font-['Montserrat'] text-2xl font-semibold tracking-tight text-white">
                                 Upload your module assignments
                             </h2>
                         </div>
@@ -373,7 +373,7 @@ export default function StudentModuleShow({ module }) {
                                 <Link
                                     key={assignment.id}
                                     href={assignment.url}
-                                    className="rounded-[16px] border border-white/10 bg-white/[0.04] p-5 transition hover:border-white/18 hover:bg-white/[0.06]"
+                                    className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5 transition hover:border-white/18 hover:bg-white/[0.06]"
                                 >
                                     <div className="space-y-3">
                                         <StudentStatusBadge
@@ -390,13 +390,13 @@ export default function StudentModuleShow({ module }) {
                                                     : "Available"
                                             }
                                         />
-                                        <h3 className="text-xl font-semibold tracking-tight text-white">
+                                        <h3 className="font-['Montserrat'] text-xl font-semibold tracking-tight text-white">
                                             {assignment.title}
                                         </h3>
-                                        <p className="text-xl font-semibold tracking-tight text-white">
+                                        <p className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
                                             Assignment {assignment.sort_order}
                                         </p>
-                                        <p className="text-sm leading-7 text-white/62">
+                                        <p className="font-['Montserrat'] text-sm font-medium leading-7 text-white/62">
                                             {assignment.description ||
                                                 "Open this assignment to upload your submission."}
                                         </p>
