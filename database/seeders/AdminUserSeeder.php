@@ -14,11 +14,11 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::query()->updateOrCreate(
-            ['email' => 'admin@yogafx.test'],
+            ['email' => 'weslyambarita4@gmail.com'],
             [
-                'name' => 'YogaFX Admin',
+                'name' => 'Wesly Ambarita',
                 'role' => User::ROLE_ADMIN,
-                'password' => Hash::make('password'),
+                'password' => Hash::make('weslyambarita4'),
                 'email_verified_at' => now(),
             ],
         );
