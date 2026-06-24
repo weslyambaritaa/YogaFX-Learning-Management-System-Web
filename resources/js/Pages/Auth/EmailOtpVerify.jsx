@@ -31,23 +31,31 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
             heading={heading}
             description={description}
         >
-            <form onSubmit={submit} className="mx-auto flex max-w-xl flex-col items-center space-y-6 text-center">
+            <form
+                onSubmit={submit}
+                className="mx-auto flex max-w-xl flex-col items-center space-y-6 text-center"
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
+            >
                 <div className="flex items-center justify-center gap-3">
                     <MailCheck
                         className="h-6 w-6 flex-shrink-0 text-white/70"
                         strokeWidth={2.5}
                     />
-                    <p className="text-sm leading-6 text-white/70">
+                    {/* "We sent a 6-digit..." → medium 14px */}
+                    <p style={{ fontSize: "14px", fontWeight: 500 }} className="leading-6 text-white/70">
                         We sent a 6-digit verification code to your email.
                     </p>
                 </div>
 
                 <div className="w-full text-left">
+                    {/* "OTP Code" label → medium 14px */}
                     <InputLabel
                         htmlFor="otp_code"
                         value="OTP Code"
                         className="text-white/80"
+                        style={{ fontSize: "14px", fontWeight: 500 }}
                     />
+                    {/* Field: padding vertical 8, horizontal 10, rounded-5 */}
                     <TextInput
                         id="otp_code"
                         value={data.otp_code}
@@ -55,6 +63,11 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
                             setData("otp_code", event.target.value)
                         }
                         className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                        style={{
+                            padding: "8px 10px",
+                            borderRadius: "5px",
+                            fontFamily: "'Montserrat', sans-serif",
+                        }}
                         inputMode="numeric"
                         autoComplete="one-time-code"
                         placeholder="Enter the 6-digit code from your email"
@@ -65,13 +78,16 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
                     />
                 </div>
 
-                <div className="space-y-3 text-sm text-white">
-                    <p className="font-semibold text-white/80">
+                <div className="space-y-3 text-white">
+                    {/* "Verification details" → medium 14px */}
+                    <p style={{ fontSize: "14px", fontWeight: 500 }} className="text-white/80">
                         Verification details
                     </p>
-                    <p>{email}</p>
+                    {/* email → regular 14px */}
+                    <p style={{ fontSize: "14px", fontWeight: 400 }}>{email}</p>
                     {expires_at && (
-                        <p className="text-white/70">
+                        // "Code expires at..." → regular 14px
+                        <p style={{ fontSize: "14px", fontWeight: 400 }} className="text-white/70">
                             Code expires at{" "}
                             {new Date(expires_at).toLocaleString()}.
                         </p>
@@ -79,10 +95,18 @@ export default function EmailOtpVerify({ token, context, email, expires_at }) {
                 </div>
 
                 <div className="flex justify-center">
+                    {/* Button: padding vertical 8, horizontal 10, rounded-5, medium 14px */}
                     <Button
                         type="submit"
                         disabled={processing}
-                        className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
+                        className="bg-[#DB202C] text-white hover:bg-[#c01a25]"
+                        style={{
+                            padding: "8px 10px",
+                            borderRadius: "5px",
+                            fontSize: "14px",
+                            fontWeight: 500,
+                            fontFamily: "'Montserrat', sans-serif",
+                        }}
                     >
                         {processing ? "Verifying..." : "Verify and Continue"}
                     </Button>

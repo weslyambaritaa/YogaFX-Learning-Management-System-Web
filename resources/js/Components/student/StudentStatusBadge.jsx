@@ -56,7 +56,7 @@ export default function StudentStatusBadge({
     return (
         <span
             className={[
-                'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em]',
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[14px] font-medium font-['Montserrat']",
                 config.wrapperClassName,
                 className,
             ].join(' ')}

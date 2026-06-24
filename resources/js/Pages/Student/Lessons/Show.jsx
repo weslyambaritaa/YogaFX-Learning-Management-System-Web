@@ -29,9 +29,9 @@ function workbookStorageKey(lessonId) {
 
 function LessonNavCard({ item, onLockedClick }) {
     const body = (
-        <div className="group h-full rounded-[14px] border border-white/10 bg-white/[0.04] p-3.5 transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
+        <div className="group h-full rounded-[5px] border border-white/10 bg-white/[0.04] p-3.5 transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
             <div className="space-y-3">
-                <div className="relative overflow-hidden rounded-[12px] bg-[#161211]">
+                <div className="relative overflow-hidden rounded-[5px] bg-[#161211]">
                     {item.thumbnail_url ? (
                         <img
                             src={item.thumbnail_url}
@@ -46,10 +46,10 @@ function LessonNavCard({ item, onLockedClick }) {
                 <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1.5">
-                            <p className="text-base font-semibold tracking-tight text-white/82">
+                            <p className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white/82">
                                 Lesson {item.sort_order}
                             </p>
-                            <p className="line-clamp-2 text-base font-semibold leading-6 text-white">
+                            <p className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium leading-6 text-white">
                                 {item.title}
                             </p>
                         </div>
@@ -61,7 +61,7 @@ function LessonNavCard({ item, onLockedClick }) {
                 </div>
 
                 <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.18em] text-white/40">
+                    <div className="flex items-center justify-between font-['Montserrat'] text-[14px] font-medium text-white/40">
                         <span>Progress</span>
                         <span>{item.progress_percentage}%</span>
                     </div>
@@ -80,7 +80,7 @@ function LessonNavCard({ item, onLockedClick }) {
                     </div>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
+                <div className="inline-flex items-center gap-1.5 font-['Montserrat'] text-[14px] font-medium text-white/80">
                     {item.is_locked ? "Complete previous lesson" : null}
                     <ChevronRight className="size-3.5 transition group-hover:translate-x-1" />
                 </div>
@@ -603,7 +603,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 kind="lesson"
             />
 
-            {/* UPDATE: pt-8 diubah menjadi pt-4 dan gap diperkecil agar tampilan lebih naik */}
             <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-10">
                 <StudentBackButton
                     fallbackHref={route(
@@ -614,10 +613,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                 <section className="space-y-6">
                     <div className="space-y-4">
-                        <p className="text-2xl font-semibold tracking-tight text-white">
+                        <p className="font-['Montserrat'] text-[24px] font-semibold tracking-tight text-white">
                             {moduleLabel}
                         </p>
-                        <h1 className="text-4xl font-semibold tracking-[-0.03em] text-white sm:text-5xl">
+                        <h1 className="font-['Montserrat'] text-[28px] font-semibold tracking-[-0.03em] text-white">
                             {lesson.title}
                         </h1>
                     </div>
@@ -625,14 +624,14 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                     {downloadNotice ? (
                         <div
                             className={[
-                                "flex items-start justify-between gap-4 rounded-[14px] border px-5 py-4 text-sm leading-7",
+                                "flex items-start justify-between gap-4 rounded-[5px] border px-5 py-4 font-['Montserrat'] text-sm leading-7",
                                 downloadNotice.tone === "warning"
                                     ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
                                     : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
                             ].join(" ")}
                         >
                             <div className="space-y-1">
-                                <p className="text-sm font-semibold text-white">
+                                <p className="font-['Montserrat'] text-sm font-semibold text-white">
                                     {downloadNotice.title}
                                 </p>
                                 <p>{downloadNotice.message}</p>
@@ -648,17 +647,15 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         </div>
                     ) : null}
 
-                    <div className="overflow-hidden rounded-[16px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-                        {/* UPDATE: Memberikan bg-black pada wrapper area video agar tampak seperti theater */}
+                    <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
                         <div className="relative bg-black border-b border-white/10">
                             {lessonVideoUrl ? (
                                 <div className="p-4 sm:p-6 lg:p-8">
-                                    {/* UPDATE: Membatasi ukuran maksimal video dengan max-w-5xl (1024px) agar tinggi tetap ideal di layar */}
                                     <div className="mx-auto w-full max-w-5xl aspect-video">
                                         <VideoJsPlayer
                                             src={lessonVideoUrl}
                                             poster={lesson.thumbnail_url}
-                                            className="h-full w-full overflow-hidden rounded-[14px] shadow-2xl"
+                                            className="h-full w-full overflow-hidden rounded-[5px] shadow-2xl"
                                             autoplay={Boolean(
                                                 lesson.autoplay,
                                             )}
@@ -676,7 +673,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 </div>
                             ) : lesson.thumbnail_url ? (
                                 <div className="p-4 sm:p-6 lg:p-8">
-                                    <div className="mx-auto w-full max-w-5xl aspect-video overflow-hidden rounded-[14px]">
+                                    <div className="mx-auto w-full max-w-5xl aspect-video overflow-hidden rounded-[5px]">
                                         <img
                                             src={lesson.thumbnail_url}
                                             alt={lesson.title}
@@ -686,7 +683,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 </div>
                             ) : (
                                 <div className="p-4 sm:p-6 lg:p-8">
-                                    <div className="mx-auto w-full max-w-5xl aspect-video rounded-[14px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                                    <div className="mx-auto w-full max-w-5xl aspect-video rounded-[5px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                                 </div>
                             )}
 
@@ -699,16 +696,16 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             </div>
 
                             {autoNextCountdown !== null && nextLesson?.title ? (
-                                <div className="absolute inset-x-5 bottom-5 mx-auto max-w-5xl rounded-[14px] border border-white/15 bg-black/60 px-5 py-4 backdrop-blur">
+                                <div className="absolute inset-x-5 bottom-5 mx-auto max-w-5xl rounded-[5px] border border-white/15 bg-black/60 px-5 py-4 backdrop-blur">
                                     <div className="flex items-center justify-between gap-4">
                                         <div className="space-y-2">
-                                            <div className="text-sm font-semibold uppercase tracking-[0.18em] text-white/55">
+                                            <div className="font-['Montserrat'] text-sm font-semibold uppercase tracking-[0.18em] text-white/55">
                                                 Next Lesson
                                             </div>
-                                            <div className="text-lg font-semibold text-white">
+                                            <div className="font-['Montserrat'] text-lg font-semibold text-white">
                                                 {nextLesson.title}
                                             </div>
-                                            <div className="text-sm text-white/70">
+                                            <div className="font-['Montserrat'] text-sm text-white/70">
                                                 Continue in {autoNextCountdown}{" "}
                                                 seconds
                                             </div>
@@ -716,7 +713,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         {nextLesson.url ? (
                                             <Button
                                                 asChild
-                                                className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                                className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                             >
                                                 <Link href={nextLesson.url}>
                                                     Next Lesson
@@ -738,7 +735,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                         <div className="space-y-6 p-6 sm:p-8">
                             {playbackErrorMessage && (
-                                <div className="rounded-[12px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-100">
+                                <div className="rounded-[5px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 font-['Montserrat'] text-sm leading-7 text-amber-100">
                                     {playbackErrorMessage}
                                 </div>
                             )}
@@ -747,7 +744,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 {lesson.workbook_download_url ? (
                                     <Button
                                         asChild
-                                        className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                        className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                     >
                                         <a
                                             href={lesson.workbook_download_url}
@@ -773,15 +770,15 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     </Button>
                                 ) : null}
                                 {hasWorkbook && isTriggeringWorkbook ? (
-                                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70">
+                                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/70">
                                         Starting workbook download...
                                     </div>
                                 ) : null}
                             </div>
 
                             {lesson.audio_url && (
-                                <div className="rounded-[12px] border border-white/10 bg-white/[0.04] p-5">
-                                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white">
+                                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
+                                    <div className="mb-3 flex items-center gap-2 font-['Montserrat'] text-sm font-medium text-white">
                                         <Volume2 className="size-4 text-[#f15b3a]" />
                                         Audio Companion
                                     </div>
@@ -798,27 +795,26 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                             {lesson.content ? (
                                 <div
-                                    className="prose prose-invert max-w-none prose-p:text-white/72 prose-headings:text-white prose-strong:text-white"
+                                    className="prose prose-invert max-w-none prose-p:text-white/72 prose-headings:text-white prose-strong:text-white font-['Montserrat']"
                                     dangerouslySetInnerHTML={{
                                         __html: lesson.content,
                                     }}
                                 />
                             ) : (
-                                <div className="rounded-[12px] border border-white/10 bg-white/[0.04] px-5 py-6 text-sm leading-7 text-white/60">
+                                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-6 font-['Montserrat'] text-sm leading-7 text-white/60">
                                     Lesson content will appear here when this
                                     learning material includes written guidance.
                                 </div>
                             )}
 
                             {lesson.assessment && (
-                                <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-5 py-5 text-white">
+                                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-5 text-white">
                                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                         <div>
-                                            <div className="text-base font-semibold text-white">
+                                            <div className="font-['Montserrat'] text-[14px] font-semibold text-white">
                                                 {assessmentState.title}
                                             </div>
-                                            {/* UPDATE: Mengubah class agar sama dengan judul di atasnya */}
-                                            <p className="mt-1 text-base font-semibold text-white">
+                                            <p className="mt-1 font-['Montserrat'] text-[14px] font-medium text-white">
                                                 {assessmentState.is_completed
                                                     ? "This assessment has already been completed."
                                                     : assessmentState.is_unlocked
@@ -830,7 +826,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         {assessmentState.is_unlocked ? (
                                             <Button
                                                 asChild
-                                                className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                                className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                             >
                                                 <Link
                                                     href={route(
@@ -856,7 +852,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 <Button
                                     asChild
                                     variant="outline"
-                                    className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                    className="h-auto rounded-[5px] border-white/15 bg-white/5 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-white/10 hover:text-white"
                                 >
                                     <Link
                                         href={route(
@@ -871,7 +867,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     canOpenNextLesson ? (
                                         <Button
                                             asChild
-                                            className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                            className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                         >
                                             <Link href={nextLesson.url}>
                                                 Next Lesson
@@ -883,7 +879,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             onClick={() =>
                                                 setShowLockedDialog(true)
                                             }
-                                            className="rounded-full bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                                            className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                         >
                                             Next Lesson
                                         </Button>
@@ -896,9 +892,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                 <section className="space-y-5">
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-                        {/* UPDATE: Progress section (Tanpa Eyebrow) */}
-                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5">
-                            <h2 className="text-2xl font-semibold tracking-tight text-white">
+                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
+                            <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
                                 {moduleState?.completed_lessons ?? 0} of{" "}
                                 {moduleState?.lesson_count ?? 0} lessons
                                 completed
@@ -913,21 +908,19 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             </div>
                         </div>
 
-                        {/* UPDATE: Total Access Time section (Tanpa Eyebrow) */}
-                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] p-5">
-                            <h2 className="text-xl font-semibold tracking-tight text-white">
+                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
+                            <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
                                 Total Access Time
                             </h2>
-                            <div className="mt-3 text-3xl font-semibold tracking-[0.08em] text-white">
+                            <div className="mt-3 font-['Montserrat'] text-3xl font-semibold tracking-[0.08em] text-white">
                                 {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
                             </div>
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        {/* UPDATE: Lesson Navigation title (Tanpa Eyebrow) */}
                         <div>
-                            <h2 className="text-2xl font-semibold tracking-tight text-white">
+                            <h2 className="font-['Montserrat'] text-[22px] font-medium tracking-tight text-white">
                                 More lessons in this module
                             </h2>
                         </div>
