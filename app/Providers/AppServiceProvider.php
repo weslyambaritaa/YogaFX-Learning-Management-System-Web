@@ -7,6 +7,7 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        URL::forceScheme('https');
         Vite::prefetch(concurrency: 3);
 
         // Bridge Laravel's built-in Registered event into the app-specific
@@ -39,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
                 'access_tier' => $user->accessTier?->slug,
                 'access_tier_label' => $user->accessTier?->name,
                 'registration_date' => optional($user->created_at)->toDateString() ?? now()->toDateString(),
+                
                 'continuation_url' => route('student.dashboard'),
                 'dashboard_url' => route('student.dashboard'),
                 'login_url' => route('login'),
