@@ -33,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'track.student.session' => \App\Http\Middleware\TrackStudentSessionActivity::class,
             'student.active' => \App\Http\Middleware\EnsureStudentAccountIsActive::class,
         ]);
+
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
