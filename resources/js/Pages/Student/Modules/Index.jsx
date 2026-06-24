@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 
 function ModuleCard({ module, onLockedClick }) {
     const content = (
-        <div className="group relative overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
+        <div className="group relative overflow-hidden rounded-[5px] border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
             <div className="relative aspect-video overflow-hidden bg-[#1a1513]">
                 {module.thumbnail_url ? (
                     <img
@@ -27,7 +27,7 @@ function ModuleCard({ module, onLockedClick }) {
 
             <div className="space-y-4 p-5">
                 <div className="space-y-2">
-                    <h3 className="text-xl font-semibold tracking-tight text-white">
+                    <h3 className="text-[22px] font-medium tracking-tight text-white">
                         {module.title}
                     </h3>
                     <p className="text-xl font-semibold tracking-tight text-white">
@@ -52,7 +52,7 @@ function ModuleCard({ module, onLockedClick }) {
                     />
                 </div>
 
-                <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
+                <div className="inline-flex items-center gap-2 text-[14px] font-medium text-white">
                     {module.status === 'locked' ? 'Complete previous module' : 'Open Module'}
                     <ArrowRight className="size-4 transition group-hover:translate-x-1" />
                 </div>
@@ -118,7 +118,7 @@ export default function StudentModulesIndex({ modules }) {
                     </div>
 
                     {modules.length === 0 && (
-                        <div className="rounded-[16px] border border-white/10 bg-white/[0.04] px-6 py-10 text-center text-white/62">
+                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-6 py-10 text-center text-white/62">
                             No modules are available for your current access tier yet.
                         </div>
                     )}

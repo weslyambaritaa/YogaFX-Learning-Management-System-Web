@@ -112,6 +112,10 @@ const DISCOVERY_OPTIONS = [
     { value: "other", label: "Other" },
 ];
 
+// Single source of truth for the font so it can't be silently
+// overridden by an older font-family declared elsewhere in the tree.
+const FONT_FAMILY = "'Montserrat', sans-serif";
+
 function wordsCount(value) {
     return String(value || "")
         .trim()
@@ -138,19 +142,24 @@ function ChoiceGrid({
     options,
     onChange,
     multiple = false,
+    theme,
 }) {
     const selectedValues = Array.isArray(value) ? value : [];
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-3" style={{ fontFamily: FONT_FAMILY }}>
             <div>
                 <InputLabel
                     htmlFor={id}
                     value={label}
-                    className="text-base font-bold text-white"
+                    className={theme.labelClassName}
+                    style={{ fontFamily: FONT_FAMILY }}
                 />
                 {description ? (
-                    <p className="mt-1 text-sm font-semibold text-white/70">
+                    <p
+                        className={theme.choiceDescriptionClassName}
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
                         {description}
                     </p>
                 ) : null}
@@ -166,10 +175,10 @@ function ChoiceGrid({
                         <label
                             key={option.value}
                             className={[
-                                "flex cursor-pointer items-center gap-3 rounded-[12px] border px-5 py-4 transition-colors",
+                                "flex cursor-pointer items-center gap-3 rounded-[5px] border px-[10px] py-[8px] transition-colors",
                                 checked
-                                    ? "border-[#DB202C] bg-[#DB202C]/15 text-white shadow-[0_0_12px_rgba(219,32,44,0.2)]"
-                                    : "border-white/20 bg-transparent text-white/80 hover:border-[#DB202C]/50 hover:bg-[#DB202C]/5",
+                                    ? theme.choiceCheckedClassName
+                                    : theme.choiceUncheckedClassName,
                             ].join(" ")}
                         >
                             <input
@@ -197,49 +206,55 @@ function ChoiceGrid({
                                 className={[
                                     "flex size-5 shrink-0 items-center justify-center rounded-full border",
                                     checked
-                                        ? "border-[#DB202C] bg-[#DB202C] text-white"
-                                        : "border-white/40 bg-transparent text-transparent",
+                                        ? theme.choiceIndicatorCheckedClassName
+                                        : theme.choiceIndicatorUncheckedClassName,
                                 ].join(" ")}
                             >
                                 <Check className="size-3.5" />
                             </span>
-                            <span className="text-base font-semibold">
+                            <span
+                                className="text-sm font-normal"
+                                style={{ fontFamily: FONT_FAMILY }}
+                            >
                                 {option.label}
                             </span>
                         </label>
                     );
                 })}
             </div>
-            <InputError
-                message={error}
-                className="text-[#ffb4a8] font-semibold"
-            />
+            <InputError message={error} className={theme.errorClassName} />
         </div>
     );
 }
 
-function SelectField({ id, label, value, onChange, error, options }) {
+function SelectField({ id, label, value, onChange, error, options, theme }) {
     return (
-        <div>
+        <div style={{ fontFamily: FONT_FAMILY }}>
             <InputLabel
                 htmlFor={id}
                 value={label}
-                className="text-base font-bold text-white mb-2"
+                className={theme.labelWithSpacingClassName}
+                style={{ fontFamily: FONT_FAMILY }}
             />
             <select
                 id={id}
                 value={value ?? ""}
                 onChange={(event) => onChange(event.target.value)}
-                className="block w-full rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 text-base font-semibold text-white shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:invert"
+                className={theme.selectClassName}
+                style={{ fontFamily: FONT_FAMILY }}
             >
-                <option value="" disabled className="text-black font-semibold">
+                <option
+                    value=""
+                    disabled
+                    className={theme.selectOptionClassName}
+                >
                     Select an option
                 </option>
                 {options.map((option) => (
                     <option
                         key={option.value}
                         value={option.value}
-                        className="text-black font-semibold text-base"
+                        className={theme.selectOptionClassName}
                     >
                         {option.flag ? `${option.flag} ` : ""}
                         {option.label}
@@ -248,36 +263,43 @@ function SelectField({ id, label, value, onChange, error, options }) {
             </select>
             <InputError
                 message={error}
-                className="text-[#ffb4a8] font-semibold mt-2"
+                className={`${theme.errorClassName} mt-2`}
             />
         </div>
     );
 }
 
-function TextAreaField({ id, label, value, onChange, error, helper = null }) {
+function TextAreaField({
+    id,
+    label,
+    value,
+    onChange,
+    error,
+    helper = null,
+    theme,
+}) {
     return (
-        <div>
+        <div style={{ fontFamily: FONT_FAMILY }}>
             <InputLabel
                 htmlFor={id}
                 value={label}
-                className="text-base font-bold text-white mb-2"
+                className={theme.labelWithSpacingClassName}
+                style={{ fontFamily: FONT_FAMILY }}
             />
             <textarea
                 id={id}
                 rows={5}
                 value={value ?? ""}
                 onChange={(event) => onChange(event.target.value)}
-                className="block w-full rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 text-base font-semibold text-white shadow-sm placeholder:text-white/30 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]"
+                className={theme.textareaClassName}
+                style={{ fontFamily: FONT_FAMILY }}
             />
             {helper ? (
-                <p className="mt-2 text-sm font-semibold text-white/60">
+                <p className={theme.helperClassName} style={{ fontFamily: FONT_FAMILY }}>
                     {helper}
                 </p>
             ) : null}
-            <InputError
-                message={error}
-                className="text-[#ffb4a8] font-semibold"
-            />
+            <InputError message={error} className={theme.errorClassName} />
         </div>
     );
 }
@@ -298,6 +320,7 @@ export default function StudentProfileForm({
     const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
     const isScoreboard = variant === "scoreboard";
     const isEnrollment = mode === "enrollment";
+    const isAdminMode = mode === "admin";
     const [localErrors, setLocalErrors] = useState({});
 
     // --- State Cropper Gambar ---
@@ -322,11 +345,119 @@ export default function StudentProfileForm({
 
     // Desain Form Tanpa Frame
     const sectionClassName = "space-y-8 pt-8";
-    const titleClassName = "text-3xl font-bold tracking-tight text-white mb-2";
-    const descriptionClassName =
-        "text-base font-semibold leading-6 text-white/70";
-    const inputClassName =
-        "!border-[#DB202C] bg-transparent text-white text-base font-semibold placeholder:text-white/30 focus:!border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]";
+    const theme = isAdminMode
+        ? {
+              labelClassName: "text-sm font-medium text-slate-900",
+              labelWithSpacingClassName:
+                  "mb-2 text-sm font-medium text-slate-900",
+              choiceDescriptionClassName:
+                  "mt-1 text-sm font-normal text-slate-600",
+              choiceCheckedClassName:
+                  "border-[#DB202C] bg-rose-50 text-slate-900 shadow-[0_0_12px_rgba(219,32,44,0.12)]",
+              choiceUncheckedClassName:
+                  "border-slate-400 bg-white text-slate-700 hover:border-[#DB202C]/50 hover:bg-rose-50/50",
+              choiceIndicatorCheckedClassName:
+                  "border-[#DB202C] bg-[#DB202C] text-white",
+              choiceIndicatorUncheckedClassName:
+                  "border-slate-400 bg-white text-transparent",
+              errorClassName: "font-semibold text-rose-600",
+              titleClassName:
+                  "mb-2 text-[22px] font-medium tracking-tight text-slate-900",
+              descriptionClassName:
+                  "text-[12px] font-normal leading-6 text-slate-600",
+              inputClassName:
+                  "!border-slate-400 bg-white text-slate-900 text-sm font-normal placeholder:text-slate-400 focus:!border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              selectClassName:
+                  "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              selectOptionClassName: "bg-white text-slate-900 text-sm font-normal",
+              textareaClassName:
+                  "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              helperClassName: "mt-2 text-sm font-medium text-slate-500",
+              sectionDividerClassName: "mb-6 border-b border-slate-200 pb-4",
+              footerDividerClassName: "flex items-center border-t border-slate-200 pt-8",
+              dialogContentClassName:
+                  "max-w-xl border-slate-200 bg-white text-slate-900",
+              dialogTitleClassName: "text-xl font-bold text-slate-900",
+              dialogZoomLabelClassName: "text-sm font-semibold text-slate-700",
+              dialogFooterClassName: "mt-6 border-t border-slate-200 pt-4",
+              dialogCancelButtonClassName:
+                  "rounded-[5px] border-slate-400 bg-white text-slate-900 hover:bg-slate-100",
+              dialogSaveButtonClassName:
+                  "rounded-[5px] bg-[#DB202C] text-white hover:bg-[#c31c28]",
+              photoPreviewFrameClassName:
+                  "relative flex h-[160px] w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-[50%] border-[3px] border-[#DB202C] bg-slate-100 shadow-[0_0_15px_rgba(219,32,44,0.18)]",
+              photoFallbackClassName:
+                  "flex flex-col items-center justify-center text-slate-400",
+              photoHelperClassName:
+                  "text-[12px] font-normal leading-relaxed text-slate-600",
+              dateInputStyle: undefined,
+              dateInputClassName:
+                  "block w-full appearance-none rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] pr-12 text-sm font-normal text-slate-900 shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
+              dateIconClassName:
+                  "pointer-events-none absolute right-4 top-1/2 z-10 size-5 -translate-y-1/2 text-slate-500",
+              primaryButtonClassName:
+                  "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#c31c28]",
+              uploadButtonClassName:
+                  "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#c31c28]",
+          }
+        : {
+              labelClassName: "text-[14px] font-medium text-white",
+              labelWithSpacingClassName:
+                  "mb-2 text-[14px] font-medium text-white",
+              choiceDescriptionClassName:
+                  "mt-1 text-[12px] font-normal text-white/70",
+              choiceCheckedClassName:
+                  "border-white bg-[#DB202C]/15 text-white shadow-[0_0_12px_rgba(219,32,44,0.2)]",
+              choiceUncheckedClassName:
+                  "border-white/40 bg-transparent text-white/80 hover:border-white hover:bg-[#DB202C]/5",
+              choiceIndicatorCheckedClassName:
+                  "border-white bg-white text-[#DB202C]",
+              choiceIndicatorUncheckedClassName:
+                  "border-white bg-transparent text-transparent",
+              errorClassName: "font-semibold text-[#ffb4a8]",
+              titleClassName:
+                  "mb-2 text-[22px] font-medium tracking-tight text-white",
+              descriptionClassName:
+                  "text-[12px] font-normal leading-6 text-white/70",
+              inputClassName:
+                  "!border-white bg-transparent text-white text-sm font-normal placeholder:text-white/30 focus:!border-white focus:ring-1 focus:ring-white/40",
+              selectClassName:
+                  "block w-full rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-sm font-normal text-white shadow-sm focus:border-white focus:ring-1 focus:ring-white/40 [&::-webkit-calendar-picker-indicator]:invert",
+              selectOptionClassName:
+                  "text-sm font-normal text-black",
+              textareaClassName:
+                  "block w-full rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-sm font-normal text-white shadow-sm placeholder:text-white/30 focus:border-white focus:ring-1 focus:ring-white/40",
+              helperClassName: "mt-2 text-sm font-semibold text-white/60",
+              sectionDividerClassName: "mb-6 border-b border-white pb-4",
+              footerDividerClassName: "flex items-center border-t border-white pt-8",
+              dialogContentClassName:
+                  "max-w-xl border-white bg-[#141110] text-white",
+              dialogTitleClassName: "text-xl font-bold text-white",
+              dialogZoomLabelClassName: "text-sm font-semibold text-white/80",
+              dialogFooterClassName: "mt-6 border-t border-white pt-4",
+              dialogCancelButtonClassName:
+                  "rounded-[5px] border-white bg-transparent text-white hover:bg-white/10",
+              dialogSaveButtonClassName:
+                  "rounded-[5px] bg-[#DB202C] text-white hover:bg-[#c31c28]",
+              photoPreviewFrameClassName:
+                  "relative flex h-[160px] w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-[50%] border-[3px] border-white bg-black/40 shadow-[0_0_15px_rgba(219,32,44,0.3)]",
+              photoFallbackClassName:
+                  "flex flex-col items-center justify-center text-white/50",
+              photoHelperClassName:
+                  "text-[12px] font-normal leading-relaxed text-white/70",
+              dateInputStyle: { colorScheme: "dark" },
+              dateInputClassName:
+                  "block w-full appearance-none rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] pr-12 text-sm font-normal text-white shadow-sm focus:border-white focus:ring-1 focus:ring-white/40 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
+              dateIconClassName:
+                  "pointer-events-none absolute right-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/70",
+              primaryButtonClassName:
+                  "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#c31c28]",
+              uploadButtonClassName:
+                  "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#c31c28]",
+          };
+    const titleClassName = theme.titleClassName;
+    const descriptionClassName = theme.descriptionClassName;
+    const inputClassName = theme.inputClassName;
 
     // Handler untuk File Input Upload
     const onFileChange = async (e) => {
@@ -387,9 +518,15 @@ export default function StudentProfileForm({
         <>
             {/* Modal Cropper */}
             <Dialog open={isCropModalOpen} onOpenChange={setIsCropModalOpen}>
-                <DialogContent className="max-w-xl border-white/10 bg-[#141110] text-white">
+                <DialogContent
+                    className={theme.dialogContentClassName}
+                    style={{ fontFamily: FONT_FAMILY }}
+                >
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-white">
+                        <DialogTitle
+                            className={theme.dialogTitleClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Adjust Profile Photo
                         </DialogTitle>
                     </DialogHeader>
@@ -411,7 +548,10 @@ export default function StudentProfileForm({
                     </div>
 
                     <div className="mt-4 px-2">
-                        <label className="text-sm font-semibold text-white/80">
+                        <label
+                            className={theme.dialogZoomLabelClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Zoom
                         </label>
                         <input
@@ -426,17 +566,19 @@ export default function StudentProfileForm({
                         />
                     </div>
 
-                    <DialogFooter className="mt-6 border-t border-white/10 pt-4">
+                    <DialogFooter className={theme.dialogFooterClassName}>
                         <Button
                             variant="outline"
                             onClick={() => setIsCropModalOpen(false)}
-                            className="border-white/20 bg-transparent text-white hover:bg-white/10"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            className={theme.dialogCancelButtonClassName}
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleSaveCrop}
-                            className="bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            className={theme.dialogSaveButtonClassName}
                         >
                             Crop & Save
                         </Button>
@@ -444,11 +586,13 @@ export default function StudentProfileForm({
                 </DialogContent>
             </Dialog>
 
-            <form onSubmit={handleSubmit} className="space-y-12">
+            <form onSubmit={handleSubmit} className="space-y-12" style={{ fontFamily: FONT_FAMILY }}>
                 <section className={sectionClassName}>
                     <div className="mb-6">
-                        <h3 className={titleClassName}>Personal Information</h3>
-                        <p className={descriptionClassName}>
+                        <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
+                            Personal Information
+                        </h3>
+                        <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
                             Basic account details and your preferred certificate
                             picture.
                         </p>
@@ -459,11 +603,13 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="first_name"
                                 value="First Name"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
                             />
                             <TextInput
                                 id="first_name"
-                                className={`mt-2 block w-full rounded-[12px] py-3.5 px-4 ${inputClassName}`}
+                                className={`mt-2 block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                style={{ fontFamily: FONT_FAMILY }}
                                 value={data.first_name}
                                 onChange={(event) =>
                                     setData("first_name", event.target.value)
@@ -472,7 +618,7 @@ export default function StudentProfileForm({
                             />
                             <InputError
                                 message={firstError(errors, "first_name")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -480,11 +626,13 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="last_name"
                                 value="Last Name"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
                             />
                             <TextInput
                                 id="last_name"
-                                className={`mt-2 block w-full rounded-[12px] py-3.5 px-4 ${inputClassName}`}
+                                className={`mt-2 block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                style={{ fontFamily: FONT_FAMILY }}
                                 value={data.last_name}
                                 onChange={(event) =>
                                     setData("last_name", event.target.value)
@@ -492,7 +640,7 @@ export default function StudentProfileForm({
                             />
                             <InputError
                                 message={firstError(errors, "last_name")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -500,12 +648,14 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="email"
                                 value="Email"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
                             />
                             <TextInput
                                 id="email"
                                 type="email"
-                                className={`mt-2 block w-full rounded-[12px] py-3.5 px-4 ${inputClassName}`}
+                                className={`mt-2 block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                style={{ fontFamily: FONT_FAMILY }}
                                 value={data.email}
                                 onChange={(event) =>
                                     setData("email", event.target.value)
@@ -513,7 +663,7 @@ export default function StudentProfileForm({
                             />
                             <InputError
                                 message={firstError(errors, "email")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -521,7 +671,8 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="whatsapp_number"
                                 value="WhatsApp"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
                             />
                             <div className="mt-2 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
                                 <select
@@ -533,13 +684,14 @@ export default function StudentProfileForm({
                                             event.target.value,
                                         )
                                     }
-                                    className="block w-full rounded-[12px] border border-[#DB202C] bg-transparent px-3 py-3.5 text-base font-semibold text-white shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]"
+                                    className={theme.selectClassName}
+                                    style={{ fontFamily: FONT_FAMILY }}
                                 >
                                     {phoneCountryCodeOptions.map((option) => (
                                         <option
                                             key={`${option.value}-${option.label}`}
                                             value={option.value}
-                                            className="text-black font-semibold"
+                                            className={theme.selectOptionClassName}
                                         >
                                             {option.flag
                                                 ? `${option.flag} `
@@ -550,7 +702,8 @@ export default function StudentProfileForm({
                                 </select>
                                 <TextInput
                                     id="whatsapp_number"
-                                    className={`block w-full rounded-[12px] py-3.5 px-4 ${inputClassName}`}
+                                    className={`block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                    style={{ fontFamily: FONT_FAMILY }}
                                     value={data.whatsapp_number ?? ""}
                                     onChange={(event) =>
                                         setData(
@@ -570,7 +723,7 @@ export default function StudentProfileForm({
                                     ) ??
                                     firstError(errors, "whatsapp")
                                 }
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -579,12 +732,17 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="profile_photo"
                                 value="Please Upload Your Preferred Certificate Picture"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 600,
+                                }}
                             />
 
                             <div className="mt-4 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
                                 {/* Area Preview Berbentuk Lonjong (Oval) */}
-                                <div className="relative shrink-0 flex h-[160px] w-[120px] items-center justify-center overflow-hidden rounded-[50%] border-[3px] border-[#DB202C] bg-black/40 shadow-[0_0_15px_rgba(219,32,44,0.3)]">
+                                <div className={theme.photoPreviewFrameClassName}>
                                     {photoPreview ? (
                                         <img
                                             src={photoPreview}
@@ -592,7 +750,7 @@ export default function StudentProfileForm({
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center text-white/50">
+                                        <div className={theme.photoFallbackClassName}>
                                             <UploadCloud className="size-8 mb-2 text-[#DB202C]" />
                                         </div>
                                     )}
@@ -600,7 +758,14 @@ export default function StudentProfileForm({
 
                                 <div className="flex-1 space-y-4">
                                     <div>
-                                        <p className="text-sm font-semibold text-white/70 leading-relaxed">
+                                        <p
+                                            className={theme.photoHelperClassName}
+                                            style={{
+                                                fontFamily: FONT_FAMILY,
+                                                fontSize: "12px",
+                                                fontWeight: 400,
+                                            }}
+                                        >
                                             Upload a clear portrait photo. Click
                                             the button below to upload and
                                             adjust your photo perfectly into the
@@ -622,7 +787,12 @@ export default function StudentProfileForm({
                                         onClick={() =>
                                             fileInputRef.current?.click()
                                         }
-                                        className="rounded-full bg-white text-black px-8 py-3 text-sm font-bold hover:bg-white/80"
+                                        style={{
+                                            fontFamily: FONT_FAMILY,
+                                            fontSize: "14px",
+                                            fontWeight: 500,
+                                        }}
+                                        className={theme.uploadButtonClassName}
                                     >
                                         Choose Photo
                                     </Button>
@@ -632,7 +802,7 @@ export default function StudentProfileForm({
                                             errors,
                                             "profile_photo",
                                         )}
-                                        className="text-[#ffb4a8] font-semibold"
+                                        className={theme.errorClassName}
                                     />
                                 </div>
                             </div>
@@ -642,11 +812,13 @@ export default function StudentProfileForm({
                             <InputLabel
                                 htmlFor="instagram"
                                 value="Instagram (Optional)"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
                             />
                             <TextInput
                                 id="instagram"
-                                className={`mt-2 block w-full rounded-[12px] py-3.5 px-4 ${inputClassName}`}
+                                className={`mt-2 block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                style={{ fontFamily: FONT_FAMILY }}
                                 value={data.instagram ?? ""}
                                 onChange={(event) =>
                                     setData("instagram", event.target.value)
@@ -654,7 +826,7 @@ export default function StudentProfileForm({
                             />
                             <InputError
                                 message={firstError(errors, "instagram")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -682,13 +854,15 @@ export default function StudentProfileForm({
                             }}
                             error={errors.country}
                             options={countryOptions}
+                            theme={theme}
                         />
 
                         <div>
                             <InputLabel
                                 htmlFor="birth_date"
                                 value="Birth Date"
-                                className="text-base font-bold text-white"
+                                className={theme.labelClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
                             />
                             <div className="relative mt-2">
                                 <input
@@ -710,14 +884,17 @@ export default function StudentProfileForm({
                                             event.target.value,
                                         )
                                     }
-                                    style={{ colorScheme: "dark" }}
-                                    className="block w-full appearance-none rounded-[12px] border border-[#DB202C] bg-transparent px-4 py-3.5 pr-12 text-base font-semibold text-white shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                                    style={{
+                                        ...theme.dateInputStyle,
+                                        fontFamily: FONT_FAMILY,
+                                    }}
+                                    className={theme.dateInputClassName}
                                 />
-                                <CalendarDays className="pointer-events-none absolute right-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/70" />
+                                <CalendarDays className={theme.dateIconClassName} />
                             </div>
                             <InputError
                                 message={firstError(errors, "birth_date")}
-                                className="text-[#ffb4a8] font-semibold mt-2"
+                                className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
 
@@ -729,15 +906,18 @@ export default function StudentProfileForm({
                                 error={firstError(errors, "gender")}
                                 options={GENDER_OPTIONS}
                                 onChange={(value) => setData("gender", value)}
+                                theme={theme}
                             />
                         </div>
                     </div>
                 </section>
 
                 <section className={sectionClassName}>
-                    <div className="border-b border-white/20 pb-4 mb-6">
-                        <h3 className={titleClassName}>Learning Background</h3>
-                        <p className={descriptionClassName}>
+                    <div className={theme.sectionDividerClassName}>
+                        <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
+                            Learning Background
+                        </h3>
+                        <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
                             Your practice background.
                         </p>
                     </div>
@@ -753,6 +933,7 @@ export default function StudentProfileForm({
                             onChange={(value) =>
                                 setData("practicing_yoga_for", value)
                             }
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -768,6 +949,7 @@ export default function StudentProfileForm({
                                 setData("yoga_sequence_experience", value)
                             }
                             multiple={true}
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -779,6 +961,7 @@ export default function StudentProfileForm({
                             onChange={(value) =>
                                 setData("hours_per_week", value)
                             }
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -790,6 +973,7 @@ export default function StudentProfileForm({
                             onChange={(value) =>
                                 setData("current_fitness_level", value)
                             }
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -801,14 +985,17 @@ export default function StudentProfileForm({
                             onChange={(value) =>
                                 setData("flexibility_rating", value)
                             }
+                            theme={theme}
                         />
                     </div>
                 </section>
 
                 <section className={sectionClassName}>
-                    <div className="border-b border-white/20 pb-4 mb-6">
-                        <h3 className={titleClassName}>Motivation</h3>
-                        <p className={descriptionClassName}>
+                    <div className={theme.sectionDividerClassName}>
+                        <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
+                            Motivation
+                        </h3>
+                        <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
                             Keep each answer within 50 words.
                         </p>
                     </div>
@@ -821,6 +1008,7 @@ export default function StudentProfileForm({
                             onChange={(value) => setData("motivation", value)}
                             error={firstError(errors, "motivation")}
                             helper={`${wordsCount(data.motivation)}/50 words`}
+                            theme={theme}
                         />
 
                         <TextAreaField
@@ -830,6 +1018,7 @@ export default function StudentProfileForm({
                             onChange={(value) => setData("why_yogafx", value)}
                             error={firstError(errors, "why_yogafx")}
                             helper={`${wordsCount(data.why_yogafx)}/50 words`}
+                            theme={theme}
                         />
 
                         <ChoiceGrid
@@ -842,23 +1031,24 @@ export default function StudentProfileForm({
                                 setData("how_did_you_find_us", value)
                             }
                             multiple={true}
+                            theme={theme}
                         />
                     </div>
                 </section>
 
                 {isEnrollment ? (
                     <section className={sectionClassName}>
-                        <div className="border-b border-white/20 pb-4 mb-6">
-                            <h3 className={titleClassName}>
+                        <div className={theme.sectionDividerClassName}>
+                            <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
                                 Terms & Confirmation
                             </h3>
-                            <p className={descriptionClassName}>
+                            <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
                                 Confirm your final enrollment details.
                             </p>
                         </div>
 
                         <div className="space-y-6">
-                            <label className="flex cursor-pointer items-start gap-4 rounded-[14px] border border-[#DB202C] bg-transparent px-5 py-5 text-white transition hover:bg-[#DB202C]/10">
+                            <label className="flex cursor-pointer items-start gap-4 rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-white transition hover:bg-[#DB202C]/10">
                                 <input
                                     type="checkbox"
                                     checked={Boolean(data.terms_accepted)}
@@ -868,39 +1058,54 @@ export default function StudentProfileForm({
                                             event.target.checked,
                                         )
                                     }
-                                    className="mt-1 size-5 rounded border-[#DB202C] text-[#DB202C] focus:ring-[#DB202C] bg-transparent"
+                                    className="mt-1 size-5 rounded border-white text-white accent-white focus:ring-white bg-transparent"
                                 />
-                                <span className="text-lg font-bold">
+                                <span
+                                    className="text-sm font-normal"
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                >
                                     Yes, I agree with Term & Conditions
                                 </span>
                             </label>
                             <InputError
                                 message={localErrors.terms_accepted}
-                                className="text-[#ffb4a8] font-semibold"
+                                className={theme.errorClassName}
                             />
 
                             <div className="grid gap-6 md:grid-cols-2">
-                                <div className="rounded-[14px] border border-[#DB202C] bg-transparent px-5 py-5 text-white">
-                                    <div className="text-sm font-bold text-white/70">
+                                <div className="rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-white">
+                                    <div
+                                        className="text-sm font-medium text-white/70"
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                    >
                                         Full Name
                                     </div>
-                                    <div className="mt-2 text-xl font-bold">
+                                    <div
+                                        className="mt-2 text-sm font-normal"
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                    >
                                         {[data.first_name, data.last_name]
                                             .filter(Boolean)
                                             .join(" ") || "Your name"}
                                     </div>
                                 </div>
-                                <div className="rounded-[14px] border border-[#DB202C] bg-transparent px-5 py-5 text-white">
-                                    <div className="text-sm font-bold text-white/70">
+                                <div className="rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-white">
+                                    <div
+                                        className="text-sm font-medium text-white/70"
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                    >
                                         Date
                                     </div>
-                                    <div className="mt-2 text-xl font-bold">
+                                    <div
+                                        className="mt-2 text-sm font-normal"
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                    >
                                         {todayLabel}
                                     </div>
                                 </div>
                             </div>
 
-                            <label className="flex cursor-pointer items-start gap-4 rounded-[14px] border border-[#DB202C] bg-transparent px-5 py-5 text-white transition hover:bg-[#DB202C]/10">
+                            <label className="flex cursor-pointer items-start gap-4 rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-white transition hover:bg-[#DB202C]/10">
                                 <input
                                     type="checkbox"
                                     checked={Boolean(data.recaptcha_confirmed)}
@@ -910,25 +1115,29 @@ export default function StudentProfileForm({
                                             event.target.checked,
                                         )
                                     }
-                                    className="mt-1 size-5 rounded border-[#DB202C] text-[#DB202C] focus:ring-[#DB202C] bg-transparent"
+                                    className="mt-1 size-5 rounded border-white text-white accent-white focus:ring-white bg-transparent"
                                 />
-                                <span className="text-lg font-bold">
+                                <span
+                                    className="text-sm font-normal"
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                >
                                     I'm not a robot (reCAPTCHA)
                                 </span>
                             </label>
                             <InputError
                                 message={localErrors.recaptcha_confirmed}
-                                className="text-[#ffb4a8] font-semibold"
+                                className={theme.errorClassName}
                             />
                         </div>
                     </section>
                 ) : null}
 
-                <div className="flex items-center pt-8 border-t border-white/20">
+                <div className={theme.footerDividerClassName}>
                     <Button
                         type="submit"
                         disabled={processing}
-                        className="rounded-full bg-white px-10 py-4 text-lg font-bold text-black hover:bg-white/80 transition-all hover:-translate-y-0.5"
+                        style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        className={theme.primaryButtonClassName}
                     >
                         {submitLabel}
                     </Button>

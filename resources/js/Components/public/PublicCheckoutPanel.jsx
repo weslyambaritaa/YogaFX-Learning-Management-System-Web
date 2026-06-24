@@ -14,6 +14,8 @@ const INITIAL_ERRORS = {
     payment_method: "",
 };
 
+const FONT_FAMILY = "'Montserrat', sans-serif";
+
 function firstErrorMessage(nextErrors) {
     return (
         Object.values(nextErrors).find(
@@ -439,9 +441,12 @@ export default function PublicCheckoutPanel({ checkout }) {
     };
 
     return (
-        <div className="w-full space-y-8">
+        <div className="w-full space-y-8" style={{ fontFamily: FONT_FAMILY }}>
             {(generalError || sdkError) && (
-                <div className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100">
+                <div
+                    className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100"
+                    style={{ fontFamily: FONT_FAMILY }}
+                >
                     <div className="flex items-start gap-3">
                         <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
                         <p>{generalError || sdkError}</p>
@@ -450,122 +455,153 @@ export default function PublicCheckoutPanel({ checkout }) {
             )}
 
             {/* Panel 1: Billing Identity & Address */}
-            <div className="space-y-6 rounded-[16px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
-                
+            <div className="space-y-6 rounded-[5px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
                 <div className="grid gap-6 md:grid-cols-2">
-                    {/* Billing Identity Header */}
                     <div className="md:col-span-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#DB202C]">
+                        <p
+                            className="text-sm font-semibold text-[#DB202C]"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
+                        >
                             Billing identity
                         </p>
                     </div>
 
                     {/* First Name */}
                     <div>
-                        <InputLabel value="First Name" className="text-sm font-medium text-white/90" />
+                        <InputLabel
+                            value="First Name"
+                            className="text-sm font-medium text-white/90"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        />
                         <div className="relative mt-2">
                             <input
                                 value={formData.first_name}
                                 onChange={(event) =>
                                     setFieldValue("first_name", event.target.value)
                                 }
-                                className={`block w-full min-h-[52px] rounded-xl border bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#DB202C]/30 ${
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.first_name
                                         ? "border-rose-500 pr-11 focus:border-rose-500"
-                                        : "border-[#DB202C] focus:border-[#DB202C]"
+                                        : "border-white/20 focus:border-white/40"
                                 }`}
                             />
                             {fieldErrors.first_name && (
                                 <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
                             )}
                         </div>
-                        <InputError className="mt-2 text-sm font-medium text-rose-400" message={fieldErrors.first_name} />
+                        <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.first_name} />
                     </div>
 
                     {/* Last Name */}
                     <div>
-                        <InputLabel value="Last Name" className="text-sm font-medium text-white/90" />
+                        <InputLabel
+                            value="Last Name"
+                            className="text-sm font-medium text-white/90"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        />
                         <div className="relative mt-2">
                             <input
                                 value={formData.last_name}
                                 onChange={(event) =>
                                     setFieldValue("last_name", event.target.value)
                                 }
-                                className={`block w-full min-h-[52px] rounded-xl border bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#DB202C]/30 ${
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.last_name
                                         ? "border-rose-500 pr-11 focus:border-rose-500"
-                                        : "border-[#DB202C] focus:border-[#DB202C]"
+                                        : "border-white/20 focus:border-white/40"
                                 }`}
                             />
                             {fieldErrors.last_name && (
                                 <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
                             )}
                         </div>
-                        <InputError className="mt-2 text-sm font-medium text-rose-400" message={fieldErrors.last_name} />
+                        <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.last_name} />
                     </div>
 
-                    {/* Email (Full Width) */}
+                    {/* Email */}
                     <div className="md:col-span-2">
-                        <InputLabel value="Email" className="text-sm font-medium text-white/90" />
+                        <InputLabel
+                            value="Email"
+                            className="text-sm font-medium text-white/90"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        />
                         <input
                             value={checkout.email}
                             disabled
-                            className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C]/50 bg-black/20 px-4 py-3.5 text-base text-white/60 opacity-70 transition-all duration-200"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white/60 opacity-70 transition-all duration-200"
                         />
                     </div>
 
-                    {/* Mobile Phone (Full Width) */}
+                    {/* Mobile Phone */}
                     <div className="md:col-span-2">
-                        <InputLabel value="Mobile Phone" className="text-sm font-medium text-white/90" />
+                        <InputLabel
+                            value="Mobile Phone"
+                            className="text-sm font-medium text-white/90"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        />
                         <input
                             value={checkout.phone}
                             disabled
-                            className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C]/50 bg-black/20 px-4 py-3.5 text-base text-white/60 opacity-70 transition-all duration-200"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white/60 opacity-70 transition-all duration-200"
                         />
                     </div>
 
                     {/* Billing Postcode */}
                     <div>
-                        <InputLabel value="Billing Postcode" className="text-sm font-medium text-white/90" />
+                        <InputLabel
+                            value="Billing Postcode"
+                            className="text-sm font-medium text-white/90"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        />
                         <div className="relative mt-2">
                             <input
                                 value={formData.billing_postcode}
                                 onChange={(event) =>
                                     setFieldValue("billing_postcode", event.target.value)
                                 }
-                                className={`block w-full min-h-[52px] rounded-xl border bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#DB202C]/30 ${
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.billing_postcode
                                         ? "border-rose-500 pr-11 focus:border-rose-500"
-                                        : "border-[#DB202C] focus:border-[#DB202C]"
+                                        : "border-white/20 focus:border-white/40"
                                 }`}
                             />
                             {fieldErrors.billing_postcode && (
                                 <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
                             )}
                         </div>
-                        <InputError className="mt-2 text-sm font-medium text-rose-400" message={fieldErrors.billing_postcode} />
+                        <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.billing_postcode} />
                     </div>
 
                     {/* Billing Country */}
                     <div>
-                        <InputLabel value="Billing Country" className="text-sm font-medium text-white/90" />
+                        <InputLabel
+                            value="Billing Country"
+                            className="text-sm font-medium text-white/90"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        />
                         <div className="relative mt-2">
                             <input
                                 value={formData.billing_country}
                                 onChange={(event) =>
                                     setFieldValue("billing_country", event.target.value)
                                 }
-                                className={`block w-full min-h-[52px] rounded-xl border bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#DB202C]/30 ${
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.billing_country
                                         ? "border-rose-500 pr-11 focus:border-rose-500"
-                                        : "border-[#DB202C] focus:border-[#DB202C]"
+                                        : "border-white/20 focus:border-white/40"
                                 }`}
                             />
                             {fieldErrors.billing_country && (
                                 <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
                             )}
                         </div>
-                        <InputError className="mt-2 text-sm font-medium text-rose-400" message={fieldErrors.billing_country} />
+                        <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.billing_country} />
                     </div>
                 </div>
 
@@ -575,40 +611,47 @@ export default function PublicCheckoutPanel({ checkout }) {
                 {/* Billing Address */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#DB202C]">
+                        <p
+                            className="text-sm font-semibold text-[#DB202C]"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
+                        >
                             Billing address
                         </p>
-                        <span className="text-xs text-white/40">
+                        <span className="text-xs text-white/40" style={{ fontFamily: FONT_FAMILY }}>
                             Optional second line supported
                         </span>
                     </div>
 
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="md:col-span-2">
-                            <InputLabel value="Billing Address Line 1" className="text-sm font-medium text-white/90" />
+                            <InputLabel
+                                value="Billing Address Line 1"
+                                className="text-sm font-medium text-white/90"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            />
                             <input
                                 value={formData.billing_address_line_1}
                                 onChange={(event) =>
-                                    setFieldValue(
-                                        "billing_address_line_1",
-                                        event.target.value,
-                                    )
+                                    setFieldValue("billing_address_line_1", event.target.value)
                                 }
-                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:border-[#DB202C] focus:outline-none focus:ring-2 focus:ring-[#DB202C]/30"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
                             />
                         </div>
 
                         <div className="md:col-span-2">
-                            <InputLabel value="Billing Address Line 2" className="text-sm font-medium text-white/90" />
+                            <InputLabel
+                                value="Billing Address Line 2"
+                                className="text-sm font-medium text-white/90"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            />
                             <input
                                 value={formData.billing_address_line_2}
                                 onChange={(event) =>
-                                    setFieldValue(
-                                        "billing_address_line_2",
-                                        event.target.value,
-                                    )
+                                    setFieldValue("billing_address_line_2", event.target.value)
                                 }
-                                className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:border-[#DB202C] focus:outline-none focus:ring-2 focus:ring-[#DB202C]/30"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
                             />
                         </div>
                     </div>
@@ -616,27 +659,26 @@ export default function PublicCheckoutPanel({ checkout }) {
             </div>
 
             {/* Panel 2: Payment Type Selection */}
-            <div className="rounded-[16px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
+            <div className="rounded-[5px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
                 <div className="w-full">
-                    <InputLabel value="Payment Type" className="text-sm font-medium text-white/90" />
+                    <InputLabel
+                        value="Payment Type"
+                        className="text-sm font-medium text-white/90"
+                        style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                    />
                     <select
                         value={paymentType}
                         onChange={(event) => setPaymentType(event.target.value)}
-                        className="mt-2 block w-full min-h-[52px] rounded-xl border border-[#DB202C] bg-black/20 px-4 py-3.5 text-base text-white shadow-sm transition-all duration-200 focus:border-[#DB202C] focus:outline-none focus:ring-2 focus:ring-[#DB202C]/30"
+                        style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                        className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
                     >
-                        <option value="pay_full" className="bg-gray-900 text-white">
+                        <option value="pay_full" className="bg-gray-900 text-white" style={{ fontFamily: FONT_FAMILY }}>
                             Pay in Full -{" "}
-                            {formatCurrency(
-                                checkout.amount,
-                                checkout.currency_code,
-                            )}
+                            {formatCurrency(checkout.amount, checkout.currency_code)}
                         </option>
-                        <option value="installment" className="bg-gray-900 text-white">
+                        <option value="installment" className="bg-gray-900 text-white" style={{ fontFamily: FONT_FAMILY }}>
                             Pay in 4 Installments -{" "}
-                            {formatCurrency(
-                                installmentAmount,
-                                checkout.currency_code,
-                            )}{" "}
+                            {formatCurrency(installmentAmount, checkout.currency_code)}{" "}
                             today
                         </option>
                     </select>
@@ -646,11 +688,12 @@ export default function PublicCheckoutPanel({ checkout }) {
             {/* Panel 3: Terms Checkbox */}
             <div>
                 <label
-                    className={`flex items-start gap-4 rounded-[16px] border px-5 py-5 text-base text-white/80 transition-all duration-200 cursor-pointer ${
+                    className={`flex items-start gap-4 rounded-[5px] border px-5 py-5 text-sm font-normal text-white/80 transition-all duration-200 cursor-pointer ${
                         fieldErrors.terms_accepted
                             ? "border-rose-500 bg-rose-500/10 ring-1 ring-rose-500/20"
-                            : "border-white/10 bg-white/5 shadow-lg backdrop-blur-sm hover:border-[#DB202C]/50"
+                            : "border-white/10 bg-white/5 shadow-lg backdrop-blur-sm hover:border-white/30"
                     }`}
+                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                 >
                     <input
                         type="checkbox"
@@ -669,34 +712,34 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <AlertCircle className="mt-1 h-5 w-5 flex-shrink-0 text-rose-400" />
                     )}
                 </label>
-                <InputError className="mt-2 text-sm font-medium text-rose-400" message={fieldErrors.terms_accepted} />
+                <InputError className="mt-2 text-sm font-medium text-rose-400" style={{ fontFamily: FONT_FAMILY }} message={fieldErrors.terms_accepted} />
             </div>
 
             {debugInfo && (
-                <div className="rounded-xl border border-white/10 bg-black/20 px-5 py-4 text-sm leading-6 text-white/70">
-                    <p className="font-semibold text-white/90">
-                        Checkout debug
-                    </p>
+                <div className="rounded-xl border border-white/10 bg-black/20 px-5 py-4 text-sm leading-6 text-white/70" style={{ fontFamily: FONT_FAMILY }}>
+                    <p className="font-semibold text-white/90">Checkout debug</p>
                     <p className="mt-1">
                         Stage: {debugInfo.stage}
-                        {debugInfo.http_status
-                            ? ` (${debugInfo.http_status})`
-                            : ""}
+                        {debugInfo.http_status ? ` (${debugInfo.http_status})` : ""}
                     </p>
                     {debugInfo.payload?.message && (
-                        <p className="mt-1">
-                            Message: {debugInfo.payload.message}
-                        </p>
+                        <p className="mt-1">Message: {debugInfo.payload.message}</p>
                     )}
                 </div>
             )}
 
             {/* Panel 4: Payment Button Area */}
-            <div className="rounded-[16px] border border-[#DB202C]/30 bg-white/5 p-6 shadow-xl backdrop-blur-sm">
-                <h2 className="text-xl font-semibold text-white">
+            <div className="rounded-[5px] border border-[#DB202C]/30 bg-white/5 p-6 shadow-xl backdrop-blur-sm">
+                <h2
+                    className="text-white"
+                    style={{ fontFamily: FONT_FAMILY, fontSize: "22px", fontWeight: 500 }}
+                >
                     Payment Method
                 </h2>
-                <p className="mt-2 text-base leading-6 text-white/70">
+                <p
+                    className="mt-2 text-sm font-normal leading-6 text-white/70"
+                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                >
                     Pay with PayPal or your debit or credit card safely below.
                 </p>
 
@@ -707,13 +750,20 @@ export default function PublicCheckoutPanel({ checkout }) {
                             : "opacity-100 grayscale-0"
                     }`}
                 >
-                    <div className="rounded-[16px] border border-white/10 bg-black/20 p-5 shadow-inner">
+                    {/* ← PERUBAHAN: bg-black/20 diganti rgba(255,255,255,0.08) */}
+                    <div
+                        className="rounded-[5px] border border-white/10 p-5 shadow-inner"
+                        style={{ backgroundColor: "rgba(255, 255, 255, 0.97)" }}
+                    >
                         <div ref={paypalButtonsRef} className="min-h-[48px]" />
                     </div>
                 </div>
 
                 {!sdkReady && (
-                    <div className="mt-5 flex items-center gap-3 text-sm font-medium text-white/60">
+                    <div
+                        className="mt-5 flex items-center gap-3 text-sm font-medium text-white/60"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
                         <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
                         <span>Loading secure payment methods...</span>
                     </div>
@@ -721,15 +771,20 @@ export default function PublicCheckoutPanel({ checkout }) {
             </div>
 
             {mockAvailable && (
-                <div className="rounded-[16px] border border-dashed border-white/20 bg-black/15 p-6 backdrop-blur-sm">
+                <div className="rounded-[5px] border border-dashed border-white/20 bg-black/15 p-6 backdrop-blur-sm">
                     <div className="flex flex-wrap items-center justify-between gap-5">
                         <div>
-                            <p className="text-base font-semibold text-white">
+                            <p
+                                className="text-sm font-semibold text-white"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
+                            >
                                 Local testing
                             </p>
-                            <p className="mt-1 text-sm text-white/60">
-                                Mock checkout stays available only
-                                outside production.
+                            <p
+                                className="mt-1 text-sm font-normal text-white/60"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            >
+                                Mock checkout stays available only outside production.
                             </p>
                         </div>
 
@@ -738,7 +793,8 @@ export default function PublicCheckoutPanel({ checkout }) {
                             variant="outline"
                             onClick={runMockCheckout}
                             disabled={isSubmitting}
-                            className="min-h-[52px] rounded-xl border-white/20 bg-transparent px-6 py-3 text-base font-medium text-white hover:bg-white/10"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            className="rounded-[5px] border-white/20 bg-transparent px-2.5 py-2 text-sm font-medium text-white hover:bg-white/10"
                         >
                             Run Mock Payment
                         </Button>
