@@ -90,6 +90,9 @@ class StudentModuleApiService
                 ? 'active'
                 : $moduleAccess['status'];
 
+            $continueLessonId = $activeLessonId ?? $module->lessons->first()?->id;
+            $continueLessonUrl = $continueLessonId ? (string) $continueLessonId : null;
+
             // --- SOURCE OF TRUTH UNTUK MOBILE LIST ---
             $viewTypes = [];
             if ($totalLessons > 0) $viewTypes[] = 'lesson';
@@ -100,15 +103,24 @@ class StudentModuleApiService
 
             $primaryCtaLabel = 'Open Module';
             $primaryCtaKind = 'play';
+            $primaryCtaUrl = $continueLessonUrl ?? null;
+
             if ($module->certificate_enabled) {
                 $primaryCtaLabel = 'View Certificate';
                 $primaryCtaKind = 'download';
+                $primaryCtaUrl = null;
             } elseif ($module->ebook_enabled && ! $module->video_lecturer_enabled && $totalLessons === 0) {
                 $primaryCtaLabel = 'Read Ebook';
                 $primaryCtaKind = 'document';
+                $primaryCtaUrl = null;
             } elseif ($totalLessons > 0) {
                 $primaryCtaLabel = 'Continue Last Lesson';
                 $primaryCtaKind = 'play';
+                $primaryCtaUrl = $continueLessonUrl;
+            } elseif ($module->video_lecturer_enabled) {
+                $primaryCtaLabel = 'Watch Videos';
+                $primaryCtaKind = 'play';
+                $primaryCtaUrl = null;
             }
             // --- END SOURCE OF TRUTH ---
 
@@ -129,9 +141,10 @@ class StudentModuleApiService
                 'is_visible' => (bool) ($moduleAccess['is_visible'] ?? false),
                 'is_complete' => (bool) ($moduleAccess['is_complete'] ?? false),
                 
-                // Fields Source of Truth (Baru ditambahkan)
+                // Fields Source of Truth
                 'view_types' => $viewTypes,
                 'primary_cta_label' => $primaryCtaLabel,
+                'primary_cta_url' => $primaryCtaUrl,
                 'primary_cta_kind' => $primaryCtaKind,
                 
                 'certificate_enabled' => (bool) $module->certificate_enabled,
@@ -288,6 +301,7 @@ class StudentModuleApiService
                 'status' => 'locked',
                 'is_visible' => false,
                 'lock_reason' => 'Complete the previous module requirements before opening this module.',
+                'view_types' => [],
             ];
         }
 
@@ -302,6 +316,7 @@ class StudentModuleApiService
                 'view_types' => ['certificate'],
                 'primary_cta_label' => 'View Certificate',
                 'primary_cta_kind' => 'download',
+                'primary_cta_url' => null,
                 'status' => $currentModuleAccess['status'] ?? 'available',
                 'is_visible' => true,
                 'is_complete' => (bool) ($currentModuleAccess['is_complete'] ?? false),
@@ -321,6 +336,9 @@ class StudentModuleApiService
             )
         )->count();
 
+        $continueLessonId = $activeLessonId ?? $lessons->first()?->id;
+        $continueLessonUrl = $continueLessonId ? (string) $continueLessonId : null;
+
         // --- SOURCE OF TRUTH UNTUK MOBILE DETAIL ---
         $viewTypes = [];
         if ($lessons->count() > 0) $viewTypes[] = 'lesson';
@@ -331,19 +349,24 @@ class StudentModuleApiService
 
         $primaryCtaLabel = 'Open Module';
         $primaryCtaKind = 'play';
+        $primaryCtaUrl = $continueLessonUrl ?? null;
 
         if ($currentModule->certificate_enabled) {
             $primaryCtaLabel = 'View Certificates';
             $primaryCtaKind = 'download';
+            $primaryCtaUrl = null;
         } elseif ($currentModule->ebook_enabled && ! $currentModule->video_lecturer_enabled && $lessons->count() === 0) {
             $primaryCtaLabel = 'Browse Ebooks';
             $primaryCtaKind = 'document';
+            $primaryCtaUrl = null;
         } elseif ($lessons->count() > 0) {
             $primaryCtaLabel = 'Continue Last Lesson';
             $primaryCtaKind = 'play';
+            $primaryCtaUrl = $continueLessonUrl;
         } elseif ($currentModule->video_lecturer_enabled) {
             $primaryCtaLabel = 'Watch Videos';
             $primaryCtaKind = 'play';
+            $primaryCtaUrl = null; // Backend menentukan URL navigasi ke list video di rute lain
         }
         // --- END SOURCE OF TRUTH ---
 
@@ -363,11 +386,12 @@ class StudentModuleApiService
             'status' => $currentModuleAccess['status'] ?? 'available',
             'is_visible' => true,
             'is_complete' => (bool) ($currentModuleAccess['is_complete'] ?? false),
-            'view_type' => 'learning', // Menjaga kompatibilitas jika mobile membutuhkannya
+            'view_type' => 'learning',
 
             // Fields Source of Truth (Baru ditambahkan)
             'view_types' => $viewTypes,
             'primary_cta_label' => $primaryCtaLabel,
+            'primary_cta_url' => $primaryCtaUrl,
             'primary_cta_kind' => $primaryCtaKind,
 
             'certificate_enabled' => (bool) $currentModule->certificate_enabled,
