@@ -41,7 +41,7 @@ export default function Login({ status, canResetPassword }) {
                             <div className="py-8">
                                 <form onSubmit={submit} className="space-y-6">
                                     {status && (
-                                        <p className="text-sm font-medium leading-6 text-green-400">
+                                        <p className="font-['Montserrat'] text-[14px] font-medium leading-6 text-green-400">
                                             {status}
                                         </p>
                                     )}
@@ -50,14 +50,14 @@ export default function Login({ status, canResetPassword }) {
                                         <InputLabel
                                             htmlFor="email"
                                             value="Email"
-                                            className="text-white/80"
+                                            className="font-['Montserrat'] text-[14px] font-medium text-white/80"
                                         />
                                         <TextInput
                                             id="email"
                                             type="email"
                                             name="email"
                                             value={data.email}
-                                            className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                                            className="mt-2 block w-full rounded-[5px] border-white/20 bg-white/10 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white placeholder:text-white/30"
                                             autoComplete="username"
                                             isFocused={true}
                                             onChange={(e) =>
@@ -66,7 +66,7 @@ export default function Login({ status, canResetPassword }) {
                                         />
                                         <InputError
                                             message={errors.email}
-                                            className="mt-2 text-red-400"
+                                            className="mt-2 font-['Montserrat'] text-[14px] font-medium text-red-400"
                                         />
                                     </div>
 
@@ -74,14 +74,14 @@ export default function Login({ status, canResetPassword }) {
                                         <InputLabel
                                             htmlFor="password"
                                             value="Password"
-                                            className="text-white/80"
+                                            className="font-['Montserrat'] text-[14px] font-medium text-white/80"
                                         />
                                         <TextInput
                                             id="password"
                                             type="password"
                                             name="password"
                                             value={data.password}
-                                            className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                                            className="mt-2 block w-full rounded-[5px] border-white/20 bg-white/10 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white placeholder:text-white/30"
                                             autoComplete="current-password"
                                             onChange={(e) =>
                                                 setData(
@@ -92,7 +92,7 @@ export default function Login({ status, canResetPassword }) {
                                         />
                                         <InputError
                                             message={errors.password}
-                                            className="mt-2 text-red-400"
+                                            className="mt-2 font-['Montserrat'] text-[14px] font-medium text-red-400"
                                         />
                                     </div>
 
@@ -108,7 +108,7 @@ export default function Login({ status, canResetPassword }) {
                                                     )
                                                 }
                                             />
-                                            <span className="text-sm text-white/70">
+                                            <span className="font-['Montserrat'] text-[14px] font-medium text-white/70">
                                                 Remember me
                                             </span>
                                         </label>
@@ -116,7 +116,7 @@ export default function Login({ status, canResetPassword }) {
                                         {canResetPassword && (
                                             <Link
                                                 href={route("password.request")}
-                                                className="text-sm text-white/70 underline hover:text-white"
+                                                className="font-['Montserrat'] text-[14px] font-medium text-white/70 underline hover:text-white"
                                             >
                                                 Forgot your password?
                                             </Link>
@@ -127,7 +127,7 @@ export default function Login({ status, canResetPassword }) {
                                         <Button
                                             type="submit"
                                             disabled={processing}
-                                            className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
+                                            className="rounded-[5px] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium bg-[#DB202C] text-white hover:bg-[#c01a25]"
                                         >
                                             {processing
                                                 ? "Logging in..."
