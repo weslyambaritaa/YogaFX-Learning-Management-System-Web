@@ -61,9 +61,13 @@ class AssessmentController extends Controller
                 'duration_minutes' => $lesson->assessment->duration_minutes,
                 'show_progress_bar' => $lesson->assessment->show_progress_bar,
                 'allow_back_navigation' => $lesson->assessment->allow_back_navigation,
-                'thumbnail_url' => $lesson->assessment->thumbnail
-                    ? route('media.show', ['entity' => 'assessment', 'id' => $lesson->assessment->id, 'field' => 'thumbnail'])
-                    : null,
+                'thumbnail_url' => $this->protectedMediaUrl(
+                    'assessment',
+                    $lesson->assessment->id,
+                    'thumbnail',
+                    $lesson->assessment->thumbnail,
+                    versionSeed: $lesson->assessment->updated_at,
+                ),
             ],
             'eligibility' => [
                 'is_unlocked' => $this->isAssessmentUnlocked($lesson, $progress),

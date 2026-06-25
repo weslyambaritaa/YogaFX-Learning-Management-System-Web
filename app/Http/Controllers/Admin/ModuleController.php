@@ -69,7 +69,7 @@ class ModuleController extends Controller
         $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
         $data['ebook_enabled'] = (bool) ($data['ebook_enabled'] ?? false);
         $data['video_lecturer_enabled'] = (bool) ($data['video_lecturer_enabled'] ?? false);
-        $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'modules/thumbnails');
+        $data['thumbnail'] = $this->storeUploadedFileToBunnyWithLocalFallback($request->file('thumbnail'), 'modules/thumbnails');
         unset($data['access_tier_ids']);
         $requestedSortOrder = (int) ($data['sort_order'] ?? 0);
 
@@ -124,7 +124,7 @@ class ModuleController extends Controller
         $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
         $data['ebook_enabled'] = (bool) ($data['ebook_enabled'] ?? false);
         $data['video_lecturer_enabled'] = (bool) ($data['video_lecturer_enabled'] ?? false);
-        $data['thumbnail'] = $this->storeUploadedFile(
+        $data['thumbnail'] = $this->storeUploadedFileToBunnyWithLocalFallback(
             $request->file('thumbnail'),
             'modules/thumbnails',
             $module->thumbnail,
@@ -155,7 +155,7 @@ class ModuleController extends Controller
                 ]);
         }
 
-        $this->deleteUploadedFile($module->thumbnail);
+        $this->deleteUploadedFileFromAnyStorage($module->thumbnail);
         $module->delete();
         $this->normalizeModuleSortOrder();
 

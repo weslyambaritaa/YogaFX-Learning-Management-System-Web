@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ScoreboardRequest;
@@ -14,6 +15,7 @@ use Inertia\Response;
 
 class ScoreboardController extends Controller
 {
+    use BuildsProtectedMediaUrls;
     use HandlesLocalUploads;
 
     public function index(): Response
@@ -32,9 +34,13 @@ class ScoreboardController extends Controller
                     'questions_count' => $assessment->questions_count,
                     'attempts_count' => $assessment->attempts_count,
                     'updated_at' => $assessment->updated_at?->toDateTimeString(),
-                    'thumbnail_url' => $assessment->thumbnail
-                        ? route('media.show', ['entity' => 'assessment', 'id' => $assessment->id, 'field' => 'thumbnail'])
-                        : null,
+                    'thumbnail_url' => $this->protectedMediaUrl(
+                        'assessment',
+                        $assessment->id,
+                        'thumbnail',
+                        $assessment->thumbnail,
+                        versionSeed: $assessment->updated_at,
+                    ),
                 ]),
             'status' => session('status'),
         ]);
@@ -52,7 +58,7 @@ class ScoreboardController extends Controller
     public function store(ScoreboardRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['thumbnail'] = $this->storeUploadedFile(
+        $data['thumbnail'] = $this->storeUploadedFileToBunnyWithLocalFallback(
             $request->file('thumbnail'),
             'assessments/thumbnails',
         );
@@ -79,7 +85,7 @@ class ScoreboardController extends Controller
     public function update(ScoreboardRequest $request, Assessment $assessment): RedirectResponse
     {
         $data = $request->validated();
-        $data['thumbnail'] = $this->storeUploadedFile(
+        $data['thumbnail'] = $this->storeUploadedFileToBunnyWithLocalFallback(
             $request->file('thumbnail'),
             'assessments/thumbnails',
             $assessment->thumbnail,
@@ -94,12 +100,12 @@ class ScoreboardController extends Controller
 
     public function destroy(Assessment $assessment): RedirectResponse
     {
-        $this->deleteUploadedFile($assessment->thumbnail);
-        $this->deleteUploadedFile($assessment->design?->logo);
+        $this->deleteUploadedFileFromAnyStorage($assessment->thumbnail);
+        $this->deleteUploadedFileFromAnyStorage($assessment->design?->logo);
 
         foreach ($assessment->questions as $question) {
             foreach ($question->options as $option) {
-                $this->deleteUploadedFile($option->image);
+                $this->deleteUploadedFileFromAnyStorage($option->image);
             }
         }
 
@@ -166,9 +172,13 @@ class ScoreboardController extends Controller
             'is_active' => $assessment->is_active,
             'show_progress_bar' => $assessment->show_progress_bar,
             'allow_back_navigation' => $assessment->allow_back_navigation,
-            'thumbnail_url' => $assessment->thumbnail
-                ? route('media.show', ['entity' => 'assessment', 'id' => $assessment->id, 'field' => 'thumbnail'])
-                : null,
+            'thumbnail_url' => $this->protectedMediaUrl(
+                'assessment',
+                $assessment->id,
+                'thumbnail',
+                $assessment->thumbnail,
+                versionSeed: $assessment->updated_at,
+            ),
         ];
     }
 }
