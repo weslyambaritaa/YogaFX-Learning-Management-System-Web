@@ -124,6 +124,29 @@ return Application::configure(basePath: dirname(__DIR__))
                 ]);
             }
 
+            if ($request->routeIs('admin.ebooks.store', 'admin.ebooks.update')) {
+                Log::error('Ebook upload request exceeded server post size limit.', [
+                    'message' => $exception->getMessage(),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
+                    'content_length' => $request->server('CONTENT_LENGTH'),
+                    'php_upload_max_filesize' => ini_get('upload_max_filesize'),
+                    'php_post_max_size' => ini_get('post_max_size'),
+                    'route' => $request->route()?->getName(),
+                ]);
+
+                return back()->withErrors([
+                    'file' => 'The ebook upload exceeded the server request limit. '
+                        .'Ebook files can be up to '
+                        .UploadConstraints::labelFromMb(UploadConstraints::EBOOK_MAX_FILE_SIZE_MB)
+                        .', but the server must also allow at least upload_max_filesize='
+                        .UploadConstraints::labelFromMb(UploadConstraints::EBOOK_SERVER_UPLOAD_MAX_FILE_SIZE_MB)
+                        .' and post_max_size='
+                        .UploadConstraints::labelFromMb(UploadConstraints::EBOOK_SERVER_POST_MAX_SIZE_MB)
+                        .'. '.$serverLimitSummary(),
+                ]);
+            }
+
             return null;
         });
     })->create();
