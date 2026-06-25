@@ -165,6 +165,24 @@ Student dashboard saat ini masih berupa halaman foundation, belum final premium 
 4. Admin dapat memperbarui first name, last name, email, dan password.
 5. Setelah save berhasil, sistem tetap berada di halaman profile admin dengan flash success message.
 
+### 8.2 Admin User Management
+#### Students
+1. Admin membuka menu `Students`.
+2. Sistem menampilkan directory student dengan search, filter, dan pagination.
+3. Admin dapat menekan `Add Student`.
+4. Admin mengisi email, password, dan access tier.
+5. Setelah save berhasil, sistem kembali ke list student.
+6. Student yang dibuat dapat login dan akan tetap diarahkan ke profile edit jika profile belum lengkap.
+
+#### Admin
+1. Admin membuka menu `Admin`.
+2. Sistem menampilkan list admin dengan search, filter, dan pagination.
+3. Admin dapat menekan `Add Admin`.
+4. Admin mengisi name, email, dan password.
+5. Setelah save berhasil, sistem kembali ke list admin.
+6. Admin tidak dapat edit atau delete admin lain dari domain ini.
+7. Admin hanya dapat menghapus akun admin miliknya sendiri.
+
 ---
 
 ## 9. Admin Content Management Flow

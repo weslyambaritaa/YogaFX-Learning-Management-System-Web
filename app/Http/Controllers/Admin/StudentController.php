@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AdminStudentStoreRequest;
 use App\Http\Requests\Admin\AdminStudentUpdateRequest;
 use App\Models\AccessTier;
 use App\Models\AssessmentAnswer;
@@ -25,7 +26,9 @@ use App\Support\StudentProfileValue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -39,13 +42,32 @@ class StudentController extends Controller
         private readonly BunnyStorageService $bunnyStorage,
     ) {}
 
-    public function studentsIndex(): Response
+    public function studentsIndex(Request $request): Response
     {
+        $search = trim((string) $request->input('search', ''));
+        $status = (string) $request->input('status_filter', 'all');
+        $status = in_array($status, ['all', 'active', 'inactive'], true) ? $status : 'all';
+        $tierFilter = (string) $request->input('access_tier_id', '');
+        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = in_array($perPage, [10, 25, 50], true) ? $perPage : 10;
+
         $students = User::query()
             ->with('accessTier:id,name,slug')
             ->where('role', User::ROLE_STUDENT)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested
+                        ->where('name', 'ilike', '%'.$search.'%')
+                        ->orWhere('first_name', 'ilike', '%'.$search.'%')
+                        ->orWhere('last_name', 'ilike', '%'.$search.'%')
+                        ->orWhere('email', 'ilike', '%'.$search.'%');
+                });
+            })
+            ->when($status === 'active', fn ($query) => $query->where('is_active', true))
+            ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
+            ->when($tierFilter !== '', fn ($query) => $query->where('access_tier_id', $tierFilter))
             ->orderByDesc('created_at')
-            ->get([
+            ->paginate($perPage, [
                 'id',
                 'name',
                 'first_name',
@@ -56,9 +78,12 @@ class StudentController extends Controller
                 'profile_photo',
                 'created_at',
             ])
-            ->map(fn (User $student, int $index) => [
+            ->withQueryString();
+
+        $start = $students->firstItem() ?? 1;
+        $students->setCollection($students->getCollection()->values()->map(fn (User $student, int $index) => [
                 'id' => $student->id,
-                'number' => $index + 1,
+                'number' => $start + $index,
                 'name' => $student->name ?: trim("{$student->first_name} {$student->last_name}"),
                 'email' => $student->email,
                 'profile_photo' => $this->protectedMediaUrl(
@@ -72,12 +97,63 @@ class StudentController extends Controller
                 'access_tier_name' => $student->accessTier?->name ?? 'Not assigned',
                 'is_active' => (bool) $student->is_active,
                 'registration_date' => optional($student->created_at)->format('Y-m-d'),
-            ]);
+            ]));
 
         return Inertia::render('Admin/Students/Index', [
             'students' => $students,
+            'accessTiers' => AccessTier::query()
+                ->orderByDesc('is_active')
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug', 'is_active'])
+                ->map(fn (AccessTier $accessTier) => [
+                    'id' => $accessTier->id,
+                    'name' => $accessTier->name,
+                    'slug' => $accessTier->slug,
+                    'is_active' => $accessTier->is_active,
+                ]),
+            'filters' => [
+                'search' => $search,
+                'status_filter' => $status,
+                'access_tier_id' => $tierFilter,
+                'per_page' => $perPage,
+            ],
             'status' => session('status'),
         ]);
+    }
+
+    public function studentsCreate(): Response
+    {
+        return Inertia::render('Admin/Students/Create', [
+            'accessTiers' => AccessTier::query()
+                ->orderByDesc('is_active')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (AccessTier $accessTier) => [
+                    'id' => $accessTier->id,
+                    'name' => $accessTier->name,
+                    'slug' => $accessTier->slug,
+                    'is_active' => $accessTier->is_active,
+                ]),
+        ]);
+    }
+
+    public function studentsStore(AdminStudentStoreRequest $request): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        User::query()->create([
+            'name' => Str::before($validated['email'], '@'),
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'role' => User::ROLE_STUDENT,
+            'access_tier_id' => $validated['access_tier_id'],
+            'is_active' => true,
+            'email_verified_at' => now(),
+        ]);
+
+        return redirect()
+            ->route('admin.students.index')
+            ->with('status', 'student-account-created');
     }
 
     public function studentsEdit(User $student): Response

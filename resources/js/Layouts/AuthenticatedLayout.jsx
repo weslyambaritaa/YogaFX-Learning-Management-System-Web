@@ -31,6 +31,7 @@ import {
     Menu,
     MessageSquareText,
     PlaySquare,
+    Shield,
     UserRound,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -76,6 +77,12 @@ const adminNavigationItems = [
         route: 'admin.students.index',
         match: ['admin.students.*'],
         icon: UserRound,
+    },
+    {
+        label: 'Admin',
+        route: 'admin.admins.index',
+        match: ['admin.admins.*'],
+        icon: Shield,
     },
     {
         label: 'Dialog',
@@ -252,7 +259,10 @@ const adminPageTitles = {
     'admin.student-progress.assignments.show': 'Assignment',
     'admin.student-progress.certificates.show': 'Certificate',
     'admin.students.index': 'Students',
+    'admin.students.create': 'Create Student',
     'admin.students.edit': 'Student Detail',
+    'admin.admins.index': 'Admin',
+    'admin.admins.create': 'Create Admin',
     'admin.profile.edit': 'Profile',
     'admin.dialogs.edit': 'Dialog',
     'admin.email-notifications.index': 'Email Notification',

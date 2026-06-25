@@ -3,31 +3,12 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, ShieldPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-function PhotoCell({ student }) {
-    if (student.profile_photo) {
-        return (
-            <img
-                src={student.profile_photo}
-                alt={student.name}
-                className="size-12 rounded-full object-cover ring-1 ring-slate-200"
-            />
-        );
-    }
-
-    return (
-        <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
-            {student.profile_initials}
-        </div>
-    );
-}
 
 function StatusMessage({ status }) {
     const messages = {
-        'student-account-created': 'Student account has been created.',
-        'student-account-deleted': 'Student account has been deleted.',
+        'admin-account-created': 'Admin account has been created.',
     };
 
     if (!messages[status]) {
@@ -50,7 +31,7 @@ function Pagination({ paginator }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-4">
             <p className="text-sm text-slate-500">
                 Showing {paginator.from ?? 0} to {paginator.to ?? 0} of {paginator.total}{' '}
-                students
+                admin accounts
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -82,29 +63,26 @@ function Pagination({ paginator }) {
     );
 }
 
-export default function StudentsIndex({ students, accessTiers, filters, status }) {
+export default function AdminsIndex({ admins, filters, status }) {
     const [search, setSearch] = useState(filters.search ?? '');
-    const [statusFilter, setStatusFilter] = useState(filters.status_filter ?? 'all');
-    const [tierFilter, setTierFilter] = useState(filters.access_tier_id ?? '');
+    const [scope, setScope] = useState(filters.scope ?? 'all');
     const [perPage, setPerPage] = useState(String(filters.per_page ?? 10));
 
     useEffect(() => {
         setSearch(filters.search ?? '');
-        setStatusFilter(filters.status_filter ?? 'all');
-        setTierFilter(filters.access_tier_id ?? '');
+        setScope(filters.scope ?? 'all');
         setPerPage(String(filters.per_page ?? 10));
     }, [filters]);
 
     const applyFilters = (overrides = {}) => {
         const query = {
             search,
-            status_filter: statusFilter,
-            access_tier_id: tierFilter,
+            scope,
             per_page: perPage,
             ...overrides,
         };
 
-        router.get(route('admin.students.index'), query, {
+        router.get(route('admin.admins.index'), query, {
             preserveScroll: true,
             preserveState: true,
             replace: true,
@@ -116,21 +94,29 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
         applyFilters();
     };
 
+    const deleteSelf = (admin) => {
+        if (!window.confirm(`Delete your admin account "${admin.email}" permanently?`)) {
+            return;
+        }
+
+        router.delete(route('admin.admins.destroy', admin.id));
+    };
+
     return (
         <AuthenticatedLayout
             header={
                 <div className="min-w-0">
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Students
+                        Admin
                     </h2>
                     <p className="mt-1 text-sm text-gray-500">
-                        Manage student accounts, assign access tiers, and keep student
-                        access under clear operational control.
+                        Create admin accounts, review who has access to the admin side,
+                        and manage your own account lifecycle safely.
                     </p>
                 </div>
             }
         >
-            <Head title="Students" />
+            <Head title="Admin" />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
@@ -141,23 +127,23 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                                 <div>
                                     <h3 className="text-lg font-semibold text-slate-900">
-                                        Student Directory
+                                        Admin Directory
                                     </h3>
                                     <p className="mt-1 text-sm text-slate-500">
-                                        {students.total} student
-                                        {students.total === 1 ? '' : 's'} found.
+                                        {admins.total} admin account
+                                        {admins.total === 1 ? '' : 's'} found.
                                     </p>
                                 </div>
 
                                 <Button asChild>
-                                    <Link href={route('admin.students.create')}>
-                                        <UserPlus className="mr-2 size-4" />
-                                        Add Student
+                                    <Link href={route('admin.admins.create')}>
+                                        <ShieldPlus className="mr-2 size-4" />
+                                        Add Admin
                                     </Link>
                                 </Button>
                             </div>
 
-                            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,2fr)_180px_220px_120px]">
+                            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,2fr)_180px_120px]">
                                 <form onSubmit={submitSearch} className="relative">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                                     <Input
@@ -169,35 +155,17 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                                 </form>
 
                                 <select
-                                    value={statusFilter}
+                                    value={scope}
                                     onChange={(event) => {
                                         const value = event.target.value;
-                                        setStatusFilter(value);
-                                        applyFilters({ status_filter: value, page: 1 });
+                                        setScope(value);
+                                        applyFilters({ scope: value, page: 1 });
                                     }}
                                     className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
                                 >
-                                    <option value="all">All Status</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-
-                                <select
-                                    value={tierFilter}
-                                    onChange={(event) => {
-                                        const value = event.target.value;
-                                        setTierFilter(value);
-                                        applyFilters({ access_tier_id: value, page: 1 });
-                                    }}
-                                    className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
-                                >
-                                    <option value="">All Access Tiers</option>
-                                    {accessTiers.map((accessTier) => (
-                                        <option key={accessTier.id} value={accessTier.id}>
-                                            {accessTier.name}
-                                            {!accessTier.is_active ? ' (Inactive)' : ''}
-                                        </option>
-                                    ))}
+                                    <option value="all">All Admins</option>
+                                    <option value="mine">My Account</option>
+                                    <option value="others">Other Admins</option>
                                 </select>
 
                                 <select
@@ -224,22 +192,16 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                                             No
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-slate-700">
-                                            Photo
-                                        </th>
-                                        <th className="px-4 py-3 text-left font-medium text-slate-700">
                                             Name
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-slate-700">
                                             Email
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-slate-700">
-                                            Access Tier
+                                            Scope
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-slate-700">
-                                            Status
-                                        </th>
-                                        <th className="px-4 py-3 text-left font-medium text-slate-700">
-                                            Registration Date
+                                            Created Date
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-slate-700">
                                             Actions
@@ -247,60 +209,56 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 bg-white">
-                                    {students.data.length === 0 ? (
+                                    {admins.data.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan={8}
+                                                colSpan={6}
                                                 className="px-4 py-10 text-center text-sm text-slate-500"
                                             >
-                                                No students matched the current filters.
+                                                No admin accounts matched the current filters.
                                             </td>
                                         </tr>
                                     ) : (
-                                        students.data.map((student) => (
-                                            <tr key={student.id}>
+                                        admins.data.map((admin) => (
+                                            <tr key={admin.id}>
                                                 <td className="px-4 py-4 text-slate-600">
-                                                    {student.number}
-                                                </td>
-                                                <td className="px-4 py-4">
-                                                    <PhotoCell student={student} />
+                                                    {admin.number}
                                                 </td>
                                                 <td className="px-4 py-4 font-medium text-slate-900">
-                                                    {student.name || 'Unnamed student'}
+                                                    {admin.name}
                                                 </td>
                                                 <td className="px-4 py-4 text-slate-700">
-                                                    {student.email}
-                                                </td>
-                                                <td className="px-4 py-4 text-slate-700">
-                                                    {student.access_tier_name}
+                                                    {admin.email}
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <Badge
                                                         variant={
-                                                            student.is_active
+                                                            admin.is_self
                                                                 ? 'secondary'
                                                                 : 'outline'
                                                         }
                                                     >
-                                                        {student.is_active
-                                                            ? 'Active'
-                                                            : 'Inactive'}
+                                                        {admin.is_self ? 'You' : 'Admin'}
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-4 text-slate-700">
-                                                    {student.registration_date}
+                                                    {admin.created_at}
                                                 </td>
                                                 <td className="px-4 py-4">
-                                                    <Button asChild variant="outline" size="sm">
-                                                        <Link
-                                                            href={route(
-                                                                'admin.students.edit',
-                                                                student.id,
-                                                            )}
+                                                    {admin.is_self ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => deleteSelf(admin)}
                                                         >
-                                                            Student Detail
-                                                        </Link>
-                                                    </Button>
+                                                            Delete My Account
+                                                        </Button>
+                                                    ) : (
+                                                        <span className="text-sm text-slate-400">
+                                                            No actions
+                                                        </span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))
@@ -309,7 +267,7 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                             </table>
                         </div>
 
-                        <Pagination paginator={students} />
+                        <Pagination paginator={admins} />
                     </div>
                 </div>
             </div>

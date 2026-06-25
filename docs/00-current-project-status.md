@@ -19,6 +19,7 @@ Implementasi aktif saat ini sudah mencakup domain berikut:
 - authentication foundation
 - student profile foundation
 - admin account profile foundation
+- admin user management
 - access tier management
 - admin learning content CRUD
 - student content catalog dasar
@@ -68,6 +69,20 @@ Catatan:
 - admin dapat membuka profile dari user menu kanan atas
 - admin dapat mengubah first name, last name, email, dan password sendiri
 - nama admin di topbar mengikuti data akun admin yang tersimpan
+
+### 2.3A Admin User Management
+- admin dapat membuat akun student dari menu `Students`
+- admin dapat membuat akun admin dari menu `Admin`
+- create student minimal mencakup email, password, dan access tier
+- student yang dibuat admin langsung aktif dan tetap melewati profile completion gate saat login pertama kali
+- create admin minimal mencakup name, email, dan password
+- email user harus unik global
+- admin list mendukung search, filter, dan pagination
+- student list mendukung search, filter, dan pagination
+- admin tidak dapat edit admin lain dari domain ini
+- admin tidak dapat delete admin lain dari domain ini
+- admin dapat menghapus akun admin miliknya sendiri
+- delete student tetap menghapus seluruh data student terkait secara permanen
 ### 2.4 Access Tier Management
 - CRUD tier admin
 - upload thumbnail tier admin
@@ -212,6 +227,7 @@ Admin saat ini memakai:
 - left sidebar yang bisa collapse/expand
 - topbar untuk page title, toggle sidebar, dan user menu
 - tidak lagi memakai top navigation utama
+- sidebar utama kini juga mencakup menu `Students` dan `Admin`
 
 ### 3.5 Admin Dashboard
 Konten dashboard admin saat ini sengaja disederhanakan menjadi:
