@@ -213,7 +213,7 @@ Aturan implementasi saat ini:
 - `workbook_sent` harus dikirim sekali saat auto-download workbook pertama kali dipicu untuk kombinasi student + lesson dan workbook dikirim sebagai attachment
 
 ### 6.12 Upload Rules
-- semua upload file yang relevan dibatasi maksimal 10 MB
+- semua upload file yang relevan dibatasi maksimal 10 MB, kecuali ebook file yang dibatasi maksimal 500 MB
 - validasi size dilakukan di frontend dan backend
 - file oversized tidak boleh disimpan
 

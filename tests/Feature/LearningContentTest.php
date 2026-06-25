@@ -431,7 +431,7 @@ class LearningContentTest extends TestCase
         ]);
     }
 
-    public function test_admin_cannot_create_ebook_with_file_larger_than_10mb(): void
+    public function test_admin_cannot_create_ebook_with_file_larger_than_500mb(): void
     {
         Storage::fake('local');
 
@@ -440,7 +440,7 @@ class LearningContentTest extends TestCase
 
         $response = $this->actingAs($admin)->post(route('admin.ebooks.store'), [
             'title' => 'Oversized Ebook',
-            'file' => UploadedFile::fake()->create('oversized-ebook.pdf', 10241, 'application/pdf'),
+            'file' => UploadedFile::fake()->create('oversized-ebook.pdf', 512001, 'application/pdf'),
             'access_tier_ids' => [$tier->id],
         ]);
 

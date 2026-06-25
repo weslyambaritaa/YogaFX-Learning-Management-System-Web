@@ -187,13 +187,13 @@ Catatan reminder aktif:
 ## 3. Keputusan Teknis Penting Yang Sudah Aktif
 
 ### 3.1 Upload Constraint
-Semua upload file yang relevan saat ini dibatasi maksimal 10 MB:
+Semua upload file yang relevan saat ini dibatasi maksimal 10 MB, kecuali yang disebut khusus:
 - access tier thumbnail
 - module thumbnail
 - lesson thumbnail
 - lesson workbook
 - course thumbnail
-- ebook file
+- ebook file: maksimal 500 MB
 
 Validasi dilakukan di:
 - frontend form

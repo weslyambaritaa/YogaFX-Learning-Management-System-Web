@@ -7,8 +7,8 @@ class UploadConstraints
     public const MAX_FILE_SIZE_KB = 10240;
     public const MAX_FILE_SIZE_MB = 10;
 
-    public const EBOOK_MAX_FILE_SIZE_KB = 102400;
-    public const EBOOK_MAX_FILE_SIZE_MB = 100;
+    public const EBOOK_MAX_FILE_SIZE_KB = 512000;
+    public const EBOOK_MAX_FILE_SIZE_MB = 500;
 
     public const LESSON_WORKBOOK_MAX_FILE_SIZE_KB = 102400;
     public const LESSON_WORKBOOK_MAX_FILE_SIZE_MB = 100;
