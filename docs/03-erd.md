@@ -43,6 +43,7 @@ Key fields:
 - `id`
 - `name`
 - `role`
+- `is_active`
 - `access_tier_id`
 - `email`
 - `password`

@@ -66,6 +66,8 @@ Halaman yang belum aktif:
 - Lessons
 - Assessment
 - Student Progress
+- Students
+- Admin
 - Video Lecture
 - E-Book
 - Email
@@ -90,6 +92,8 @@ Topbar hanya berisi:
 ### 6.1 Dashboard
 - Admin Dashboard
 - Admin Profile
+- Admin Index
+- Admin Create
 
 ### 6.2 Tier Management
 - Access Tiers Index
@@ -109,7 +113,12 @@ Topbar hanya berisi:
 - Assignment Detail
 - Certificate Detail
 
-### 6.5 Email Notification
+### 6.5 Student Account Management
+- Students Index
+- Students Create
+- Students Edit
+
+### 6.6 Email Notification
 - Email Notification detail page per notification type
 
 ---

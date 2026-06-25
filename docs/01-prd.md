@@ -43,6 +43,8 @@ Dokumen ini mencerminkan **scope aktual yang sudah diimplementasikan** di reposi
 - profile student
 - edit profile oleh student
 - edit profile student oleh admin
+- create student oleh admin
+- create admin oleh admin
 - access tier CRUD
 - assign tier ke student
 
@@ -85,7 +87,9 @@ Dokumen ini mencerminkan **scope aktual yang sudah diimplementasikan** di reposi
 ### 4.1 Admin
 Admin bertanggung jawab untuk:
 - mengelola akun admin sendiri dari profile menu
+- membuat akun admin baru
 - mengelola tier
+- mengelola akun student
 - mengelola modules
 - mengelola lessons
 - mengelola ebooks
@@ -138,6 +142,19 @@ Aturan implementasi saat ini:
 ### 6.3 Admin Account Profile
 - admin harus dapat membuka profile dari user menu di topbar
 - admin harus dapat memperbarui first name, last name, email, dan password sendiri
+### 6.3A Admin User Management
+- admin harus dapat membuat akun student dari menu `Students`
+- create student minimal mencakup `email`, `password`, dan `access_tier_id`
+- `access_tier_id` wajib dipilih saat create student
+- student yang dibuat admin langsung aktif dan tetap mengikuti profile completion gate
+- admin harus dapat membuat akun admin dari menu `Admin`
+- create admin minimal mencakup `name`, `email`, dan `password`
+- email harus unik global lintas role
+- admin list dan student list harus mendukung search, filter, dan pagination
+- admin tidak dapat mengganti role akun yang sudah ada
+- admin tidak dapat mengganti password user langsung dari domain ini
+- admin hanya dapat menghapus akun admin miliknya sendiri
+- delete student harus menghapus seluruh data terkait student
 ### 6.4 Access Tier
 - admin harus dapat membuat, mengedit, dan menghapus tier jika belum dipakai student
 - admin harus dapat mengunggah thumbnail untuk access tier
@@ -231,6 +248,7 @@ Aturan implementasi saat ini:
 - admin navigation memakai left sidebar
 - delete action pada CRUD yang sudah diberi konfirmasi harus konsisten
 - redirect sukses setelah create/update harus kembali ke halaman list/index
+- domain user management admin mengikuti pola list -> create -> kembali ke list
 
 ---
 

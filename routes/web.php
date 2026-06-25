@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccessTierController;
+use App\Http\Controllers\Admin\AdminAccountController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AssignmentController as AdminAssignmentController;
 use App\Http\Controllers\Admin\AssessmentPreviewController;
@@ -221,12 +222,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/email-notifications/{notificationType}/send-test', [EmailNotificationController::class, 'sendTest'])->name('email-notifications.send-test');
 
         Route::get('/students', [StudentController::class, 'studentsIndex'])->name('students.index');
+        Route::get('/students/create', [StudentController::class, 'studentsCreate'])->name('students.create');
+        Route::post('/students', [StudentController::class, 'studentsStore'])->name('students.store');
         Route::get('/students/{student}', [StudentController::class, 'studentsEdit'])->name('students.edit');
         Route::patch('/students/{student}', [StudentController::class, 'studentsUpdate'])->name('students.update');
         Route::patch('/students/{student}/status', [StudentController::class, 'updateStatus'])->name('students.status');
         Route::post('/students/{student}/reset-progress', [StudentController::class, 'resetProgress'])->name('students.reset-progress');
         Route::post('/students/{student}/reset-progress/{scope}', [StudentController::class, 'resetProgressScope'])->name('students.reset-progress.scope');
         Route::delete('/students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
+
+        Route::get('/admins', [AdminAccountController::class, 'index'])->name('admins.index');
+        Route::get('/admins/create', [AdminAccountController::class, 'create'])->name('admins.create');
+        Route::post('/admins', [AdminAccountController::class, 'store'])->name('admins.store');
+        Route::delete('/admins/{admin}', [AdminAccountController::class, 'destroy'])->name('admins.destroy');
 
         Route::get('/student-progress', [StudentProgressController::class, 'index'])->name('student-progress.index');
         Route::get('/student-progress/completed-lessons', [StudentProgressController::class, 'completedLessonsIndex'])->name('student-progress.completed-lessons.index');
