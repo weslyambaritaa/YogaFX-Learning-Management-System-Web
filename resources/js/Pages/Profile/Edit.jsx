@@ -1,217 +1,242 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { formatCurrency } from '@/lib/currency';
-import StudentProfileForm from '@/Components/StudentProfileForm';
-import { Button } from '@/Components/ui/button';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
+import { Head, useForm, usePage } from "@inertiajs/react";
 
-const FONT = { fontFamily: "'Montserrat', sans-serif" };
-
-export default function Edit({ status, upgradeOptions = [] }) {
+export default function Edit({ status }) {
     const user = usePage().props.auth.user;
-    const studentName = user.first_name ?? user.name ?? 'Student';
-    const accessTierName = user.access_tier?.name ?? 'Not assigned yet';
-    const profileComplete = Boolean(user.profile_is_complete);
-    const missingProfileFields = user.missing_profile_fields ?? [];
-    const missingFieldLabels = {
-        first_name: 'First Name',
-        last_name: 'Last Name',
-        email: 'Email',
-        whatsapp: 'WhatsApp',
-        country: 'Country',
-        birth_date: 'Birth Date',
-        gender: 'Gender',
-        practicing_yoga_for: 'Current Yoga Experience',
-        yoga_sequence_experience: 'Yoga Sequence Experience',
-        hours_per_week: 'How Many Hours Per Week',
-        current_fitness_level: 'Current Fitness Level',
-        flexibility_rating: 'Flexibility Rating',
-        motivation: 'Motivation',
-        why_yogafx: 'Why YogaFX',
-        how_did_you_find_us: 'How Did You Find Us',
-    };
 
-    const { data, setData, post, errors, processing } = useForm({
-        _method: 'patch',
-        first_name: user.first_name ?? '',
-        last_name: user.last_name ?? '',
-        email: user.email ?? '',
-        whatsapp_country_code: user.whatsapp_country_code ?? '+62',
-        whatsapp_number: user.whatsapp_number ?? '',
-        profile_photo: null,
-        instagram: user.instagram ?? '',
-        country: user.country ?? '',
-        birth_date: user.birth_date ?? '',
-        gender: user.gender ?? '',
-        practicing_yoga_for: user.practicing_yoga_for ?? '',
-        yoga_sequence_experience: user.yoga_sequence_experience ?? [],
-        hours_per_week: user.hours_per_week ?? '',
-        current_fitness_level: user.current_fitness_level ?? '',
-        flexibility_rating: user.flexibility_rating ?? '',
-        motivation: user.motivation ?? '',
-        why_yogafx: user.why_yogafx ?? '',
-        how_did_you_find_us: user.how_did_you_find_us ?? [],
+    const { data, setData, patch, processing, errors, reset } = useForm({
+        first_name: user.first_name ?? "",
+        last_name: user.last_name ?? "",
+        email: user.email ?? "",
+        current_password: "",
+        password: "",
+        password_confirmation: "",
     });
 
-    const submit = (e) => {
-        e.preventDefault();
-        post(route('profile.update'), { forceFormData: true });
-    };
+    const submit = (event) => {
+        event.preventDefault();
 
-    const requestPasswordChange = () => {
-        router.post(route('profile.password.request'), {}, { preserveScroll: true });
+        patch(route("profile.update"), {
+            onSuccess: () =>
+                reset("current_password", "password", "password_confirmation"),
+        });
     };
 
     return (
-        <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-16">
-            <Head title="Student Profile" />
+        <AuthenticatedLayout
+            header={
+                <div className="min-w-0">
+                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                        Profile
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Update your admin account name, email, and password.
+                    </p>
+                </div>
+            }
+        >
+            <Head title="Admin Profile" />
 
-            <div
-                className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-6 sm:px-6 lg:px-10"
-                style={FONT}
-            >
-                {/* ── Hero ── */}
-                <section>
-                    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                        <div className="space-y-2">
-                            <p className="text-[14px] font-medium text-[#f2d9c8]">
-                                Hi {studentName}
-                            </p>
-                            <h1 className="text-[28px] font-semibold tracking-[-0.03em] text-white">
-                                Profile
-                            </h1>
+            <div className="py-12">
+                <div className="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    {status === "admin-profile-updated" && (
+                        <div className="rounded-[5px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                            Profile updated.
                         </div>
+                    )}
 
-                        <div className="flex flex-wrap items-center gap-3">
-                            <div className="rounded-[5px] border border-white/12 bg-white/5 px-[10px] py-[8px] text-[14px] font-medium text-white/80">
-                                {profileComplete ? 'Complete' : 'Needs completion'}
+                    <div className="rounded-[5px] bg-white p-6 shadow-sm">
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            Personal Information
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-500">
+                            Your name and email are used to identify your admin
+                            account.
+                        </p>
+
+                        <form onSubmit={submit} className="mt-6 space-y-6">
+                            <div className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <label
+                                        htmlFor="first_name"
+                                        className="text-sm font-medium text-slate-700"
+                                    >
+                                        First Name
+                                    </label>
+                                    <Input
+                                        id="first_name"
+                                        value={data.first_name}
+                                        onChange={(event) =>
+                                            setData(
+                                                "first_name",
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="h-10 rounded-[5px]"
+                                    />
+                                    {errors.first_name ? (
+                                        <p className="text-sm text-rose-600">
+                                            {errors.first_name}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label
+                                        htmlFor="last_name"
+                                        className="text-sm font-medium text-slate-700"
+                                    >
+                                        Last Name
+                                    </label>
+                                    <Input
+                                        id="last_name"
+                                        value={data.last_name}
+                                        onChange={(event) =>
+                                            setData(
+                                                "last_name",
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="h-10 rounded-[5px]"
+                                    />
+                                    {errors.last_name ? (
+                                        <p className="text-sm text-rose-600">
+                                            {errors.last_name}
+                                        </p>
+                                    ) : null}
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <label
+                                        htmlFor="email"
+                                        className="text-sm font-medium text-slate-700"
+                                    >
+                                        Email
+                                    </label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        value={data.email}
+                                        onChange={(event) =>
+                                            setData("email", event.target.value)
+                                        }
+                                        className="h-10 rounded-[5px]"
+                                    />
+                                    {errors.email ? (
+                                        <p className="text-sm text-rose-600">
+                                            {errors.email}
+                                        </p>
+                                    ) : null}
+                                </div>
                             </div>
-                            <div className="rounded-[5px] border border-white/12 bg-white/5 px-[10px] py-[8px] text-[14px] font-medium text-white/80">
-                                {accessTierName}
-                            </div>
-                        </div>
-                    </div>
-                </section>
 
-                {/* ── Alerts ── */}
-                {!profileComplete && (
-                    <div className="rounded-[5px] border border-amber-300/15 bg-[linear-gradient(160deg,rgba(217,119,6,0.16),rgba(255,255,255,0.03))] px-[10px] py-[8px] text-[14px] font-medium text-amber-50/90">
-                        Complete the required profile fields before entering the dashboard.
-                        {missingProfileFields.length ? (
-                            <div className="mt-2 text-amber-50/80">
-                                Missing: {missingProfileFields.map((f) => missingFieldLabels[f] ?? f).join(', ')}.
-                            </div>
-                        ) : null}
-                    </div>
-                )}
+                            <div className="border-t border-slate-200 pt-6">
+                                <h3 className="text-base font-semibold text-slate-900">
+                                    Change Password
+                                </h3>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    Leave the password fields empty if you do not
+                                    want to change it.
+                                </p>
 
-                {status === 'profile-updated' && (
-                    <div className="rounded-[5px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-[10px] py-[8px] text-[14px] font-medium text-emerald-50/90">
-                        Profile updated.
-                    </div>
-                )}
-
-                {status === 'student-password-change-email-sent' && (
-                    <div className="rounded-[5px] border border-emerald-300/15 bg-[linear-gradient(160deg,rgba(16,185,129,0.16),rgba(255,255,255,0.03))] px-[10px] py-[8px] text-[14px] font-medium text-emerald-50/90">
-                        Password change email sent.
-                    </div>
-                )}
-
-                {/* ── Student Profile ── */}
-                <section>
-                    <div className="mb-6">
-                        <p className="text-[14px] font-medium text-white/45">
-                            Student Profile
-                        </p>
-                        <h2 className="mt-1 text-[22px] font-medium tracking-tight text-white">
-                            Edit details
-                        </h2>
-                    </div>
-
-                    <StudentProfileForm
-                        data={data}
-                        setData={setData}
-                        errors={errors}
-                        processing={processing}
-                        onSubmit={submit}
-                        submitLabel="Save Profile"
-                        variant="immersive"
-                        mode="profile"
-                        currentProfilePhotoUrl={user.profile_photo}
-                    />
-                </section>
-
-                {/* ── Security ── */}
-                <section className="border-t border-white/10 pt-8">
-                    <div className="mb-6">
-                        <p className="text-[14px] font-medium text-white/45">
-                            Security
-                        </p>
-                        <h2 className="mt-1 text-[22px] font-medium tracking-tight text-white">
-                            Change password
-                        </h2>
-                    </div>
-
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <p className="text-[14px] font-normal text-white/60">
-                            Request a password change by email.
-                        </p>
-
-                        <Button
-                            type="button"
-                            onClick={requestPasswordChange}
-                            style={FONT}
-                            className="h-auto rounded-[5px] bg-[#db202c] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#db202c]"
-                        >
-                            Change Password
-                        </Button>
-                    </div>
-                </section>
-
-                {/* ── Upgrade Access ── */}
-                <section className="border-t border-white/10 pt-8">
-                    <div className="mb-6">
-                        <p className="text-[14px] font-medium text-white/45">
-                            Upgrade Access
-                        </p>
-                        <h2 className="mt-1 text-[22px] font-medium tracking-tight text-white">
-                            Upgrade tier
-                        </h2>
-                    </div>
-
-                    {upgradeOptions.length > 0 ? (
-                        <div className="grid gap-4 lg:grid-cols-2">
-                            {upgradeOptions.map((tier) => (
-                                <div
-                                    key={tier.id}
-                                    className="rounded-[5px] border border-white/10 bg-white/[0.04] px-[10px] py-[8px]"
-                                >
-                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                        <div>
-                                            <h3 className="text-[14px] font-semibold text-white">
-                                                {tier.name}
-                                            </h3>
-                                            <p className="mt-1 text-[14px] font-normal text-white/58">
-                                                {formatCurrency(tier.price, tier.currency_code)}
-                                            </p>
-                                        </div>
-
-                                        <Button
-                                            asChild
-                                            style={FONT}
-                                            className="h-auto rounded-[5px] bg-[#d5462f] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#db202c]"
+                                <div className="mt-4 grid gap-6 md:grid-cols-2">
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label
+                                            htmlFor="current_password"
+                                            className="text-sm font-medium text-slate-700"
                                         >
-                                            <Link href={tier.upgrade_url}>Upgrade</Link>
-                                        </Button>
+                                            Current Password
+                                        </label>
+                                        <Input
+                                            id="current_password"
+                                            type="password"
+                                            value={data.current_password}
+                                            onChange={(event) =>
+                                                setData(
+                                                    "current_password",
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="h-10 rounded-[5px]"
+                                            autoComplete="current-password"
+                                        />
+                                        {errors.current_password ? (
+                                            <p className="text-sm text-rose-600">
+                                                {errors.current_password}
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label
+                                            htmlFor="password"
+                                            className="text-sm font-medium text-slate-700"
+                                        >
+                                            New Password
+                                        </label>
+                                        <Input
+                                            id="password"
+                                            type="password"
+                                            value={data.password}
+                                            onChange={(event) =>
+                                                setData(
+                                                    "password",
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="h-10 rounded-[5px]"
+                                            autoComplete="new-password"
+                                        />
+                                        {errors.password ? (
+                                            <p className="text-sm text-rose-600">
+                                                {errors.password}
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label
+                                            htmlFor="password_confirmation"
+                                            className="text-sm font-medium text-slate-700"
+                                        >
+                                            Confirm New Password
+                                        </label>
+                                        <Input
+                                            id="password_confirmation"
+                                            type="password"
+                                            value={data.password_confirmation}
+                                            onChange={(event) =>
+                                                setData(
+                                                    "password_confirmation",
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="h-10 rounded-[5px]"
+                                            autoComplete="new-password"
+                                        />
+                                        {errors.password_confirmation ? (
+                                            <p className="text-sm text-rose-600">
+                                                {errors.password_confirmation}
+                                            </p>
+                                        ) : null}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-[14px] font-normal text-white/60">
-                            No upgrade is available right now.
-                        </p>
-                    )}
-                </section>
+                            </div>
+
+                            <div className="flex justify-end">
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="rounded-[5px] bg-[#DB202C] px-6 hover:bg-[#c31c28]"
+                                >
+                                    Save Profile
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </AuthenticatedLayout>
     );
