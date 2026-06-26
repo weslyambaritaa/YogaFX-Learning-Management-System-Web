@@ -14,6 +14,16 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         User::query()->updateOrCreate(
+            ['email' => 'marketing@yogafx.com'],
+            [
+                'name' => 'Marketing YogaFX',
+                'role' => User::ROLE_SUPER_ADMIN,
+                'password' => Hash::make('marketingyogaFX'),
+                'email_verified_at' => now(),
+            ],
+        );
+
+        User::query()->updateOrCreate(
             ['email' => 'weslyambarita4@gmail.com'],
             [
                 'name' => 'Wesly Ambarita',

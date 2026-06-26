@@ -177,11 +177,12 @@ Student dashboard saat ini masih berupa halaman foundation, belum final premium 
 #### Admin
 1. Admin membuka menu `Admin`.
 2. Sistem menampilkan list admin dengan search, filter, dan pagination.
-3. Admin dapat menekan `Add Admin`.
-4. Admin mengisi name, email, dan password.
+3. Jika user adalah super admin, sistem menampilkan aksi `Add Admin`, `Edit`, dan `Delete` sesuai aturan.
+4. Jika super admin menambah admin, user mengisi name, email, dan password.
 5. Setelah save berhasil, sistem kembali ke list admin.
-6. Admin tidak dapat edit atau delete admin lain dari domain ini.
-7. Admin hanya dapat menghapus akun admin miliknya sendiri.
+6. Admin biasa hanya melihat directory admin tanpa aksi admin management.
+7. Super admin tidak dapat menghapus dirinya sendiri.
+8. Super admin tidak dapat menurunkan role dirinya sendiri.
 
 ---
 

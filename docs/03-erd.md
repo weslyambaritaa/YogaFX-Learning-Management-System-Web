@@ -42,7 +42,7 @@ Purpose:
 Key fields:
 - `id`
 - `name`
-- `role`
+- `role` (`super_admin`, `admin`, `student`)
 - `is_active`
 - `access_tier_id`
 - `email`

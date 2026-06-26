@@ -6,9 +6,15 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Search, ShieldPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+function roleLabel(role) {
+    return role === 'super_admin' ? 'Super Admin' : 'Admin';
+}
+
 function StatusMessage({ status }) {
     const messages = {
         'admin-account-created': 'Admin account has been created.',
+        'admin-account-updated': 'Admin account has been updated.',
+        'admin-account-deleted': 'Admin account has been deleted.',
     };
 
     if (!messages[status]) {
@@ -63,7 +69,7 @@ function Pagination({ paginator }) {
     );
 }
 
-export default function AdminsIndex({ admins, filters, status }) {
+export default function AdminsIndex({ admins, filters, status, capabilities }) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [scope, setScope] = useState(filters.scope ?? 'all');
     const [perPage, setPerPage] = useState(String(filters.per_page ?? 10));
@@ -94,8 +100,8 @@ export default function AdminsIndex({ admins, filters, status }) {
         applyFilters();
     };
 
-    const deleteSelf = (admin) => {
-        if (!window.confirm(`Delete your admin account "${admin.email}" permanently?`)) {
+    const deleteAdmin = (admin) => {
+        if (!window.confirm(`Delete admin account "${admin.email}" permanently?`)) {
             return;
         }
 
@@ -135,12 +141,14 @@ export default function AdminsIndex({ admins, filters, status }) {
                                     </p>
                                 </div>
 
-                                <Button asChild>
-                                    <Link href={route('admin.admins.create')}>
-                                        <ShieldPlus className="mr-2 size-4" />
-                                        Add Admin
-                                    </Link>
-                                </Button>
+                                {capabilities.is_super_admin ? (
+                                    <Button asChild>
+                                        <Link href={route('admin.admins.create')}>
+                                            <ShieldPlus className="mr-2 size-4" />
+                                            Add Admin
+                                        </Link>
+                                    </Button>
+                                ) : null}
                             </div>
 
                             <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,2fr)_180px_120px]">
@@ -198,7 +206,7 @@ export default function AdminsIndex({ admins, filters, status }) {
                                             Email
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-slate-700">
-                                            Scope
+                                            Role
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-slate-700">
                                             Created Date
@@ -233,27 +241,52 @@ export default function AdminsIndex({ admins, filters, status }) {
                                                 <td className="px-4 py-4">
                                                     <Badge
                                                         variant={
-                                                            admin.is_self
+                                                            admin.role === 'super_admin'
                                                                 ? 'secondary'
                                                                 : 'outline'
                                                         }
                                                     >
-                                                        {admin.is_self ? 'You' : 'Admin'}
+                                                        {roleLabel(admin.role)}
                                                     </Badge>
+                                                    {admin.is_self ? (
+                                                        <div className="mt-2 text-xs text-slate-500">
+                                                            You
+                                                        </div>
+                                                    ) : null}
                                                 </td>
                                                 <td className="px-4 py-4 text-slate-700">
                                                     {admin.created_at}
                                                 </td>
                                                 <td className="px-4 py-4">
-                                                    {admin.is_self ? (
-                                                        <Button
-                                                            type="button"
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            onClick={() => deleteSelf(admin)}
-                                                        >
-                                                            Delete My Account
-                                                        </Button>
+                                                    {admin.can_edit || admin.can_delete ? (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {admin.can_edit ? (
+                                                                <Button
+                                                                    asChild
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                >
+                                                                    <Link
+                                                                        href={route(
+                                                                            'admin.admins.edit',
+                                                                            admin.id,
+                                                                        )}
+                                                                    >
+                                                                        Edit
+                                                                    </Link>
+                                                                </Button>
+                                                            ) : null}
+                                                            {admin.can_delete ? (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="destructive"
+                                                                    size="sm"
+                                                                    onClick={() => deleteAdmin(admin)}
+                                                                >
+                                                                    Delete
+                                                                </Button>
+                                                            ) : null}
+                                                        </div>
                                                     ) : (
                                                         <span className="text-sm text-slate-400">
                                                             No actions

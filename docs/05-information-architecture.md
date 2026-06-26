@@ -94,6 +94,7 @@ Topbar hanya berisi:
 - Admin Profile
 - Admin Index
 - Admin Create
+- Admin Edit
 
 ### 6.2 Tier Management
 - Access Tiers Index
@@ -226,6 +227,7 @@ Akses konten yang aktif:
 - task-first
 - list -> create/edit -> kembali ke list
 - sidebar sebagai anchor utama
+- menu `Admin` memakai halaman yang sama untuk admin biasa dan super admin, tetapi aksi berbeda berdasarkan role
 
 ---
 

@@ -35,6 +35,7 @@ Stack aktif:
 - shadcn/ui
 
 Role aktif:
+- Super Admin
 - Admin
 - Student
 
@@ -72,16 +73,21 @@ Catatan:
 
 ### 2.3A Admin User Management
 - admin dapat membuat akun student dari menu `Students`
-- admin dapat membuat akun admin dari menu `Admin`
+- super admin dapat membuat akun admin dari menu `Admin`
+- super admin dapat mengedit akun admin dari menu `Admin`
+- super admin dapat menghapus akun admin biasa dari menu `Admin`
+- super admin dapat menurunkan role `super_admin` lain atau dirinya sendiri: tidak diizinkan
 - create student minimal mencakup email, password, dan access tier
 - student yang dibuat admin langsung aktif dan tetap melewati profile completion gate saat login pertama kali
 - create admin minimal mencakup name, email, dan password
 - email user harus unik global
 - admin list mendukung search, filter, dan pagination
 - student list mendukung search, filter, dan pagination
-- admin tidak dapat edit admin lain dari domain ini
-- admin tidak dapat delete admin lain dari domain ini
-- admin dapat menghapus akun admin miliknya sendiri
+- menu `Admin` tetap terlihat untuk admin biasa, tetapi aksi admin management dibatasi
+- admin biasa tidak dapat membuat admin baru
+- admin biasa tidak dapat edit admin lain dari domain ini
+- admin biasa tidak dapat delete admin lain dari domain ini
+- admin biasa tidak dapat menghapus akun admin miliknya sendiri
 - delete student tetap menghapus seluruh data student terkait secara permanen
 ### 2.4 Access Tier Management
 - CRUD tier admin

@@ -48,6 +48,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const ROLE_SUPER_ADMIN = 'super_admin';
     public const ROLE_ADMIN = 'admin';
     public const ROLE_STUDENT = 'student';
 
@@ -147,7 +148,12 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_ADMIN], true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
     public function isStudent(): bool
@@ -176,6 +182,7 @@ class User extends Authenticatable
     public function dashboardRouteName(): string
     {
         return match ($this->role) {
+            self::ROLE_SUPER_ADMIN => 'admin.dashboard',
             self::ROLE_ADMIN => 'admin.dashboard',
             self::ROLE_STUDENT => 'student.dashboard',
             default => 'login',

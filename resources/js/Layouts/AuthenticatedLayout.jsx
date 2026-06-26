@@ -263,6 +263,7 @@ const adminPageTitles = {
     'admin.students.edit': 'Student Detail',
     'admin.admins.index': 'Admin',
     'admin.admins.create': 'Create Admin',
+    'admin.admins.edit': 'Edit Admin',
     'admin.profile.edit': 'Profile',
     'admin.dialogs.edit': 'Dialog',
     'admin.email-notifications.index': 'Email Notification',
@@ -296,7 +297,7 @@ function UserMenu({ user, isImmersive = false }) {
     };
 
     const isStudent = user?.role === 'student';
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = ['admin', 'super_admin'].includes(user?.role);
     const displayName = user?.first_name || user?.name || 'Student';
 
     return (
@@ -855,7 +856,7 @@ export default function AuthenticatedLayout({
 }) {
     const user = usePage().props.auth.user;
     const currentRouteName = route().current();
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = ['admin', 'super_admin'].includes(user?.role);
     const pageTitle = adminPageTitles[currentRouteName] ?? 'Admin';
 
     const [collapsed, setCollapsed] = useState(false);

@@ -48,6 +48,7 @@ Sudah mencakup:
 - admin self-edit account profile
 - profile completeness gate
 - admin-created student and admin account foundation
+- super admin foundation for admin account management
 
 ### Phase 3 - Tier Management Foundation
 Status: **completed**

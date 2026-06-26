@@ -85,9 +85,14 @@ Dokumen ini mencerminkan **scope aktual yang sudah diimplementasikan** di reposi
 ## 4. User Roles
 
 ### 4.1 Admin
+Super Admin bertanggung jawab untuk:
+- melakukan semua yang admin biasa dapat lakukan
+- membuat akun admin baru
+- mengedit akun admin
+- menghapus akun admin biasa
+
 Admin bertanggung jawab untuk:
 - mengelola akun admin sendiri dari profile menu
-- membuat akun admin baru
 - mengelola tier
 - mengelola akun student
 - mengelola modules
@@ -147,13 +152,20 @@ Aturan implementasi saat ini:
 - create student minimal mencakup `email`, `password`, dan `access_tier_id`
 - `access_tier_id` wajib dipilih saat create student
 - student yang dibuat admin langsung aktif dan tetap mengikuti profile completion gate
-- admin harus dapat membuat akun admin dari menu `Admin`
+- super admin harus dapat membuat akun admin dari menu `Admin`
+- super admin harus dapat mengedit akun admin dari menu `Admin`
+- super admin harus dapat menghapus akun admin biasa dari menu `Admin`
 - create admin minimal mencakup `name`, `email`, dan `password`
+- create admin dari menu `Admin` menghasilkan role `admin`, bukan `super_admin`
 - email harus unik global lintas role
 - admin list dan student list harus mendukung search, filter, dan pagination
 - admin tidak dapat mengganti role akun yang sudah ada
 - admin tidak dapat mengganti password user langsung dari domain ini
-- admin hanya dapat menghapus akun admin miliknya sendiri
+- admin biasa tidak dapat membuat, edit, atau delete admin dari domain ini
+- menu `Admin` tetap boleh terlihat untuk admin biasa sebagai read-only directory
+- super admin tidak dapat menghapus dirinya sendiri
+- super admin tidak dapat menurunkan role dirinya sendiri
+- role change yang diizinkan hanya `super_admin -> admin`
 - delete student harus menghapus seluruh data terkait student
 ### 6.4 Access Tier
 - admin harus dapat membuat, mengedit, dan menghapus tier jika belum dipakai student

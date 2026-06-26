@@ -102,7 +102,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/admin/dashboard', function () {
         return Inertia::render('Admin/Dashboard');
-    })->middleware('role:admin')->name('admin.dashboard');
+    })->middleware('role:admin,super_admin')->name('admin.dashboard');
 
     Route::get('/student/dashboard', [HomeController::class, 'index'])
         ->middleware(['role:student', 'student.active', 'track.student.session'])
@@ -141,7 +141,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/upgrades/{accessTier}', [UpgradeController::class, 'pay'])->name('student.upgrades.pay');
     });
 
-    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware('role:admin,super_admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 
@@ -234,6 +234,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/admins', [AdminAccountController::class, 'index'])->name('admins.index');
         Route::get('/admins/create', [AdminAccountController::class, 'create'])->name('admins.create');
         Route::post('/admins', [AdminAccountController::class, 'store'])->name('admins.store');
+        Route::get('/admins/{admin}/edit', [AdminAccountController::class, 'edit'])->name('admins.edit');
+        Route::patch('/admins/{admin}', [AdminAccountController::class, 'update'])->name('admins.update');
         Route::delete('/admins/{admin}', [AdminAccountController::class, 'destroy'])->name('admins.destroy');
 
         Route::get('/student-progress', [StudentProgressController::class, 'index'])->name('student-progress.index');
