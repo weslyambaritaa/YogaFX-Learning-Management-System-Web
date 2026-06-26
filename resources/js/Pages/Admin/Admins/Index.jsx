@@ -128,9 +128,9 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     <StatusMessage status={status} />
 
-                    <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-                        <div className="border-b border-slate-200 px-4 py-4">
-                            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="overflow-hidden rounded-[5px] bg-white shadow-sm">
+                        <div className="border-b border-slate-200 px-5 py-5">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <h3 className="text-lg font-semibold text-slate-900">
                                         Admin Directory
@@ -142,7 +142,10 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                                 </div>
 
                                 {capabilities.is_super_admin ? (
-                                    <Button asChild>
+                                    <Button
+                                        asChild
+                                        className="w-full shrink-0 rounded-[5px] bg-gray-900 px-4 py-2 hover:bg-gray-800 sm:w-auto"
+                                    >
                                         <Link href={route('admin.admins.create')}>
                                             <ShieldPlus className="mr-2 size-4" />
                                             Add Admin
@@ -151,14 +154,14 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                                 ) : null}
                             </div>
 
-                            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,2fr)_180px_120px]">
-                                <form onSubmit={submitSearch} className="relative">
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_160px_120px]">
+                                <form onSubmit={submitSearch} className="relative sm:col-span-2 lg:col-span-1">
                                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                                     <Input
                                         value={search}
                                         onChange={(event) => setSearch(event.target.value)}
                                         placeholder="Search by name or email..."
-                                        className="h-10 pl-9"
+                                        className="h-10 rounded-[5px] pl-9"
                                     />
                                 </form>
 
@@ -169,7 +172,7 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                                         setScope(value);
                                         applyFilters({ scope: value, page: 1 });
                                     }}
-                                    className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
+                                    className="h-10 rounded-[5px] border border-slate-300 bg-white px-3 text-sm text-slate-700"
                                 >
                                     <option value="all">All Admins</option>
                                     <option value="mine">My Account</option>
@@ -183,7 +186,7 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                                         setPerPage(value);
                                         applyFilters({ per_page: value, page: 1 });
                                     }}
-                                    className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700"
+                                    className="h-10 rounded-[5px] border border-slate-300 bg-white px-3 text-sm text-slate-700"
                                 >
                                     <option value="10">10 / page</option>
                                     <option value="25">25 / page</option>
@@ -239,20 +242,22 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                                                     {admin.email}
                                                 </td>
                                                 <td className="px-4 py-4">
-                                                    <Badge
-                                                        variant={
-                                                            admin.role === 'super_admin'
-                                                                ? 'secondary'
-                                                                : 'outline'
-                                                        }
-                                                    >
-                                                        {roleLabel(admin.role)}
-                                                    </Badge>
-                                                    {admin.is_self ? (
-                                                        <div className="mt-2 text-xs text-slate-500">
-                                                            You
-                                                        </div>
-                                                    ) : null}
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Badge
+                                                            variant={
+                                                                admin.role === 'super_admin'
+                                                                    ? 'secondary'
+                                                                    : 'outline'
+                                                            }
+                                                        >
+                                                            {roleLabel(admin.role)}
+                                                        </Badge>
+                                                        {admin.is_self ? (
+                                                            <span className="rounded-[5px] bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                                                                You
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-slate-700">
                                                     {admin.created_at}
@@ -265,6 +270,7 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                                                                     asChild
                                                                     variant="outline"
                                                                     size="sm"
+                                                                    className="rounded-[5px]"
                                                                 >
                                                                     <Link
                                                                         href={route(
@@ -281,9 +287,12 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                                                                     type="button"
                                                                     variant="destructive"
                                                                     size="sm"
+                                                                    className="rounded-[5px]"
                                                                     onClick={() => deleteAdmin(admin)}
                                                                 >
-                                                                    Delete
+                                                                    {admin.is_self
+                                                                        ? 'Delete My Account'
+                                                                        : 'Delete'}
                                                                 </Button>
                                                             ) : null}
                                                         </div>
