@@ -29,10 +29,6 @@ function StatusMessage({ status }) {
 }
 
 function Pagination({ paginator }) {
-    if (paginator.last_page <= 1) {
-        return null;
-    }
-
     return (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-4">
             <p className="text-sm text-slate-500">
@@ -40,31 +36,33 @@ function Pagination({ paginator }) {
                 admin accounts
             </p>
 
-            <div className="flex flex-wrap items-center gap-2">
-                {paginator.links.map((link, index) => (
-                    <button
-                        key={`${link.label}-${index}`}
-                        type="button"
-                        disabled={!link.url}
-                        onClick={() =>
-                            link.url
-                                ? router.visit(link.url, {
-                                      preserveScroll: true,
-                                      preserveState: true,
-                                  })
-                                : null
-                        }
-                        className={[
-                            'rounded-md border px-3 py-1.5 text-sm transition',
-                            link.active
-                                ? 'border-slate-900 bg-slate-900 text-white'
-                                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
-                            !link.url ? 'cursor-not-allowed opacity-50' : '',
-                        ].join(' ')}
-                        dangerouslySetInnerHTML={{ __html: link.label }}
-                    />
-                ))}
-            </div>
+            {paginator.last_page > 1 ? (
+                <div className="flex flex-wrap items-center gap-2">
+                    {paginator.links.map((link, index) => (
+                        <button
+                            key={`${link.label}-${index}`}
+                            type="button"
+                            disabled={!link.url}
+                            onClick={() =>
+                                link.url
+                                    ? router.visit(link.url, {
+                                          preserveScroll: true,
+                                          preserveState: true,
+                                      })
+                                    : null
+                            }
+                            className={[
+                                'rounded-md border px-3 py-1.5 text-sm transition',
+                                link.active
+                                    ? 'border-slate-900 bg-slate-900 text-white'
+                                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+                                !link.url ? 'cursor-not-allowed opacity-50' : '',
+                            ].join(' ')}
+                            dangerouslySetInnerHTML={{ __html: link.label }}
+                        />
+                    ))}
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -144,7 +142,7 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
                                 {capabilities.is_super_admin ? (
                                     <Button
                                         asChild
-                                        className="w-full shrink-0 rounded-[5px] bg-gray-900 px-4 py-2 hover:bg-gray-800 sm:w-auto"
+                                        className="w-full shrink-0 rounded-[5px] bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 sm:w-auto"
                                     >
                                         <Link href={route('admin.admins.create')}>
                                             <ShieldPlus className="mr-2 size-4" />
