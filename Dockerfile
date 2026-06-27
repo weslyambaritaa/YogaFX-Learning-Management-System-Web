@@ -1,6 +1,9 @@
 FROM php:8.4-cli
 
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
 RUN apt-get update && apt-get install -y \
+    ca-certificates \
     curl \
     git \
     libfreetype6-dev \
@@ -25,8 +28,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+RUN git config --global --add safe.directory /var/www/html
+
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+RUN composer install --no-dev --no-interaction --prefer-source --optimize-autoloader --no-scripts
 
 COPY package.json package-lock.json ./
 RUN npm ci
