@@ -1,28 +1,39 @@
 FROM php:8.4-cli
 
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    zip \
     curl \
+    git \
+    libfreetype6-dev \
+    libicu-dev \
+    libjpeg62-turbo-dev \
+    libonig-dev \
+    libpng-dev \
+    libpq-dev \
+    libwebp-dev \
+    libxml2-dev \
+    libzip-dev \
     nodejs \
     npm \
-    libpq-dev \
-    libzip-dev \
-    libicu-dev \
-    && docker-php-ext-install pdo_pgsql pgsql zip intl
+    unzip \
+    zip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install dom gd intl mbstring pdo_pgsql pgsql zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader --no-scripts
-
-RUN npm install
 RUN npm run build
-
 RUN php artisan storage:link || true
 
 EXPOSE 8000
