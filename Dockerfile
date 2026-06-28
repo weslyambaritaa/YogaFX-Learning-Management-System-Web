@@ -29,6 +29,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 RUN git config --global --add safe.directory /var/www/html
+RUN mkdir -p storage/framework/views storage/framework/cache/data storage/framework/sessions storage/logs bootstrap/cache
 
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-source --optimize-autoloader --no-scripts
@@ -38,6 +39,7 @@ RUN npm ci
 
 COPY . .
 
+RUN mkdir -p storage/framework/views storage/framework/cache/data storage/framework/sessions storage/logs bootstrap/cache
 RUN npm run build
 RUN php artisan storage:link || true
 
