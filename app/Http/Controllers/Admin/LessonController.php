@@ -12,6 +12,7 @@ use App\Models\Module;
 use App\Services\BunnyStorageService;
 use App\Support\BunnyAssetPath;
 use App\Support\UploadConstraints;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -29,11 +30,19 @@ class LessonController extends Controller
     ) {
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $selectedModuleId = $request->integer('module_id');
+
+        $lessonsQuery = Lesson::query()
+            ->with(['module', 'accessTiers', 'assessment']);
+
+        if ($selectedModuleId > 0) {
+            $lessonsQuery->where('module_id', $selectedModuleId);
+        }
+
         return Inertia::render('Admin/Lessons/Index', [
-            'lessons' => Lesson::query()
-                ->with(['module', 'accessTiers', 'assessment'])
+            'lessons' => $lessonsQuery
                 ->orderBy('sort_order', 'asc')
                 ->orderBy('title', 'asc')
                 ->get()
@@ -55,6 +64,8 @@ class LessonController extends Controller
                     'has_lesson_video' => $lesson->lesson_video_id !== null,
                     'has_audio' => $lesson->audio_url !== null,
                 ]),
+            'modules' => $this->moduleOptions(),
+            'selectedModuleId' => $selectedModuleId > 0 ? $selectedModuleId : null,
             'status' => session('status'),
         ]);
     }

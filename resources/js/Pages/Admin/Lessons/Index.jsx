@@ -1,6 +1,6 @@
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { BookOpenCheck, Search, Plus, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
@@ -31,7 +31,7 @@ function FlashMessage({ status, errors }) {
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25];
 
-export default function LessonsIndex({ lessons, status }) {
+export default function LessonsIndex({ lessons, modules, selectedModuleId, status }) {
     const errors = usePage().props.errors;
     const [search, setSearch] = useState('');
     const [pageSize, setPageSize] = useState(10);
@@ -49,6 +49,18 @@ export default function LessonsIndex({ lessons, status }) {
     const goTo = (p) => setCurrentPage(Math.max(1, Math.min(p, totalPages)));
     const handleSearch = (v) => { setSearch(v); setCurrentPage(1); };
     const handlePageSize = (v) => { setPageSize(Number(v)); setCurrentPage(1); };
+    const handleModuleFilterChange = (event) => {
+        const moduleId = event.target.value;
+
+        router.get(
+            route('admin.lessons.index'),
+            moduleId ? { module_id: moduleId } : {},
+            {
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    };
 
     const pageNumbers = () => {
         const pages = [];
@@ -62,19 +74,7 @@ export default function LessonsIndex({ lessons, status }) {
     const to = Math.min(safePage * pageSize, filtered.length);
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center gap-3">
-                    <div className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
-                        <BookOpenCheck className="size-4 text-slate-500" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-semibold leading-tight text-slate-800">Lessons</h2>
-                        <p className="text-xs text-slate-500">Manage lesson records independently from module navigation.</p>
-                    </div>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Lessons" />
 
             <div className="py-10">
@@ -95,6 +95,18 @@ export default function LessonsIndex({ lessons, status }) {
                                 </span>
                             </div>
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <select
+                                    value={selectedModuleId ?? ''}
+                                    onChange={handleModuleFilterChange}
+                                    className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400"
+                                >
+                                    <option value="">All Modules</option>
+                                    {modules.map((module) => (
+                                        <option key={module.id} value={module.id}>
+                                            {module.title}
+                                        </option>
+                                    ))}
+                                </select>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
                                     <input

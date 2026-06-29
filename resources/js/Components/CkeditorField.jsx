@@ -163,7 +163,9 @@ const CkeditorField = forwardRef(function CkeditorField({
     }), []);
 
     return (
-        <div className={`ckeditor-field ${invalid ? 'ckeditor-field-invalid' : ''} ${className}`.trim()}>
+        <div
+            className={`ckeditor-field ${invalid ? 'ckeditor-field-invalid' : ''} ${className} [&_.ck.ck-editor]:relative [&_.ck.ck-editor]:z-0 [&_.ck.ck-sticky-panel]:z-0 [&_.ck.ck-toolbar]:z-0`.trim()}
+        >
             <CKEditor
                 editor={ClassicEditor}
                 disabled={disabled}

@@ -296,6 +296,17 @@ function UserMenu({ user, isImmersive = false }) {
         router.post(route('logout'));
     };
 
+    const handleProfileNavigation = () => {
+        if (user?.role === 'student') {
+            router.visit(route('profile.edit'));
+            return;
+        }
+
+        if (['admin', 'super_admin'].includes(user?.role)) {
+            router.visit(route('admin.profile.edit'));
+        }
+    };
+
     const isStudent = user?.role === 'student';
     const isAdmin = ['admin', 'super_admin'].includes(user?.role);
     const displayName = user?.first_name || user?.name || 'Student';
@@ -340,13 +351,23 @@ function UserMenu({ user, isImmersive = false }) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {isStudent && (
-                    <DropdownMenuItem asChild>
-                        <Link href={route('profile.edit')}>Profile</Link>
+                    <DropdownMenuItem
+                        onSelect={(event) => {
+                            event.preventDefault();
+                            handleProfileNavigation();
+                        }}
+                    >
+                        Profile
                     </DropdownMenuItem>
                 )}
                 {isAdmin && (
-                    <DropdownMenuItem asChild>
-                        <Link href={route('admin.profile.edit')}>Profile</Link>
+                    <DropdownMenuItem
+                        onSelect={(event) => {
+                            event.preventDefault();
+                            handleProfileNavigation();
+                        }}
+                    >
+                        Profile
                     </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
@@ -948,7 +969,7 @@ export default function AuthenticatedLayout({
                 />
 
                 <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-                    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+                    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
                         <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
                             <div className="flex min-w-0 items-center gap-3">
                                 <AdminMobileSidebar

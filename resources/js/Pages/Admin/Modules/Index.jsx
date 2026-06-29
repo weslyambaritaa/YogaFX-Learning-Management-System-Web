@@ -37,9 +37,8 @@ export default function ModulesIndex({ modules, status }) {
     const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
 
-    const filtered = modules.filter(m =>
-        m.title.toLowerCase().includes(search.toLowerCase()) ||
-        (m.url_slug ?? '').toLowerCase().includes(search.toLowerCase())
+    const filtered = modules.filter((module) =>
+        module.title.toLowerCase().includes(search.toLowerCase()),
     );
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -62,19 +61,7 @@ export default function ModulesIndex({ modules, status }) {
     const to = Math.min(safePage * pageSize, filtered.length);
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center gap-3">
-                    <div className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
-                        <BookOpen className="size-4 text-slate-500" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-semibold leading-tight text-slate-800">Modules</h2>
-                        <p className="text-xs text-slate-500">Manage the primary learning containers for YogaFX students.</p>
-                    </div>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Modules" />
 
             <div className="py-10">
@@ -99,7 +86,7 @@ export default function ModulesIndex({ modules, status }) {
                                     <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
                                     <input
                                         type="text"
-                                        placeholder="Search by name or slug..."
+                                        placeholder="Search by name..."
                                         value={search}
                                         onChange={e => handleSearch(e.target.value)}
                                         className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-3 text-sm text-slate-700 placeholder-slate-400 outline-none focus:border-slate-400 focus:bg-white sm:w-60"
@@ -151,12 +138,6 @@ export default function ModulesIndex({ modules, status }) {
                                                         />
                                                         <div>
                                                             <div className="font-medium text-gray-900">{module.title}</div>
-                                                            <div className="text-xs text-gray-500">{module.url_slug}</div>
-                                                            {module.description ? (
-                                                                <div className="mt-1 max-w-md text-xs leading-5 text-gray-500">
-                                                                    {module.description}
-                                                                </div>
-                                                            ) : null}
                                                         </div>
                                                     </div>
                                                 </td>

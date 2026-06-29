@@ -26,24 +26,18 @@ export default function CreateLesson({
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between gap-4">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Create Lesson
-                    </h2>
-                    <Link
-                        href={route('admin.lessons.index')}
-                        className="inline-flex items-center rounded-md border border-gray-900 bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-700"
-                    >
-                        Back to Lessons
-                    </Link>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Create Lesson" />
             <div className="py-12">
-                <div className="mx-auto max-w-5xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-5xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-end">
+                        <Link
+                            href={route('admin.lessons.index')}
+                            className="inline-flex items-center rounded-md border border-gray-900 bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-700"
+                        >
+                            Back to Lessons
+                        </Link>
+                    </div>
                     <div className="rounded-lg bg-white p-6 shadow-sm">
                         <LessonForm
                             data={data}

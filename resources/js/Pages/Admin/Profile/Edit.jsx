@@ -18,25 +18,14 @@ export default function Edit({ status }) {
     const submit = (event) => {
         event.preventDefault();
 
-        patch(route("profile.update"), {
+        patch(route("admin.profile.update"), {
             onSuccess: () =>
                 reset("current_password", "password", "password_confirmation"),
         });
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="min-w-0">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Profile
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Update your admin account name, email, and password.
-                    </p>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Admin Profile" />
 
             <div className="py-12">

@@ -239,18 +239,7 @@ export default function EmailNotificationShow({
     );
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="min-w-0">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        {notificationLabel}
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        {notificationDescription}
-                    </p>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title={notificationLabel} />
 
             <div className="py-12">
