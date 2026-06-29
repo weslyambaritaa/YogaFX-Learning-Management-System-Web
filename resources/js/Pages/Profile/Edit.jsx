@@ -1,241 +1,93 @@
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import StudentProfileForm from "@/Components/StudentProfileForm";
 import { Button } from "@/Components/ui/button";
-import { Input } from "@/Components/ui/input";
-import { Head, useForm, usePage } from "@inertiajs/react";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, router, useForm, usePage } from "@inertiajs/react";
 
 export default function Edit({ status }) {
     const user = usePage().props.auth.user;
-
-    const { data, setData, patch, processing, errors, reset } = useForm({
+    const { data, setData, patch, errors, processing } = useForm({
         first_name: user.first_name ?? "",
         last_name: user.last_name ?? "",
         email: user.email ?? "",
-        current_password: "",
-        password: "",
-        password_confirmation: "",
+        whatsapp_country_code: user.whatsapp_country_code ?? "+62",
+        whatsapp_number: user.whatsapp_number ?? "",
+        profile_photo: null,
+        instagram: user.instagram ?? "",
+        country: user.country ?? "",
+        birth_date: user.birth_date ?? "",
+        gender: user.gender ?? "",
+        practicing_yoga_for: user.practicing_yoga_for ?? "",
+        yoga_sequence_experience: user.yoga_sequence_experience ?? [],
+        hours_per_week: user.hours_per_week ?? "",
+        current_fitness_level: user.current_fitness_level ?? "",
+        flexibility_rating: user.flexibility_rating ?? "",
+        motivation: user.motivation ?? "",
+        why_yogafx: user.why_yogafx ?? "",
+        how_did_you_find_us: user.how_did_you_find_us ?? [],
     });
 
     const submit = (event) => {
         event.preventDefault();
 
         patch(route("profile.update"), {
-            onSuccess: () =>
-                reset("current_password", "password", "password_confirmation"),
+            forceFormData: true,
         });
     };
 
     return (
         <AuthenticatedLayout
-            header={
-                <div className="min-w-0">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Profile
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Update your admin account name, email, and password.
-                    </p>
-                </div>
-            }
+            studentVariant="immersive"
+            studentContentClassName="pb-16"
         >
-            <Head title="Admin Profile" />
+            <Head title="Profile" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-3xl space-y-6 px-4 sm:px-6 lg:px-8">
-                    {status === "admin-profile-updated" && (
-                        <div className="rounded-[5px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                            Profile updated.
-                        </div>
-                    )}
-
-                    <div className="rounded-[5px] bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                            Personal Information
-                        </h3>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Your name and email are used to identify your admin
-                            account.
-                        </p>
-
-                        <form onSubmit={submit} className="mt-6 space-y-6">
-                            <div className="grid gap-6 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <label
-                                        htmlFor="first_name"
-                                        className="text-sm font-medium text-slate-700"
-                                    >
-                                        First Name
-                                    </label>
-                                    <Input
-                                        id="first_name"
-                                        value={data.first_name}
-                                        onChange={(event) =>
-                                            setData(
-                                                "first_name",
-                                                event.target.value,
-                                            )
-                                        }
-                                        className="h-10 rounded-[5px]"
-                                    />
-                                    {errors.first_name ? (
-                                        <p className="text-sm text-rose-600">
-                                            {errors.first_name}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label
-                                        htmlFor="last_name"
-                                        className="text-sm font-medium text-slate-700"
-                                    >
-                                        Last Name
-                                    </label>
-                                    <Input
-                                        id="last_name"
-                                        value={data.last_name}
-                                        onChange={(event) =>
-                                            setData(
-                                                "last_name",
-                                                event.target.value,
-                                            )
-                                        }
-                                        className="h-10 rounded-[5px]"
-                                    />
-                                    {errors.last_name ? (
-                                        <p className="text-sm text-rose-600">
-                                            {errors.last_name}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                <div className="space-y-2 md:col-span-2">
-                                    <label
-                                        htmlFor="email"
-                                        className="text-sm font-medium text-slate-700"
-                                    >
-                                        Email
-                                    </label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={data.email}
-                                        onChange={(event) =>
-                                            setData("email", event.target.value)
-                                        }
-                                        className="h-10 rounded-[5px]"
-                                    />
-                                    {errors.email ? (
-                                        <p className="text-sm text-rose-600">
-                                            {errors.email}
-                                        </p>
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            <div className="border-t border-slate-200 pt-6">
-                                <h3 className="text-base font-semibold text-slate-900">
-                                    Change Password
-                                </h3>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Leave the password fields empty if you do not
-                                    want to change it.
-                                </p>
-
-                                <div className="mt-4 grid gap-6 md:grid-cols-2">
-                                    <div className="space-y-2 md:col-span-2">
-                                        <label
-                                            htmlFor="current_password"
-                                            className="text-sm font-medium text-slate-700"
-                                        >
-                                            Current Password
-                                        </label>
-                                        <Input
-                                            id="current_password"
-                                            type="password"
-                                            value={data.current_password}
-                                            onChange={(event) =>
-                                                setData(
-                                                    "current_password",
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="h-10 rounded-[5px]"
-                                            autoComplete="current-password"
-                                        />
-                                        {errors.current_password ? (
-                                            <p className="text-sm text-rose-600">
-                                                {errors.current_password}
-                                            </p>
-                                        ) : null}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label
-                                            htmlFor="password"
-                                            className="text-sm font-medium text-slate-700"
-                                        >
-                                            New Password
-                                        </label>
-                                        <Input
-                                            id="password"
-                                            type="password"
-                                            value={data.password}
-                                            onChange={(event) =>
-                                                setData(
-                                                    "password",
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="h-10 rounded-[5px]"
-                                            autoComplete="new-password"
-                                        />
-                                        {errors.password ? (
-                                            <p className="text-sm text-rose-600">
-                                                {errors.password}
-                                            </p>
-                                        ) : null}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label
-                                            htmlFor="password_confirmation"
-                                            className="text-sm font-medium text-slate-700"
-                                        >
-                                            Confirm New Password
-                                        </label>
-                                        <Input
-                                            id="password_confirmation"
-                                            type="password"
-                                            value={data.password_confirmation}
-                                            onChange={(event) =>
-                                                setData(
-                                                    "password_confirmation",
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="h-10 rounded-[5px]"
-                                            autoComplete="new-password"
-                                        />
-                                        {errors.password_confirmation ? (
-                                            <p className="text-sm text-rose-600">
-                                                {errors.password_confirmation}
-                                            </p>
-                                        ) : null}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end">
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="rounded-[5px] bg-[#DB202C] px-6 hover:bg-[#c31c28]"
-                                >
-                                    Save Profile
-                                </Button>
-                            </div>
-                        </form>
+            <div className="mx-auto flex max-w-[1100px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+                {status === "profile-updated" ? (
+                    <div className="rounded-[5px] border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                        Your profile has been updated.
                     </div>
+                ) : null}
+
+                {status === "student-password-change-email-sent" ? (
+                    <div className="rounded-[5px] border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                        Password change instructions have been sent to your
+                        email.
+                    </div>
+                ) : null}
+
+                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h1 className="font-['Montserrat'] text-[22px] font-semibold text-white">
+                                Profile
+                            </h1>
+                            <p className="mt-2 font-['Montserrat'] text-sm leading-7 text-white/70">
+                                Keep your student profile complete so YogaFX can
+                                personalize your learning path correctly.
+                            </p>
+                        </div>
+
+                        <Button
+                            type="button"
+                            onClick={() => router.post(route("profile.password.request"))}
+                            className="rounded-[5px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
+                        >
+                            Change Password
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-6 sm:p-8">
+                    <StudentProfileForm
+                        data={data}
+                        setData={setData}
+                        errors={errors}
+                        processing={processing}
+                        onSubmit={submit}
+                        submitLabel="Save Profile"
+                        mode="profile"
+                        currentProfilePhotoUrl={user.profile_photo}
+                    />
                 </div>
             </div>
         </AuthenticatedLayout>

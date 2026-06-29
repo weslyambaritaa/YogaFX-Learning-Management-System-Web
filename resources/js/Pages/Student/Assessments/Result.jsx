@@ -1,6 +1,7 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 function completionIntroStorageKey(attemptId) {
@@ -125,6 +126,9 @@ export default function AssessmentResult({
                     {stage === 'result' && (
                         <div className="rounded-[16px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:p-12">
                             <div className="mx-auto max-w-2xl">
+                                <div className="mx-auto flex size-24 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-500/15 text-emerald-100">
+                                    <Check className="size-12" strokeWidth={3} />
+                                </div>
                                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-red-200/90">
                                     Assessment Complete
                                 </div>
@@ -159,14 +163,6 @@ export default function AssessmentResult({
                                     </div>
                                     <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-4">
                                         <div className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                            Result Range
-                                        </div>
-                                        <div className="mt-2 text-lg font-semibold text-white">
-                                            {attempt.result_label ?? 'Not configured'}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-4">
-                                        <div className="text-xs uppercase tracking-[0.16em] text-white/45">
                                             Completed At
                                         </div>
                                         <div className="mt-2 text-sm font-semibold text-white">
@@ -196,23 +192,6 @@ export default function AssessmentResult({
                                             Return to Lesson
                                         </Link>
                                     </Button>
-                                    {lesson.module && (
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            size="lg"
-                                            className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                        >
-                                            <Link
-                                                href={route(
-                                                    'modules.show',
-                                                    lesson.module.url_slug,
-                                                )}
-                                            >
-                                                Back to Module
-                                            </Link>
-                                        </Button>
-                                    )}
                                 </div>
                             </div>
                         </div>

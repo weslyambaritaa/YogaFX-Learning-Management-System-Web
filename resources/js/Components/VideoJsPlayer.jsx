@@ -8,6 +8,7 @@ export default function VideoJsPlayer({
     poster = null,
     className = '',
     autoplay = false,
+    hideProgressHandle = false,
     onPlaybackError = null,
     onProgressUpdate = null,
     onTimeUpdate = null,
@@ -28,7 +29,7 @@ export default function VideoJsPlayer({
         latestProgressHandlerRef.current = onProgressUpdate;
         latestTimeUpdateHandlerRef.current = onTimeUpdate;
         latestAutoplayRef.current = autoplay;
-    }, [autoplay, onPlaybackError, onProgressUpdate, onTimeUpdate]);
+    }, [autoplay, hideProgressHandle, onPlaybackError, onProgressUpdate, onTimeUpdate]);
 
     useEffect(() => {
         latestSourceRef.current = src;
@@ -94,11 +95,25 @@ export default function VideoJsPlayer({
                 const player = videojs(videoElement, {
                     autoplay: latestAutoplayRef.current,
                     controls: true,
-                    fluid: true,
+                    fluid: false,
+                    fill: true,
                     preload: 'auto',
-                    responsive: true,
+                    responsive: false,
                     playsinline: true,
                     poster: latestPosterRef.current ?? undefined,
+                    controlBar: {
+                        playToggle: true,
+                        volumePanel: true,
+                        currentTimeDisplay: true,
+                        timeDivider: true,
+                        durationDisplay: true,
+                        progressControl: true,
+                        skipButtons: {
+                            backward: 10,
+                            forward: 10,
+                        },
+                        fullscreenToggle: true,
+                    },
                     sources: latestSourceRef.current
                         ? [
                               {
@@ -219,7 +234,35 @@ export default function VideoJsPlayer({
 
     return (
         <div data-vjs-player className={className}>
-            <div ref={containerRef} />
+            <style>
+                {`
+                    .yogafx-video-shell .video-js {
+                        width: 100% !important;
+                        height: 100% !important;
+                        border-radius: 5px;
+                        overflow: hidden;
+                        background: #000;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-tech {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: contain;
+                    }
+
+                    .yogafx-video-shell.hide-progress-handle .video-js .vjs-play-progress::before,
+                    .yogafx-video-shell.hide-progress-handle .video-js .vjs-slider-handle {
+                        opacity: 0 !important;
+                    }
+                `}
+            </style>
+            <div
+                ref={containerRef}
+                className={[
+                    'yogafx-video-shell h-full w-full',
+                    hideProgressHandle ? 'hide-progress-handle' : '',
+                ].join(' ')}
+            />
         </div>
     );
 }
