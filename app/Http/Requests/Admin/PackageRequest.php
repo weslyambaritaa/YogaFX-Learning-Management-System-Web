@@ -59,25 +59,6 @@ class PackageRequest extends FormRequest
         ];
     }
 
-    public function after(): array
-    {
-        return [
-            function ($validator): void {
-                $installmentEnabled = filter_var($this->input('installment_enabled'), FILTER_VALIDATE_BOOL);
-                $allowedBillingDays = collect($this->input('allowed_billing_days', []))
-                    ->filter(fn ($value) => $value !== null && $value !== '')
-                    ->all();
-
-                if ($installmentEnabled && $allowedBillingDays === []) {
-                    $validator->errors()->add(
-                        'allowed_billing_days',
-                        'Select at least one allowed billing day when installment is enabled.',
-                    );
-                }
-            },
-        ];
-    }
-
     public function messages(): array
     {
         return [

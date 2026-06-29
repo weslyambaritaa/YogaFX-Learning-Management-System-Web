@@ -70,7 +70,7 @@ class PaymentCheckoutService
     }
 
     /**
-     * @param  array{payment_type: string, payment_method: string}  $attributes
+     * @param  array{payment_type: string, payment_method: string, billing_day?: int|null}  $attributes
      * @return array<string, mixed>
      */
     public function startInitialCheckout(PendingRegistration $pendingRegistration, array $attributes): array
@@ -85,10 +85,13 @@ class PaymentCheckoutService
         );
 
         if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            /** @var Package $package */
+            $package = $pendingRegistration->package;
+
             return $this->paymentSubscriptionService->startInitialCheckout($pendingRegistration, [
                 'return_url' => $this->checkoutSubscriptionReturnUrl($pendingRegistration),
                 'cancel_url' => $this->checkoutSubscriptionCancelUrl($pendingRegistration),
-            ], (int) $attributes['billing_day']);
+            ], $package->resolveInstallmentBillingDay(isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null));
         }
 
         $pendingRegistration->loadMissing('onboardingState');
@@ -399,6 +402,9 @@ class PaymentCheckoutService
         $currencyCode = (string) ($package?->currency_code ?? $pendingRegistration->accessTier->currency_code);
         $installmentData = $this->availableInstallmentData($pendingRegistration);
         $installmentSummary = $installmentData['selected_summary'];
+        $checkoutBillingDayOptions = $package?->checkoutBillingDayOptions() ?? [];
+        $checkoutRequiresBillingDayChoice = $package?->checkoutRequiresBillingDayChoice() ?? false;
+        $checkoutAcceptsBillingDay = $package?->checkoutAcceptsBillingDay() ?? false;
 
         return [
             'id' => $pendingRegistration->id,
@@ -424,6 +430,11 @@ class PaymentCheckoutService
             'installment_summaries' => $installmentData['summaries'],
             'installment_allowed_billing_days' => $installmentData['allowed_billing_days'],
             'installment_selected_billing_day' => $installmentData['selected_billing_day'],
+            'installment_accepts_billing_day' => $checkoutAcceptsBillingDay,
+            'installment_requires_billing_day_choice' => $checkoutRequiresBillingDayChoice,
+            'installment_billing_day_options' => $checkoutBillingDayOptions,
+            'installment_billing_interval_unit' => $package?->normalizedBillingIntervalUnit(),
+            'installment_billing_interval_count' => $package?->billing_interval_count,
             'access_tier' => [
                 'id' => $pendingRegistration->accessTier->id,
                 'name' => $pendingRegistration->accessTier->name,
@@ -631,21 +642,35 @@ class PaymentCheckoutService
             abort(422, 'Installment checkout currently requires PayPal.');
         }
 
-        $requestedBillingDay = (int) ($billingDay ?? 0);
-
-        if (! in_array($requestedBillingDay, [1, 15], true)) {
-            abort(422, 'Monthly billing date must be either the 1st or the 15th.');
+        if (! $this->installmentPlanCalculator->isEligible($package)) {
+            abort(422, 'This package is not eligible for installment checkout.');
         }
 
-        if (! in_array($requestedBillingDay, $package->resolvedAllowedBillingDays(), true)) {
-            abort(422, 'The selected monthly billing date is not available for this package.');
+        $requestedBillingDay = (int) ($billingDay ?? 0);
+
+        if ($billingDay !== null && ! in_array($requestedBillingDay, Package::CUSTOMER_BILLING_DAY_OPTIONS, true)) {
+            abort(422, 'Billing day must be either the 1st or the 15th.');
+        }
+
+        if ($billingDay !== null && ! $package->checkoutAcceptsBillingDay()) {
+            abort(422, 'Billing day is not available for this package.');
+        }
+
+        if ($billingDay === null && $package->checkoutRequiresBillingDayChoice()) {
+            abort(422, 'Billing day is required for this package checkout.');
+        }
+
+        try {
+            $resolvedBillingDay = $package->resolveInstallmentBillingDay($billingDay);
+        } catch (\InvalidArgumentException) {
+            abort(422, 'The selected billing day is not available for this package.');
         }
 
         try {
             $this->installmentPlanCalculator->calculate(
                 $package,
                 $pendingRegistration->checkout_opened_at ?? now(),
-                $requestedBillingDay,
+                $resolvedBillingDay,
             );
         } catch (\DomainException|\InvalidArgumentException) {
             abort(422, 'This package is not eligible for installment checkout.');
@@ -680,10 +705,13 @@ class PaymentCheckoutService
             ];
         }
 
-        $allowedBillingDays = $package->resolvedAllowedBillingDays();
+        $visibleBillingDayOptions = $package->checkoutBillingDayOptions();
+        $calculationBillingDays = $visibleBillingDayOptions !== []
+            ? $visibleBillingDayOptions
+            : [$package->defaultInstallmentBillingDay()];
         $summaries = [];
 
-        foreach ($allowedBillingDays as $billingDay) {
+        foreach ($calculationBillingDays as $billingDay) {
             try {
                 $summaries[(string) $billingDay] = $this->installmentPlanCalculator->calculate(
                     $package,
@@ -699,16 +727,16 @@ class PaymentCheckoutService
             return [
                 'selected_summary' => null,
                 'selected_billing_day' => null,
-                'allowed_billing_days' => $allowedBillingDays,
+                'allowed_billing_days' => $visibleBillingDayOptions,
                 'summaries' => [],
             ];
         }
 
         $selectedBillingDay = $pendingRegistration->installment_billing_day !== null
             ? (int) $pendingRegistration->installment_billing_day
-            : (in_array(15, $allowedBillingDays, true)
+            : (in_array(15, $calculationBillingDays, true)
                 ? 15
-                : (int) ($allowedBillingDays[0] ?? array_key_first($summaries)));
+                : $package->defaultInstallmentBillingDay());
 
         if (! array_key_exists((string) $selectedBillingDay, $summaries)) {
             $selectedBillingDay = (int) array_key_first($summaries);
@@ -717,7 +745,7 @@ class PaymentCheckoutService
         return [
             'selected_summary' => $summaries[(string) $selectedBillingDay] ?? null,
             'selected_billing_day' => $selectedBillingDay,
-            'allowed_billing_days' => array_map('intval', array_keys($summaries)),
+            'allowed_billing_days' => $visibleBillingDayOptions,
             'summaries' => $summaries,
         ];
     }

@@ -91,6 +91,8 @@ class InstallmentCheckoutContractTest extends TestCase
                 ->where('checkout.payment_options.1.billing_day', 15)
                 ->where('checkout.installment_allowed_billing_days.0', 1)
                 ->where('checkout.installment_allowed_billing_days.1', 15)
+                ->where('checkout.installment_accepts_billing_day', true)
+                ->where('checkout.installment_requires_billing_day_choice', true)
                 ->where('checkout.payment_options.1.final_due_at', '2027-01-15')
                 ->where('checkout.paypal.client_id', 'PAYPAL-CLIENT-ID-001')
                 ->where('checkout.paypal.client_token', null)
@@ -290,6 +292,64 @@ class InstallmentCheckoutContractTest extends TestCase
             ->assertJsonValidationErrors(['billing_day']);
     }
 
+    public function test_backend_allows_installment_checkout_without_billing_day_when_package_has_fixed_monthly_day(): void
+    {
+        Carbon::setTestNow('2026-07-10 09:00:00');
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'slug' => 'masterclass-fixed-fifteenth',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
+            'fixed_billing_day' => 15,
+            'allowed_billing_days' => [15],
+            'installment_deadline_month' => 1,
+            'installment_deadline_day' => 15,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Ava',
+            'last_name' => 'Stone',
+            'email' => 'ava@example.com',
+            'phone' => '+6281234567890',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+            'checkout_opened_at' => now(),
+        ]);
+
+        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
+            $mock->shouldReceive('createProduct')
+                ->once()
+                ->andReturn(['id' => 'PROD-ONE-DAY', 'status' => 'ACTIVE']);
+            $mock->shouldReceive('createPlan')
+                ->once()
+                ->andReturn(['id' => 'P-ONE-DAY', 'status' => 'ACTIVE']);
+        });
+
+        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
+            'pendingRegistration' => $pendingRegistration->id,
+            'accessTierSlug' => $tier->slug,
+        ]), [
+            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+            'payment_method' => 'paypal',
+            'checkout_mode' => 'paypal',
+            'terms_accepted' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('status', 'prepared')
+            ->assertJsonPath('billing_day', 15);
+    }
+
     public function test_backend_rejects_installment_checkout_when_billing_day_is_not_allowed_for_package(): void
     {
         Carbon::setTestNow('2026-07-10 09:00:00');
@@ -336,6 +396,152 @@ class InstallmentCheckoutContractTest extends TestCase
             'terms_accepted' => true,
         ])
             ->assertStatus(422)
-            ->assertJsonPath('message', 'The selected monthly billing date is not available for this package.');
+            ->assertJsonPath('message', 'The selected billing day is not available for this package.');
+    }
+
+    public function test_backend_rejects_billing_day_for_pay_full_checkout(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'slug' => 'masterclass-full-only',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
+            'fixed_billing_day' => 15,
+            'allowed_billing_days' => [1, 15],
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Ava',
+            'last_name' => 'Stone',
+            'email' => 'ava@example.com',
+            'phone' => '+6281234567890',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+            'checkout_opened_at' => now(),
+        ]);
+
+        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
+            'pendingRegistration' => $pendingRegistration->id,
+            'accessTierSlug' => $tier->slug,
+        ]), [
+            'payment_type' => Invoice::PAYMENT_TYPE_FULL,
+            'payment_method' => 'paypal',
+            'checkout_mode' => 'paypal',
+            'billing_day' => 15,
+            'terms_accepted' => true,
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['billing_day']);
+    }
+
+    public function test_checkout_payload_hides_billing_day_options_for_non_monthly_installment_package(): void
+    {
+        Carbon::setTestNow('2026-07-10 09:00:00');
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Masterclass Daily Test Plan',
+            'slug' => 'masterclass-daily-test-plan',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'billing_interval_unit' => 'DAY',
+            'billing_interval_count' => 1,
+            'allowed_billing_days' => [1, 15],
+            'installment_deadline_month' => 1,
+            'installment_deadline_day' => 15,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Ava',
+            'last_name' => 'Stone',
+            'email' => 'ava@example.com',
+            'phone' => '+6281234567890',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CREATED,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('clientId')
+                ->once()
+                ->andReturn('PAYPAL-CLIENT-ID-DAILY');
+            $mock->shouldReceive('environment')
+                ->once()
+                ->andReturn('sandbox');
+        });
+
+        $this->get(URL::temporarySignedRoute('checkout.show', now()->addDay(), [
+            'pendingRegistration' => $pendingRegistration->id,
+            'accessTierSlug' => $tier->slug,
+        ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/Checkout')
+                ->where('checkout.installment_accepts_billing_day', false)
+                ->where('checkout.installment_requires_billing_day_choice', false)
+                ->where('checkout.installment_billing_interval_unit', 'DAY')
+                ->where('checkout.installment_allowed_billing_days', []));
+    }
+
+    public function test_backend_rejects_billing_day_for_non_monthly_installment_package(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'slug' => 'masterclass-daily-test-plan',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'billing_interval_unit' => 'DAY',
+            'billing_interval_count' => 1,
+            'allowed_billing_days' => [1, 15],
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Ava',
+            'last_name' => 'Stone',
+            'email' => 'ava@example.com',
+            'phone' => '+6281234567890',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+            'checkout_opened_at' => now(),
+        ]);
+
+        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
+            'pendingRegistration' => $pendingRegistration->id,
+            'accessTierSlug' => $tier->slug,
+        ]), [
+            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+            'payment_method' => 'paypal',
+            'checkout_mode' => 'paypal',
+            'billing_day' => 15,
+            'terms_accepted' => true,
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['billing_day']);
     }
 }

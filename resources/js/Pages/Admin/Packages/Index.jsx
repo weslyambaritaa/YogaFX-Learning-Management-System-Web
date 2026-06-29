@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Button } from '@/Components/ui/button';
 import { formatCurrency } from '@/lib/currency';
 import { Head, Link, usePage } from '@inertiajs/react';
 
@@ -57,6 +58,29 @@ export default function PackagesIndex({ packages, status }) {
                     )}
 
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+                        <div className="border-b border-gray-200 px-4 py-4 sm:px-6">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900">
+                                        Package Directory
+                                    </h3>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        Keep public commercial offers organized by pricing,
+                                        assigned tier, and checkout readiness.
+                                    </p>
+                                </div>
+
+                                <Button
+                                    asChild
+                                    className="w-full rounded-[5px] bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 sm:w-auto"
+                                >
+                                    <Link href={route('admin.packages.create')}>
+                                        Add Package
+                                    </Link>
+                                </Button>
+                            </div>
+                        </div>
+
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 text-sm">
                                 <thead className="bg-gray-50">

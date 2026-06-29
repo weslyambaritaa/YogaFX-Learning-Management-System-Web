@@ -230,43 +230,6 @@ export default function PackageForm({
                     </div>
 
                     <div>
-                        <InputLabel value="Allowed Billing Days" />
-                        <div className="mt-2 space-y-3 rounded-md border border-gray-200 bg-white p-4">
-                            {[1, 15].map((billingDay) => {
-                                const isChecked = Array.isArray(data.allowed_billing_days)
-                                    ? data.allowed_billing_days.includes(billingDay)
-                                    : false;
-
-                                return (
-                                    <label key={billingDay} className="flex items-center gap-3 text-sm text-gray-700">
-                                        <input
-                                            type="checkbox"
-                                            checked={isChecked}
-                                            onChange={(event) => {
-                                                const nextDays = new Set(Array.isArray(data.allowed_billing_days) ? data.allowed_billing_days : []);
-
-                                                if (event.target.checked) {
-                                                    nextDays.add(billingDay);
-                                                } else {
-                                                    nextDays.delete(billingDay);
-                                                }
-
-                                                setData('allowed_billing_days', Array.from(nextDays).sort((left, right) => left - right));
-                                            }}
-                                            className="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
-                                        />
-                                        <span>Every {billingDay === 1 ? '1st' : '15th'} of the month</span>
-                                    </label>
-                                );
-                            })}
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            Installment packages can expose one or both monthly billing date choices to the public checkout.
-                        </p>
-                        <InputError className="mt-2" message={errors.allowed_billing_days} />
-                    </div>
-
-                    <div>
                         <InputLabel htmlFor="installment_deadline_month" value="Installment Deadline Month" />
                         <TextInput
                             id="installment_deadline_month"
@@ -295,6 +258,12 @@ export default function PackageForm({
                         />
                         <InputError className="mt-2" message={errors.installment_deadline_day} />
                     </div>
+                </div>
+
+                <div className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                    Billing day options are now part of the public checkout experience.
+                    Monthly installment packages keep using their stored checkout rules, while
+                    pay-full and non-monthly package flows do not expose a billing-day picker here.
                 </div>
             </div>
 

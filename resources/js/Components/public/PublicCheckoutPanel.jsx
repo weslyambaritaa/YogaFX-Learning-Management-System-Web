@@ -67,6 +67,25 @@ function formatBillingDayLabel(value) {
     return Number(value) === 1 ? "1st" : "15th";
 }
 
+function formatIntervalLabel(unit, count = 1) {
+    const normalizedUnit = String(unit ?? "").toUpperCase();
+    const normalizedCount = Number(count) > 0 ? Number(count) : 1;
+
+    if (normalizedUnit === "DAY") {
+        return normalizedCount === 1 ? "daily" : `every ${normalizedCount} days`;
+    }
+
+    if (normalizedUnit === "WEEK") {
+        return normalizedCount === 1 ? "weekly" : `every ${normalizedCount} weeks`;
+    }
+
+    if (normalizedUnit === "YEAR") {
+        return normalizedCount === 1 ? "yearly" : `every ${normalizedCount} years`;
+    }
+
+    return normalizedCount === 1 ? "monthly" : `every ${normalizedCount} months`;
+}
+
 export default function PublicCheckoutPanel({ checkout }) {
     const paymentOptions = Array.isArray(checkout.payment_options)
         ? checkout.payment_options
@@ -77,10 +96,20 @@ export default function PublicCheckoutPanel({ checkout }) {
     const paypalConfig = checkout.paypal ?? {};
     const installmentSummaries = checkout.installment_summaries ?? {};
     const installmentAllowedBillingDays = Array.isArray(
-        checkout.installment_allowed_billing_days,
+        checkout.installment_billing_day_options,
     )
-        ? checkout.installment_allowed_billing_days
+        ? checkout.installment_billing_day_options
         : [];
+    const installmentAcceptsBillingDay =
+        checkout.installment_accepts_billing_day === true;
+    const installmentRequiresBillingDayChoice =
+        checkout.installment_requires_billing_day_choice === true;
+    const installmentIntervalUnit = String(
+        checkout.installment_billing_interval_unit ?? "",
+    ).toUpperCase();
+    const installmentIntervalCount = Number(
+        checkout.installment_billing_interval_count ?? 1,
+    );
 
     const [paymentType, setPaymentType] = useState(
         paymentOptions[0]?.type ?? "pay_full",
@@ -146,6 +175,12 @@ export default function PublicCheckoutPanel({ checkout }) {
         activeInstallmentSummary?.final_due_at ??
         selectedPaymentOption?.final_due_at ??
         null;
+    const showBillingDaySelector =
+        isInstallmentSelected &&
+        installmentAcceptsBillingDay &&
+        installmentRequiresBillingDayChoice &&
+        installmentAllowedBillingDays.length > 1;
+    const usesMonthlyInstallmentSchedule = installmentIntervalUnit === "MONTH";
     const canUseMock = mockAvailable && !isInstallmentSelected;
 
     const paypalScriptUrl = useMemo(() => {
@@ -1126,10 +1161,13 @@ export default function PublicCheckoutPanel({ checkout }) {
                                                 {option.installment_count}
                                             </p>
                                             <p>
-                                                Recurring day: every{" "}
-                                                {formatBillingDayLabel(
-                                                    optionBillingDay,
-                                                )}
+                                                Recurring schedule:{" "}
+                                                {usesMonthlyInstallmentSchedule
+                                                    ? `every ${formatBillingDayLabel(optionBillingDay)}`
+                                                    : formatIntervalLabel(
+                                                          installmentIntervalUnit,
+                                                          installmentIntervalCount,
+                                                      )}
                                             </p>
                                             <p>
                                                 Final due:{" "}
@@ -1155,38 +1193,40 @@ export default function PublicCheckoutPanel({ checkout }) {
 
             {isInstallmentSelected && activeInstallmentSummary && (
                 <div className="space-y-5 rounded-[5px] border border-[#DB202C]/25 bg-[#DB202C]/8 p-6 shadow-lg backdrop-blur-sm">
-                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                            Monthly billing date
-                        </p>
-                        <div className="mt-3 grid gap-3 md:grid-cols-2">
-                            {installmentAllowedBillingDays.map((allowedDay) => (
-                                <label
-                                    key={allowedDay}
-                                    className={`flex cursor-pointer items-center gap-3 rounded-[5px] border px-4 py-3 text-sm transition ${
-                                        billingDay === allowedDay
-                                            ? "border-[#DB202C] bg-[#DB202C]/12 text-white"
-                                            : "border-white/10 bg-white/5 text-white/75"
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="installment_billing_day"
-                                        value={allowedDay}
-                                        checked={billingDay === allowedDay}
-                                        onChange={() => setBillingDay(allowedDay)}
-                                        className="h-4 w-4 border-white/20 bg-black/30 text-[#DB202C] focus:ring-[#DB202C]"
-                                    />
-                                    <span>Every {formatBillingDayLabel(allowedDay)} of the month</span>
-                                </label>
-                            ))}
+                    {showBillingDaySelector && (
+                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                Monthly billing date
+                            </p>
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                {installmentAllowedBillingDays.map((allowedDay) => (
+                                    <label
+                                        key={allowedDay}
+                                        className={`flex cursor-pointer items-center gap-3 rounded-[5px] border px-4 py-3 text-sm transition ${
+                                            billingDay === allowedDay
+                                                ? "border-[#DB202C] bg-[#DB202C]/12 text-white"
+                                                : "border-white/10 bg-white/5 text-white/75"
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="installment_billing_day"
+                                            value={allowedDay}
+                                            checked={billingDay === allowedDay}
+                                            onChange={() => setBillingDay(allowedDay)}
+                                            className="h-4 w-4 border-white/20 bg-black/30 text-[#DB202C] focus:ring-[#DB202C]"
+                                        />
+                                        <span>Every {formatBillingDayLabel(allowedDay)} of the month</span>
+                                    </label>
+                                ))}
+                            </div>
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
+                                message={fieldErrors.billing_day}
+                            />
                         </div>
-                        <InputError
-                            className="mt-2 text-sm font-medium text-rose-400"
-                            style={{ fontFamily: FONT_FAMILY }}
-                            message={fieldErrors.billing_day}
-                        />
-                    </div>
+                    )}
 
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
@@ -1205,8 +1245,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                     amountDueToday,
                                     activeCurrencyCode,
                                 )}{" "}
-                                today, then continue monthly on the{" "}
-                                {formatBillingDayLabel(activeBillingDay)}
+                                {usesMonthlyInstallmentSchedule
+                                    ? showBillingDaySelector
+                                        ? `today, then continue monthly on the ${formatBillingDayLabel(activeBillingDay)}`
+                                        : "today, then continue on this monthly installment schedule"
+                                    : `today, then continue on the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} recurring schedule`}
                             </h3>
                         </div>
 
@@ -1250,8 +1293,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                 )}
                             </p>
                             <p className="mt-1 text-sm text-white/55">
-                                Auto-billed every month on the{" "}
-                                {formatBillingDayLabel(activeBillingDay)}.
+                                {usesMonthlyInstallmentSchedule
+                                    ? showBillingDaySelector
+                                        ? `Auto-billed every month on the ${formatBillingDayLabel(activeBillingDay)}.`
+                                        : "Auto-billed on the package's monthly recurring schedule."
+                                    : `Auto-billed on the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} recurring schedule.`}
                             </p>
                         </div>
 
@@ -1373,8 +1419,12 @@ export default function PublicCheckoutPanel({ checkout }) {
                                     activeCurrencyCode,
                                 )}
                             </span>
-                            . The remaining recurring payments follow the{" "}
-                            {formatBillingDayLabel(activeBillingDay)} monthly schedule
+                            . The remaining recurring payments follow{" "}
+                            {usesMonthlyInstallmentSchedule
+                                ? showBillingDaySelector
+                                    ? `the ${formatBillingDayLabel(activeBillingDay)} monthly schedule`
+                                    : "the package's monthly schedule"
+                                : `the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} schedule`}{" "}
                             until{" "}
                             <span className="font-semibold text-white">
                                 {formatScheduleDate(finalDueAt)}

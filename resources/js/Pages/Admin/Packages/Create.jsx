@@ -14,8 +14,6 @@ export default function CreatePackage({ accessTiers, packagePublicBaseUrl }) {
         installment_enabled: false,
         billing_interval_unit: '',
         billing_interval_count: '',
-        fixed_billing_day: '',
-        allowed_billing_days: [],
         installment_deadline_month: '',
         installment_deadline_day: '',
         access_tier_id: '',

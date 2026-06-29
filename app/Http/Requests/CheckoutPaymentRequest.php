@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Models\Invoice;
+use App\Models\Package;
 use App\Models\Payment;
+use App\Models\PendingRegistration;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -52,7 +54,7 @@ class CheckoutPaymentRequest extends FormRequest
             'billing_country' => ['nullable', 'string', 'max:120'],
             'billing_address_line_1' => ['nullable', 'string', 'max:255'],
             'billing_address_line_2' => ['nullable', 'string', 'max:255'],
-            'billing_day' => ['nullable', 'integer', Rule::in([1, 15])],
+            'billing_day' => ['nullable', 'integer', Rule::in(Package::CUSTOMER_BILLING_DAY_OPTIONS)],
             'terms_accepted' => ['required', 'accepted'],
         ];
     }
@@ -61,11 +63,41 @@ class CheckoutPaymentRequest extends FormRequest
     {
         return [
             function ($validator): void {
-                if (
-                    $this->input('payment_type') === Invoice::PAYMENT_TYPE_INSTALLMENT
-                    && $this->input('billing_day') === null
-                ) {
-                    $validator->errors()->add('billing_day', 'Monthly billing date is required for installment checkout.');
+                /** @var PendingRegistration|null $pendingRegistration */
+                $pendingRegistration = $this->route('pendingRegistration');
+                $package = $pendingRegistration?->package;
+
+                if (! $package instanceof Package) {
+                    return;
+                }
+
+                $paymentType = (string) $this->input('payment_type');
+                $billingDay = $this->input('billing_day');
+                $hasBillingDay = $billingDay !== null && $billingDay !== '';
+
+                if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
+                    if ($hasBillingDay) {
+                        $validator->errors()->add('billing_day', 'Billing day is only available for installment checkout packages that expose it.');
+                    }
+
+                    return;
+                }
+
+                if (! $package->checkoutAcceptsBillingDay()) {
+                    if ($hasBillingDay) {
+                        $validator->errors()->add('billing_day', 'Billing day is not available for this package.');
+                    }
+
+                    return;
+                }
+
+                if ($package->checkoutRequiresBillingDayChoice() && ! $hasBillingDay) {
+                    $validator->errors()->add('billing_day', 'Billing day is required for this package checkout.');
+                    return;
+                }
+
+                if ($hasBillingDay && ! in_array((int) $billingDay, $package->checkoutBillingDayOptions(), true)) {
+                    $validator->errors()->add('billing_day', 'The selected billing day is not available for this package.');
                 }
             },
         ];

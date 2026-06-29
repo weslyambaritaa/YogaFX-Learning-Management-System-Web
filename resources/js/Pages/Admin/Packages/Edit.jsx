@@ -14,8 +14,6 @@ export default function EditPackage({ package: pkg, accessTiers, status, package
         installment_enabled: pkg.installment_enabled ?? false,
         billing_interval_unit: pkg.billing_interval_unit ?? '',
         billing_interval_count: pkg.billing_interval_count ?? '',
-        fixed_billing_day: pkg.fixed_billing_day ?? '',
-        allowed_billing_days: pkg.allowed_billing_days ?? [],
         installment_deadline_month: pkg.installment_deadline_month ?? '',
         installment_deadline_day: pkg.installment_deadline_day ?? '',
         access_tier_id: pkg.access_tier_id ?? '',

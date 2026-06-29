@@ -44,11 +44,13 @@ class PackageController extends Controller
                         $package->image,
                         versionSeed: $package->updated_at,
                     ),
-                    'price' => (float) $package->price,
-                    'currency_code' => $package->currency_code,
-                    'is_active' => $package->is_active,
-                'installment_enabled' => $package->installment_enabled,
-                'allowed_billing_days' => $package->resolvedAllowedBillingDays(),
+                'price' => (float) $package->price,
+                'currency_code' => $package->currency_code,
+                'is_active' => $package->is_active,
+                    'installment_enabled' => $package->installment_enabled,
+                    'billing_interval_unit' => $package->billing_interval_unit,
+                    'billing_interval_count' => $package->billing_interval_count,
+                    'checkout_billing_day_options' => $package->checkoutBillingDayOptions(),
                 'access_tier' => $package->accessTier ? [
                         'id' => $package->accessTier->id,
                         'name' => $package->accessTier->name,
@@ -75,8 +77,9 @@ class PackageController extends Controller
         $targetTier = isset($data['access_tier_id']) && $data['access_tier_id']
             ? AccessTier::query()->findOrFail($data['access_tier_id'])
             : null;
-        $data['allowed_billing_days'] = $this->normalizeAllowedBillingDays($data['allowed_billing_days'] ?? []);
-        $data['fixed_billing_day'] = $data['allowed_billing_days'][0] ?? null;
+        ['allowed_billing_days' => $allowedBillingDays, 'fixed_billing_day' => $fixedBillingDay] = $this->resolveBillingDayConfig($data);
+        $data['allowed_billing_days'] = $allowedBillingDays;
+        $data['fixed_billing_day'] = $fixedBillingDay;
 
         $data['image'] = $this->storeUploadedFile(
             $request->file('image'),
@@ -116,8 +119,7 @@ class PackageController extends Controller
                 'installment_enabled' => $package->installment_enabled,
                 'billing_interval_unit' => $package->billing_interval_unit,
                 'billing_interval_count' => $package->billing_interval_count,
-                'fixed_billing_day' => $package->fixed_billing_day,
-                'allowed_billing_days' => $package->resolvedAllowedBillingDays(),
+                'checkout_billing_day_options' => $package->checkoutBillingDayOptions(),
                 'installment_deadline_month' => $package->installment_deadline_month,
                 'installment_deadline_day' => $package->installment_deadline_day,
                 'access_tier_id' => $package->access_tier_id,
@@ -136,8 +138,9 @@ class PackageController extends Controller
         $targetTier = isset($data['access_tier_id']) && $data['access_tier_id']
             ? AccessTier::query()->findOrFail($data['access_tier_id'])
             : null;
-        $data['allowed_billing_days'] = $this->normalizeAllowedBillingDays($data['allowed_billing_days'] ?? []);
-        $data['fixed_billing_day'] = $data['allowed_billing_days'][0] ?? null;
+        ['allowed_billing_days' => $allowedBillingDays, 'fixed_billing_day' => $fixedBillingDay] = $this->resolveBillingDayConfig($data, $package);
+        $data['allowed_billing_days'] = $allowedBillingDays;
+        $data['fixed_billing_day'] = $fixedBillingDay;
 
         $data['image'] = $this->storeUploadedFile(
             $request->file('image'),
@@ -195,10 +198,52 @@ class PackageController extends Controller
     {
         return collect($allowedBillingDays)
             ->map(fn ($day) => (int) $day)
-            ->filter(fn (int $day) => in_array($day, [1, 15], true))
+            ->filter(fn (int $day) => in_array($day, Package::CUSTOMER_BILLING_DAY_OPTIONS, true))
             ->unique()
             ->sort()
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{allowed_billing_days: array<int, int>|null, fixed_billing_day: int|null}
+     */
+    private function resolveBillingDayConfig(array $data, ?Package $existingPackage = null): array
+    {
+        $submittedBillingDays = array_key_exists('allowed_billing_days', $data)
+            ? $this->normalizeAllowedBillingDays((array) ($data['allowed_billing_days'] ?? []))
+            : null;
+        $billingIntervalUnit = strtoupper(trim((string) ($data['billing_interval_unit'] ?? $existingPackage?->billing_interval_unit ?? '')));
+        $installmentEnabled = (bool) ($data['installment_enabled'] ?? $existingPackage?->installment_enabled ?? false);
+
+        if (! $installmentEnabled) {
+            return [
+                'allowed_billing_days' => $submittedBillingDays ?? $existingPackage?->allowed_billing_days,
+                'fixed_billing_day' => $existingPackage?->fixed_billing_day,
+            ];
+        }
+
+        if ($billingIntervalUnit !== 'MONTH') {
+            return [
+                'allowed_billing_days' => $submittedBillingDays ?? $existingPackage?->allowed_billing_days,
+                'fixed_billing_day' => $existingPackage?->fixed_billing_day,
+            ];
+        }
+
+        $resolvedBillingDays = $submittedBillingDays
+            ?? $this->normalizeAllowedBillingDays((array) ($existingPackage?->allowed_billing_days ?? []));
+
+        if ($resolvedBillingDays === []) {
+            $legacyBillingDay = (int) ($existingPackage?->fixed_billing_day ?? 15);
+            $resolvedBillingDays = in_array($legacyBillingDay, Package::CUSTOMER_BILLING_DAY_OPTIONS, true)
+                ? [$legacyBillingDay]
+                : [15];
+        }
+
+        return [
+            'allowed_billing_days' => $resolvedBillingDays,
+            'fixed_billing_day' => $resolvedBillingDays[0] ?? null,
+        ];
     }
 }
