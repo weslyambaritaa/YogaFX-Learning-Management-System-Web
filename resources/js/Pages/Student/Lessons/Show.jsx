@@ -41,22 +41,22 @@ function LessonNavCard({ item, onLockedClick }) {
                     ) : (
                         <div className="aspect-video bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                     )}
-                </div>
-
-                <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1.5">
-                            <p className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white/82">
-                                Lesson {item.sort_order}
-                            </p>
-                            <p className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium leading-6 text-white">
-                                {item.title}
-                            </p>
-                        </div>
+                    <div className="absolute right-3 top-3">
                         <StudentStatusBadge
                             status={item.status}
                             className="scale-[0.92] origin-right"
                         />
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <div className="space-y-1.5">
+                        <p className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white/82">
+                            Lesson {item.sort_order}
+                        </p>
+                        <p className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium leading-6 text-white">
+                            {item.title}
+                        </p>
                     </div>
                 </div>
 
