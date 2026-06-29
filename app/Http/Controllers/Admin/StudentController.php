@@ -123,6 +123,8 @@ class StudentController extends Controller
 
     public function studentsCreate(): Response
     {
+        $managementContext = $this->managementContext(request());
+
         return Inertia::render('Admin/Students/Create', [
             'accessTiers' => AccessTier::query()
                 ->orderByDesc('is_active')
@@ -134,12 +136,14 @@ class StudentController extends Controller
                     'slug' => $accessTier->slug,
                     'is_active' => $accessTier->is_active,
                 ]),
+            'managementContext' => $managementContext,
         ]);
     }
 
     public function studentsStore(AdminStudentStoreRequest $request): RedirectResponse
     {
         $validated = $request->validated();
+        $managementContext = $this->managementContext($request);
 
         User::query()->create([
             'name' => Str::before($validated['email'], '@'),
@@ -152,13 +156,14 @@ class StudentController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.students.index')
+            ->route($this->studentIndexRouteNameForContext($managementContext))
             ->with('status', 'student-account-created');
     }
 
     public function studentsEdit(User $student): Response
     {
         abort_unless($student->isStudent(), 404);
+        $managementContext = $this->managementContext(request());
 
         return Inertia::render('Admin/Students/Edit', [
             'student' => [
@@ -214,6 +219,7 @@ class StudentController extends Controller
                     'slug' => $accessTier->slug,
                     'is_active' => $accessTier->is_active,
                 ]),
+            'managementContext' => $managementContext,
             'status' => session('status'),
         ]);
     }
@@ -221,6 +227,7 @@ class StudentController extends Controller
     public function studentsUpdate(AdminStudentUpdateRequest $request, User $student): RedirectResponse
     {
         abort_unless($student->isStudent(), 404);
+        $managementContext = $this->managementContext($request);
 
         $validated = $request->validated();
         unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
@@ -244,15 +251,16 @@ class StudentController extends Controller
         $student->save();
 
         return redirect()
-            ->route('admin.students.edit', $student)
+            ->route($this->studentDetailRouteNameForContext($managementContext), $student)
             ->with('status', 'student-profile-updated');
     }
 
-    public function updateStatus(User $student): RedirectResponse
+    public function updateStatus(Request $request, User $student): RedirectResponse
     {
         abort_unless($student->isStudent(), 404);
+        $managementContext = $this->managementContext($request);
 
-        $validated = request()->validate([
+        $validated = $request->validate([
             'is_active' => ['required', 'boolean'],
         ]);
 
@@ -261,13 +269,14 @@ class StudentController extends Controller
         ])->save();
 
         return redirect()
-            ->route('admin.students.edit', $student)
+            ->route($this->studentDetailRouteNameForContext($managementContext), $student)
             ->with('status', 'student-status-updated');
     }
 
-    public function resetProgress(User $student): RedirectResponse
+    public function resetProgress(Request $request, User $student): RedirectResponse
     {
         abort_unless($student->isStudent(), 404);
+        $managementContext = $this->managementContext($request);
 
         $deletedAssignmentMediaPaths = DB::transaction(function () use ($student) {
             return $this->resetAllLearningProgress($student);
@@ -275,13 +284,14 @@ class StudentController extends Controller
         $this->deleteAssignmentMediaPaths($deletedAssignmentMediaPaths);
 
         return redirect()
-            ->route('admin.students.edit', $student)
+            ->route($this->studentDetailRouteNameForContext($managementContext), $student)
             ->with('status', 'student-learning-progress-reset');
     }
 
-    public function resetProgressScope(User $student, string $scope): RedirectResponse
+    public function resetProgressScope(Request $request, User $student, string $scope): RedirectResponse
     {
         abort_unless($student->isStudent(), 404);
+        $managementContext = $this->managementContext($request);
 
         abort_unless(in_array($scope, ['video', 'assessment', 'lesson', 'module'], true), 404);
 
@@ -296,13 +306,14 @@ class StudentController extends Controller
         $this->deleteAssignmentMediaPaths($deletedAssignmentMediaPaths);
 
         return redirect()
-            ->route('admin.students.edit', $student)
+            ->route($this->studentDetailRouteNameForContext($managementContext), $student)
             ->with('status', 'student-progress-reset-'.$scope);
     }
 
-    public function destroy(User $student): RedirectResponse
+    public function destroy(Request $request, User $student): RedirectResponse
     {
         abort_unless($student->isStudent(), 404);
+        $managementContext = $this->managementContext($request);
 
         $certificateFiles = Certificate::withTrashed()
             ->where('user_id', $student->id)
@@ -338,8 +349,29 @@ class StudentController extends Controller
         });
 
         return redirect()
-            ->route('admin.students.index')
+            ->route($this->studentIndexRouteNameForContext($managementContext))
             ->with('status', 'student-account-deleted');
+    }
+
+    private function managementContext(Request $request): string
+    {
+        return $request->input('management_context') === 'student_progress'
+            ? 'student_progress'
+            : 'students';
+    }
+
+    private function studentDetailRouteNameForContext(string $managementContext): string
+    {
+        return $managementContext === 'student_progress'
+            ? 'admin.student-progress.students.show'
+            : 'admin.students.edit';
+    }
+
+    private function studentIndexRouteNameForContext(string $managementContext): string
+    {
+        return $managementContext === 'student_progress'
+            ? 'admin.student-progress.index'
+            : 'admin.students.index';
     }
 
     private function initialsFor(User $student): string

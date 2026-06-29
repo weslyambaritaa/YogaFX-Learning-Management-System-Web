@@ -67,16 +67,10 @@ const adminNavigationItems = [
         match: ['admin.scoreboards.*', 'admin.assessments.*'],
     },
     {
-        label: 'Student Progress',
+        label: 'Student',
         route: 'admin.student-progress.index',
         match: ['admin.student-progress.*'],
         icon: FileSpreadsheet,
-    },
-    {
-        label: 'Students',
-        route: 'admin.students.index',
-        match: ['admin.students.*'],
-        icon: UserRound,
     },
     {
         label: 'Admin',
@@ -251,7 +245,8 @@ const adminPageTitles = {
     'admin.ebooks.create': 'Create E-Book',
     'admin.ebooks.edit': 'Edit E-Book',
     'admin.ebooks.preview': 'E-Book Preview',
-    'admin.student-progress.index': 'Student Progress',
+    'admin.student-progress.index': 'Student',
+    'admin.student-progress.students.show': 'Student Detail',
     'admin.student-progress.completed-lessons.index': 'Completed Lesson',
     'admin.student-progress.assignments.index': 'Assignment',
     'admin.student-progress.certificates.index': 'Certificate',

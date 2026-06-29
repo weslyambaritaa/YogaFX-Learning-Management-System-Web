@@ -58,6 +58,7 @@ class StudentProgressController extends Controller
                     ->select('id', 'user_id', 'lesson_id'),
                 'assignmentSubmissions:id,user_id,assignment_id,assignment_type,assignment_video,submitted_at',
             ])
+            ->withMax('userSessions as last_login_at', 'login_at')
             ->where('role', User::ROLE_STUDENT)
             ->whereNotNull('access_tier_id')
             ->orderByDesc('created_at')
@@ -111,6 +112,18 @@ class StudentProgressController extends Controller
     public function certificatesIndex(): RedirectResponse
     {
         return to_route('admin.student-progress.index');
+    }
+
+    public function showStudentDetail(User $student): Response
+    {
+        $student = $this->resolveStudent($student);
+
+        return Inertia::render('Admin/Students/Edit', [
+            'student' => $this->studentDetailPayload($student),
+            'accessTiers' => $this->accessTierOptions(),
+            'managementContext' => 'student_progress',
+            'status' => session('status'),
+        ]);
     }
 
     public function showCompletedLessons(User $student): Response
@@ -457,7 +470,13 @@ class StudentProgressController extends Controller
                         'profile_initials' => $this->initialsFor($student),
                         'progress_percentage' => $this->progressPercentageForStudent($student, $modules, $tierId),
                         'registration_date' => optional($student->created_at)->format('Y-m-d'),
-                        'assignment_status' => $this->assignmentStatusForStudent($student),
+                        'registration_date_sort' => optional($student->created_at)?->toDateString(),
+                        'last_visit_at' => $student->last_login_at
+                            ? \Illuminate\Support\Carbon::parse($student->last_login_at)->format('Y-m-d H:i')
+                            : 'Never logged in',
+                        'last_visit_sort' => $student->last_login_at
+                            ? \Illuminate\Support\Carbon::parse($student->last_login_at)->toIso8601String()
+                            : null,
                     ]),
             ];
         })->values();
@@ -605,6 +624,67 @@ class StudentProgressController extends Controller
         abort_unless($student->isStudent(), 404);
 
         return $student->load('accessTier');
+    }
+
+    private function accessTierOptions(): Collection
+    {
+        return AccessTier::query()
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (AccessTier $accessTier) => [
+                'id' => $accessTier->id,
+                'name' => $accessTier->name,
+                'slug' => $accessTier->slug,
+                'is_active' => $accessTier->is_active,
+            ]);
+    }
+
+    private function studentDetailPayload(User $student): array
+    {
+        return [
+            'id' => $student->id,
+            'name' => $student->name,
+            'role' => $student->role,
+            'is_active' => $student->isStudentAccountActive(),
+            'access_tier_id' => $student->access_tier_id,
+            'access_tier' => $student->accessTier ? [
+                'id' => $student->accessTier->id,
+                'name' => $student->accessTier->name,
+                'slug' => $student->accessTier->slug,
+                'is_active' => $student->accessTier->is_active,
+            ] : null,
+            'first_name' => $student->first_name,
+            'last_name' => $student->last_name,
+            'email' => $student->email,
+            'whatsapp' => $student->whatsapp,
+            'whatsapp_country_code' => \App\Support\CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['country_code'],
+            'whatsapp_number' => \App\Support\CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['local_number'],
+            'profile_photo' => $student->profile_photo,
+            'profile_photo_url' => $this->protectedMediaUrl(
+                'user',
+                $student->id,
+                'profile_photo',
+                $student->profile_photo,
+                versionSeed: $student->updated_at,
+            ),
+            'instagram' => $student->instagram,
+            'country' => $student->country,
+            'birth_date' => optional($student->birth_date)->toDateString(),
+            'gender' => $student->gender,
+            'practicing_yoga_for' => \App\Support\StudentProfileValue::normalizePracticingYogaFor($student->practicing_yoga_for),
+            'yoga_sequence_experience' => \App\Support\StudentProfileValue::normalizeYogaSequenceExperience($student->yoga_sequence_experience),
+            'hours_per_week' => \App\Support\StudentProfileValue::normalizeHoursPerWeek($student->hours_per_week),
+            'current_fitness_level' => $student->current_fitness_level,
+            'flexibility_rating' => $student->flexibility_rating,
+            'motivation' => $student->motivation,
+            'why_yogafx' => $student->why_yogafx,
+            'how_did_you_find_us' => \App\Support\StudentProfileValue::normalizeHowDidYouFindUs($student->how_did_you_find_us),
+            'profile_is_complete' => $student->hasCompletedStudentProfile(),
+            'access_time_summary' => $this->sessionTrackingService->summaryForUser(
+                $student,
+            ),
+        ];
     }
 
     private function sendEmail(User $student, string $subject, string $heading, array $bodyLines): void

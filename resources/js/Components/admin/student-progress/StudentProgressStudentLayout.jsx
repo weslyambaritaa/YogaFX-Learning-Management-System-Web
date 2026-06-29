@@ -5,6 +5,11 @@ import { Head, Link } from '@inertiajs/react';
 
 const sectionLinks = [
     {
+        key: 'detail',
+        label: 'Student Detail',
+        routeName: 'admin.student-progress.students.show',
+    },
+    {
         key: 'completed-lessons',
         label: 'Completed Lesson',
         routeName: 'admin.student-progress.completed-lessons.show',
@@ -45,7 +50,7 @@ export default function StudentProgressStudentLayout({
                             href={route('admin.student-progress.index')}
                             className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                         >
-                            Back to Student Progress
+                            Back to Student
                         </Link>
                     </div>
 

@@ -1,10 +1,22 @@
 import StudentProfileForm from '@/Components/StudentProfileForm';
 import StudentManagementLayout from '@/Components/admin/students/StudentManagementLayout';
+import StudentProgressStudentLayout from '@/Components/admin/student-progress/StudentProgressStudentLayout';
 import { router, useForm } from '@inertiajs/react';
 
-export default function EditStudent({ student, accessTiers, status }) {
-    const { data, setData, patch, post, errors, processing } = useForm({
+export default function EditStudent({
+    student,
+    accessTiers,
+    managementContext = 'students',
+    status,
+}) {
+    const isStudentProgressContext = managementContext === 'student_progress';
+    const LayoutComponent = isStudentProgressContext
+        ? StudentProgressStudentLayout
+        : StudentManagementLayout;
+
+    const { data, setData, post, errors, processing } = useForm({
         _method: 'patch',
+        management_context: managementContext,
         is_active: Boolean(student.is_active),
         access_tier_id: student.access_tier_id ?? '',
         first_name: student.first_name ?? '',
@@ -37,6 +49,7 @@ export default function EditStudent({ student, accessTiers, status }) {
     const submitStatus = (event) => {
         event.preventDefault();
         router.patch(route('admin.students.status', student.id), {
+            management_context: managementContext,
             is_active: data.is_active,
         });
     };
@@ -46,7 +59,9 @@ export default function EditStudent({ student, accessTiers, status }) {
             return;
         }
 
-        router.post(route('admin.students.reset-progress', student.id));
+        router.post(route('admin.students.reset-progress', student.id), {
+            management_context: managementContext,
+        });
     };
 
     const resetProgressScope = (scope, label) => {
@@ -57,7 +72,9 @@ export default function EditStudent({ student, accessTiers, status }) {
         router.post(route('admin.students.reset-progress.scope', {
             student: student.id,
             scope,
-        }));
+        }), {
+            management_context: managementContext,
+        });
     };
 
     const deleteAccount = () => {
@@ -65,15 +82,24 @@ export default function EditStudent({ student, accessTiers, status }) {
             return;
         }
 
-        router.delete(route('admin.students.destroy', student.id));
+        router.delete(route('admin.students.destroy', student.id), {
+            data: {
+                management_context: managementContext,
+            },
+        });
     };
 
     return (
-        <StudentManagementLayout
+        <LayoutComponent
             title="Student Detail"
-            description="Manage the student account, assigned access tier, account status, and destructive student actions from the dedicated Students domain."
+            description={
+                isStudentProgressContext
+                    ? 'Manage the student account, access tier, status, profile details, and reset actions from the unified Student area.'
+                    : 'Manage the student account, assigned access tier, account status, and destructive student actions from the dedicated Students domain.'
+            }
             pageTitle="Student Detail"
             student={student}
+            activeSection={isStudentProgressContext ? 'detail' : undefined}
         >
             {status === 'student-profile-updated' && (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
@@ -272,6 +298,6 @@ export default function EditStudent({ student, accessTiers, status }) {
                     </button>
                 </div>
             </div>
-        </StudentManagementLayout>
+        </LayoutComponent>
     );
 }

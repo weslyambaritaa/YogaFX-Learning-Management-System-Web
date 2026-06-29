@@ -3,8 +3,19 @@ import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function CreateStudent({ accessTiers }) {
+export default function CreateStudent({
+    accessTiers,
+    managementContext = 'students',
+}) {
+    const backHref = managementContext === 'student_progress'
+        ? route('admin.student-progress.index')
+        : route('admin.students.index');
+    const backLabel = managementContext === 'student_progress'
+        ? 'Back to Student'
+        : 'Back to Students';
+
     const { data, setData, post, processing, errors } = useForm({
+        management_context: managementContext,
         email: '',
         password: '',
         password_confirmation: '',
@@ -32,10 +43,10 @@ export default function CreateStudent({ accessTiers }) {
                     </div>
 
                     <Link
-                        href={route('admin.students.index')}
+                        href={backHref}
                         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                     >
-                        Back to Students
+                        {backLabel}
                     </Link>
                 </div>
             }

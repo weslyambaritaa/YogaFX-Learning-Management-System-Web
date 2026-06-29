@@ -239,6 +239,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/admins/{admin}', [AdminAccountController::class, 'destroy'])->name('admins.destroy');
 
         Route::get('/student-progress', [StudentProgressController::class, 'index'])->name('student-progress.index');
+        Route::get('/student-progress/students/{student}', [StudentProgressController::class, 'showStudentDetail'])->name('student-progress.students.show');
         Route::get('/student-progress/completed-lessons', [StudentProgressController::class, 'completedLessonsIndex'])->name('student-progress.completed-lessons.index');
         Route::get('/student-progress/assignments', [StudentProgressController::class, 'assignmentsIndex'])->name('student-progress.assignments.index');
         Route::get('/student-progress/certificates', [StudentProgressController::class, 'certificatesIndex'])->name('student-progress.certificates.index');
