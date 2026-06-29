@@ -29,7 +29,6 @@ class AccessTierController extends Controller
                     'id' => $accessTier->id,
                     'name' => $accessTier->name,
                     'slug' => $accessTier->slug,
-                    'payment_link' => $accessTier->payment_link,
                     'description' => $accessTier->description,
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'access-tier',
@@ -78,7 +77,6 @@ class AccessTierController extends Controller
                 'id' => $accessTier->id,
                 'name' => $accessTier->name,
                 'slug' => $accessTier->slug,
-                'payment_link' => $accessTier->payment_link,
                 'description' => $accessTier->description,
                 'thumbnail_url' => $this->protectedMediaUrl(
                     'access-tier',

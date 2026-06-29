@@ -10,6 +10,7 @@ use App\Models\Course;
 use App\Models\Ebook;
 use App\Models\Lesson;
 use App\Models\QuestionOption;
+use App\Models\Package;
 use App\Models\Module;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -84,6 +85,12 @@ class ContentFileController extends Controller
                 'model' => AccessTier::class,
                 'fields' => [
                     'thumbnail' => ['download' => false],
+                ],
+            ],
+            'package' => [
+                'model' => Package::class,
+                'fields' => [
+                    'image' => ['download' => false],
                 ],
             ],
             'assessment' => [

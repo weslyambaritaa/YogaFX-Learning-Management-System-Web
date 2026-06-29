@@ -4,32 +4,26 @@
 
 ## 1. Purpose
 
-Dokumen ini mendeskripsikan **model data yang benar-benar aktif** di aplikasi saat ini berdasarkan migration dan model Eloquent yang sudah ada.
+Dokumen ini mendeskripsikan model data aktif YogaFX LMS berdasarkan migration dan model yang benar-benar ada saat ini.
 
-Dokumen ini sengaja tidak lagi mencampur entity future yang belum dibuat.
+Dokumen ini tidak lagi memperlakukan assessment, assignment, payment, onboarding, dan tracking sebagai future-only domain karena semuanya sudah punya schema aktif.
 
 ---
 
-## 2. Active Domains
+## 2. Active Data Domains
 
-Domain data yang sudah aktif:
+Domain data aktif saat ini:
 - users and roles
-- access tiers
-- learning content
-- student progress admin foundation
+- access tiers and package commerce
+- public registration, checkout, invoice, payment, subscription, onboarding
+- learning content and tier access
+- assessments
+- assignments
+- lesson progress and module visits
 - certificates
 - email templates and logs
-
-Domain yang belum punya schema final dan tidak dianggap aktif di dokumen ini:
-- assessments
-- assessment pages
-- questions
-- question options
-- assessment attempts
-- assessment answers
-- assessment progress
-- dedicated user session tracking domain
-- user activity logs
+- dialog content
+- student access time and sessions
 
 ---
 
@@ -42,9 +36,14 @@ Purpose:
 Key fields:
 - `id`
 - `name`
+<<<<<<< Updated upstream
 - `role` (`super_admin`, `admin`, `student`)
+=======
+- `role`
+>>>>>>> Stashed changes
 - `is_active`
 - `access_tier_id`
+- `total_access_duration_seconds`
 - `email`
 - `password`
 - `first_name`
@@ -69,11 +68,17 @@ Relationships:
 - belongs to one `AccessTier`
 - has many `LessonProgress`
 - has many `AssignmentSubmission`
+- has many `AssessmentAttempt`
+- has many `AssessmentProgress`
 - has many `Certificate`
+- has many `UserSession`
+- has many `StudentModuleVisit`
+- has many `Invoice`
+- has one `OnboardingState`
 
 ### 3.2 AccessTier
 Purpose:
-- membership tier untuk student dan content access
+- membership tier dan entitlement/access control
 
 Key fields:
 - `id`
@@ -81,6 +86,7 @@ Key fields:
 - `slug`
 - `description`
 - `thumbnail`
+- `level`
 - `is_active`
 
 Relationships:
@@ -88,47 +94,244 @@ Relationships:
 - belongs to many `Module`
 - belongs to many `Lesson`
 - belongs to many `Ebook`
-- has many `Course`
+- belongs to many `Course`
+- has one active `Package` assignment at a time
+- has many `PendingRegistration`
+- has many `Invoice`
 
-### 3.3 Module
+### 3.3 Package
 Purpose:
-- parent pembelajaran untuk lesson
+- commerce/payment offer layer untuk initial checkout
+
+Key fields:
+- `id`
+- `access_tier_id`
+- `title`
+- `slug`
+- `description`
+- `image`
+- `price`
+- `currency_code`
+- `billing_interval_unit`
+- `billing_interval_count`
+- `installment_enabled`
+- `fixed_billing_day`
+- `installment_deadline_month`
+- `installment_deadline_day`
+- `paypal_product_id`
+- `paypal_plan_id`
+- `is_active`
+
+Relationships:
+- belongs to `AccessTier` nullable
+- has many `PendingRegistration`
+- has many `Invoice`
+- has many `PaymentSubscription`
+
+### 3.4 PendingRegistration
+Purpose:
+- lead / pre-student record sebelum checkout selesai
+
+Key fields:
+- `id`
+- `access_tier_id`
+- `package_id`
+- `first_name`
+- `last_name`
+- `email`
+- `phone`
+- `country`
+- `amount_snapshot`
+- `status`
+- `checkout_opened_at`
+- `payment_succeeded_at`
+- `completed_at`
+
+Relationships:
+- belongs to `AccessTier`
+- belongs to `Package` nullable
+- has many `Invoice`
+- has many `PaymentSubscription`
+- has one `OnboardingState`
+
+### 3.5 OnboardingState
+Purpose:
+- mengontrol continuation flow setelah payment sukses
+
+Key fields:
+- `id`
+- `pending_registration_id`
+- `user_id`
+- `status`
+- `continuation_sent_at`
+- `enrollment_completed_at`
+- `signup_completed_at`
+
+Relationships:
+- belongs to `PendingRegistration`
+- belongs to `User`
+
+### 3.6 Invoice
+Purpose:
+- dokumen tagihan untuk initial checkout dan student upgrade
+
+Key fields:
+- `id`
+- `invoice_number`
+- `pending_registration_id`
+- `user_id`
+- `package_id`
+- `access_tier_id`
+- `type`
+- `payment_type`
+- `total_amount`
+- `balance_due`
+- `currency_code`
+- `status`
+- `issued_at`
+- `paid_at`
+
+Relationships:
+- belongs to `PendingRegistration` nullable
+- belongs to `User` nullable
+- belongs to `Package` nullable
+- belongs to `AccessTier`
+- has many `Payment`
+- has many `PaymentSubscription`
+
+### 3.7 Payment
+Purpose:
+- aktivitas pembayaran per invoice
+
+Key fields:
+- `id`
+- `invoice_id`
+- `payment_method`
+- `payment_type`
+- `amount_paid`
+- `currency_code`
+- `status`
+- `payment_reference`
+- `notes`
+
+Relationships:
+- belongs to `Invoice`
+
+### 3.8 PaymentSubscription
+Purpose:
+- aggregate canonical untuk lifecycle installment package
+
+Key fields:
+- `id`
+- `invoice_id`
+- `package_id`
+- `pending_registration_id`
+- `user_id`
+- `access_tier_id`
+- `provider`
+- `provider_product_id`
+- `provider_plan_id`
+- `provider_subscription_id`
+- `status`
+- `installment_count`
+- `installments_paid_count`
+- `currency_code`
+- `total_amount`
+- `monthly_base_amount`
+- `first_payment_amount`
+- `next_billing_amount`
+- `started_at`
+- `first_payment_paid_at`
+- `next_due_at`
+- `final_due_at`
+- `grace_deadline_at`
+- `completed_at`
+- `suspended_at`
+- `cancelled_at`
+- `last_payment_failed_at`
+- `last_synced_at`
+- `metadata`
+
+Relationships:
+- belongs to `Invoice`
+- belongs to `Package`
+- belongs to `PendingRegistration` nullable
+- belongs to `User` nullable
+- belongs to `AccessTier`
+- has many `PaymentSubscriptionEvent`
+
+### 3.9 PaymentSubscriptionEvent
+Purpose:
+- event log idempotent untuk webhook PayPal subscription
+
+Key fields:
+- `id`
+- `payment_subscription_id`
+- `invoice_id`
+- `payment_activity_id`
+- `provider`
+- `provider_event_id`
+- `provider_event_type`
+- `provider_subscription_id`
+- `provider_order_id`
+- `provider_capture_id`
+- `occurred_at`
+- `processed_at`
+- `status`
+- `payload`
+- `notes`
+
+Relationships:
+- belongs to `PaymentSubscription` nullable
+- belongs to `Invoice` nullable
+- belongs to `Payment` as payment activity nullable
+
+### 3.10 Module
+Purpose:
+- container utama pembelajaran
 
 Key fields:
 - `id`
 - `title`
+- `description`
 - `url_slug`
 - `thumbnail`
 - `sort_order`
+- `certificate_enabled`
+- `ebook_enabled`
+- `video_lecturer_enabled`
 
 Relationships:
+- belongs to many `AccessTier`
 - has many `Lesson`
-- belongs to many `AccessTier` via `access_tier_module`
+- has many `Assignment`
+- has many `StudentModuleVisit`
 
-### 3.4 Lesson
+### 3.11 Lesson
 Purpose:
-- unit konten dalam module
+- unit pembelajaran di dalam module
 
 Key fields:
 - `id`
 - `module_id`
-- `assessment_id` nullable
+- `assessment_id`
 - `title`
 - `thumbnail`
 - `workbook`
-- `video`
-- `audio`
+- `lesson_video_id`
+- `audio_url`
 - `content`
 - `sort_order`
 
 Relationships:
 - belongs to `Module`
-- belongs to many `AccessTier` via `access_tier_lesson`
+- belongs to many `AccessTier`
+- belongs to `Assessment` nullable
 - has many `LessonProgress`
 
-### 3.5 Ebook
+### 3.12 Ebook
 Purpose:
-- resource file mandiri di luar lesson
+- resource file mandiri
 
 Key fields:
 - `id`
@@ -137,27 +340,239 @@ Key fields:
 - `sort_order`
 
 Relationships:
-- belongs to many `AccessTier` via `access_tier_ebook`
+- belongs to many `AccessTier`
 
-### 3.6 Course
+### 3.13 Course
 Purpose:
-- konten independen berbasis video/reference
+- video lecture / course resource mandiri
 
 Key fields:
 - `id`
 - `title`
 - `url_slug`
-- `access_tier_id`
 - `description`
 - `thumbnail`
 - `video`
 
 Relationships:
-- belongs to `AccessTier`
+- belongs to many `AccessTier`
 
-### 3.7 LessonProgress
+### 3.14 Assignment
 Purpose:
-- progress lesson student yang dipakai admin untuk area completed lesson
+- tugas student yang ditempelkan ke module
+
+Key fields:
+- `id`
+- `module_id`
+- `title`
+- `description`
+- `sort_order`
+- `status`
+- `is_required`
+
+Relationships:
+- belongs to `Module`
+- has many `AssignmentSubmission`
+
+### 3.15 AssignmentSubmission
+Purpose:
+- submission video assignment student
+
+Key fields:
+- `id`
+- `user_id`
+- `assignment_id`
+- `assignment_type`
+- `assignment_video`
+- `assignment_status`
+- `assignment_feedback`
+- `submitted_at`
+- `graded_at`
+- `reviewed_at`
+- `reviewed_by`
+
+Relationships:
+- belongs to `User`
+- belongs to `Assignment` nullable
+- belongs to `User` as reviewer nullable
+
+### 3.16 Assessment
+Purpose:
+- definisi assessment / scoreboard
+
+Key fields:
+- `id`
+- `title`
+- `slug`
+- `description`
+- `thumbnail`
+- `status`
+- `duration_minutes`
+- `scoring_mode`
+- `result_mode`
+- `is_active`
+- `show_progress_bar`
+- `allow_back_navigation`
+
+Relationships:
+- has one `AssessmentDesign`
+- has many `Question`
+- has many `AssessmentResultRange`
+- has many `AssessmentAttempt`
+- has many `AssessmentProgress`
+- has one `Lesson`
+
+### 3.17 AssessmentDesign
+Purpose:
+- konfigurasi visual assessment
+
+Key fields:
+- `id`
+- `assessment_id`
+- `logo`
+- `logo_max_width`
+- `logo_alignment`
+- `logo_link`
+- `header_position`
+- `section_background`
+- `top_margin`
+- `bottom_margin`
+- `footer_content`
+
+Relationships:
+- belongs to `Assessment`
+
+### 3.18 Question
+Purpose:
+- screen/question di dalam assessment
+
+Key fields:
+- `id`
+- `assessment_id`
+- `title`
+- `question_text`
+- `question_type`
+- `sort_order`
+- `required`
+- `randomize_answers_order`
+- `jump_enabled`
+- `jump_to_question_id`
+
+Relationships:
+- belongs to `Assessment`
+- has many `QuestionOption`
+- self references optional jump target
+
+### 3.19 QuestionOption
+Purpose:
+- opsi jawaban assessment
+
+Key fields:
+- `id`
+- `question_id`
+- `label`
+- `internal_value`
+- `image`
+- `sort_order`
+- `scoring_enabled`
+- `score_value`
+- `jump_enabled`
+- `jump_to_question_id`
+- `is_other_option`
+- `is_fixed_option`
+- `is_correct`
+
+Relationships:
+- belongs to `Question`
+- self references optional jump target via `questions.id`
+
+### 3.20 AssessmentResultRange
+Purpose:
+- pemetaan rentang skor ke label hasil
+
+Key fields:
+- `id`
+- `assessment_id`
+- `title`
+- `description`
+- `min_score`
+- `max_score`
+- `sort_order`
+
+Relationships:
+- belongs to `Assessment`
+
+### 3.21 AssessmentAttempt
+Purpose:
+- attempt assessment per student
+
+Key fields:
+- `id`
+- `user_id`
+- `assessment_id`
+- `attempt_number`
+- `status`
+- `started_at`
+- `expires_at`
+- `submitted_at`
+- `completed_at`
+- `current_question_id`
+- `last_answered_question_id`
+- `total_score`
+- `result_range_id`
+- `result_label`
+- `finished_reason`
+
+Relationships:
+- belongs to `User`
+- belongs to `Assessment`
+- belongs to `Question` as current question nullable
+- belongs to `Question` as last answered question nullable
+- belongs to `AssessmentResultRange` nullable
+- has many `AssessmentAnswer`
+
+### 3.22 AssessmentAnswer
+Purpose:
+- jawaban yang tersimpan dalam satu attempt
+
+Key fields:
+- `id`
+- `assessment_attempt_id`
+- `question_id`
+- `question_option_id`
+- `answer_text`
+- `answer_number`
+- `answer_boolean`
+- `score_awarded`
+- `is_final`
+- `answered_at`
+
+Relationships:
+- belongs to `AssessmentAttempt`
+- belongs to `Question`
+- belongs to `QuestionOption` nullable
+
+### 3.23 AssessmentProgress
+Purpose:
+- ringkasan progress assessment per student
+
+Key fields:
+- `id`
+- `user_id`
+- `assessment_id`
+- `latest_score`
+- `highest_score`
+- `total_attempts`
+- `is_done`
+- `completed_at`
+
+Relationships:
+- belongs to `User`
+- belongs to `Assessment`
+
+### 3.24 LessonProgress
+Purpose:
+- progress lesson student
 
 Key fields:
 - `id`
@@ -174,43 +589,67 @@ Relationships:
 - belongs to `User`
 - belongs to `Lesson`
 
-### 3.8 AssignmentSubmission
+### 3.25 StudentModuleVisit
 Purpose:
-- menyimpan record assignment/graduation video student
+- menandai module yang pernah dibuka student
 
 Key fields:
 - `id`
 - `user_id`
-- `assignment_type`
-- `assignment_video`
-- `assignment_status`
-- `assignment_feedback`
-- `submitted_at`
-- `graded_at`
+- `module_id`
+- `opened_at`
 
 Relationships:
 - belongs to `User`
+- belongs to `Module`
 
-### 3.9 Certificate
+### 3.26 Certificate
 Purpose:
-- menyimpan certificate yang dihasilkan admin untuk student
+- record certificate yang dihasilkan admin
 
 Key fields:
 - `id`
 - `user_id`
+- `generated_by_user_id`
 - `certificate_type`
 - `file_path`
 - `file_name`
 - `version`
-- `generated_by_user_id`
 - `generated_at`
 - `deleted_at`
 
 Relationships:
 - belongs to `User` as owner
 - belongs to `User` as generator
+- has many `CertificateDownloadEvent`
 
-### 3.10 EmailTemplate
+### 3.27 CertificateDownloadEvent
+Purpose:
+- tracking download certificate per student/module
+
+Key fields:
+- `id`
+- `user_id`
+- `module_id`
+- `certificate_id`
+- `downloaded_at`
+
+Relationships:
+- belongs to `User`
+- belongs to `Module`
+- belongs to `Certificate` nullable
+
+### 3.28 DialogContent
+Purpose:
+- konten dialog student instant access
+
+Key fields:
+- `id`
+- `key`
+- `title`
+- `content`
+
+### 3.29 EmailTemplate
 Purpose:
 - konfigurasi template email per notification type
 
@@ -228,9 +667,9 @@ Key fields:
 Relationships:
 - has many `EmailLog`
 
-### 3.11 EmailLog
+### 3.30 EmailLog
 Purpose:
-- histori email test dan automated
+- histori email automated dan send test
 
 Key fields:
 - `id`
@@ -249,7 +688,24 @@ Key fields:
 Relationships:
 - belongs to `EmailTemplate` nullable
 
-### 3.12 Pivot Tables
+### 3.31 UserSession
+Purpose:
+- tracking sesi login student
+
+Key fields:
+- `id`
+- `user_id`
+- `session_id`
+- `login_at`
+- `last_activity_at`
+- `logout_at`
+- `session_duration_seconds`
+- `is_active`
+
+Relationships:
+- belongs to `User`
+
+### 3.32 Pivot Tables
 
 #### `access_tier_module`
 - `access_tier_id`
@@ -263,227 +719,48 @@ Relationships:
 - `access_tier_id`
 - `ebook_id`
 
----
-
-## 4. Relationship Summary
-
-- `users.access_tier_id -> access_tiers.id`
-- `courses.access_tier_id -> access_tiers.id`
-- `lessons.module_id -> modules.id`
-- `lesson_progress.user_id -> users.id`
-- `lesson_progress.lesson_id -> lessons.id`
-- `assignment_submissions.user_id -> users.id`
-- `certificates.user_id -> users.id`
-- `certificates.generated_by_user_id -> users.id`
-- `email_logs.email_template_id -> email_templates.id`
-
-Many-to-many:
-- `access_tiers <-> modules`
-- `access_tiers <-> lessons`
-- `access_tiers <-> ebooks`
+#### `access_tier_course`
+- `access_tier_id`
+- `course_id`
 
 ---
 
-## 5. Important Current Rules Reflected In Data Model
+## 4. Important Current Rules Reflected In Data Model
 
-### 5.1 Student Has One Active Tier
-Saat ini student hanya memiliki satu `access_tier_id`.
+### 4.1 Student Tetap Punya Satu Tier Aktif
+Student masih memakai `users.access_tier_id` tunggal.
 
-### 5.2 Module, Lesson, Ebook Use Multi-Tier Access
-Relasi tier untuk tiga entity tersebut sudah dipindahkan ke pivot table dan tidak lagi memakai single `access_tier_id`.
+### 4.2 Content Access Sudah Banyak yang Many-to-Many
+`Module`, `Lesson`, `Ebook`, dan `Course` memakai pivot tier access.
 
-### 5.3 Course Still Uses Single Tier
-Course tetap memakai foreign key langsung ke `access_tiers`.
+### 4.3 Assessment Bukan Lagi Placeholder
+Assessment sudah punya schema lengkap untuk:
+- design
+- questions
+- options
+- result ranges
+- attempts
+- answers
+- progress
 
-### 5.4 Assessment Is Only a Placeholder Reference on Lesson
-`assessment_id` di `lessons` masih nullable dan belum di-back oleh schema assessment aktif.
+### 4.4 Payment, Package, dan Onboarding Sudah Menjadi Domain Aktif
+`Package`, `PendingRegistration`, `OnboardingState`, `Invoice`, `Payment`, `PaymentSubscription`, dan `PaymentSubscriptionEvent` adalah bagian aktif dari product flow.
 
-### 5.5 Certificates Are Soft Deleted
-Record certificate memakai soft delete sehingga recreate dan riwayat file masih memungkinkan dilacak.
-
----
-
-## 6. Mermaid ERD
-
-```mermaid
-erDiagram
-    USERS {
-        bigint id PK
-        bigint access_tier_id FK
-        string name
-        string role
-        string email
-        string password
-        string first_name
-        string last_name
-        string whatsapp
-        string preferred_certificate_picture
-        string profile_photo
-        string instagram
-        string country
-        date birth_date
-        string gender
-        string practicing_yoga_for
-        string yoga_sequence_experience
-        int hours_per_week
-        string current_fitness_level
-        string flexibility_rating
-        text motivation
-        text why_yogafx
-        text how_did_you_find_us
-    }
-
-    ACCESS_TIERS {
-        bigint id PK
-        string name
-        string slug
-        text description
-        string thumbnail
-        boolean is_active
-    }
-
-    MODULES {
-        bigint id PK
-        string title
-        string url_slug
-        string thumbnail
-        int sort_order
-    }
-
-    LESSONS {
-        bigint id PK
-        bigint module_id FK
-        bigint assessment_id
-        string title
-        string thumbnail
-        string workbook
-        string video
-        string audio
-        text content
-        int sort_order
-    }
-
-    ACCESS_TIER_MODULE {
-        bigint id PK
-        bigint access_tier_id FK
-        bigint module_id FK
-    }
-
-    ACCESS_TIER_LESSON {
-        bigint id PK
-        bigint access_tier_id FK
-        bigint lesson_id FK
-    }
-
-    EBOOKS {
-        bigint id PK
-        string title
-        string file
-        int sort_order
-    }
-
-    ACCESS_TIER_EBOOK {
-        bigint id PK
-        bigint access_tier_id FK
-        bigint ebook_id FK
-    }
-
-    COURSES {
-        bigint id PK
-        bigint access_tier_id FK
-        string title
-        string url_slug
-        text description
-        string thumbnail
-        string video
-    }
-
-    LESSON_PROGRESS {
-        bigint id PK
-        bigint user_id FK
-        bigint lesson_id FK
-        decimal watch_progress
-        boolean is_workbook_downloaded
-        datetime workbook_downloaded_at
-        datetime video_completed_at
-        boolean is_done
-        datetime completed_at
-    }
-
-    ASSIGNMENT_SUBMISSIONS {
-        bigint id PK
-        bigint user_id FK
-        string assignment_type
-        string assignment_video
-        string assignment_status
-        text assignment_feedback
-        datetime submitted_at
-        datetime graded_at
-    }
-
-    CERTIFICATES {
-        bigint id PK
-        bigint user_id FK
-        bigint generated_by_user_id FK
-        string certificate_type
-        string file_path
-        string file_name
-        int version
-        datetime generated_at
-        datetime deleted_at
-    }
-
-    EMAIL_TEMPLATES {
-        bigint id PK
-        string notification_type
-        string notification_name
-        boolean is_enabled
-        text admin_recipients
-        string subject_user
-        text body_user
-        string subject_admin
-        text body_admin
-    }
-
-    EMAIL_LOGS {
-        bigint id PK
-        bigint email_template_id FK
-        string notification_type
-        string reference_type
-        bigint reference_id
-        string recipient_type
-        string recipient_email
-        string subject
-        text body_snapshot
-        string status
-        text error_message
-        datetime sent_at
-    }
-
-    ACCESS_TIERS ||--o{ USERS : assigns
-    ACCESS_TIERS ||--o{ COURSES : controls
-    ACCESS_TIERS ||--o{ ACCESS_TIER_MODULE : maps
-    ACCESS_TIERS ||--o{ ACCESS_TIER_LESSON : maps
-    ACCESS_TIERS ||--o{ ACCESS_TIER_EBOOK : maps
-
-    MODULES ||--o{ LESSONS : contains
-    MODULES ||--o{ ACCESS_TIER_MODULE : scoped_by
-    LESSONS ||--o{ ACCESS_TIER_LESSON : scoped_by
-    EBOOKS ||--o{ ACCESS_TIER_EBOOK : scoped_by
-
-    USERS ||--o{ LESSON_PROGRESS : has
-    LESSONS ||--o{ LESSON_PROGRESS : tracked_by
-
-    USERS ||--o{ ASSIGNMENT_SUBMISSIONS : submits
-    USERS ||--o{ CERTIFICATES : owns
-    USERS ||--o{ CERTIFICATES : generates
-
-    EMAIL_TEMPLATES ||--o{ EMAIL_LOGS : produces
-```
+### 4.5 Certificate Tetap Soft Delete
+`Certificate` memakai soft delete agar recreate dan riwayat file tetap bisa dilacak.
 
 ---
 
-## 7. Notes
+## 5. Mermaid ERD
 
-- tabel Laravel bawaan `password_reset_tokens` dan `sessions` tetap ada, tetapi bukan domain khusus yang dipakai sebagai progress/session tracking YogaFX saat ini
-- jika assessment domain mulai diimplementasikan, dokumen ini harus diperluas lagi berdasarkan migration yang benar-benar dibuat
+Diagram Mermaid aktif disimpan di:
+- `docs/mermaid/ERD.mmd`
+
+Diagram tersebut sudah disinkronkan dengan package commerce dan installment lifecycle yang aktif.
+
+---
+
+## 6. Notes
+
+- tabel Laravel bawaan seperti `password_reset_tokens` dan `sessions` tetap ada, tetapi bukan domain produk utama yang dijelaskan penuh di sini
+- jika nanti muncul domain baru yang benar-benar aktif, dokumen ini harus diperbarui mengikuti migration dan model aktual

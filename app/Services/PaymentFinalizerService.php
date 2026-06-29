@@ -38,12 +38,21 @@ class PaymentFinalizerService
                 ->findOrFail($paymentActivity->invoice_id);
 
             $reference = $paymentReference ?: $paymentActivity->payment_reference;
+            $onboardingState = $invoice->type === Invoice::TYPE_INITIAL
+                ? OnboardingState::query()->where('pending_registration_id', $invoice->pending_registration_id)->first()
+                : null;
+
+            if ($paymentActivity->status === Payment::STATUS_SUCCESS) {
+                return [
+                    'invoice' => $invoice,
+                    'payment_activity' => $paymentActivity,
+                    'user' => $invoice->user,
+                    'onboarding_state' => $onboardingState,
+                    'skipped' => true,
+                ];
+            }
 
             if ($invoice->status === Invoice::STATUS_PAID_FULL) {
-                $onboardingState = $invoice->type === Invoice::TYPE_INITIAL
-                    ? OnboardingState::query()->where('pending_registration_id', $invoice->pending_registration_id)->first()
-                    : null;
-
                 return [
                     'invoice' => $invoice,
                     'payment_activity' => $paymentActivity,
@@ -61,10 +70,6 @@ class PaymentFinalizerService
                     ->whereKeyNot($paymentActivity->id)
                     ->exists()
             ) {
-                $onboardingState = $invoice->type === Invoice::TYPE_INITIAL
-                    ? OnboardingState::query()->where('pending_registration_id', $invoice->pending_registration_id)->first()
-                    : null;
-
                 return [
                     'invoice' => $invoice,
                     'payment_activity' => $paymentActivity,

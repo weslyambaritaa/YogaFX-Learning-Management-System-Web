@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\Invoice;
 use App\Models\Module;
 use App\Models\OnboardingState;
+use App\Models\Package;
 use App\Models\Payment;
 use App\Models\PendingRegistration;
 use App\Models\User;
@@ -28,21 +29,30 @@ class PaymentAndModuleCompletionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_initial_payment_uses_current_tier_price_and_currency_snapshots(): void
+    public function test_initial_payment_uses_current_package_price_and_currency_snapshots(): void
     {
         $tier = AccessTier::factory()->create([
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
             'price' => 499.00,
             'currency_code' => AccessTier::CURRENCY_GBP,
         ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
             'first_name' => 'Ava',
             'last_name' => 'Stone',
             'email' => 'ava@example.com',
             'phone' => '+6281234567890',
             'country' => 'Indonesia',
             'amount_snapshot' => 199.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'status' => PendingRegistration::STATUS_CREATED,
         ]);
 
@@ -71,6 +81,7 @@ class PaymentAndModuleCompletionTest extends TestCase
         $this->assertDatabaseHas('invoices', [
             'id' => $invoice->id,
             'pending_registration_id' => $pendingRegistration->id,
+            'package_id' => $package->id,
             'currency_code' => AccessTier::CURRENCY_GBP,
             'type' => Invoice::TYPE_INITIAL,
             'status' => Invoice::STATUS_PAID_FULL,
@@ -100,25 +111,34 @@ class PaymentAndModuleCompletionTest extends TestCase
             'price' => 499.00,
             'currency_code' => AccessTier::CURRENCY_GBP,
         ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
             'first_name' => 'Sora',
             'last_name' => 'Blake',
             'email' => 'sora@example.com',
             'phone' => '+6281234567111',
             'country' => 'Indonesia',
             'amount_snapshot' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'status' => PendingRegistration::STATUS_CREATED,
         ]);
 
         $this->mock(PayPalService::class, function ($mock): void {
-            $mock->shouldReceive('generateClientToken')
-                ->once()
-                ->andReturn('PAYPAL-CLIENT-TOKEN-001');
             $mock->shouldReceive('clientId')
                 ->once()
                 ->andReturn('PAYPAL-CLIENT-ID-001');
+            $mock->shouldReceive('environment')
+                ->once()
+                ->andReturn('sandbox');
         });
 
         $this->get(
@@ -130,8 +150,10 @@ class PaymentAndModuleCompletionTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Public/Checkout')
+                ->where('checkout.package.slug', 'online-standard')
                 ->where('checkout.paypal.client_id', 'PAYPAL-CLIENT-ID-001')
-                ->where('checkout.paypal.client_token', 'PAYPAL-CLIENT-TOKEN-001')
+                ->where('checkout.paypal.client_token', null)
+                ->where('checkout.paypal.environment', 'sandbox')
                 ->where('checkout.access_tier.slug', $tier->slug));
     }
 
@@ -143,15 +165,24 @@ class PaymentAndModuleCompletionTest extends TestCase
             'price' => 249.00,
             'currency_code' => AccessTier::CURRENCY_USD,
         ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Mock Protected Package',
+            'slug' => 'mock-protected-package',
+            'price' => 249.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
             'first_name' => 'Nina',
             'last_name' => 'Hart',
             'email' => 'nina@example.com',
             'phone' => '+6281234567000',
             'country' => 'Indonesia',
             'amount_snapshot' => 249.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
             'status' => PendingRegistration::STATUS_CREATED,
         ]);
 
@@ -174,15 +205,24 @@ class PaymentAndModuleCompletionTest extends TestCase
             'price' => 499.00,
             'currency_code' => AccessTier::CURRENCY_GBP,
         ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
             'first_name' => 'Maya',
             'last_name' => 'Cole',
             'email' => 'maya@example.com',
             'phone' => '+6281234567888',
             'country' => 'Indonesia',
             'amount_snapshot' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
         ]);
 
@@ -237,15 +277,24 @@ class PaymentAndModuleCompletionTest extends TestCase
             'price' => 499.00,
             'currency_code' => AccessTier::CURRENCY_GBP,
         ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
             'first_name' => 'Mika',
             'last_name' => 'Dunn',
             'email' => 'mika@example.com',
             'phone' => '+6281234567222',
             'country' => 'Indonesia',
             'amount_snapshot' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
         ]);
 
@@ -285,21 +334,31 @@ class PaymentAndModuleCompletionTest extends TestCase
             'price' => 499.00,
             'currency_code' => AccessTier::CURRENCY_GBP,
         ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
             'first_name' => 'Luna',
             'last_name' => 'Reed',
             'email' => 'luna@example.com',
             'phone' => '+6281234567666',
             'country' => 'Indonesia',
             'amount_snapshot' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
         ]);
 
         $invoice = Invoice::query()->create([
             'invoice_number' => 'INV-ONSITE-0001',
             'pending_registration_id' => $pendingRegistration->id,
+            'package_id' => $package->id,
             'access_tier_id' => $tier->id,
             'type' => Invoice::TYPE_INITIAL,
             'payment_type' => Invoice::PAYMENT_TYPE_FULL,
@@ -431,21 +490,31 @@ class PaymentAndModuleCompletionTest extends TestCase
             'price' => 499.00,
             'currency_code' => AccessTier::CURRENCY_GBP,
         ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
+            'price' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
+        ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
             'first_name' => 'Ari',
             'last_name' => 'Snow',
             'email' => 'ari@example.com',
             'phone' => '+6281234567555',
             'country' => 'Indonesia',
             'amount_snapshot' => 499.00,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
         ]);
 
         $invoice = Invoice::query()->create([
             'invoice_number' => 'INV-ONSITE-0002',
             'pending_registration_id' => $pendingRegistration->id,
+            'package_id' => $package->id,
             'access_tier_id' => $tier->id,
             'type' => Invoice::TYPE_INITIAL,
             'payment_type' => Invoice::PAYMENT_TYPE_FULL,

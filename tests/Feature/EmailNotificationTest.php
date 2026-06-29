@@ -40,6 +40,10 @@ class EmailNotificationTest extends TestCase
             EmailNotificationTypeRegistry::COURSE_COMPLETE => 'Course Complete',
             EmailNotificationTypeRegistry::REMINDER => 'Reminder',
             EmailNotificationTypeRegistry::WORKBOOK_SENT => 'Workbook Sent',
+            EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_SUCCESS => 'Installment Payment Success',
+            EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_FAILED => 'Installment Payment Failed',
+            EmailNotificationTypeRegistry::INSTALLMENT_OVERDUE_INACTIVE => 'Installment Overdue Inactive',
+            EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_COMPLETED => 'Installment Payment Completed',
         ] as $notificationType => $label) {
             $this->actingAs($admin)->get(
                 route('admin.email-notifications.show', ['notificationType' => $notificationType]),

@@ -1,196 +1,122 @@
 # Access Tier Currency
-
 # YogaFX LMS
 
 ## Purpose
 
-Dokumen ini menjadi source of truth untuk currency pada domain Access Tier dan alur turunannya ke checkout, invoice, dan payment.
+Dokumen ini menjadi source of truth untuk currency pada domain `AccessTier` dan alur turunan ke checkout, invoice, dan payment.
 
-Dokumen ini dibuat karena harga tier tidak boleh statis USD/dollar saja. Admin harus bisa memilih currency pada setiap tier.
-
----
-
-# 1. Core Principle
-
-## Final Rule
-
-Harga pada Access Tier tidak boleh dianggap selalu USD.
-
-Setiap Access Tier harus punya:
-
-- harga
-- currency
-
-Currency dipilih oleh admin pada saat mengelola Access Tier.
+Dokumen ini mengikuti implementasi aktif saat ini.
 
 ---
 
-# 2. Access Tier Requirements
+## 1. Core Rule
 
-## Final Rule
+Harga tier tidak boleh dianggap selalu USD.
 
-Setiap Access Tier minimal harus memiliki field:
-
+Setiap `AccessTier` aktif saat ini harus punya:
 - `price`
 - `currency_code`
 
-## Minimum Supported Currency
+Currency dipilih saat admin mengelola tier.
 
-Untuk tahap awal, minimal support:
+---
 
-- `USD`
+## 2. Current Supported Currency
+
+Implementasi aktif saat ini mendukung:
 - `IDR`
+- `USD`
+- `GBP`
+- `EUR`
 
-Currency lain dapat ditambahkan nanti bila diperlukan.
-
----
-
-# 3. Why Currency Must Be Stored on Access Tier
-
-## Reason
-
-Agar:
-
-- setiap tier bisa punya nominal dengan mata uang yang sesuai
-- checkout tidak statis dollar
-- invoice dan payment bisa mewarisi currency yang benar
-- sistem siap untuk tier internasional dan lokal
+Dokumen lama yang menyebut hanya `USD` dan `IDR` tidak lagi cukup menggambarkan kondisi repository saat ini.
 
 ---
 
-# 4. Checkout Currency Flow
+## 3. Why Currency Lives on Access Tier
 
-## Final Rule
-
-Saat user masuk checkout:
-
-- amount harus mengikuti `price` dari tier
-- currency harus mengikuti `currency_code` dari tier
-
-Artinya:
-
-- checkout tidak boleh hardcoded USD
-- checkout harus menampilkan nilai sesuai currency tier
+Currency disimpan pada `AccessTier` supaya:
+- setiap tier bisa membawa nominal dan currency sendiri
+- checkout menampilkan amount yang benar
+- invoice menyimpan snapshot transaksi yang benar
+- payment activity juga menyimpan snapshot yang konsisten
+- upgrade flow tetap mengikuti currency tier target
 
 ---
 
-# 5. Invoice Currency
+## 4. Checkout Currency Flow
 
-## Final Rule
+### Initial Checkout
+
+Saat calon student masuk checkout:
+- amount mengikuti `access_tier.price`
+- currency mengikuti `access_tier.currency_code`
+
+### Upgrade Checkout
+
+Saat student membuka upgrade checkout:
+- amount due dihitung terhadap tier target
+- currency mengikuti `target_tier.currency_code`
+
+---
+
+## 5. Invoice Currency
+
+### Final Rule
 
 Saat invoice dibuat:
+- `invoice.currency_code` harus diisi dari tier yang menjadi basis transaksi saat itu
 
-- invoice harus menyimpan `currency_code`
-
-## Why
-
-Agar invoice menjadi snapshot transaksi pada saat itu.
-
-Jika nanti:
-
-- harga tier berubah
-- currency tier berubah
-
-invoice lama tetap konsisten dengan kondisi saat transaksi dibuat.
+Invoice adalah snapshot transaksi, bukan pembacaan live dari tier di kemudian hari.
 
 ---
 
-# 6. Payment Currency
+## 6. Payment Activity Currency
 
-## Final Rule
+### Final Rule
 
-Saat payment dibuat:
-
-- payment juga harus menyimpan `currency_code`
-
-## Why
-
-Agar setiap payment activity memiliki konteks currency yang jelas dan konsisten dengan invoice.
+Saat payment activity dibuat:
+- `payment.currency_code` juga harus diisi
+- nilainya harus konsisten dengan invoice yang sedang dibayar
 
 ---
 
-# 7. Recommended Fields
+## 7. Snapshot Rule
 
-## Access Tier
-
-Minimal:
-
-- `price`
-- `currency_code`
-
-## Invoice
-
-Minimal tambahan:
-
-- `currency_code`
-
-## Payment
-
-Minimal tambahan:
-
-- `currency_code`
-
----
-
-# 8. Snapshot Rule
-
-## Final Rule
-
-Currency di invoice dan payment harus dibekukan/snapshot dari Access Tier saat transaksi dibuat.
-
-Jangan membuat invoice/payment selalu membaca currency live dari tier setiap kali dirender.
-
----
-
-# 9. Display Rule
-
-## Admin Side
-
-Admin saat mengelola Access Tier harus bisa:
-
-- memilih currency
-- melihat harga bersama currency yang dipilih
-
-## Checkout
-
-Checkout harus menampilkan:
-
-- amount
-- currency
-
-## Invoice / Payment
-
-UI boleh menampilkan currency yang tersimpan pada snapshot invoice/payment.
-
----
-
-# 10. Future Compatibility
-
-Struktur ini harus kompatibel dengan:
-
-- simulated payment flow
-- future live payment gateway
-- installment
-- upgrade
-- currency-sensitive billing display
-
----
-
-# 11. Final Summary
-
-Access Tier sekarang harus punya currency yang dipilih admin.
-
-Minimal:
-
-- USD
-- IDR
-
-Currency itu harus mengalir ke:
-
-- checkout
+Currency pada:
+- checkout payload
 - invoice
-- payment
+- payment activity
 
-Dan invoice/payment harus menyimpan snapshot currency agar data transaksi tetap konsisten di masa depan.
+harus mengikuti snapshot transaksi ketika row dibuat.
 
-Dokumen ini menjadi source of truth untuk domain Access Tier Currency.
+Jangan merender histori transaksi lama dengan membaca currency live dari tier terbaru.
+
+---
+
+## 8. Admin-Side Rule
+
+Admin saat mengelola access tier harus bisa melihat:
+- price
+- currency_code
+- level
+- payment_link
+
+Karena currency sekarang sudah menjadi bagian dari commerce setup tier, bukan sekadar informasi tambahan.
+
+---
+
+## 9. Final Summary
+
+Implementasi aktif sekarang memakai `currency_code` sebagai bagian penting dari flow:
+- Access Tier
+- Checkout
+- Invoice
+- Payment Activity
+- Upgrade
+
+Supported currency aktif saat ini:
+- IDR
+- USD
+- GBP
+- EUR

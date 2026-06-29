@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Services\PayPalService;
 use App\Services\PaymentFinalizerService;
+use App\Services\Payments\InstallmentWebhookHandler;
+use App\Services\Payments\PayPalSubscriptionService;
+use App\Services\Payments\PaymentSubscriptionEventLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,6 +16,9 @@ class PayPalWebhookController extends Controller
     public function __construct(
         private readonly PayPalService $paypalService,
         private readonly PaymentFinalizerService $paymentFinalizer,
+        private readonly PayPalSubscriptionService $payPalSubscriptionService,
+        private readonly PaymentSubscriptionEventLogService $paymentSubscriptionEventLogService,
+        private readonly InstallmentWebhookHandler $installmentWebhookHandler,
     ) {}
 
     public function __invoke(Request $request): JsonResponse
@@ -27,6 +33,20 @@ class PayPalWebhookController extends Controller
         ];
 
         abort_unless($this->paypalService->verifyWebhookSignature($payload, $headers), 401, 'Invalid PayPal webhook signature.');
+
+        $eventType = is_string($payload['event_type'] ?? null) ? $payload['event_type'] : null;
+
+        if ($this->payPalSubscriptionService->isSubscriptionWebhookEvent($eventType)) {
+            $logged = $this->paymentSubscriptionEventLogService->logPayPalWebhookEvent($payload);
+
+            if (! $logged['duplicate']) {
+                $this->installmentWebhookHandler->handle($logged['event']);
+            }
+
+            return response()->json([
+                'status' => $logged['duplicate'] ? 'duplicate' : 'processed',
+            ]);
+        }
 
         $reference = $this->paypalService->extractWebhookOrderReference($payload);
         $orderId = $reference['order_id'];

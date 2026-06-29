@@ -10,12 +10,15 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'access_tier_id',
+    'package_id',
     'first_name',
     'last_name',
     'email',
     'phone',
     'country',
     'amount_snapshot',
+    'currency_code',
+    'installment_billing_day',
     'status',
     'checkout_opened_at',
     'payment_succeeded_at',
@@ -32,6 +35,7 @@ class PendingRegistration extends Model
     {
         return [
             'amount_snapshot' => 'decimal:2',
+            'installment_billing_day' => 'integer',
             'checkout_opened_at' => 'datetime',
             'payment_succeeded_at' => 'datetime',
             'completed_at' => 'datetime',
@@ -43,9 +47,19 @@ class PendingRegistration extends Model
         return $this->belongsTo(AccessTier::class);
     }
 
+    public function package(): BelongsTo
+    {
+        return $this->belongsTo(Package::class);
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function paymentSubscriptions(): HasMany
+    {
+        return $this->hasMany(PaymentSubscription::class);
     }
 
     public function onboardingState(): HasOne

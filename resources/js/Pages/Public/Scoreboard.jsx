@@ -33,10 +33,10 @@ async function parseJsonSafely(response) {
 const FONT_FAMILY = "'Montserrat', sans-serif";
 
 export default function Scoreboard({
-    accessTiers,
+    packages,
     submit_url,
-    selected_access_tier_id,
-    is_access_tier_locked = false,
+    selected_package_id,
+    is_package_locked = false,
 }) {
     const { directory = {} } = usePage().props;
     const countryOptions = directory.countries ?? [];
@@ -48,18 +48,18 @@ export default function Scoreboard({
         phone_country_code: "+62",
         phone_number: "",
         country: "",
-        access_tier_id: selected_access_tier_id ?? accessTiers[0]?.id ?? "",
+        package_id: selected_package_id ?? packages[0]?.id ?? "",
     });
     const [errors, setErrors] = useState({});
     const [processing, setProcessing] = useState(false);
     const [checkout, setCheckout] = useState(null);
     const checkoutRef = useRef(null);
 
-    const selectedTier =
-        accessTiers.find(
-            (tier) => String(tier.id) === String(data.access_tier_id),
+    const selectedPackage =
+        packages.find(
+            (pkg) => String(pkg.id) === String(data.package_id),
         ) ?? null;
-    const selectedTierHasPrice = Number(selectedTier?.price ?? 0) > 0;
+    const selectedPackageHasPrice = Number(selectedPackage?.price ?? 0) > 0;
     const isIdentityLocked = checkout !== null;
 
     useEffect(() => {
@@ -90,45 +90,61 @@ export default function Scoreboard({
         setProcessing(true);
         setErrors({});
 
-        const response = await fetch(submit_url, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                "X-CSRF-TOKEN": getCsrfToken() ?? "",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: JSON.stringify(data),
-        });
+        try {
+            const response = await fetch(submit_url, {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "X-CSRF-TOKEN": getCsrfToken() ?? "",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: JSON.stringify(data),
+            });
 
-        const payload = await parseJsonSafely(response);
+            const payload = await parseJsonSafely(response);
 
-        if (!response.ok) {
-            setProcessing(false);
+            if (!response.ok) {
+                if (response.status === 422 && payload.errors) {
+                    setErrors(
+                        Object.fromEntries(
+                            Object.entries(payload.errors).map(
+                                ([key, value]) => [
+                                    key,
+                                    Array.isArray(value) ? value[0] : value,
+                                ],
+                            ),
+                        ),
+                    );
+                    return;
+                }
 
-            if (response.status === 422 && payload.errors) {
-                setErrors(
-                    Object.fromEntries(
-                        Object.entries(payload.errors).map(([key, value]) => [
-                            key,
-                            Array.isArray(value) ? value[0] : value,
-                        ]),
-                    ),
-                );
+                setErrors({
+                    general:
+                        payload.message ??
+                        "The checkout flow could not be prepared. Please try again.",
+                });
                 return;
             }
 
+            if (!payload.checkout) {
+                setErrors({
+                    general:
+                        "The checkout flow was prepared, but the payment panel could not be opened. Please try again.",
+                });
+                return;
+            }
+
+            setCheckout(payload.checkout);
+        } catch {
             setErrors({
                 general:
-                    payload.message ??
-                    "The checkout flow could not be prepared. Please try again.",
+                    "The checkout flow could not be reached right now. Please check your connection and try again.",
             });
-            return;
+        } finally {
+            setProcessing(false);
         }
-
-        setCheckout(payload.checkout ?? null);
-        setProcessing(false);
     };
 
     return (
@@ -272,9 +288,9 @@ export default function Scoreboard({
                                     style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                     required
                                 >
-                                    {phoneCountryCodeOptions.map((option) => (
+                                    {phoneCountryCodeOptions.map((option, index) => (
                                         <option
-                                            key={option.value}
+                                            key={`${option.value}-${option.label}-${index}`}
                                             value={option.value}
                                             className="bg-gray-900 text-white"
                                             style={{ fontFamily: FONT_FAMILY }}
@@ -337,13 +353,13 @@ export default function Scoreboard({
                                     }
                                 }}
                                 required
-                            >
+                                >
                                 <option value="" className="bg-gray-900 text-white" style={{ fontFamily: FONT_FAMILY }}>
                                     Select a country
                                 </option>
-                                {countryOptions.map((option) => (
+                                {countryOptions.map((option, index) => (
                                     <option
-                                        key={option.value}
+                                        key={`${option.value}-${option.label}-${index}`}
                                         value={option.value}
                                         className="bg-gray-900 text-white"
                                         style={{ fontFamily: FONT_FAMILY }}
@@ -363,36 +379,41 @@ export default function Scoreboard({
                         {/* Program / Tier */}
                         <div className="md:col-span-2">
                             <InputLabel
-                                htmlFor="access_tier_id"
-                                value="Program / Tier"
+                                htmlFor="package_id"
+                                value="Package"
                                 className="text-sm font-medium text-white/90"
                                 style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
-                            {is_access_tier_locked && selectedTier ? (
+                            {is_package_locked && selectedPackage ? (
                                 <div
     className="mt-2 min-h-[52px] rounded-[5px] bg-[#ffffff] px-5 py-4 text-black shadow-sm"
     style={{ fontFamily: FONT_FAMILY }}
 >
     <div className="text-sm font-medium text-black" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}>
-        {selectedTier.name}
+        {selectedPackage.title}
     </div>
     <div className="mt-1 text-sm font-normal text-black" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}>
-        {Number(selectedTier.price) > 0
+        {Number(selectedPackage.price) > 0
             ? formatCurrency(
-                  selectedTier.price,
-                  selectedTier.currency_code,
+                  selectedPackage.price,
+                  selectedPackage.currency_code,
               )
             : "Price not set yet"}
     </div>
+    {selectedPackage.access_tier?.name ? (
+        <div className="mt-1 text-xs text-black/70" style={{ fontFamily: FONT_FAMILY }}>
+            Grants access to {selectedPackage.access_tier.name}
+        </div>
+    ) : null}
 </div>
                             ) : (
                                 <select
-                                    id="access_tier_id"
-                                    value={data.access_tier_id}
+                                    id="package_id"
+                                    value={data.package_id}
                                     disabled={isIdentityLocked}
                                     onChange={(event) =>
                                         setFieldValue(
-                                            "access_tier_id",
+                                            "package_id",
                                             event.target.value,
                                         )
                                     }
@@ -400,18 +421,19 @@ export default function Scoreboard({
                                     style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                     required
                                 >
-                                    {accessTiers.map((tier) => (
+                                    {packages.map((pkg) => (
                                         <option
-                                            key={tier.id}
-                                            value={tier.id}
+                                            key={pkg.id}
+                                            value={pkg.id}
                                             className="bg-gray-900 text-white"
                                             style={{ fontFamily: FONT_FAMILY }}
                                         >
-                                            {tier.name} -{" "}
-                                            {Number(tier.price) > 0
+                                            {pkg.title}
+                                            {pkg.access_tier?.name ? ` (${pkg.access_tier.name})` : ''} -{" "}
+                                            {Number(pkg.price) > 0
                                                 ? formatCurrency(
-                                                      tier.price,
-                                                      tier.currency_code,
+                                                      pkg.price,
+                                                      pkg.currency_code,
                                                   )
                                                 : "Price not set yet"}
                                         </option>
@@ -421,7 +443,7 @@ export default function Scoreboard({
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
                                 style={{ fontFamily: FONT_FAMILY }}
-                                message={errors.access_tier_id}
+                                message={errors.package_id}
                             />
                         </div>
                     </div>
@@ -432,17 +454,17 @@ export default function Scoreboard({
                                 type="submit"
                                 disabled={
                                     processing ||
-                                    accessTiers.length === 0 ||
-                                    !selectedTierHasPrice
+                                    packages.length === 0 ||
+                                    !selectedPackageHasPrice
                                 }
                                 className="rounded-[5px] bg-[#DB202C] px-2.5 py-2 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:bg-[#c01a25] hover:shadow-xl disabled:pointer-events-none disabled:opacity-60"
                                 style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             >
                                 {processing
                                     ? "Preparing Payment..."
-                                    : selectedTierHasPrice
+                                    : selectedPackageHasPrice
                                       ? "Continue to Payment"
-                                      : "Set Tier Price First"}
+                                      : "Set Package Price First"}
                             </Button>
                         </div>
                     )}

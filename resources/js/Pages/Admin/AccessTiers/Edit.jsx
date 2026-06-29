@@ -71,14 +71,6 @@ export default function EditAccessTier({ accessTier, status }) {
                                     {accessTier.is_active ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
-                            <div className="mt-4 text-sm text-gray-500">
-                                Public Payment Link
-                            </div>
-                            <div className="mt-2 flex flex-wrap items-center gap-3">
-                                <span className="text-sm font-medium text-gray-900">
-                                    {accessTier.payment_link || '-'}
-                                </span>
-                            </div>
                         </div>
                     </div>
 

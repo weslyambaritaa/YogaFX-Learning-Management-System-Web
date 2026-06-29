@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class PayPalService
@@ -13,6 +15,15 @@ class PayPalService
     public function clientId(): string
     {
         return (string) config('services.paypal.client_id');
+    }
+
+    public function environment(): string
+    {
+        $baseUrl = rtrim((string) config('services.paypal.base_url'), '/');
+
+        return str_contains($baseUrl, 'sandbox')
+            ? 'sandbox'
+            : 'live';
     }
 
     public function generateClientToken(): string
@@ -97,23 +108,56 @@ class PayPalService
         $webhookId = (string) config('services.paypal.webhook_id');
 
         if ($webhookId === '') {
+            $this->logWebhookVerificationFailure('missing_webhook_id', $payload, $headers);
+
             return false;
         }
 
-        $response = $this->authenticatedHttp()
-            ->post('/v1/notifications/verify-webhook-signature', [
-                'auth_algo' => $headers['paypal-auth-algo'] ?? '',
-                'cert_url' => $headers['paypal-cert-url'] ?? '',
-                'transmission_id' => $headers['paypal-transmission-id'] ?? '',
-                'transmission_sig' => $headers['paypal-transmission-sig'] ?? '',
-                'transmission_time' => $headers['paypal-transmission-time'] ?? '',
-                'webhook_id' => $webhookId,
-                'webhook_event' => $payload,
-            ])
-            ->throw()
-            ->json();
+        $requestPayload = [
+            'auth_algo' => $headers['paypal-auth-algo'] ?? '',
+            'cert_url' => $headers['paypal-cert-url'] ?? '',
+            'transmission_id' => $headers['paypal-transmission-id'] ?? '',
+            'transmission_sig' => $headers['paypal-transmission-sig'] ?? '',
+            'transmission_time' => $headers['paypal-transmission-time'] ?? '',
+            'webhook_id' => $webhookId,
+            'webhook_event' => $payload,
+        ];
 
-        return ($response['verification_status'] ?? null) === 'SUCCESS';
+        try {
+            $response = $this->authenticatedHttp()
+                ->post('/v1/notifications/verify-webhook-signature', $requestPayload)
+                ->throw()
+                ->json();
+        } catch (RequestException $exception) {
+            $this->logWebhookVerificationFailure(
+                reason: 'request_exception',
+                payload: $payload,
+                headers: $headers,
+                extra: [
+                    'status_code' => $exception->response?->status(),
+                    'debug_id' => $exception->response?->json('debug_id'),
+                    'response_body' => $exception->response?->json() ?? $exception->response?->body(),
+                ],
+            );
+
+            throw $exception;
+        }
+
+        $verified = ($response['verification_status'] ?? null) === 'SUCCESS';
+
+        if (! $verified) {
+            $this->logWebhookVerificationFailure(
+                reason: 'verification_failed',
+                payload: $payload,
+                headers: $headers,
+                extra: [
+                    'verification_status' => $response['verification_status'] ?? null,
+                    'response_body' => $response,
+                ],
+            );
+        }
+
+        return $verified;
     }
 
     /**
@@ -176,5 +220,41 @@ class PayPalService
     private function baseUrl(): string
     {
         return rtrim((string) config('services.paypal.base_url'), '/');
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string|null>  $headers
+     * @param  array<string, mixed>  $extra
+     */
+    private function logWebhookVerificationFailure(
+        string $reason,
+        array $payload,
+        array $headers,
+        array $extra = [],
+    ): void {
+        if (! app()->environment(['local', 'testing'])) {
+            return;
+        }
+
+        Log::warning('PayPal webhook signature verification failed.', array_merge([
+            'reason' => $reason,
+            'paypal_base_url' => $this->baseUrl(),
+            'webhook_id_prefix' => substr((string) config('services.paypal.webhook_id'), 0, 4),
+            'webhook_id_length' => strlen((string) config('services.paypal.webhook_id')),
+            'event_id' => is_string($payload['id'] ?? null) ? $payload['id'] : null,
+            'event_type' => is_string($payload['event_type'] ?? null) ? $payload['event_type'] : null,
+            'resource_id' => is_string($payload['resource']['id'] ?? null) ? $payload['resource']['id'] : null,
+            'billing_agreement_id' => is_string($payload['resource']['billing_agreement_id'] ?? null)
+                ? $payload['resource']['billing_agreement_id']
+                : null,
+            'headers_present' => [
+                'paypal-auth-algo' => filled($headers['paypal-auth-algo'] ?? null),
+                'paypal-cert-url' => filled($headers['paypal-cert-url'] ?? null),
+                'paypal-transmission-id' => filled($headers['paypal-transmission-id'] ?? null),
+                'paypal-transmission-sig' => filled($headers['paypal-transmission-sig'] ?? null),
+                'paypal-transmission-time' => filled($headers['paypal-transmission-time'] ?? null),
+            ],
+        ], $extra));
     }
 }

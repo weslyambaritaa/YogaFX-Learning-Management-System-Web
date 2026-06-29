@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\AccessTier;
+use App\Models\Package;
 use App\Models\PendingRegistration;
 use App\Services\PayPalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,27 +20,38 @@ class PublicPaymentLinkTest extends TestCase
         $starterTier = AccessTier::factory()->create([
             'name' => 'Starter Kit',
             'slug' => AccessTier::SLUG_STARTER_KIT,
-            'payment_link' => '/starter-kit',
             'is_active' => true,
         ]);
 
-        AccessTier::factory()->create([
+        $starterPackage = Package::factory()->create([
+            'access_tier_id' => $starterTier->id,
+            'title' => 'Starter-kit Standard',
+            'slug' => 'starter-kit-standard',
+            'price' => 150,
+            'currency_code' => AccessTier::CURRENCY_IDR,
+        ]);
+
+        $onlineTier = AccessTier::factory()->create([
             'name' => 'Online',
             'slug' => AccessTier::SLUG_ONLINE,
-            'payment_link' => '/online',
             'is_active' => true,
+        ]);
+        Package::factory()->create([
+            'access_tier_id' => $onlineTier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
         ]);
 
         $response = $this->get('/starter-kit');
 
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
             ->component('Public/Scoreboard')
-            ->where('selected_access_tier_id', $starterTier->id)
-            ->where('is_access_tier_locked', true)
+            ->where('selected_package_id', $starterPackage->id)
+            ->where('is_package_locked', true)
             ->where('submit_url', url('/starter-kit'))
-            ->has('accessTiers', 1)
-            ->where('accessTiers.0.slug', AccessTier::SLUG_STARTER_KIT)
-            ->where('accessTiers.0.payment_link', '/starter-kit'));
+            ->has('packages', 1)
+            ->where('packages.0.slug', 'starter-kit-standard')
+            ->where('packages.0.access_tier.slug', AccessTier::SLUG_STARTER_KIT));
     }
 
     public function test_starterkit_alias_route_locks_scoreboard_to_matching_tier(): void
@@ -47,35 +59,49 @@ class PublicPaymentLinkTest extends TestCase
         $starterTier = AccessTier::factory()->create([
             'name' => 'Starter Kit',
             'slug' => AccessTier::SLUG_STARTER_KIT,
-            'payment_link' => '/starter-kit',
             'is_active' => true,
+        ]);
+        $starterPackage = Package::factory()->create([
+            'access_tier_id' => $starterTier->id,
+            'title' => 'Starter-kit Standard',
+            'slug' => 'starter-kit-standard',
         ]);
 
         $this->get('/starterkit')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Public/Scoreboard')
-                ->where('selected_access_tier_id', $starterTier->id)
-                ->where('is_access_tier_locked', true)
+                ->where('selected_package_id', $starterPackage->id)
+                ->where('is_package_locked', true)
                 ->where('submit_url', url('/starterkit')));
     }
 
-    public function test_product_payment_link_submission_creates_pending_registration_for_expected_tier_only(): void
+    public function test_product_payment_link_submission_creates_pending_registration_for_resolved_package(): void
     {
         $starterTier = AccessTier::factory()->create([
             'name' => 'Starter Kit',
             'slug' => AccessTier::SLUG_STARTER_KIT,
-            'payment_link' => '/starter-kit',
-            'price' => 150,
             'is_active' => true,
+        ]);
+        $starterPackage = Package::factory()->create([
+            'access_tier_id' => $starterTier->id,
+            'title' => 'Starter-kit Standard',
+            'slug' => 'starter-kit-standard',
+            'price' => 150,
+            'currency_code' => AccessTier::CURRENCY_GBP,
         ]);
 
         $onlineTier = AccessTier::factory()->create([
             'name' => 'Online',
             'slug' => AccessTier::SLUG_ONLINE,
-            'payment_link' => '/online',
-            'price' => 250,
             'is_active' => true,
+        ]);
+        $onlinePackage = Package::factory()->create([
+            'access_tier_id' => $onlineTier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
+            'price' => 250,
+            'currency_code' => AccessTier::CURRENCY_USD,
         ]);
 
         $validPayload = [
@@ -85,7 +111,7 @@ class PublicPaymentLinkTest extends TestCase
             'phone_country_code' => '+62',
             'phone_number' => '81234567890',
             'country' => 'Indonesia',
-            'access_tier_id' => $starterTier->id,
+            'package_id' => $starterPackage->id,
         ];
 
         $this->post('/starter-kit', $validPayload)
@@ -93,6 +119,8 @@ class PublicPaymentLinkTest extends TestCase
 
         $this->assertDatabaseHas('pending_registrations', [
             'access_tier_id' => $starterTier->id,
+            'package_id' => $starterPackage->id,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'email' => 'ava@example.com',
         ]);
 
@@ -103,11 +131,12 @@ class PublicPaymentLinkTest extends TestCase
             'phone_country_code' => '+62',
             'phone_number' => '81234567891',
             'country' => 'Indonesia',
-            'access_tier_id' => $onlineTier->id,
-        ])->assertNotFound();
+            'package_id' => $onlinePackage->id,
+        ])->assertRedirect();
 
-        $this->assertDatabaseMissing('pending_registrations', [
-            'access_tier_id' => $onlineTier->id,
+        $this->assertDatabaseHas('pending_registrations', [
+            'access_tier_id' => $starterTier->id,
+            'package_id' => $starterPackage->id,
             'email' => 'nina@example.com',
         ]);
     }
@@ -117,18 +146,26 @@ class PublicPaymentLinkTest extends TestCase
         $onlineTier = AccessTier::factory()->create([
             'name' => 'Online',
             'slug' => AccessTier::SLUG_ONLINE,
-            'payment_link' => '/online',
             'price' => 299,
+        ]);
+        $onlinePackage = Package::factory()->create([
+            'access_tier_id' => $onlineTier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
+            'price' => 299,
+            'currency_code' => AccessTier::CURRENCY_GBP,
         ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $onlineTier->id,
+            'package_id' => $onlinePackage->id,
             'first_name' => 'Lina',
             'last_name' => 'West',
             'email' => 'lina@example.com',
             'phone' => '+6281234567000',
             'country' => 'Indonesia',
             'amount_snapshot' => 299,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'status' => PendingRegistration::STATUS_CREATED,
         ]);
 
@@ -147,15 +184,18 @@ class PublicPaymentLinkTest extends TestCase
         $onlineTier = AccessTier::factory()->create([
             'name' => 'Online',
             'slug' => AccessTier::SLUG_ONLINE,
-            'payment_link' => '/online',
+            'is_active' => true,
+        ]);
+        $onlinePackage = Package::factory()->create([
+            'access_tier_id' => $onlineTier->id,
+            'title' => 'Online Standard',
+            'slug' => 'online-standard',
             'price' => 299,
+            'currency_code' => AccessTier::CURRENCY_GBP,
             'is_active' => true,
         ]);
 
         $this->mock(PayPalService::class, function ($mock): void {
-            $mock->shouldReceive('generateClientToken')
-                ->once()
-                ->andReturn('PAYPAL-CLIENT-TOKEN-INLINE-001');
             $mock->shouldReceive('clientId')
                 ->once()
                 ->andReturn('PAYPAL-CLIENT-ID-INLINE-001');
@@ -168,7 +208,7 @@ class PublicPaymentLinkTest extends TestCase
             'phone_country_code' => '+62',
             'phone_number' => '81234567000',
             'country' => 'Indonesia',
-            'access_tier_id' => $onlineTier->id,
+            'package_id' => $onlinePackage->id,
         ]);
 
         $pendingRegistration = PendingRegistration::query()->firstOrFail();
@@ -177,8 +217,9 @@ class PublicPaymentLinkTest extends TestCase
             ->assertOk()
             ->assertJsonPath('status', 'checkout_ready')
             ->assertJsonPath('checkout.access_tier.slug', AccessTier::SLUG_ONLINE)
+            ->assertJsonPath('checkout.package.slug', 'online-standard')
             ->assertJsonPath('checkout.paypal.client_id', 'PAYPAL-CLIENT-ID-INLINE-001')
-            ->assertJsonPath('checkout.paypal.client_token', 'PAYPAL-CLIENT-TOKEN-INLINE-001')
+            ->assertJsonPath('checkout.paypal.client_token', null)
             ->assertJsonPath(
                 'checkout.create_order_url',
                 URL::temporarySignedRoute('checkout.orders.store', now()->addDays(7), [
@@ -189,7 +230,169 @@ class PublicPaymentLinkTest extends TestCase
 
         $this->assertDatabaseHas('pending_registrations', [
             'id' => $pendingRegistration->id,
+            'package_id' => $onlinePackage->id,
             'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
         ]);
+    }
+
+    public function test_direct_package_link_requires_active_assigned_package(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+        ]);
+
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Masterclass Easter',
+            'slug' => 'masterclass-easter',
+            'is_active' => true,
+        ]);
+
+        $this->get('/p/masterclass-easter')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/Scoreboard')
+                ->where('selected_package_id', $package->id)
+                ->where('is_package_locked', true));
+
+        $package->update(['access_tier_id' => null]);
+
+        $this->get('/p/masterclass-easter')->assertNotFound();
+    }
+
+    public function test_direct_package_link_submission_returns_checkout_payload_for_locked_package(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'name' => 'Masterclass',
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'is_active' => true,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Masterclass Standard',
+            'slug' => 'masterclass-standard',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'is_active' => true,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('clientId')
+                ->once()
+                ->andReturn('PAYPAL-CLIENT-ID-DIRECT-001');
+        });
+
+        $response = $this->postJson('/p/masterclass-standard', [
+            'first_name' => 'Ayla',
+            'last_name' => 'River',
+            'email' => 'ayla@example.com',
+            'phone_country_code' => '+62',
+            'phone_number' => '81234567890',
+            'country' => 'Indonesia',
+            'package_id' => 999999,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->firstOrFail();
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'checkout_ready')
+            ->assertJsonPath('checkout.package.id', $package->id)
+            ->assertJsonPath('checkout.package.slug', 'masterclass-standard')
+            ->assertJsonPath('checkout.amount', 300)
+            ->assertJsonPath('checkout.currency_code', AccessTier::CURRENCY_USD)
+            ->assertJsonPath('checkout.paypal.client_id', 'PAYPAL-CLIENT-ID-DIRECT-001')
+            ->assertJsonPath(
+                'checkout.create_order_url',
+                URL::temporarySignedRoute('checkout.orders.store', now()->addDays(7), [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => AccessTier::SLUG_MASTER_CLASS,
+                ]),
+            );
+
+        $this->assertDatabaseHas('pending_registrations', [
+            'id' => $pendingRegistration->id,
+            'package_id' => $package->id,
+            'access_tier_id' => $tier->id,
+            'amount_snapshot' => '300.00',
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+        ]);
+    }
+
+    public function test_direct_package_link_submission_rejects_inactive_package_with_clear_error(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'is_active' => true,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'slug' => 'masterclass-standard',
+            'is_active' => false,
+        ]);
+
+        $this->postJson('/p/masterclass-standard', [
+            'first_name' => 'Ayla',
+            'last_name' => 'River',
+            'email' => 'ayla@example.com',
+            'phone_country_code' => '+62',
+            'phone_number' => '81234567890',
+            'country' => 'Indonesia',
+            'package_id' => $package->id,
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.package_id.0', 'This package is currently unavailable for checkout.');
+    }
+
+    public function test_direct_package_link_submission_rejects_unassigned_package_with_clear_error(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'is_active' => true,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'slug' => 'masterclass-standard',
+            'is_active' => true,
+        ]);
+
+        $package->update(['access_tier_id' => null]);
+
+        $this->postJson('/p/masterclass-standard', [
+            'first_name' => 'Ayla',
+            'last_name' => 'River',
+            'email' => 'ayla@example.com',
+            'phone_country_code' => '+62',
+            'phone_number' => '81234567890',
+            'country' => 'Indonesia',
+            'package_id' => $package->id,
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.package_id.0', 'This package is currently unavailable for checkout.');
+    }
+
+    public function test_masterclass_legacy_route_resolves_active_assigned_package(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'name' => 'Masterclass',
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'is_active' => true,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Masterclass Standard',
+            'slug' => 'masterclass-standard',
+            'is_active' => true,
+        ]);
+
+        $this->get('/masterclass')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/Scoreboard')
+                ->where('selected_package_id', $package->id)
+                ->where('is_package_locked', true)
+                ->where('submit_url', url('/masterclass'))
+                ->where('packages.0.slug', 'masterclass-standard'));
     }
 }

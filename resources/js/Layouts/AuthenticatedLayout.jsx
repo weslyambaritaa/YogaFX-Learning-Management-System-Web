@@ -194,6 +194,12 @@ const adminNavigationItems = [
 
 const adminUtilityItems = [
     {
+        label: 'Packages',
+        route: 'admin.packages.index',
+        icon: FileSpreadsheet,
+        match: ['admin.packages.*'],
+    },
+    {
         label: 'Access Tiers',
         route: 'admin.access-tiers.index',
         icon: FileSpreadsheet,
@@ -263,6 +269,9 @@ const adminPageTitles = {
     'admin.dialogs.edit': 'Dialog',
     'admin.email-notifications.index': 'Email Notification',
     'admin.email-notifications.show': 'Email Notification',
+    'admin.packages.index': 'Packages',
+    'admin.packages.create': 'Create Package',
+    'admin.packages.edit': 'Edit Package',
     'admin.access-tiers.index': 'Access Tiers',
     'admin.access-tiers.create': 'Create Access Tier',
     'admin.access-tiers.edit': 'Edit Access Tier',

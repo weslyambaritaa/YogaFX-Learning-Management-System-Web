@@ -56,3 +56,15 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Local Development Note
+
+Saat menjalankan aplikasi dengan `php artisan serve`, gunakan HTTP lokal:
+
+```text
+APP_URL=http://127.0.0.1:8000
+APP_PUBLIC_URL=http://127.0.0.1:8000
+APP_FORCE_HTTPS=false
+```
+
+Jika `APP_FORCE_HTTPS=true`, Laravel akan menghasilkan URL `https://...` dan request login/Inertia/Axios ke built-in PHP server dapat gagal dengan error `Invalid request (Unsupported SSL request)`.

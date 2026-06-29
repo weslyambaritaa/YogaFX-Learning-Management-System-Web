@@ -69,6 +69,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Force HTTPS URLs
+    |--------------------------------------------------------------------------
+    |
+    | Enable this in environments that should always generate HTTPS links.
+    | Disable it for `php artisan serve` local development because the PHP
+    | built-in server only serves plain HTTP.
+    |
+    */
+
+    'force_https' => (bool) env('APP_FORCE_HTTPS', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

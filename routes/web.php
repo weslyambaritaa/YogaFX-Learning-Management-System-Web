@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\EmailNotificationController;
 use App\Http\Controllers\Admin\EbookController;
 use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Admin\StudentProgressController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\ContentFileController;
@@ -33,7 +34,6 @@ use App\Http\Controllers\Student\ProfilePasswordController;
 use App\Http\Controllers\Student\UpgradeController;
 use App\Http\Controllers\Admin\ScoreboardBuilderController;
 use App\Http\Controllers\Admin\ScoreboardController;
-use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -64,11 +64,14 @@ Route::get('/masterclass', [LeadRegistrationController::class, 'showProductPayme
 Route::post('/masterclass', [LeadRegistrationController::class, 'store'])
     ->defaults('paymentLinkSlug', 'masterclass')
     ->name('lead-registration.products.masterclass.store');
+Route::get('/p/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
+    ->name('lead-registration.packages.show');
+Route::post('/p/{packageSlug}', [LeadRegistrationController::class, 'store'])
+    ->name('lead-registration.packages.store');
 
 Route::get('/paypal/checkout/{invoice}/success', [PayPalCheckoutController::class, 'success'])->name('paypal.success');
 Route::get('/paypal/checkout/{invoice}/cancel', [PayPalCheckoutController::class, 'cancel'])->name('paypal.cancel');
 Route::post('/webhooks/paypal', PayPalWebhookController::class)
-    ->withoutMiddleware([ValidateCsrfToken::class])
     ->name('paypal.webhook');
 
 Route::middleware('signed')->group(function () {
@@ -77,6 +80,10 @@ Route::middleware('signed')->group(function () {
     Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders', [CheckoutController::class, 'createOrder'])->name('checkout.orders.store');
     Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders/{invoice}/capture', [CheckoutController::class, 'captureOrder'])->name('checkout.orders.capture');
     Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders/{invoice}/cancel', [CheckoutController::class, 'cancelOrder'])->name('checkout.orders.cancel');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/installments/approve', [CheckoutController::class, 'approveInstallment'])->name('checkout.installments.approve');
+    Route::get('/checkout/{pendingRegistration}/{accessTierSlug}/installments/status', [CheckoutController::class, 'installmentStatus'])->name('checkout.installments.status');
+    Route::get('/checkout/{pendingRegistration}/{accessTierSlug}/installments/return', [CheckoutController::class, 'subscriptionReturn'])->name('checkout.installments.return');
+    Route::get('/checkout/{pendingRegistration}/{accessTierSlug}/installments/cancel', [CheckoutController::class, 'subscriptionCancel'])->name('checkout.installments.cancel');
     Route::get('/checkout/invoices/{invoice}/status', [CheckoutController::class, 'status'])->name('checkout.status');
     Route::get('/onboarding/{onboardingState}/payment-success', [OnboardingController::class, 'showPaymentSuccess'])->name('onboarding.payment-success.show');
     Route::get('/upgrades/{invoice}/payment-success', [UpgradeController::class, 'success'])->name('student.upgrades.success');
@@ -151,6 +158,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/access-tiers/{accessTier}/edit', [AccessTierController::class, 'edit'])->name('access-tiers.edit');
         Route::patch('/access-tiers/{accessTier}', [AccessTierController::class, 'update'])->name('access-tiers.update');
         Route::delete('/access-tiers/{accessTier}', [AccessTierController::class, 'destroy'])->name('access-tiers.destroy');
+
+        Route::get('/packages', [PackageController::class, 'index'])->name('packages.index');
+        Route::get('/packages/create', [PackageController::class, 'create'])->name('packages.create');
+        Route::post('/packages', [PackageController::class, 'store'])->name('packages.store');
+        Route::get('/packages/{package}/edit', [PackageController::class, 'edit'])->name('packages.edit');
+        Route::patch('/packages/{package}', [PackageController::class, 'update'])->name('packages.update');
+        Route::delete('/packages/{package}', [PackageController::class, 'destroy'])->name('packages.destroy');
 
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
         Route::get('/modules/create', [ModuleController::class, 'create'])->name('modules.create');

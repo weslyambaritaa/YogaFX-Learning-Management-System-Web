@@ -16,7 +16,7 @@ Dokumen ini mencakup:
 
 ## 1. Active Notification Types
 
-Saat ini sistem mendukung 11 notification type:
+Saat ini sistem mendukung 15 notification type di backend registry:
 
 1. `module_completion`
 2. `assignment_review`
@@ -29,6 +29,10 @@ Saat ini sistem mendukung 11 notification type:
 9. `course_complete`
 10. `reminder`
 11. `workbook_sent`
+12. `installment_payment_success`
+13. `installment_payment_failed`
+14. `installment_overdue_inactive`
+15. `installment_payment_completed`
 
 ---
 
@@ -49,6 +53,10 @@ Child menu:
 - Course Complete
 - Reminder
 - Workbook Sent
+
+Catatan aktif:
+- sidebar admin saat ini masih menampilkan 11 child menu legacy di atas
+- 4 notification type installment tetap bisa diakses lewat route detail notification
 
 Setiap child menu membuka satu halaman detail template.
 
@@ -185,6 +193,21 @@ Aturan:
 - workbook dikirim sebagai attachment pada email user
 - admin copy tetap mengikuti konfigurasi template existing bila diisi
 - trigger ulang manual download tidak mengirim email kedua
+
+#### Installment Payment Success
+Dipicu saat webhook installment payment sukses difinalisasi dan payment ledger berhasil dicatat.
+
+#### Installment Payment Failed
+Dipicu saat PayPal mengirim event gagal bayar recurring dan subscription masuk grace period.
+
+#### Installment Overdue Inactive
+Dipicu oleh command:
+- `installments:sync-overdue-status`
+
+Saat subscription `past_due` melewati `grace_deadline_at`, akun student dinonaktifkan dan admin mendapat notifikasi sekali.
+
+#### Installment Payment Completed
+Dipicu saat pembayaran terakhir membuat `invoice.balance_due = 0` dan subscription ditandai `completed`.
 
 ---
 

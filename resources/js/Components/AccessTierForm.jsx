@@ -4,32 +4,6 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { formatCurrency } from '@/lib/currency';
 
-function resolvePaymentLink(slug) {
-    const normalized = String(slug ?? '').trim().toLowerCase();
-
-    if (normalized === 'online') {
-        return '/online';
-    }
-
-    if (
-        normalized === 'starter_kit' ||
-        normalized === 'starter-kit' ||
-        normalized === 'starterkit'
-    ) {
-        return '/starter-kit';
-    }
-
-    if (
-        normalized === 'master_class' ||
-        normalized === 'masterclass' ||
-        normalized === 'master-class'
-    ) {
-        return '/masterclass';
-    }
-
-    return '';
-}
-
 export default function AccessTierForm({
     data,
     setData,
@@ -39,8 +13,6 @@ export default function AccessTierForm({
     submitLabel = 'Save Access Tier',
     currentThumbnailUrl = null,
 }) {
-    const generatedPaymentLink = resolvePaymentLink(data.slug);
-
     return (
         <form onSubmit={onSubmit} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
@@ -125,20 +97,6 @@ export default function AccessTierForm({
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
                 <InputError className="mt-2" message={errors.description} />
-            </div>
-
-            <div>
-                <InputLabel htmlFor="payment_link_preview" value="Public Payment Link" />
-                <TextInput
-                    id="payment_link_preview"
-                    className="mt-1 block w-full"
-                    value={generatedPaymentLink}
-                    readOnly
-                />
-                <p className="mt-2 text-xs text-gray-500">
-                    Generated automatically from the tier slug. Supported public links are
-                    `online`, `starter-kit`, and `masterclass`.
-                </p>
             </div>
 
             <div>

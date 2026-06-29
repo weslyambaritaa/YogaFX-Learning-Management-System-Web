@@ -56,6 +56,16 @@ class AccessTier extends Model
         return $this->hasMany(User::class);
     }
 
+    public function packages(): HasMany
+    {
+        return $this->hasMany(Package::class);
+    }
+
+    public function paymentSubscriptions(): HasMany
+    {
+        return $this->hasMany(PaymentSubscription::class);
+    }
+
     public function modules(): BelongsToMany
     {
         return $this->belongsToMany(Module::class, 'access_tier_module')->withTimestamps();

@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'invoice_number',
     'pending_registration_id',
+    'package_id',
     'user_id',
     'access_tier_id',
     'type',
@@ -56,6 +57,11 @@ class Invoice extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function package(): BelongsTo
+    {
+        return $this->belongsTo(Package::class);
+    }
+
     public function accessTier(): BelongsTo
     {
         return $this->belongsTo(AccessTier::class);
@@ -69,6 +75,11 @@ class Invoice extends Model
     public function paymentActivities(): HasMany
     {
         return $this->payments();
+    }
+
+    public function paymentSubscriptions(): HasMany
+    {
+        return $this->hasMany(PaymentSubscription::class);
     }
 
     public function getContextAttribute(): ?string

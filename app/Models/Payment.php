@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'invoice_id',
@@ -42,6 +43,11 @@ class Payment extends Model
     public function invoice(): BelongsTo
     {
         return $this->belongsTo(Invoice::class);
+    }
+
+    public function subscriptionEvents(): HasMany
+    {
+        return $this->hasMany(PaymentSubscriptionEvent::class, 'payment_activity_id');
     }
 
     public function getAmountAttribute(): string

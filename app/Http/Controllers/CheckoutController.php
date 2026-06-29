@@ -7,9 +7,11 @@ use App\Models\AccessTier;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PendingRegistration;
+use App\Models\PaymentSubscription;
 use App\Services\PayPalService;
 use App\Services\PaymentCheckoutService;
 use App\Services\PaymentFinalizerService;
+use App\Services\Payments\PaymentSubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -23,6 +25,7 @@ class CheckoutController extends Controller
         private readonly PaymentCheckoutService $paymentFlow,
         private readonly PaymentFinalizerService $paymentFinalizer,
         private readonly PayPalService $paypalService,
+        private readonly PaymentSubscriptionService $paymentSubscriptionService,
     ) {}
 
     public function show(PendingRegistration $pendingRegistration, string $accessTierSlug): InertiaResponse|RedirectResponse
@@ -33,7 +36,7 @@ class CheckoutController extends Controller
 
         abort_unless($pendingRegistration->access_tier_id === $accessTier->id, 404);
 
-        $pendingRegistration->loadMissing('accessTier', 'onboardingState');
+        $pendingRegistration->loadMissing('accessTier', 'package', 'onboardingState');
 
         if ($pendingRegistration->status === PendingRegistration::STATUS_PAYMENT_SUCCESS && $pendingRegistration->onboardingState) {
             return redirect()->away($this->paymentFlow->paymentSuccessUrl($pendingRegistration->onboardingState));
@@ -45,24 +48,10 @@ class CheckoutController extends Controller
 
         $pendingRegistration = $this->paymentFlow->markCheckoutOpened($pendingRegistration);
 
-        $clientToken = null;
-
-        try {
-            $clientToken = $this->paypalService->generateClientToken();
-        } catch (\Throwable $throwable) {
-            report($throwable);
-        }
-
         return Inertia::render('Public/Checkout', [
             'checkout' => [
                 ...$this->paymentFlow->checkoutPayload($pendingRegistration),
-                'paypal' => [
-                    'client_id' => $this->paypalService->clientId(),
-                    'client_token' => $clientToken,
-                    'currency_code' => $pendingRegistration->accessTier->currency_code,
-                    'components' => 'buttons,card-fields',
-                    'intent' => 'capture',
-                ],
+                'paypal' => $this->paypalFrontendConfig($pendingRegistration),
             ],
         ]);
     }
@@ -121,6 +110,25 @@ class CheckoutController extends Controller
             ]);
         }
 
+        if (($validated['payment_type'] ?? null) === Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            /** @var PaymentSubscription|null $paymentSubscription */
+            $paymentSubscription = $result['payment_subscription'] ?? null;
+            abort_unless($paymentSubscription instanceof PaymentSubscription, 409, 'Subscription checkout data is unavailable.');
+
+            return response()->json([
+                'status' => 'prepared',
+                'flow' => 'subscription',
+                'invoice_id' => $result['invoice']->id,
+                'payment_subscription_id' => $paymentSubscription->id,
+                'provider_plan_id' => $paymentSubscription->provider_plan_id,
+                'provider_subscription_id' => $paymentSubscription->provider_subscription_id,
+                'billing_day' => $paymentSubscription->billing_day,
+                'paypal_client_id' => $this->paypalService->clientId(),
+                'environment' => $this->paypalService->environment(),
+                'status_url' => $this->paymentFlow->checkoutSubscriptionStatusUrl($pendingRegistration),
+            ]);
+        }
+
         $pendingRegistration->loadMissing('accessTier');
 
         return response()->json([
@@ -129,6 +137,87 @@ class CheckoutController extends Controller
             'invoice_id' => $result['invoice']->id,
             'capture_url' => $this->paymentFlow->checkoutOrderCaptureUrl($pendingRegistration, $result['invoice']),
             'cancel_url' => $this->paymentFlow->checkoutOrderCancelUrl($pendingRegistration, $result['invoice']),
+        ]);
+    }
+
+    public function approveInstallment(
+        Request $request,
+        PendingRegistration $pendingRegistration,
+        string $accessTierSlug,
+    ): JsonResponse {
+        $accessTier = AccessTier::query()
+            ->where('slug', $accessTierSlug)
+            ->firstOrFail();
+
+        abort_unless($pendingRegistration->access_tier_id === $accessTier->id, 404);
+
+        $validated = $request->validate([
+            'payment_subscription_id' => ['required', 'integer'],
+            'provider_subscription_id' => ['required', 'string', 'max:255'],
+        ]);
+
+        /** @var PaymentSubscription $paymentSubscription */
+        $paymentSubscription = PaymentSubscription::query()
+            ->with('invoice', 'pendingRegistration.onboardingState')
+            ->where('pending_registration_id', $pendingRegistration->id)
+            ->findOrFail($validated['payment_subscription_id']);
+
+        $paymentSubscription = $this->paymentSubscriptionService->attachApprovedSubscription(
+            $pendingRegistration,
+            $paymentSubscription,
+            (string) $validated['provider_subscription_id'],
+        );
+
+        return response()->json([
+            'status' => 'approval_attached',
+            'flow' => 'subscription',
+            'invoice_id' => $paymentSubscription->invoice_id,
+            'payment_subscription_id' => $paymentSubscription->id,
+            'provider_subscription_id' => $paymentSubscription->provider_subscription_id,
+            'awaiting_webhook' => true,
+            'onboarding_ready' => false,
+            'status_url' => $this->paymentFlow->checkoutSubscriptionStatusUrl($pendingRegistration),
+        ]);
+    }
+
+    public function installmentStatus(
+        PendingRegistration $pendingRegistration,
+        string $accessTierSlug,
+    ): JsonResponse {
+        $accessTier = AccessTier::query()
+            ->where('slug', $accessTierSlug)
+            ->firstOrFail();
+
+        abort_unless($pendingRegistration->access_tier_id === $accessTier->id, 404);
+
+        $pendingRegistration->loadMissing('onboardingState', 'package', 'accessTier');
+
+        if ($pendingRegistration->onboardingState instanceof \App\Models\OnboardingState) {
+            return response()->json([
+                'status' => 'onboarding_ready',
+                'onboarding_ready' => true,
+                'onboarding_url' => $this->resolveOnboardingUrl($pendingRegistration->onboardingState),
+                'message' => 'Your first installment payment has been confirmed. Continue to enrollment.',
+            ]);
+        }
+
+        /** @var PaymentSubscription|null $paymentSubscription */
+        $paymentSubscription = PaymentSubscription::query()
+            ->where('pending_registration_id', $pendingRegistration->id)
+            ->latest('id')
+            ->first();
+
+        $message = app()->environment('local')
+            ? 'Waiting for the first PayPal payment webhook. Local development needs a public tunnel such as ngrok or cloudflared before PayPal can reach YogaFX.'
+            : 'Waiting for the first PayPal payment confirmation from PayPal.';
+
+        return response()->json([
+            'status' => $paymentSubscription?->provider_subscription_id ? 'waiting_for_first_payment' : 'approval_required',
+            'onboarding_ready' => false,
+            'onboarding_url' => null,
+            'payment_subscription_id' => $paymentSubscription?->id,
+            'payment_subscription_status' => $paymentSubscription?->status,
+            'message' => $message,
         ]);
     }
 
@@ -289,5 +378,75 @@ class CheckoutController extends Controller
                 'currency_code' => $invoice->currency_code,
             ],
         ]);
+    }
+
+    public function subscriptionReturn(
+        PendingRegistration $pendingRegistration,
+        string $accessTierSlug,
+        Request $request,
+    ): RedirectResponse {
+        $accessTier = AccessTier::query()
+            ->where('slug', $accessTierSlug)
+            ->firstOrFail();
+
+        abort_unless($pendingRegistration->access_tier_id === $accessTier->id, 404);
+
+        return redirect()
+            ->away($this->paymentFlow->checkoutUrl($pendingRegistration))
+            ->with('status', 'Your PayPal installment approval was received. We are waiting for payment confirmation.');
+    }
+
+    public function subscriptionCancel(
+        PendingRegistration $pendingRegistration,
+        string $accessTierSlug,
+        Request $request,
+    ): RedirectResponse {
+        $accessTier = AccessTier::query()
+            ->where('slug', $accessTierSlug)
+            ->firstOrFail();
+
+        abort_unless($pendingRegistration->access_tier_id === $accessTier->id, 404);
+
+        $subscriptionId = (string) $request->query('subscription_id', '');
+
+        if ($subscriptionId !== '') {
+            $paymentSubscription = PaymentSubscription::query()
+                ->where('pending_registration_id', $pendingRegistration->id)
+                ->where('provider_subscription_id', $subscriptionId)
+                ->latest('id')
+                ->first();
+
+            if ($paymentSubscription instanceof PaymentSubscription) {
+                $this->paymentSubscriptionService->markApprovalCancelled($paymentSubscription);
+            }
+        }
+
+        return redirect()
+            ->away($this->paymentFlow->checkoutUrl($pendingRegistration))
+            ->withErrors(['payment_method' => 'The PayPal installment checkout was cancelled.']);
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function paypalFrontendConfig(PendingRegistration $pendingRegistration): array
+    {
+        return [
+            'client_id' => $this->paypalService->clientId(),
+            'client_token' => null,
+            'currency_code' => $pendingRegistration->currency_code ?? $pendingRegistration->package?->currency_code ?? $pendingRegistration->accessTier->currency_code,
+            'components' => 'buttons',
+            'intent' => 'capture',
+            'environment' => $this->paypalService->environment(),
+        ];
+    }
+
+    private function resolveOnboardingUrl(\App\Models\OnboardingState $onboardingState): string
+    {
+        return match ($onboardingState->status) {
+            \App\Models\OnboardingState::STATUS_AWAITING_SIGNUP => $this->paymentFlow->signupUrl($onboardingState),
+            \App\Models\OnboardingState::STATUS_COMPLETED => route('login'),
+            default => $this->paymentFlow->enrollmentUrl($onboardingState),
+        };
     }
 }

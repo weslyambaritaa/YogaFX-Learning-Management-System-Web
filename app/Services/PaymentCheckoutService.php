@@ -5,9 +5,12 @@ namespace App\Services;
 use App\Models\AccessTier;
 use App\Models\Invoice;
 use App\Models\OnboardingState;
+use App\Models\Package;
 use App\Models\Payment;
 use App\Models\PendingRegistration;
 use App\Models\User;
+use App\Services\Installments\InstallmentPlanCalculator;
+use App\Services\Payments\PaymentSubscriptionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
@@ -19,6 +22,8 @@ class PaymentCheckoutService
         private readonly InvoiceNumberService $invoiceNumbers,
         private readonly PayPalService $paypalService,
         private readonly PaymentFinalizerService $paymentFinalizer,
+        private readonly InstallmentPlanCalculator $installmentPlanCalculator,
+        private readonly PaymentSubscriptionService $paymentSubscriptionService,
     ) {}
 
     /**
@@ -26,21 +31,28 @@ class PaymentCheckoutService
      */
     public function createPendingRegistration(array $attributes): PendingRegistration
     {
-        /** @var AccessTier $accessTier */
-        $accessTier = AccessTier::query()->findOrFail($attributes['access_tier_id']);
+        /** @var Package $package */
+        $package = Package::query()
+            ->with('accessTier')
+            ->findOrFail($attributes['package_id']);
+        $accessTier = $package->accessTier;
+        abort_unless($accessTier instanceof AccessTier, 422, 'This package is currently unavailable for checkout.');
 
         $pendingRegistration = PendingRegistration::query()->create([
             'access_tier_id' => $accessTier->id,
+            'package_id' => $package->id,
             'first_name' => $attributes['first_name'],
             'last_name' => $attributes['last_name'],
             'email' => Str::lower((string) $attributes['email']),
             'phone' => $attributes['phone'],
             'country' => $attributes['country'],
-            'amount_snapshot' => $accessTier->price,
+            'amount_snapshot' => $package->price,
+            'currency_code' => $package->currency_code,
             'status' => PendingRegistration::STATUS_CREATED,
         ]);
 
         $pendingRegistration->setRelation('accessTier', $accessTier);
+        $pendingRegistration->setRelation('package', $package);
 
         return $pendingRegistration;
     }
@@ -54,16 +66,30 @@ class PaymentCheckoutService
             ])->save();
         }
 
-        return $pendingRegistration->fresh(['accessTier', 'onboardingState']);
+        return $pendingRegistration->fresh(['accessTier', 'package', 'onboardingState']);
     }
 
     /**
      * @param  array{payment_type: string, payment_method: string}  $attributes
-     * @return array{invoice: Invoice, payment_activity: Payment, redirect_url: string}
+     * @return array<string, mixed>
      */
     public function startInitialCheckout(PendingRegistration $pendingRegistration, array $attributes): array
     {
         $this->assertSupportedPaymentMethod($attributes['payment_method']);
+        $pendingRegistration->loadMissing('package', 'accessTier');
+        $this->assertInitialCheckoutPaymentTypeSupported(
+            $pendingRegistration,
+            $attributes['payment_type'],
+            $attributes['payment_method'],
+            isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null,
+        );
+
+        if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            return $this->paymentSubscriptionService->startInitialCheckout($pendingRegistration, [
+                'return_url' => $this->checkoutSubscriptionReturnUrl($pendingRegistration),
+                'cancel_url' => $this->checkoutSubscriptionCancelUrl($pendingRegistration),
+            ], (int) $attributes['billing_day']);
+        }
 
         $pendingRegistration->loadMissing('onboardingState');
 
@@ -80,8 +106,11 @@ class PaymentCheckoutService
 
         /** @var array{invoice: Invoice, payment_activity: Payment} $created */
         $created = DB::transaction(function () use ($pendingRegistration, $attributes): array {
-            $pendingRegistration->loadMissing('accessTier', 'onboardingState.user');
+            $pendingRegistration->loadMissing('accessTier', 'package', 'onboardingState.user');
             $accessTier = $pendingRegistration->accessTier()->firstOrFail();
+            $package = $pendingRegistration->package;
+            $amount = (float) ($package?->price ?? $accessTier->price);
+            $currencyCode = (string) ($package?->currency_code ?? $accessTier->currency_code);
 
             if ($pendingRegistration->status === PendingRegistration::STATUS_COMPLETED) {
                 abort(409, 'This registration flow is already completed.');
@@ -90,12 +119,13 @@ class PaymentCheckoutService
             $invoice = Invoice::query()->create([
                 'invoice_number' => $this->invoiceNumbers->nextNumber(),
                 'pending_registration_id' => $pendingRegistration->id,
+                'package_id' => $package?->id,
                 'access_tier_id' => $pendingRegistration->access_tier_id,
                 'type' => Invoice::TYPE_INITIAL,
                 'payment_type' => $attributes['payment_type'],
-                'total_amount' => $accessTier->price,
-                'balance_due' => $accessTier->price,
-                'currency_code' => $accessTier->currency_code,
+                'total_amount' => $amount,
+                'balance_due' => $amount,
+                'currency_code' => $currencyCode,
                 'status' => Invoice::STATUS_UNPAID,
                 'issued_at' => now(),
             ]);
@@ -105,10 +135,10 @@ class PaymentCheckoutService
                 'payment_method' => $attributes['payment_method'],
                 'payment_type' => $attributes['payment_type'],
                 'amount_paid' => $this->initialPaymentAmount(
-                    totalAmount: (float) $accessTier->price,
+                    totalAmount: $amount,
                     paymentType: $attributes['payment_type'],
                 ),
-                'currency_code' => $accessTier->currency_code,
+                'currency_code' => $currencyCode,
                 'status' => Payment::STATUS_PENDING,
                 'notes' => $attributes['payment_method'] === Payment::METHOD_MOCK
                     ? 'Mock checkout initialized.'
@@ -139,7 +169,7 @@ class PaymentCheckoutService
         }
 
         $approval = $this->paypalService->createOrder(
-            $created['invoice']->fresh(['pendingRegistration', 'accessTier']),
+            $created['invoice']->fresh(['pendingRegistration', 'package', 'accessTier']),
             $created['payment_activity']->fresh(),
             $this->paypalSuccessUrl($created['invoice']),
             $this->paypalCancelUrl($created['invoice']),
@@ -164,6 +194,7 @@ class PaymentCheckoutService
     public function startUpgradeCheckout(User $user, AccessTier $targetTier, array $attributes): array
     {
         $this->assertSupportedPaymentMethod($attributes['payment_method']);
+        $this->assertUpgradePaymentTypeSupported($attributes['payment_type']);
 
         $amountDue = $this->relevantUpgradeAmountDue($user, $targetTier);
         abort_if($amountDue <= 0, 422, 'No additional upgrade payment is required for this tier.');
@@ -309,12 +340,65 @@ class PaymentCheckoutService
         );
     }
 
+    public function checkoutSubscriptionReturnUrl(PendingRegistration $pendingRegistration): string
+    {
+        return URL::temporarySignedRoute(
+            'checkout.installments.return',
+            now()->addDays(7),
+            [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $pendingRegistration->accessTier->slug,
+            ],
+        );
+    }
+
+    public function checkoutSubscriptionCancelUrl(PendingRegistration $pendingRegistration): string
+    {
+        return URL::temporarySignedRoute(
+            'checkout.installments.cancel',
+            now()->addDays(7),
+            [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $pendingRegistration->accessTier->slug,
+            ],
+        );
+    }
+
+    public function checkoutSubscriptionApproveUrl(PendingRegistration $pendingRegistration): string
+    {
+        return URL::temporarySignedRoute(
+            'checkout.installments.approve',
+            now()->addDays(7),
+            [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $pendingRegistration->accessTier->slug,
+            ],
+        );
+    }
+
+    public function checkoutSubscriptionStatusUrl(PendingRegistration $pendingRegistration): string
+    {
+        return URL::temporarySignedRoute(
+            'checkout.installments.status',
+            now()->addDays(7),
+            [
+                'pendingRegistration' => $pendingRegistration->id,
+                'accessTierSlug' => $pendingRegistration->accessTier->slug,
+            ],
+        );
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function checkoutPayload(PendingRegistration $pendingRegistration): array
     {
-        $pendingRegistration->loadMissing('accessTier', 'onboardingState');
+        $pendingRegistration->loadMissing('accessTier', 'package', 'onboardingState');
+        $package = $pendingRegistration->package;
+        $amount = (float) ($package?->price ?? $pendingRegistration->accessTier->price);
+        $currencyCode = (string) ($package?->currency_code ?? $pendingRegistration->accessTier->currency_code);
+        $installmentData = $this->availableInstallmentData($pendingRegistration);
+        $installmentSummary = $installmentData['selected_summary'];
 
         return [
             'id' => $pendingRegistration->id,
@@ -323,9 +407,23 @@ class PaymentCheckoutService
             'email' => $pendingRegistration->email,
             'phone' => $pendingRegistration->phone,
             'country' => $pendingRegistration->country,
-            'amount' => (float) $pendingRegistration->accessTier->price,
-            'currency_code' => $pendingRegistration->accessTier->currency_code,
+            'amount' => $amount,
+            'currency_code' => $currencyCode,
             'status' => $pendingRegistration->status,
+            'package' => $package ? [
+                'id' => $package->id,
+                'title' => $package->title,
+                'slug' => $package->slug,
+                'description' => $package->description,
+                'image_url' => null,
+                'price' => (float) $package->price,
+                'currency_code' => $package->currency_code,
+                'installment_enabled' => (bool) $package->installment_enabled,
+            ] : null,
+            'installment_summary' => $installmentSummary,
+            'installment_summaries' => $installmentData['summaries'],
+            'installment_allowed_billing_days' => $installmentData['allowed_billing_days'],
+            'installment_selected_billing_day' => $installmentData['selected_billing_day'],
             'access_tier' => [
                 'id' => $pendingRegistration->accessTier->id,
                 'name' => $pendingRegistration->accessTier->name,
@@ -335,7 +433,15 @@ class PaymentCheckoutService
             ],
             'pay_url' => $this->checkoutPayUrl($pendingRegistration),
             'create_order_url' => $this->checkoutOrderCreateUrl($pendingRegistration),
+            'payment_options' => $this->checkoutPaymentOptions(
+                totalAmount: $amount,
+                currencyCode: $currencyCode,
+                installmentSummary: $installmentSummary,
+                allowedBillingDays: $installmentData['allowed_billing_days'],
+            ),
             'payment_method_options' => $this->availablePaymentMethodOptions(),
+            'installment_approve_url' => $this->checkoutSubscriptionApproveUrl($pendingRegistration),
+            'installment_status_url' => $this->checkoutSubscriptionStatusUrl($pendingRegistration),
         ];
     }
 
@@ -505,6 +611,153 @@ class PaymentCheckoutService
         }
     }
 
+    private function assertInitialCheckoutPaymentTypeSupported(
+        PendingRegistration $pendingRegistration,
+        string $paymentType,
+        string $paymentMethod,
+        ?int $billingDay = null,
+    ): void {
+        if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            return;
+        }
+
+        $package = $pendingRegistration->package;
+
+        if (! $package instanceof Package) {
+            abort(422, 'This package is not eligible for installment checkout.');
+        }
+
+        if ($paymentMethod !== Payment::METHOD_PAYPAL) {
+            abort(422, 'Installment checkout currently requires PayPal.');
+        }
+
+        $requestedBillingDay = (int) ($billingDay ?? 0);
+
+        if (! in_array($requestedBillingDay, [1, 15], true)) {
+            abort(422, 'Monthly billing date must be either the 1st or the 15th.');
+        }
+
+        if (! in_array($requestedBillingDay, $package->resolvedAllowedBillingDays(), true)) {
+            abort(422, 'The selected monthly billing date is not available for this package.');
+        }
+
+        try {
+            $this->installmentPlanCalculator->calculate(
+                $package,
+                $pendingRegistration->checkout_opened_at ?? now(),
+                $requestedBillingDay,
+            );
+        } catch (\DomainException|\InvalidArgumentException) {
+            abort(422, 'This package is not eligible for installment checkout.');
+        }
+    }
+
+    private function assertUpgradePaymentTypeSupported(string $paymentType): void
+    {
+        if ($paymentType === Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            abort(422, 'Installment upgrade checkout is not available yet.');
+        }
+    }
+
+    /**
+     * @return array{
+     *     selected_summary: array<string, mixed>|null,
+     *     selected_billing_day: int|null,
+     *     allowed_billing_days: array<int, int>,
+     *     summaries: array<string, array<string, mixed>>
+     * }
+     */
+    private function availableInstallmentData(PendingRegistration $pendingRegistration): array
+    {
+        $package = $pendingRegistration->package;
+
+        if (! $package instanceof Package || ! $this->installmentPlanCalculator->isEligible($package)) {
+            return [
+                'selected_summary' => null,
+                'selected_billing_day' => null,
+                'allowed_billing_days' => [],
+                'summaries' => [],
+            ];
+        }
+
+        $allowedBillingDays = $package->resolvedAllowedBillingDays();
+        $summaries = [];
+
+        foreach ($allowedBillingDays as $billingDay) {
+            try {
+                $summaries[(string) $billingDay] = $this->installmentPlanCalculator->calculate(
+                    $package,
+                    $pendingRegistration->checkout_opened_at ?? now(),
+                    $billingDay,
+                );
+            } catch (\DomainException|\InvalidArgumentException) {
+                continue;
+            }
+        }
+
+        if ($summaries === []) {
+            return [
+                'selected_summary' => null,
+                'selected_billing_day' => null,
+                'allowed_billing_days' => $allowedBillingDays,
+                'summaries' => [],
+            ];
+        }
+
+        $selectedBillingDay = $pendingRegistration->installment_billing_day !== null
+            ? (int) $pendingRegistration->installment_billing_day
+            : (in_array(15, $allowedBillingDays, true)
+                ? 15
+                : (int) ($allowedBillingDays[0] ?? array_key_first($summaries)));
+
+        if (! array_key_exists((string) $selectedBillingDay, $summaries)) {
+            $selectedBillingDay = (int) array_key_first($summaries);
+        }
+
+        return [
+            'selected_summary' => $summaries[(string) $selectedBillingDay] ?? null,
+            'selected_billing_day' => $selectedBillingDay,
+            'allowed_billing_days' => array_map('intval', array_keys($summaries)),
+            'summaries' => $summaries,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $installmentSummary
+     * @param  array<int, int>  $allowedBillingDays
+     * @return array<int, array<string, mixed>>
+     */
+    private function checkoutPaymentOptions(
+        float $totalAmount,
+        string $currencyCode,
+        ?array $installmentSummary,
+        array $allowedBillingDays,
+    ): array {
+        $options = [[
+            'type' => Invoice::PAYMENT_TYPE_FULL,
+            'label' => 'Pay in full',
+            'amount_due_today' => $this->formatMoney($totalAmount),
+            'currency_code' => $currencyCode,
+        ]];
+
+        if ($installmentSummary !== null) {
+            $options[] = [
+                'type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+                'label' => 'Installment',
+                'amount_due_today' => $installmentSummary['first_payment_amount'],
+                'currency_code' => $installmentSummary['currency_code'],
+                'installment_count' => $installmentSummary['installment_count'],
+                'recurring_amount' => $installmentSummary['recurring_payment_amount'],
+                'billing_day' => $installmentSummary['billing_day'],
+                'allowed_billing_days' => $allowedBillingDays,
+                'final_due_at' => $installmentSummary['final_due_at'],
+                'summary' => $installmentSummary,
+            ];
+        }
+
+        return $options;
+    }
+
     private function initialPaymentAmount(float $totalAmount, string $paymentType): float
     {
         if ($paymentType === Invoice::PAYMENT_TYPE_INSTALLMENT) {
@@ -546,5 +799,10 @@ class PaymentCheckoutService
             ->orderByDesc('paid_at')
             ->orderByDesc('id')
             ->first();
+    }
+
+    private function formatMoney(float $amount): string
+    {
+        return number_format(round($amount, 2), 2, '.', '');
     }
 }

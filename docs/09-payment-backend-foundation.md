@@ -1,456 +1,297 @@
 # Payment Backend Foundation
-
 # YogaFX LMS
 
 ## Purpose
 
-Dokumen ini menjadi source of truth untuk fondasi backend domain payment pada YogaFX LMS.
+Dokumen ini menjadi source of truth untuk fondasi backend payment yang aktif saat ini pada YogaFX LMS.
 
-Tujuan dokumen ini adalah:
-
-- menyiapkan struktur backend payment sejak awal
-- memisahkan invoice sebagai tagihan induk dari payment sebagai aktivitas transaksi
-- mendukung simulated payment flow sekarang
-- tetap siap untuk integrasi payment gateway nyata di masa depan
-- tetap kompatibel dengan:
-    - pending registration
-    - anti-limbo flow
-    - onboarding
-    - installment
-    - upgrade
-
-Dokumen ini fokus pada fondasi backend, bukan integrasi gateway live.
+Dokumen ini fokus pada:
+- struktur data payment
+- timing pembuatan invoice dan payment activity
+- hubungan initial checkout, onboarding, dan upgrade
+- finalizer-based business effects
 
 ---
 
-# 1. Scope
+## 1. Active Backend Payment Domains
 
-Domain ini mencakup:
-
+Domain aktif saat ini:
 1. `pending_registrations`
 2. `invoices`
-3. `payments`
-4. relasi ke `users`
-5. relasi ke `access_tiers`
-6. balance tracking
-7. payment type
-8. payment method
-9. payment status
-10. compatibility untuk upgrade
-11. compatibility untuk anti-limbo
+3. `payment_activities` sebagai tabel fisik untuk model `Payment`
+4. `onboarding_states`
+5. relasi ke `users`
+6. relasi ke `access_tiers`
+7. balance tracking
+8. upgrade payment logic
 
 ---
 
-# 2. Core Principle
+## 2. Important Naming Rule
 
-## Final Rule
+### Current Implementation Rule
 
-Walaupun payment yang aktif saat ini masih simulasi, backend payment harus dibangun **nyata** dan **production-ready**.
+Di level aplikasi:
+- model domain memakai nama `Payment`
+- relasi invoice memakai istilah `paymentActivities()`
 
-Artinya:
+Di level database:
+- tabel fisik yang aktif saat ini adalah `payment_activities`
 
-- invoice nyata
-- payment nyata
-- relasi nyata
-- status nyata
-- balance nyata
-
-Yang belum nyata hanya:
-
-- provider payment live
-- webhook
-- perpindahan uang sungguhan
+Dokumentasi backend harus menganggap ini sebagai keadaan implementasi yang benar saat ini.
 
 ---
 
-# 3. Pending Registration
+## 3. Pending Registration
 
-## Final Rule
+### Purpose
 
-Gunakan satu entitas/tabel:
+`pending_registrations` menyimpan calon murid sebelum payment initial dan onboarding selesai.
 
-- `pending_registrations`
+### Active Lifecycle
 
-Tidak perlu tabel status lifecycle terpisah.
-
-## Required Lifecycle Field
-
-Tabel ini harus punya field `status`, misalnya:
-
+Status aktif:
 - `created`
 - `checkout_opened`
 - `payment_success`
 - `completed`
 
-## Role
-
-Pending registration menjadi sumber data calon murid sebelum mereka menjadi user final.
+### Rule
 
 Saat scoreboard submit:
-
-- data hanya masuk ke `pending_registrations`
-- belum membuat record di `users`
+- sistem membuat `pending_registration`
+- sistem belum membuat akun LMS final
 
 ---
 
-# 4. Invoice Entity
+## 4. Invoice Entity
 
-## Definition
+### Purpose
 
-Invoice adalah tagihan induk.
+`invoices` adalah tagihan induk untuk:
+- initial checkout
+- student upgrade
 
-Invoice menyimpan kewajiban total pembelian sebuah tier/program.
+### Key Active Fields
 
-## Required Fields
-
-Tabel `invoices` minimal harus punya:
-
-- `id`
+- `invoice_number`
 - `pending_registration_id` nullable
 - `user_id` nullable
 - `access_tier_id`
+- `type`
+- `payment_type`
 - `total_amount`
 - `balance_due`
+- `currency_code`
 - `status`
-- `type` nullable
-- timestamps
+- `issued_at`
+- `paid_at`
 
-## Field Meaning
-
-### `pending_registration_id`
-
-Dipakai saat checkout masih terhubung ke calon murid yang belum menjadi user final.
-
-### `user_id`
-
-Dipakai setelah akun user sudah dibuat.
-Penting juga untuk flow upgrade.
-
-### `access_tier_id`
-
-Tier/program yang ditagihkan.
-
-### `total_amount`
-
-Total harga tier/program.
-
-### `balance_due`
-
-Sisa tagihan yang belum dibayar.
-
-### `status`
-
-Status invoice.
-
-### `type`
-
-Optional, misalnya:
+### Active Invoice Type
 
 - `initial`
 - `upgrade`
 
----
+### Active Invoice Status
 
-# 5. Invoice Status
-
-Invoice minimal harus mendukung:
-
-- `pending`
+- `unpaid`
 - `installment`
 - `paid_full`
-
-## Meaning
-
-### `pending`
-
-Tagihan sudah dibuat tetapi belum selesai.
-
-### `installment`
-
-Sudah ada pembayaran sukses, tetapi masih ada balance due.
-
-### `paid_full`
-
-Tagihan sudah lunas, balance due = 0.
+- `upgraded`
 
 ---
 
-# 6. Payment Entity
+## 5. Payment Activity Entity
 
-## Definition
+### Purpose
 
-Payment adalah aktivitas transaksi individual yang terkait ke sebuah invoice.
+Setiap aktivitas pembayaran individual dicatat sebagai row pada tabel `payment_activities` melalui model `Payment`.
 
-Satu invoice dapat memiliki lebih dari satu payment.
+### Key Active Fields
 
-## Required Fields
-
-Tabel `payments` minimal harus punya:
-
-- `id`
 - `invoice_id`
 - `payment_method`
 - `payment_type`
 - `amount_paid`
+- `currency_code`
 - `status`
 - `payment_reference` nullable
 - `notes` nullable
-- timestamps
 
-## Field Meaning
-
-### `invoice_id`
-
-Relasi ke invoice induk.
-
-### `payment_method`
-
-Contoh:
+### Active Payment Method
 
 - `paypal`
-- `bank_transfer`
+- `mock`
 
-### `payment_type`
+Catatan:
+- `bank_transfer` ada sebagai enum domain yang dikenali, tetapi **ditolak** oleh arsitektur aktif saat ini
 
-Contoh:
-
-- `pay_full`
-- `installment`
-
-### `amount_paid`
-
-Nominal pembayaran pada aktivitas ini.
-
-### `status`
-
-Contoh:
+### Active Payment Status
 
 - `pending`
 - `success`
 - `failed`
-
-### `payment_reference`
-
-Dipakai untuk masa depan, misalnya:
-
-- transaction id provider
-- bank reference
-- nomor bukti transaksi
-- external payment id
-
-### `notes`
-
-Field opsional untuk kebutuhan catatan internal.
+- `cancelled`
 
 ---
 
-# 7. Payment Status
+## 6. Creation Timing Rule
 
-Payment minimal harus mendukung:
+### Final Rule
 
-- `pending`
-- `success`
-- `failed`
+Invoice dan payment activity dibuat saat user benar-benar memulai aksi bayar, bukan hanya saat membuka halaman checkout.
 
----
+### Initial Checkout
 
-# 8. Why Payments Must Not Store User ID and Tier ID Directly
+Pada jalur public checkout:
+- invoice dibuat ketika backend memproses create order / start checkout
+- payment activity dibuat bersamaan dengan invoice
 
-## Final Rule
+### Upgrade Checkout
 
-Tabel `payments` tidak perlu menyimpan:
-
-- `user_id`
-- `access_tier_id`
-
-## Reason
-
-Data tersebut sudah tersedia lewat invoice.
-
-Jika ingin tahu:
-
-- siapa yang ditagih → lihat invoice
-- tier apa yang dibeli → lihat invoice
-
-Ini menjaga normalisasi data tetap bersih.
+Pada jalur upgrade:
+- invoice upgrade baru dibuat saat student memulai payment
+- payment activity baru dibuat bersamaan
 
 ---
 
-# 9. When Invoice and Payment Are Created
+## 7. Invoice Number Rule
 
-## Final Rule
+### Final Rule
 
-Invoice dan payment dibuat saat user menekan tombol:
+`invoice_number` harus dibuat saat row invoice diinsert.
 
-- `Pay Now`
+### Current Format
 
-Bukan saat baru membuka checkout page.
+Implementasi aktif saat ini memakai format:
+- `INV-YYYY-####`
 
-## Final Flow
-
-1. user membuka checkout
-2. user memilih payment type
-3. user memilih payment method
-4. user menekan `Pay Now`
-5. backend membuat invoice
-6. backend membuat payment
-7. backend melanjutkan logic simulasi / payment result
+Generator aktif:
+- `InvoiceNumberService`
 
 ---
 
-# 10. Simulated Payment Compatibility
+## 8. Currency Snapshot Rule
 
-## Final Rule
+### Final Rule
 
-Untuk fase sekarang, payment masih simulasi.
+Saat invoice dan payment activity dibuat:
+- `currency_code` diambil dari `AccessTier`
+- nilainya menjadi snapshot transaksi
 
-### Simulated Flow
-
-1. user memilih payment type
-2. user memilih payment method
-3. user klik `Pay Now`
-4. UI menampilkan loading sekitar 2–3 detik
-5. sistem otomatis menganggap payment sukses
-
-## Consequence
-
-Setelah simulated success:
-
-- payment status = success
-- invoice diperbarui
-- anti-limbo flow dijalankan
-- user lanjut onboarding
+Perubahan currency pada tier di masa depan tidak boleh mengubah histori transaksi lama.
 
 ---
 
-# 11. Installment Logic
+## 9. Initial Payment Backend Behaviour
 
-## Final Rule
+### Before Success
 
-Jika user memilih installment:
+Untuk payment initial:
+- `invoice.pending_registration_id` terisi
+- `invoice.user_id` masih nullable
 
-- invoice awal tetap `pending`
-- setelah payment pertama sukses, jika balance due masih ada:
-    - invoice status menjadi `installment`
+### After Success
 
-## Example
-
-- total = 500
-- payment pertama = 125
-- balance due = 375
-- invoice status = `installment`
-
----
-
-# 12. Paid Full Logic
-
-## Final Rule
-
-Jika setelah payment sukses:
-
-- balance due = 0
-
-maka:
-
-- invoice status = `paid_full`
+Setelah payment final berhasil:
+- `invoice.user_id` diisi
+- `pending_registration_id` tetap dipertahankan
+- `pending_registration.status` menjadi `payment_success`
+- `onboarding_state` dibuat atau dipakai ulang
 
 ---
 
-# 13. Anti-Limbo Compatibility
+## 10. Finalizer Rule
 
-## Final Rule
+### Final Rule
 
-Struktur ini harus kompatibel dengan anti-limbo flow.
+Semua efek bisnis pasca-payment-success harus dipusatkan di:
+- `PaymentFinalizerService`
 
-### Behaviour
+Service ini dipakai oleh:
+- mock success path
+- PayPal success path
+- PayPal webhook fallback
 
-Setelah payment sukses:
+### Business Effects
 
-1. payment diperbarui
-2. invoice diperbarui
-3. jika user belum ada, buat akun dasar
-4. lanjutkan continuation flow
-5. user masuk ke enrollment lalu sign up
+Initial payment success:
+- update payment activity
+- update invoice
+- create or attach user
+- assign tier ke user
+- create or reuse onboarding state
+- queue continuation email bila perlu
 
----
-
-# 14. User Creation Timing
-
-## Final Rule
-
-Saat scoreboard submit:
-
-- belum ada record di `users`
-
-Data hanya berada di:
-
-- `pending_registrations`
-
-Record `users` baru dibuat saat:
-
-- payment success / anti-limbo stage
+Upgrade payment success:
+- update payment activity
+- update invoice
+- ubah tier user ke target
+- tandai basis invoice lama menjadi `upgraded` bila relevan
+- queue upgrade welcome email
 
 ---
 
-# 15. Upgrade Compatibility
+## 11. Balance and Installment Rule
 
-## Final Rule
+### Final Rule
 
-Struktur invoices & payments harus mendukung upgrade.
+`balance_due` adalah dasar status invoice.
 
-## Upgrade Rules
+Jika:
+- `balance_due <= 0` -> `paid_full`
+- `balance_due > 0` setelah success payment -> `installment`
 
-1. upgrade selalu membuat invoice baru
-2. invoice lama tidak diubah
-3. payment upgrade dibuat sebagai payment baru
-4. `type` invoice boleh dipakai untuk:
-    - `initial`
-    - `upgrade`
-
-## Prorata Rule
-
-Upgrade dihitung dari:
-
-- harga program target
-- dikurangi total nominal yang sudah pernah dibayar
+Implementasi aktif menghitung jumlah awal payment dari `payment_type`:
+- `pay_full` -> seluruh amount
+- `installment` -> seperempat amount awal
 
 ---
 
-# 16. What Must Stay Real in Database
+## 12. Idempotency Rule
 
-Walaupun payment masih simulasi, data berikut harus nyata:
+### Final Rule
 
-- pending_registrations
-- invoices
-- payments
-- user creation state
-- enrollment state
-- continuation state
-- tier assignment pada user
-
-Yang belum nyata hanya:
-
-- gateway live
-- webhook provider
-- transaksi uang sungguhan
+Finalizer harus aman terhadap proses ganda minimal dengan guard aktif:
+- jika invoice sudah `paid_full`, lewati finalisasi ulang
+- jika `payment_reference` yang sama sudah pernah sukses di row lain, lewati finalisasi ulang
 
 ---
 
-# 17. Final Summary
+## 13. Upgrade Basis Rule
 
-Fondasi backend payment YogaFX LMS harus dibangun seperti ini:
+### Final Rule
 
-- `pending_registrations` untuk lead sebelum jadi user
+Upgrade tidak menghitung seluruh histori invoice user tanpa filter.
+
+Implementasi aktif memakai basis invoice relevan terakhir:
+- status `paid_full` atau `installment`
+- terkait tier user saat ini, atau tier di bawah target bila diperlukan
+
+`amount_due` = harga tier target - total payment sukses dari basis invoice relevan
+
+---
+
+## 14. Mock Compatibility
+
+Mode `mock` masih aktif untuk non-production:
+- tetap membuat invoice
+- tetap membuat payment activity
+- langsung diproses oleh finalizer
+
+Artinya fondasi backend payment yang aktif sekarang mendukung dua jalur:
+- PayPal normal
+- mock internal
+
+---
+
+## 15. Final Summary
+
+Fondasi backend payment aktif saat ini adalah:
+- `pending_registrations` untuk lead sebelum akun final
 - `invoices` sebagai tagihan induk
-- `payments` sebagai aktivitas transaksi individual
-- invoice & payment dibuat saat klik `Pay Now`
-- payment saat ini masih simulasi
-- data bisnis tetap nyata
-- struktur siap untuk:
-    - anti-limbo
-    - onboarding
-    - installment
-    - upgrade
-    - future live payment integration
-
-Dokumen ini menjadi source of truth untuk persiapan backend payment.
+- `payment_activities` sebagai tabel payment event individual
+- `onboarding_states` untuk continuation setelah initial payment success
+- `PaymentFinalizerService` sebagai pusat efek bisnis payment success
+- `InvoiceNumberService` untuk nomor invoice
+- dukungan untuk initial checkout, upgrade, installment, dan mock compatibility

@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\EmailNotificationService;
+use App\Console\Commands\SyncOverdueInstallmentsCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -16,3 +17,4 @@ Artisan::command('email-notifications:send-reminders', function (EmailNotificati
 })->purpose('Send reminder email notifications to inactive students');
 
 Schedule::command('email-notifications:send-reminders')->everyTenMinutes();
+Schedule::command('installments:sync-overdue-status')->daily();

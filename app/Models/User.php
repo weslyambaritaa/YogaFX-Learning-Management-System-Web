@@ -141,6 +141,11 @@ class User extends Authenticatable
         return $this->hasOne(OnboardingState::class);
     }
 
+    public function paymentSubscriptions(): HasMany
+    {
+        return $this->hasMany(PaymentSubscription::class);
+    }
+
     public function studentModuleVisits(): HasMany
     {
         return $this->hasMany(StudentModuleVisit::class);

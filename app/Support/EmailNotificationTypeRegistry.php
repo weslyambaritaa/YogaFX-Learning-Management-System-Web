@@ -15,6 +15,10 @@ class EmailNotificationTypeRegistry
     public const COURSE_COMPLETE = 'course_complete';
     public const REMINDER = 'reminder';
     public const WORKBOOK_SENT = 'workbook_sent';
+    public const INSTALLMENT_PAYMENT_SUCCESS = 'installment_payment_success';
+    public const INSTALLMENT_PAYMENT_FAILED = 'installment_payment_failed';
+    public const INSTALLMENT_OVERDUE_INACTIVE = 'installment_overdue_inactive';
+    public const INSTALLMENT_PAYMENT_COMPLETED = 'installment_payment_completed';
 
     /**
      * @return array<int, array{
@@ -176,6 +180,85 @@ class EmailNotificationTypeRegistry
                     '{{ module_title }}',
                     '{{ workbook_file_name }}',
                     '{{ dashboard_url }}',
+                ],
+            ],
+            [
+                'value' => self::INSTALLMENT_PAYMENT_SUCCESS,
+                'label' => 'Installment Payment Success',
+                'description' => 'Notify admins after a successful installment charge is recorded.',
+                'trigger' => 'Triggered when an installment payment webhook is finalized successfully.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ package_title }}',
+                    '{{ tier_name }}',
+                    '{{ invoice_number }}',
+                    '{{ payment_amount }}',
+                    '{{ currency_code }}',
+                    '{{ installment_count }}',
+                    '{{ installments_paid_count }}',
+                    '{{ balance_due }}',
+                    '{{ next_due_at }}',
+                    '{{ grace_deadline_at }}',
+                ],
+            ],
+            [
+                'value' => self::INSTALLMENT_PAYMENT_FAILED,
+                'label' => 'Installment Payment Failed',
+                'description' => 'Notify admins when a recurring installment charge fails and enters grace period.',
+                'trigger' => 'Triggered when PayPal reports a failed installment payment attempt.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ package_title }}',
+                    '{{ tier_name }}',
+                    '{{ invoice_number }}',
+                    '{{ payment_amount }}',
+                    '{{ currency_code }}',
+                    '{{ installment_count }}',
+                    '{{ installments_paid_count }}',
+                    '{{ balance_due }}',
+                    '{{ next_due_at }}',
+                    '{{ grace_deadline_at }}',
+                ],
+            ],
+            [
+                'value' => self::INSTALLMENT_OVERDUE_INACTIVE,
+                'label' => 'Installment Overdue Inactive',
+                'description' => 'Notify admins when a student account is deactivated after the installment grace deadline passes.',
+                'trigger' => 'Triggered by the overdue installment scheduler after grace deadline + 3 days is exceeded.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ package_title }}',
+                    '{{ tier_name }}',
+                    '{{ invoice_number }}',
+                    '{{ balance_due }}',
+                    '{{ currency_code }}',
+                    '{{ next_due_at }}',
+                    '{{ grace_deadline_at }}',
+                    '{{ payment_completed_at }}',
+                ],
+            ],
+            [
+                'value' => self::INSTALLMENT_PAYMENT_COMPLETED,
+                'label' => 'Installment Payment Completed',
+                'description' => 'Notify the student and optional admins when all installment payments are fully paid.',
+                'trigger' => 'Triggered when the final installment charge reduces the invoice balance to zero.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ package_title }}',
+                    '{{ tier_name }}',
+                    '{{ invoice_number }}',
+                    '{{ payment_amount }}',
+                    '{{ currency_code }}',
+                    '{{ installment_count }}',
+                    '{{ installments_paid_count }}',
+                    '{{ balance_due }}',
+                    '{{ next_due_at }}',
+                    '{{ grace_deadline_at }}',
+                    '{{ payment_completed_at }}',
                 ],
             ],
         ];

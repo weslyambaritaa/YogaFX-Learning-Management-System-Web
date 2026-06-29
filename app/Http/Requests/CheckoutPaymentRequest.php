@@ -52,7 +52,22 @@ class CheckoutPaymentRequest extends FormRequest
             'billing_country' => ['nullable', 'string', 'max:120'],
             'billing_address_line_1' => ['nullable', 'string', 'max:255'],
             'billing_address_line_2' => ['nullable', 'string', 'max:255'],
+            'billing_day' => ['nullable', 'integer', Rule::in([1, 15])],
             'terms_accepted' => ['required', 'accepted'],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function ($validator): void {
+                if (
+                    $this->input('payment_type') === Invoice::PAYMENT_TYPE_INSTALLMENT
+                    && $this->input('billing_day') === null
+                ) {
+                    $validator->errors()->add('billing_day', 'Monthly billing date is required for installment checkout.');
+                }
+            },
         ];
     }
 }
