@@ -155,6 +155,49 @@ const COUNTRY_FLAG_MAP = {
     Vietnam: "🇻🇳",
 };
 
+const COUNTRY_FLAG_UNICODE_MAP = {
+    Argentina: "\uD83C\uDDE6\uD83C\uDDF7",
+    Australia: "\uD83C\uDDE6\uD83C\uDDFA",
+    Austria: "\uD83C\uDDE6\uD83C\uDDF9",
+    Belgium: "\uD83C\uDDE7\uD83C\uDDEA",
+    Brazil: "\uD83C\uDDE7\uD83C\uDDF7",
+    Canada: "\uD83C\uDDE8\uD83C\uDDE6",
+    China: "\uD83C\uDDE8\uD83C\uDDF3",
+    Denmark: "\uD83C\uDDE9\uD83C\uDDF0",
+    Egypt: "\uD83C\uDDEA\uD83C\uDDEC",
+    Finland: "\uD83C\uDDEB\uD83C\uDDEE",
+    France: "\uD83C\uDDEB\uD83C\uDDF7",
+    Germany: "\uD83C\uDDE9\uD83C\uDDEA",
+    "Hong Kong": "\uD83C\uDDED\uD83C\uDDF0",
+    India: "\uD83C\uDDEE\uD83C\uDDF3",
+    Indonesia: "\uD83C\uDDEE\uD83C\uDDE9",
+    Ireland: "\uD83C\uDDEE\uD83C\uDDEA",
+    Italy: "\uD83C\uDDEE\uD83C\uDDF9",
+    Japan: "\uD83C\uDDEF\uD83C\uDDF5",
+    Malaysia: "\uD83C\uDDF2\uD83C\uDDFE",
+    Mexico: "\uD83C\uDDF2\uD83C\uDDFD",
+    Netherlands: "\uD83C\uDDF3\uD83C\uDDF1",
+    "New Zealand": "\uD83C\uDDF3\uD83C\uDDFF",
+    Norway: "\uD83C\uDDF3\uD83C\uDDF4",
+    Philippines: "\uD83C\uDDF5\uD83C\uDDED",
+    Portugal: "\uD83C\uDDF5\uD83C\uDDF9",
+    Qatar: "\uD83C\uDDF6\uD83C\uDDE6",
+    "Saudi Arabia": "\uD83C\uDDF8\uD83C\uDDE6",
+    Singapore: "\uD83C\uDDF8\uD83C\uDDEC",
+    "South Africa": "\uD83C\uDDFF\uD83C\uDDE6",
+    "South Korea": "\uD83C\uDDF0\uD83C\uDDF7",
+    Spain: "\uD83C\uDDEA\uD83C\uDDF8",
+    Sweden: "\uD83C\uDDF8\uD83C\uDDEA",
+    Switzerland: "\uD83C\uDDE8\uD83C\uDDED",
+    Taiwan: "\uD83C\uDDF9\uD83C\uDDFC",
+    Thailand: "\uD83C\uDDF9\uD83C\uDDED",
+    Turkey: "\uD83C\uDDF9\uD83C\uDDF7",
+    "United Arab Emirates": "\uD83C\uDDE6\uD83C\uDDEA",
+    "United Kingdom": "\uD83C\uDDEC\uD83C\uDDE7",
+    "United States": "\uD83C\uDDFA\uD83C\uDDF8",
+    Vietnam: "\uD83C\uDDFB\uD83C\uDDF3",
+};
+
 // Single source of truth for the font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
@@ -205,6 +248,23 @@ function openNativeDatePicker(input) {
 
     input.focus();
     input.click();
+}
+
+function resolveOptionFlagSafe(option) {
+    if (!option) {
+        return "\uD83C\uDF0D";
+    }
+
+    const normalizedLabel = String(option.label ?? "")
+        .replace(/\s*\(.+\)\s*$/, "")
+        .trim();
+
+    return (
+        COUNTRY_FLAG_UNICODE_MAP[option.value] ??
+        COUNTRY_FLAG_UNICODE_MAP[normalizedLabel] ??
+        COUNTRY_FLAG_UNICODE_MAP[option.label] ??
+        "\uD83C\uDF0D"
+    );
 }
 
 function ChoiceGrid({
@@ -336,7 +396,7 @@ function SelectField({ id, label, value, onChange, error, options, theme }) {
                         value={option.value}
                         className={theme.selectOptionClassName}
                     >
-                        {resolveOptionFlag(option)}{" "}
+                        {resolveOptionFlagSafe(option)}{" "}
                         {option.label}
                     </option>
                 ))}
@@ -781,7 +841,7 @@ export default function StudentProfileForm({
                                             value={option.value}
                                             className={theme.selectOptionClassName}
                                         >
-                                            {resolveOptionFlag(option)}{" "}
+                                            {resolveOptionFlagSafe(option)}{" "}
                                             {option.label}
                                         </option>
                                     ))}

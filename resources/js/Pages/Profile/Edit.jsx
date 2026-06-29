@@ -5,7 +5,7 @@ import { Head, router, useForm, usePage } from "@inertiajs/react";
 
 export default function Edit({ status }) {
     const user = usePage().props.auth.user;
-    const { data, setData, post, errors, processing } = useForm({
+    const { data, setData, post, errors, processing, transform } = useForm({
         first_name: user.first_name ?? "",
         last_name: user.last_name ?? "",
         email: user.email ?? "",
@@ -29,11 +29,14 @@ export default function Edit({ status }) {
     const submit = (event) => {
         event.preventDefault();
 
+        transform((current) => ({
+            ...current,
+            _method: "patch",
+        }));
+
         post(route("profile.update"), {
             forceFormData: true,
-            data: {
-                _method: "patch",
-            },
+            onFinish: () => transform((current) => current),
         });
     };
 
