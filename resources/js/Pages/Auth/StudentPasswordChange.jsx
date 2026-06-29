@@ -1,5 +1,6 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import PasswordField from '@/Components/PasswordField';
 import PasswordRequirementsCard from '@/Components/PasswordRequirementsCard';
 import TextInput from '@/Components/TextInput';
 import { Button } from '@/Components/ui/button';
@@ -89,12 +90,12 @@ export default function StudentPasswordChange({ token, email, expires_at, status
 
                         <div>
                             <InputLabel htmlFor="new_password" value="New Password" />
-                            <TextInput
+                            <PasswordField
                                 id="new_password"
-                                type="password"
                                 value={data.new_password}
                                 onChange={(event) => setData('new_password', event.target.value)}
-                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
+                                className="mt-1 block w-full"
+                                inputClassName="rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="new-password"
                             />
                             <InputError message={errors.new_password} className="mt-2" />
@@ -107,14 +108,14 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                                 htmlFor="new_password_confirmation"
                                 value="Confirm New Password"
                             />
-                            <TextInput
+                            <PasswordField
                                 id="new_password_confirmation"
-                                type="password"
                                 value={data.new_password_confirmation}
                                 onChange={(event) =>
                                     setData('new_password_confirmation', event.target.value)
                                 }
-                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
+                                className="mt-1 block w-full"
+                                inputClassName="rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="new-password"
                             />
                             <InputError

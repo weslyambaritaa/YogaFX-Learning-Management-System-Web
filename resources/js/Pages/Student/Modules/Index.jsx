@@ -20,7 +20,7 @@ function ModuleCard({ module, onLockedClick }) {
                     <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,_rgba(223,103,57,0.45),_transparent_28%),linear-gradient(160deg,_#2b1d16_0%,_#120f0e_100%)]" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
-                <div className="absolute left-4 top-4">
+                <div className="absolute right-4 top-4">
                     <StudentStatusBadge status={module.status} />
                 </div>
             </div>

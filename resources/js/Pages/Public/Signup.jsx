@@ -1,7 +1,7 @@
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
+import PasswordField from "@/Components/PasswordField";
 import PasswordRequirementsCard from "@/Components/PasswordRequirementsCard";
-import TextInput from "@/Components/TextInput";
 import { Button } from "@/Components/ui/button";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { useForm } from "@inertiajs/react";
@@ -64,14 +64,16 @@ export default function Signup({ onboarding, student }) {
                             value="Create Password"
                             className="text-white/80"
                         />
-                        <TextInput
+                        <PasswordField
                             id="password"
-                            type="password"
                             value={data.password}
-                            className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                            className="mt-2 block w-full"
+                            inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
                             onChange={(event) =>
                                 setData("password", event.target.value)
                             }
+                            buttonClassName="text-white/60 hover:text-white"
+                            autoComplete="new-password"
                             required
                         />
                         <InputError
@@ -89,17 +91,19 @@ export default function Signup({ onboarding, student }) {
                             value="Confirm Password"
                             className="text-white/80"
                         />
-                        <TextInput
+                        <PasswordField
                             id="password_confirmation"
-                            type="password"
                             value={data.password_confirmation}
-                            className="mt-2 block w-full border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                            className="mt-2 block w-full"
+                            inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
                             onChange={(event) =>
                                 setData(
                                     "password_confirmation",
                                     event.target.value,
                                 )
                             }
+                            buttonClassName="text-white/60 hover:text-white"
+                            autoComplete="new-password"
                             required
                         />
                         <InputError

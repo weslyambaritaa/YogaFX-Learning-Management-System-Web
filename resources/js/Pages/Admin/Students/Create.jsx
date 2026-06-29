@@ -1,5 +1,6 @@
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import PasswordField from '@/Components/PasswordField';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
@@ -87,14 +88,14 @@ export default function CreateStudent({
                                     >
                                         Password
                                     </label>
-                                    <Input
+                                    <PasswordField
                                         id="password"
-                                        type="password"
                                         value={data.password}
                                         onChange={(event) =>
                                             setData('password', event.target.value)
                                         }
-                                        className="h-10"
+                                        inputClassName="border-slate-300 bg-white text-slate-900"
+                                        autoComplete="new-password"
                                     />
                                     {errors.password && (
                                         <p className="text-sm text-rose-600">
@@ -110,9 +111,8 @@ export default function CreateStudent({
                                     >
                                         Confirm Password
                                     </label>
-                                    <Input
+                                    <PasswordField
                                         id="password_confirmation"
-                                        type="password"
                                         value={data.password_confirmation}
                                         onChange={(event) =>
                                             setData(
@@ -120,7 +120,8 @@ export default function CreateStudent({
                                                 event.target.value,
                                             )
                                         }
-                                        className="h-10"
+                                        inputClassName="border-slate-300 bg-white text-slate-900"
+                                        autoComplete="new-password"
                                     />
                                 </div>
 

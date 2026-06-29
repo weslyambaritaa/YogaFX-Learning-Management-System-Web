@@ -1,4 +1,5 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import PasswordField from "@/Components/PasswordField";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Head, useForm, usePage } from "@inertiajs/react";
@@ -138,9 +139,8 @@ export default function Edit({ status }) {
                                         >
                                             Current Password
                                         </label>
-                                        <Input
+                                        <PasswordField
                                             id="current_password"
-                                            type="password"
                                             value={data.current_password}
                                             onChange={(event) =>
                                                 setData(
@@ -148,7 +148,7 @@ export default function Edit({ status }) {
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-10 rounded-[5px]"
+                                            inputClassName="border-slate-300 bg-white text-slate-900"
                                             autoComplete="current-password"
                                         />
                                         {errors.current_password ? (
@@ -165,9 +165,8 @@ export default function Edit({ status }) {
                                         >
                                             New Password
                                         </label>
-                                        <Input
+                                        <PasswordField
                                             id="password"
-                                            type="password"
                                             value={data.password}
                                             onChange={(event) =>
                                                 setData(
@@ -175,7 +174,7 @@ export default function Edit({ status }) {
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-10 rounded-[5px]"
+                                            inputClassName="border-slate-300 bg-white text-slate-900"
                                             autoComplete="new-password"
                                         />
                                         {errors.password ? (
@@ -192,9 +191,8 @@ export default function Edit({ status }) {
                                         >
                                             Confirm New Password
                                         </label>
-                                        <Input
+                                        <PasswordField
                                             id="password_confirmation"
-                                            type="password"
                                             value={data.password_confirmation}
                                             onChange={(event) =>
                                                 setData(
@@ -202,7 +200,7 @@ export default function Edit({ status }) {
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-10 rounded-[5px]"
+                                            inputClassName="border-slate-300 bg-white text-slate-900"
                                             autoComplete="new-password"
                                         />
                                         {errors.password_confirmation ? (

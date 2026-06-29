@@ -683,7 +683,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 </div>
                             )}
 
-                            <div className="absolute left-5 top-5">
+                            <div className="absolute right-5 top-5">
                                 <StudentStatusBadge
                                     status={
                                         isLessonDone ? "completed" : "available"

@@ -396,6 +396,16 @@ function ModuleCard({ module, onLockedClick }) {
                     <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,rgba(223,103,57,0.45),transparent_28%),linear-gradient(160deg,#2b1d16_0%,#120f0e_100%)]" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/72 via-black/10 to-transparent" />
+                <div className="absolute right-3 top-3">
+                    <StudentStatusBadge
+                        status={
+                            module.status === "in_progress"
+                                ? "available"
+                                : module.status
+                        }
+                        label={module.status === "in_progress" ? "Available" : null}
+                    />
+                </div>
             </div>
 
             <div className="space-y-2">
@@ -455,6 +465,16 @@ function ModuleCard({ module, onLockedClick }) {
                     <div className="h-full w-full bg-[radial-gradient(circle_at_24%_20%,rgba(223,103,57,0.45),transparent_28%),linear-gradient(160deg,#2b1d16_0%,#120f0e_100%)]" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/58 via-transparent to-transparent" />
+                <div className="absolute right-4 top-4">
+                    <StudentStatusBadge
+                        status={
+                            module.status === "in_progress"
+                                ? "available"
+                                : module.status
+                        }
+                        label={module.status === "in_progress" ? "Available" : null}
+                    />
+                </div>
             </div>
 
             <div
@@ -731,11 +751,6 @@ export default function StudentHome({
                         >
                             All Modules
                         </h1>
-                        <div className="mt-4 flex flex-wrap gap-3">
-                            <StudentStatusBadge status="available" />
-                            <StudentStatusBadge status="completed" />
-                            <StudentStatusBadge status="locked" />
-                        </div>
                     </div>
                     <div className="py-6">
                         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

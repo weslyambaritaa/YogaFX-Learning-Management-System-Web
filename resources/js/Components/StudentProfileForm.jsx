@@ -112,6 +112,49 @@ const DISCOVERY_OPTIONS = [
     { value: "other", label: "Other" },
 ];
 
+const COUNTRY_FLAG_MAP = {
+    Argentina: "🇦🇷",
+    Australia: "🇦🇺",
+    Austria: "🇦🇹",
+    Belgium: "🇧🇪",
+    Brazil: "🇧🇷",
+    Canada: "🇨🇦",
+    China: "🇨🇳",
+    Denmark: "🇩🇰",
+    Egypt: "🇪🇬",
+    Finland: "🇫🇮",
+    France: "🇫🇷",
+    Germany: "🇩🇪",
+    "Hong Kong": "🇭🇰",
+    India: "🇮🇳",
+    Indonesia: "🇮🇩",
+    Ireland: "🇮🇪",
+    Italy: "🇮🇹",
+    Japan: "🇯🇵",
+    Malaysia: "🇲🇾",
+    Mexico: "🇲🇽",
+    Netherlands: "🇳🇱",
+    "New Zealand": "🇳🇿",
+    Norway: "🇳🇴",
+    Philippines: "🇵🇭",
+    Portugal: "🇵🇹",
+    Qatar: "🇶🇦",
+    "Saudi Arabia": "🇸🇦",
+    Singapore: "🇸🇬",
+    "South Africa": "🇿🇦",
+    "South Korea": "🇰🇷",
+    Spain: "🇪🇸",
+    Sweden: "🇸🇪",
+    Switzerland: "🇨🇭",
+    Taiwan: "🇹🇼",
+    Thailand: "🇹🇭",
+    Turkey: "🇹🇷",
+    "United Arab Emirates": "🇦🇪",
+    "United Kingdom": "🇬🇧",
+    "United States": "🇺🇸",
+    Vietnam: "🇻🇳",
+};
+
 // Single source of truth for the font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
@@ -131,6 +174,23 @@ function firstError(errors, field) {
         key.startsWith(`${field}.`),
     );
     return nestedKey ? errors[nestedKey] : null;
+}
+
+function resolveOptionFlag(option) {
+    if (!option) {
+        return "🌍";
+    }
+
+    const normalizedLabel = String(option.label ?? "")
+        .replace(/\s*\(.+\)\s*$/, "")
+        .trim();
+
+    return (
+        COUNTRY_FLAG_MAP[option.value] ??
+        COUNTRY_FLAG_MAP[normalizedLabel] ??
+        COUNTRY_FLAG_MAP[option.label] ??
+        "🌍"
+    );
 }
 
 function openNativeDatePicker(input) {
@@ -276,7 +336,7 @@ function SelectField({ id, label, value, onChange, error, options, theme }) {
                         value={option.value}
                         className={theme.selectOptionClassName}
                     >
-                        {option.flag ? `${option.flag} ` : ""}
+                        {resolveOptionFlag(option)}{" "}
                         {option.label}
                     </option>
                 ))}
@@ -710,7 +770,10 @@ export default function StudentProfileForm({
                                         )
                                     }
                                     className={theme.selectClassName}
-                                    style={{ fontFamily: FONT_FAMILY }}
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                        color: "#DB202C",
+                                    }}
                                 >
                                     {phoneCountryCodeOptions.map((option) => (
                                         <option
@@ -718,9 +781,7 @@ export default function StudentProfileForm({
                                             value={option.value}
                                             className={theme.selectOptionClassName}
                                         >
-                                            {option.flag
-                                                ? `${option.flag} `
-                                                : ""}
+                                            {resolveOptionFlag(option)}{" "}
                                             {option.label}
                                         </option>
                                     ))}
