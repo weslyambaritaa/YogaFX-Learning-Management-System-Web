@@ -613,11 +613,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                 <section className="space-y-6">
                     <div className="space-y-4">
-                        <p className="font-['Montserrat'] text-[24px] font-semibold tracking-tight text-white">
-                            {moduleLabel}
-                        </p>
-                        <h1 className="font-['Montserrat'] text-[28px] font-semibold tracking-[-0.03em] text-white">
-                            {lesson.title}
+                        <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white">
+                            {moduleLabel} - {lesson.title}
                         </h1>
                     </div>
 
@@ -656,12 +653,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             src={lessonVideoUrl}
                                             poster={lesson.thumbnail_url}
                                             className="h-full w-full overflow-hidden rounded-[5px] shadow-2xl"
-                                            autoplay={Boolean(
-                                                lesson.autoplay,
-                                            )}
-                                            onPlaybackError={
-                                                setPlayerWarning
-                                            }
+                                            autoplay={Boolean(lesson.autoplay)}
+                                            onPlaybackError={setPlayerWarning}
                                             onProgressUpdate={
                                                 handleProgressUpdate
                                             }
