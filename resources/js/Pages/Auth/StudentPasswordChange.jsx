@@ -1,5 +1,6 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import PasswordRequirementsCard from '@/Components/PasswordRequirementsCard';
 import TextInput from '@/Components/TextInput';
 import { Button } from '@/Components/ui/button';
 import GuestLayout from '@/Layouts/GuestLayout';
@@ -98,6 +99,8 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                             />
                             <InputError message={errors.new_password} className="mt-2" />
                         </div>
+
+                        <PasswordRequirementsCard password={data.new_password} />
 
                         <div>
                             <InputLabel

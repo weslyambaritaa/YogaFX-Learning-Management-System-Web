@@ -21,18 +21,19 @@ function LessonCard({ lesson, onLockedClick }) {
                     ) : (
                         <div className="aspect-video bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                     )}
+                    <div className="absolute right-3 top-3">
+                        <StudentStatusBadge status={lesson.status} />
+                    </div>
                 </div>
 
                 <div className="space-y-3">
-                    <StudentStatusBadge status={lesson.status} />
-
                     <div className="space-y-1.5">
-                        <h3 className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
-                            {lesson.title}
-                        </h3>
                         <p className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white/82">
                             Lesson {lesson.sort_order}
                         </p>
+                        <h3 className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
+                            {lesson.title}
+                        </h3>
                     </div>
                 </div>
 
@@ -56,7 +57,9 @@ function LessonCard({ lesson, onLockedClick }) {
                     </div>
 
                     <div className="inline-flex items-center gap-1.5 font-['Montserrat'] text-[14px] font-medium text-white/80">
-                        {lesson.is_locked ? "Complete previous lesson" : null}
+                        {lesson.is_locked
+                            ? "Complete previous lesson"
+                            : "Click this to access the lesson"}
                         <ArrowRight className="size-3.5 transition group-hover:translate-x-1" />
                     </div>
                 </div>
@@ -109,8 +112,10 @@ export default function StudentModuleShow({ module }) {
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(0,0,0,0.22)_0%,_rgba(0,0,0,0.72)_72%,_rgba(0,0,0,0.92)_100%)]" />
 
                     <div className="relative flex min-h-[420px] flex-col justify-end gap-6 px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
-                        <div className="max-w-3xl space-y-4">
+                        <div className="absolute right-6 top-6 sm:right-8 sm:top-8 lg:right-10 lg:top-10">
                             <StudentStatusBadge status={module.status} />
+                        </div>
+                        <div className="max-w-3xl space-y-4">
                             <p className="font-['Montserrat'] text-[22px] font-medium tracking-tight text-white">
                                 Module {module.sort_order}
                             </p>

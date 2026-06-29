@@ -133,6 +133,20 @@ function firstError(errors, field) {
     return nestedKey ? errors[nestedKey] : null;
 }
 
+function openNativeDatePicker(input) {
+    if (!input) {
+        return;
+    }
+
+    if (typeof input.showPicker === "function") {
+        input.showPicker();
+        return;
+    }
+
+    input.focus();
+    input.click();
+}
+
 function ChoiceGrid({
     id,
     label,
@@ -241,7 +255,13 @@ function SelectField({ id, label, value, onChange, error, options, theme }) {
                 value={value ?? ""}
                 onChange={(event) => onChange(event.target.value)}
                 className={theme.selectClassName}
-                style={{ fontFamily: FONT_FAMILY }}
+                style={{
+                    fontFamily: FONT_FAMILY,
+                    color:
+                        value && value !== ""
+                            ? theme.selectActiveColor
+                            : theme.selectPlaceholderColor,
+                }}
             >
                 <option
                     value=""
@@ -331,6 +351,7 @@ export default function StudentProfileForm({
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const birthDateInputRef = useRef(null);
 
     const todayLabel = useMemo(
         () =>
@@ -353,7 +374,7 @@ export default function StudentProfileForm({
               choiceDescriptionClassName:
                   "mt-1 text-sm font-normal text-slate-600",
               choiceCheckedClassName:
-                  "border-[#DB202C] bg-rose-50 text-slate-900 shadow-[0_0_12px_rgba(219,32,44,0.12)]",
+                  "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_12px_rgba(219,32,44,0.18)]",
               choiceUncheckedClassName:
                   "border-slate-400 bg-white text-slate-700 hover:border-[#DB202C]/50 hover:bg-rose-50/50",
               choiceIndicatorCheckedClassName:
@@ -370,6 +391,8 @@ export default function StudentProfileForm({
               selectClassName:
                   "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
               selectOptionClassName: "bg-white text-slate-900 text-sm font-normal",
+              selectActiveColor: "#DB202C",
+              selectPlaceholderColor: "#0f172a",
               textareaClassName:
                   "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
               helperClassName: "mt-2 text-sm font-medium text-slate-500",
@@ -394,7 +417,7 @@ export default function StudentProfileForm({
               dateInputClassName:
                   "block w-full appearance-none rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] pr-12 text-sm font-normal text-slate-900 shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
               dateIconClassName:
-                  "pointer-events-none absolute right-4 top-1/2 z-10 size-5 -translate-y-1/2 text-slate-500",
+                  "absolute right-3 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-[#DB202C]",
               primaryButtonClassName:
                   "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#c31c28]",
               uploadButtonClassName:
@@ -407,7 +430,7 @@ export default function StudentProfileForm({
               choiceDescriptionClassName:
                   "mt-1 text-[12px] font-normal text-white/70",
               choiceCheckedClassName:
-                  "border-white bg-[#DB202C]/15 text-white shadow-[0_0_12px_rgba(219,32,44,0.2)]",
+                  "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_12px_rgba(219,32,44,0.28)]",
               choiceUncheckedClassName:
                   "border-white/40 bg-transparent text-white/80 hover:border-white hover:bg-[#DB202C]/5",
               choiceIndicatorCheckedClassName:
@@ -425,6 +448,8 @@ export default function StudentProfileForm({
                   "block w-full rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-sm font-normal text-white shadow-sm focus:border-white focus:ring-1 focus:ring-white/40 [&::-webkit-calendar-picker-indicator]:invert",
               selectOptionClassName:
                   "text-sm font-normal text-black",
+              selectActiveColor: "#DB202C",
+              selectPlaceholderColor: "#FFFFFF",
               textareaClassName:
                   "block w-full rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-sm font-normal text-white shadow-sm placeholder:text-white/30 focus:border-white focus:ring-1 focus:ring-white/40",
               helperClassName: "mt-2 text-sm font-semibold text-white/60",
@@ -449,7 +474,7 @@ export default function StudentProfileForm({
               dateInputClassName:
                   "block w-full appearance-none rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] pr-12 text-sm font-normal text-white shadow-sm focus:border-white focus:ring-1 focus:ring-white/40 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
               dateIconClassName:
-                  "pointer-events-none absolute right-4 top-1/2 z-10 size-5 -translate-y-1/2 text-white/70",
+                  "absolute right-3 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white",
               primaryButtonClassName:
                   "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#c31c28]",
               uploadButtonClassName:
@@ -866,6 +891,7 @@ export default function StudentProfileForm({
                             />
                             <div className="relative mt-2">
                                 <input
+                                    ref={birthDateInputRef}
                                     id="birth_date"
                                     name="birth_date"
                                     type="date"
@@ -890,7 +916,18 @@ export default function StudentProfileForm({
                                     }}
                                     className={theme.dateInputClassName}
                                 />
-                                <CalendarDays className={theme.dateIconClassName} />
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        openNativeDatePicker(
+                                            birthDateInputRef.current,
+                                        )
+                                    }
+                                    className={theme.dateIconClassName}
+                                    aria-label="Open birth date calendar"
+                                >
+                                    <CalendarDays className="size-5" />
+                                </button>
                             </div>
                             <InputError
                                 message={firstError(errors, "birth_date")}
@@ -1048,7 +1085,14 @@ export default function StudentProfileForm({
                         </div>
 
                         <div className="space-y-6">
-                            <label className="flex cursor-pointer items-start gap-4 rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-white transition hover:bg-[#DB202C]/10">
+                            <label
+                                className={[
+                                    "flex cursor-pointer items-start gap-4 rounded-[5px] border px-[10px] py-[8px] text-white transition",
+                                    data.terms_accepted
+                                        ? "border-[#DB202C] bg-[#DB202C]/12"
+                                        : "border-white bg-transparent hover:bg-[#DB202C]/10",
+                                ].join(" ")}
+                            >
                                 <input
                                     type="checkbox"
                                     checked={Boolean(data.terms_accepted)}
@@ -1058,7 +1102,7 @@ export default function StudentProfileForm({
                                             event.target.checked,
                                         )
                                     }
-                                    className="mt-1 size-5 rounded border-white text-white accent-white focus:ring-white bg-transparent"
+                                    className="mt-1 size-5 rounded border-white bg-transparent accent-[#DB202C] focus:ring-[#DB202C]"
                                 />
                                 <span
                                     className="text-sm font-normal"
@@ -1105,7 +1149,14 @@ export default function StudentProfileForm({
                                 </div>
                             </div>
 
-                            <label className="flex cursor-pointer items-start gap-4 rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-white transition hover:bg-[#DB202C]/10">
+                            <label
+                                className={[
+                                    "flex cursor-pointer items-start gap-4 rounded-[5px] border px-[10px] py-[8px] text-white transition",
+                                    data.recaptcha_confirmed
+                                        ? "border-[#DB202C] bg-[#DB202C]/12"
+                                        : "border-white bg-transparent hover:bg-[#DB202C]/10",
+                                ].join(" ")}
+                            >
                                 <input
                                     type="checkbox"
                                     checked={Boolean(data.recaptcha_confirmed)}
@@ -1115,7 +1166,7 @@ export default function StudentProfileForm({
                                             event.target.checked,
                                         )
                                     }
-                                    className="mt-1 size-5 rounded border-white text-white accent-white focus:ring-white bg-transparent"
+                                    className="mt-1 size-5 rounded border-white bg-transparent accent-[#DB202C] focus:ring-[#DB202C]"
                                 />
                                 <span
                                     className="text-sm font-normal"

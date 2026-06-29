@@ -1,5 +1,6 @@
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
+import PasswordRequirementsCard from "@/Components/PasswordRequirementsCard";
 import TextInput from "@/Components/TextInput";
 import { Button } from "@/Components/ui/button";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
@@ -23,38 +24,6 @@ export default function Signup({ onboarding, student }) {
             title="Create Password"
             heading="Create your final YogaFX password to activate your account"
             description="Enrollment is complete. This last step activates your YogaFX account so you can sign in with your new password."
-            aside={
-                <div className="space-y-6">
-                    {/* Account ready card */}
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
-                        <div className="flex justify-end">
-                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
-                                Account ready
-                            </p>
-                        </div>
-                        <div className="mt-7 space-y-3 text-sm text-white">
-                            <p>{student.name}</p>
-                            <p>{student.email}</p>
-                            <p>Tier access: {onboarding.access_tier.name}</p>
-                        </div>
-                    </div>
-
-                    {/* Next outcome card */}
-                    <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
-                        <div className="flex justify-end">
-                            <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
-                                Next outcome
-                            </p>
-                        </div>
-                        <div className="mt-7 space-y-3 text-sm leading-6 text-white/70">
-                            <p>
-                                Your password becomes the final credential for
-                                routine login.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            }
         >
             <form onSubmit={submit} className="space-y-6">
                 <div className="grid gap-5">
@@ -111,6 +80,8 @@ export default function Signup({ onboarding, student }) {
                         />
                     </div>
 
+                    <PasswordRequirementsCard password={data.password} />
+
                     {/* Confirm Password */}
                     <div>
                         <InputLabel
@@ -139,11 +110,7 @@ export default function Signup({ onboarding, student }) {
                 </div>
 
                 {/* Footer + tombol */}
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <p className="text-sm text-gray-500">
-                        This is the final step before your account becomes active.
-                    </p>
-
+                <div className="flex justify-end">
                     <Button
                         type="submit"
                         disabled={processing}

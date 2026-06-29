@@ -654,6 +654,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             poster={lesson.thumbnail_url}
                                             className="h-full w-full overflow-hidden rounded-[5px] shadow-2xl"
                                             autoplay={Boolean(lesson.autoplay)}
+                                            hideProgressHandle={
+                                                autoNextCountdown !== null
+                                            }
                                             onPlaybackError={setPlayerWarning}
                                             onProgressUpdate={
                                                 handleProgressUpdate

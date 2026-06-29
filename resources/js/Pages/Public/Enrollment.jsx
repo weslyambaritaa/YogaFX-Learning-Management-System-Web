@@ -74,34 +74,6 @@ export default function Enrollment({ onboarding, student }) {
                     </span>
                 </div>
             }
-            aside={
-                <div className="space-y-6" style={{ fontFamily: FONT_FAMILY }}>
-                    <div className="rounded-[5px] border border-white/10 bg-white/5 p-5">
-                        <p
-                            className="text-white"
-                            style={{
-                                fontFamily: FONT_FAMILY,
-                                fontSize: "14px",
-                                fontWeight: 600,
-                            }}
-                        >
-                            Enrollment status
-                        </p>
-                        <div
-                            className="mt-5 space-y-3 text-white/70"
-                            style={{
-                                fontFamily: FONT_FAMILY,
-                                fontSize: "14px",
-                                fontWeight: 400,
-                            }}
-                        >
-                            <p>Payment status: success</p>
-                            <p>Onboarding status: {onboarding.status}</p>
-                            <p>Tier access: {onboarding.access_tier.name}</p>
-                        </div>
-                    </div>
-                </div>
-            }
         >
             <StudentProfileForm
                 data={data}

@@ -9,6 +9,7 @@ use App\Http\Requests\SignupCompletionRequest;
 use App\Models\OnboardingState;
 use App\Services\PaymentCheckoutService;
 use App\Support\StudentProfileValue;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -148,12 +149,14 @@ class OnboardingController extends Controller
         SignupCompletionRequest $request,
         OnboardingState $onboardingState,
     ): RedirectResponse {
-        $this->paymentFlow->completeSignup(
+        $user = $this->paymentFlow->completeSignup(
             $onboardingState,
             (string) $request->string('password'),
         );
 
-        return redirect()->route('login')
-            ->with('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('student.dashboard');
     }
 }
