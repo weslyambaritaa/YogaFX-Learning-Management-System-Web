@@ -19,6 +19,7 @@ use App\Models\StudentModuleVisit;
 use App\Services\BunnyStreamService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\StudentLearningPathService;
+use App\Support\BunnyAssetPath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -396,18 +397,23 @@ class ModuleCatalogController extends Controller
                     download: true,
                     versionSeed: $ebook->updated_at,
                 );
-                $mimeType = $ebook->file
-                    ? Storage::disk('local')->mimeType($ebook->file)
-                    : null;
+                $fileReference = BunnyAssetPath::isBunnyPath($ebook->file)
+                    ? BunnyAssetPath::objectKey($ebook->file)
+                    : (string) $ebook->file;
+                $mimeType = null;
+
+                if ($ebook->file && ! BunnyAssetPath::isBunnyPath($ebook->file) && Storage::disk('local')->exists($ebook->file)) {
+                    $mimeType = Storage::disk('local')->mimeType($ebook->file);
+                }
 
                 return [
                     'id' => $ebook->id,
                     'title' => $ebook->title,
                     'sort_order' => $ebook->sort_order,
-                    'file_name' => basename((string) $ebook->file),
+                    'file_name' => basename($fileReference),
                     'preview_url' => route('ebooks.preview', $ebook),
                     'download_url' => $downloadUrl,
-                    'preview_supported' => str($ebook->file)->lower()->endsWith('.pdf')
+                    'preview_supported' => str($fileReference)->lower()->endsWith('.pdf')
                         || $mimeType === 'application/pdf',
                 ];
             })

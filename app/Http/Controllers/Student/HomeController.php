@@ -1144,9 +1144,12 @@ class HomeController extends Controller
         }
 
         $items = $ebooks->map(function (Ebook $ebook, int $index) {
-            $extension = strtoupper((string) pathinfo((string) $ebook->file, PATHINFO_EXTENSION));
+            $fileReference = BunnyAssetPath::isBunnyPath($ebook->file)
+                ? BunnyAssetPath::objectKey($ebook->file)
+                : (string) $ebook->file;
+            $extension = strtoupper((string) pathinfo($fileReference, PATHINFO_EXTENSION));
             $formatLabel = $extension !== '' ? $extension : 'FILE';
-            $fileName = basename((string) $ebook->file);
+            $fileName = basename($fileReference);
 
             return [
                 'id' => $ebook->id,

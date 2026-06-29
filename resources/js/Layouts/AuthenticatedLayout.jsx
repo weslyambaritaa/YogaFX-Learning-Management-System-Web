@@ -1003,7 +1003,7 @@ export default function AuthenticatedLayout({
                         </div>
                     </header>
 
-                    {header && (
+                    {header && !isAdmin && (
                         <div className="border-b border-border bg-background">
                             <div className="px-4 py-5 sm:px-6 lg:px-8">{header}</div>
                         </div>

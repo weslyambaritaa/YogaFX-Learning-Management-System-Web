@@ -1,29 +1,10 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 
-export default function EbookPreview({ ebook, backUrl, backLabel }) {
+export default function EbookPreview({ ebook }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            {ebook.title}
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Preview the ebook first, then download it only when needed.
-                        </p>
-                    </div>
-                    <Link
-                        href={backUrl}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                    >
-                        {backLabel}
-                    </Link>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title={`${ebook.title} Preview`} />
 
             <div className="py-12">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Ebook;
+use App\Support\BunnyAssetPath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -28,7 +29,7 @@ class EbookCatalogController extends Controller
                     'id' => $ebook->id,
                     'title' => $ebook->title,
                     'sort_order' => $ebook->sort_order,
-                    'file_name' => basename((string) $ebook->file),
+                    'file_name' => $this->fileNameForEbook($ebook),
                     'preview_url' => route('ebooks.preview', $ebook),
                 ]),
         ]);
@@ -71,7 +72,7 @@ class EbookCatalogController extends Controller
                     ? null
                     : 'This ebook file cannot be previewed in the browser yet. You can still download it.',
                 'mime_type' => $mimeType,
-                'file_name' => basename((string) $ebook->file),
+                'file_name' => $this->fileNameForEbook($ebook),
             ],
             'backUrl' => route('ebooks.index'),
             'backLabel' => 'Back to Ebooks',
@@ -83,12 +84,35 @@ class EbookCatalogController extends Controller
      */
     private function previewMetadata(Ebook $ebook): array
     {
-        $mimeType = $ebook->file
-            ? Storage::disk('local')->mimeType($ebook->file)
-            : null;
+        if (! $ebook->file) {
+            return [false, null];
+        }
+
+        if (BunnyAssetPath::isBunnyPath($ebook->file)) {
+            $extension = strtolower(pathinfo(BunnyAssetPath::objectKey($ebook->file), PATHINFO_EXTENSION));
+            $mimeType = match ($extension) {
+                'pdf' => 'application/pdf',
+                default => null,
+            };
+
+            return [$extension === 'pdf', $mimeType];
+        }
+
+        $mimeType = Storage::disk('local')->mimeType($ebook->file);
         $isPdf = str($ebook->file)->lower()->endsWith('.pdf')
             || $mimeType === 'application/pdf';
 
         return [$isPdf, $mimeType];
+    }
+
+    private function fileNameForEbook(Ebook $ebook): string
+    {
+        if (! $ebook->file) {
+            return '';
+        }
+
+        return basename(BunnyAssetPath::isBunnyPath($ebook->file)
+            ? BunnyAssetPath::objectKey($ebook->file)
+            : (string) $ebook->file);
     }
 }
