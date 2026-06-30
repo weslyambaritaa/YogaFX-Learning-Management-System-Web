@@ -1,8 +1,10 @@
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
+import PasswordField from "@/Components/PasswordField";
 import TextInput from "@/Components/TextInput";
 import { Button } from "@/Components/ui/button";
 import { Head, Link, useForm } from "@inertiajs/react";
+import { Mail } from "lucide-react";
 
 export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -60,18 +62,21 @@ export default function Login({ status, canResetPassword }) {
                                         value="Email"
                                         className="font-['Montserrat'] text-[14px] font-medium text-white/80"
                                     />
-                                    <TextInput
-                                        id="email"
-                                        type="email"
-                                        name="email"
-                                        value={data.email}
-                                        className="mt-2 block w-full rounded-[5px] border-white/20 bg-white/10 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white placeholder:text-white/30"
-                                        autoComplete="username"
-                                        isFocused={true}
-                                        onChange={(e) =>
-                                            setData("email", e.target.value)
-                                        }
-                                    />
+                                    <div className="relative mt-2">
+                                        <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
+                                        <TextInput
+                                            id="email"
+                                            type="email"
+                                            name="email"
+                                            value={data.email}
+                                            className="block w-full rounded-[5px] border-white/20 bg-white/10 py-[8px] pl-10 pr-[10px] font-['Montserrat'] text-[14px] font-medium text-white placeholder:text-white/30"
+                                            autoComplete="username"
+                                            isFocused={true}
+                                            onChange={(e) =>
+                                                setData("email", e.target.value)
+                                            }
+                                        />
+                                    </div>
                                     <InputError
                                         message={errors.email}
                                         className="mt-2 font-['Montserrat'] text-[14px] font-medium text-red-400"
@@ -84,12 +89,13 @@ export default function Login({ status, canResetPassword }) {
                                         value="Password"
                                         className="font-['Montserrat'] text-[14px] font-medium text-white/80"
                                     />
-                                    <TextInput
+                                    <PasswordField
                                         id="password"
-                                        type="password"
                                         name="password"
                                         value={data.password}
-                                        className="mt-2 block w-full rounded-[5px] border-white/20 bg-white/10 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white placeholder:text-white/30"
+                                        className="mt-2"
+                                        inputClassName="block w-full rounded-[5px] border-white/20 bg-white/10 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white placeholder:text-white/30"
+                                        buttonClassName="text-white/45 hover:text-white"
                                         autoComplete="current-password"
                                         onChange={(e) =>
                                             setData("password", e.target.value)
