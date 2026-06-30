@@ -26,10 +26,8 @@ export default function Login({ status, canResetPassword }) {
 
             <div className="min-h-screen bg-black text-white">
                 <div className="relative mx-auto flex min-h-screen max-w-[1280px] flex-col px-4 py-6 sm:px-6 lg:px-10">
-
                     {/* Logo + Form dibungkus satu blok di tengah layar */}
                     <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-6 lg:pt-8">
-
                         {/* Logo */}
                         <header className="mb-8 flex items-center justify-center">
                             <Link href="/">
@@ -63,13 +61,13 @@ export default function Login({ status, canResetPassword }) {
                                         className="font-['Montserrat'] text-[14px] font-medium text-white/80"
                                     />
                                     <div className="relative mt-2">
-                                        <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
+                                        <Mail className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
                                         <TextInput
                                             id="email"
                                             type="email"
                                             name="email"
                                             value={data.email}
-                                            className="block w-full rounded-[5px] border-white/20 bg-white/10 py-[8px] pl-10 pr-[10px] font-['Montserrat'] text-[14px] font-medium text-white placeholder:text-white/30"
+                                            className="block w-full rounded-[5px] border-white/20 bg-white/10 py-[8px] pl-[10px] pr-10 font-['Montserrat'] text-[14px] font-medium text-white placeholder:text-white/30"
                                             autoComplete="username"
                                             isFocused={true}
                                             onChange={(e) =>
@@ -124,12 +122,13 @@ export default function Login({ status, canResetPassword }) {
                                         disabled={processing}
                                         className="rounded-[5px] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium bg-[#DB202C] text-white hover:bg-[#c01a25]"
                                     >
-                                        {processing ? "Logging in..." : "Log in"}
+                                        {processing
+                                            ? "Logging in..."
+                                            : "Log in"}
                                     </Button>
                                 </div>
                             </form>
                         </div>
-
                     </div>
                 </div>
             </div>
