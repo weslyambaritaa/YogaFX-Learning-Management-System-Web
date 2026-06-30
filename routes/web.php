@@ -69,11 +69,6 @@ Route::get('/masterclass', [LeadRegistrationController::class, 'showProductPayme
 Route::post('/masterclass', [LeadRegistrationController::class, 'store'])
     ->defaults('paymentLinkSlug', 'masterclass')
     ->name('lead-registration.products.masterclass.store');
-Route::get('/p/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
-    ->name('lead-registration.packages.show');
-Route::post('/p/{packageSlug}', [LeadRegistrationController::class, 'store'])
-    ->name('lead-registration.packages.store');
-
 Route::get('/paypal/checkout/{invoice}/success', [PayPalCheckoutController::class, 'success'])->name('paypal.success');
 Route::get('/paypal/checkout/{invoice}/cancel', [PayPalCheckoutController::class, 'cancel'])->name('paypal.cancel');
 Route::post('/webhooks/paypal', PayPalWebhookController::class)
@@ -278,3 +273,10 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::get('/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
+    ->where('packageSlug', '[A-Za-z0-9\-]+')
+    ->name('lead-registration.packages.show');
+Route::post('/{packageSlug}', [LeadRegistrationController::class, 'store'])
+    ->where('packageSlug', '[A-Za-z0-9\-]+')
+    ->name('lead-registration.packages.store');

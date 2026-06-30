@@ -53,7 +53,7 @@ export default function PackageForm({
                     />
                     <InputError className="mt-2" message={errors.slug} />
                     <p className="mt-2 text-xs text-gray-500">
-                        Direct package route uses `/p/{'{package_slug}'}`.
+                        Direct package route uses `/{'{package_slug}'}`.
                     </p>
                 </div>
 
