@@ -8,6 +8,7 @@ use App\Models\Package;
 use App\Services\PayPalService;
 use App\Services\PackageResolverService;
 use App\Services\PaymentCheckoutService;
+use App\Support\PublicPageMeta;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,6 +20,7 @@ class LeadRegistrationController extends Controller
         private readonly PaymentCheckoutService $paymentFlow,
         private readonly PayPalService $paypalService,
         private readonly PackageResolverService $packageResolver,
+        private readonly PublicPageMeta $publicPageMeta,
     ) {}
 
     public function create(): Response
@@ -97,7 +99,7 @@ class LeadRegistrationController extends Controller
             $query = $query->where('id', $selectedPackage->id);
         }
 
-        return Inertia::render('Public/Scoreboard', [
+        $response = Inertia::render('Public/Scoreboard', [
             'packages' => $query
                 ->map(fn (Package $package) => [
                     'id' => $package->id,
@@ -115,6 +117,12 @@ class LeadRegistrationController extends Controller
             'submit_url' => $submitUrl ? url($submitUrl) : route('lead-registration.store'),
             'selected_package_id' => $selectedPackage?->id,
             'is_package_locked' => $selectedPackage instanceof Package,
+        ]);
+
+        return $response->withViewData([
+            'meta' => $selectedPackage instanceof Package
+                ? $this->publicPageMeta->forPackage(request(), $selectedPackage)
+                : $this->publicPageMeta->forScoreboard(request()),
         ]);
     }
 

@@ -21,6 +21,7 @@ use App\Http\Controllers\LeadRegistrationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PayPalCheckoutController;
 use App\Http\Controllers\PayPalWebhookController;
+use App\Http\Controllers\PublicAssetController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\CourseCatalogController;
 use App\Http\Controllers\Student\EbookCatalogController;
@@ -38,6 +39,10 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::redirect('/', '/login');
+
+Route::get('/public-media/{entity}/{id}/{field}', [PublicAssetController::class, 'show'])
+    ->whereNumber('id')
+    ->name('public-media.show');
 
 Route::get('/scoreboard', [LeadRegistrationController::class, 'create'])->name('lead-registration.create');
 Route::post('/scoreboard', [LeadRegistrationController::class, 'store'])->name('lead-registration.store');
