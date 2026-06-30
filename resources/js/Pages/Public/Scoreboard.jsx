@@ -75,6 +75,13 @@ export default function Scoreboard({
     );
     const selectedPackageHasPrice = Number(selectedPackage?.price ?? 0) > 0;
     const isIdentityLocked = checkout !== null;
+    const packageTitle = selectedPackage?.title ?? "YogaFX Package";
+    const packagePrice = selectedPackageHasPrice
+        ? formatCurrency(
+              selectedPackage.price,
+              selectedPackage.currency_code,
+          )
+        : "Price not set yet";
 
     useEffect(() => {
         if (!checkoutRef.current) {
@@ -166,11 +173,11 @@ export default function Scoreboard({
             title="Scoreboard"
             showBackButton={!is_package_locked}
             heading={
-                // Heading is rendered by PublicFlowLayout, so we pass an
-                // explicitly styled node instead of a plain string to
-                // guarantee Montserrat / 48px / 700 regardless of any
-                // default heading styles the layout applies.
+                // Heading is rendered by PublicFlowLayout, so we pass a
+                // styled node to preserve the existing premium hero
+                // hierarchy while letting package data stay dynamic.
                 <span
+                    className="block text-balance"
                     style={{
                         fontFamily: FONT_FAMILY,
                         fontSize: "48px",
@@ -178,7 +185,20 @@ export default function Scoreboard({
                         lineHeight: 1.2,
                     }}
                 >
-                    Start your YogaFX Journey!
+                    {`We Are Thrilled That You Will Be Joining Our ${packageTitle}`}
+                </span>
+            }
+            description={
+                <span
+                    className="block text-balance"
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "18px",
+                        fontWeight: 500,
+                        lineHeight: 1.6,
+                    }}
+                >
+                    {`Please Continue Your ${packagePrice} Transfer Below.`}
                 </span>
             }
             aside={
@@ -300,6 +320,8 @@ export default function Scoreboard({
                                             option.value,
                                         )
                                     }
+                                    displayMode="phone-code"
+                                    searchPlaceholder="Search phone code or country"
                                     disabled={isIdentityLocked}
                                     buttonClassName="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
                                     buttonTextClassName="text-sm font-normal text-white"
