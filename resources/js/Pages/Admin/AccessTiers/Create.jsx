@@ -8,6 +8,8 @@ export default function CreateAccessTier() {
         description: '',
         level: '1',
         is_active: true,
+        has_full_standing_dialog_access: false,
+        has_full_floor_dialog_access: false,
     });
 
     const submit = (event) => {

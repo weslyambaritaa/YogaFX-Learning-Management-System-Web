@@ -49,6 +49,8 @@ class AccessTierRequest extends FormRequest
             'description' => ['required', 'string', 'max:2000'],
             'level' => ['required', 'integer', 'min:1'],
             'is_active' => ['required', 'boolean'],
+            'has_full_standing_dialog_access' => ['required', 'boolean'],
+            'has_full_floor_dialog_access' => ['required', 'boolean'],
         ];
     }
 }

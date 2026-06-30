@@ -72,6 +72,71 @@ export default function AccessTierForm({
                 <InputError className="mt-2" message={errors.is_active} />
             </div>
 
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+                <div>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                        Instant Access
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                        Enable dialog shortcuts for students in this tier.
+                    </p>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <input
+                            type="checkbox"
+                            className="mt-1 rounded border-slate-300 text-black shadow-sm focus:ring-black"
+                            checked={Boolean(data.has_full_standing_dialog_access)}
+                            onChange={(event) =>
+                                setData(
+                                    'has_full_standing_dialog_access',
+                                    event.target.checked,
+                                )
+                            }
+                        />
+                        <span>
+                            <span className="block text-sm font-medium text-slate-900">
+                                Full Standing Dialog
+                            </span>
+                            <span className="block text-xs text-slate-500">
+                                Show and allow access to the standing instant access dialog.
+                            </span>
+                        </span>
+                    </label>
+
+                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <input
+                            type="checkbox"
+                            className="mt-1 rounded border-slate-300 text-black shadow-sm focus:ring-black"
+                            checked={Boolean(data.has_full_floor_dialog_access)}
+                            onChange={(event) =>
+                                setData(
+                                    'has_full_floor_dialog_access',
+                                    event.target.checked,
+                                )
+                            }
+                        />
+                        <span>
+                            <span className="block text-sm font-medium text-slate-900">
+                                Full Floor Dialog
+                            </span>
+                            <span className="block text-xs text-slate-500">
+                                Show and allow access to the floor instant access dialog.
+                            </span>
+                        </span>
+                    </label>
+                </div>
+
+                <InputError
+                    className="mt-2"
+                    message={
+                        errors.has_full_standing_dialog_access
+                        ?? errors.has_full_floor_dialog_access
+                    }
+                />
+            </div>
+
             <div className="flex items-center gap-4">
                 <PrimaryButton disabled={processing}>{submitLabel}</PrimaryButton>
             </div>

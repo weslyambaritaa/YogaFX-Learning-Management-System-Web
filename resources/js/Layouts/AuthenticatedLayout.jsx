@@ -213,18 +213,28 @@ const studentNavigationItems = [
     { label: 'Modules', route: 'modules.index', match: ['modules.index', 'modules.show', 'lessons.show', 'assignments.show'] },
 ];
 
-const studentInstantAccessItems = [
-    {
-        label: 'Full Standing Dialog',
-        route: 'student.dialogs.standing',
-        match: ['student.dialogs.standing'],
-    },
-    {
-        label: 'Full Floor Dialog',
-        route: 'student.dialogs.floor',
-        match: ['student.dialogs.floor'],
-    },
-];
+function studentInstantAccessItemsForUser(user) {
+    const accessTier = user?.access_tier;
+    const items = [];
+
+    if (accessTier?.has_full_standing_dialog_access) {
+        items.push({
+            label: 'Full Standing Dialog',
+            route: 'student.dialogs.standing',
+            match: ['student.dialogs.standing'],
+        });
+    }
+
+    if (accessTier?.has_full_floor_dialog_access) {
+        items.push({
+            label: 'Full Floor Dialog',
+            route: 'student.dialogs.floor',
+            match: ['student.dialogs.floor'],
+        });
+    }
+
+    return items;
+}
 
 const adminPageTitles = {
     'admin.dashboard': 'Dashboard',
@@ -659,6 +669,7 @@ function StudentTopNavigation({
     const isImmersive = variant === 'immersive';
     const flashMessage = flash.success ?? flash.error ?? null;
     const flashTone = flash.error ? 'error' : 'success';
+    const studentInstantAccessItems = studentInstantAccessItemsForUser(user);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
@@ -759,39 +770,43 @@ function StudentTopNavigation({
                                         </Button>
                                     ))}
 
-                                    <div
-                                        className={[
-                                            'px-3 pt-3 text-[11px] font-semibold uppercase tracking-[0.28em]',
-                                            isImmersive
-                                                ? 'text-white/35'
-                                                : 'text-muted-foreground',
-                                        ].join(' ')}
-                                    >
-                                        INSTANT ACCESS
-                                    </div>
-
-                                    {studentInstantAccessItems.map((item) => (
-                                        <Button
-                                            key={item.label}
-                                            asChild
-                                            variant="ghost"
-                                            className={[
-                                                'h-11 w-full justify-start rounded-lg px-3 opacity-100',
-                                                isItemActive(item)
-                                                    ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
-                                                    : (isImmersive
-                                                        ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
-                                                        : ''),
-                                            ].join(' ')}
-                                        >
-                                            <Link
-                                                href={route(item.route)}
-                                                onClick={() => setMobileOpen(false)}
+                                    {studentInstantAccessItems.length > 0 && (
+                                        <>
+                                            <div
+                                                className={[
+                                                    'px-3 pt-3 text-[11px] font-semibold uppercase tracking-[0.28em]',
+                                                    isImmersive
+                                                        ? 'text-white/35'
+                                                        : 'text-muted-foreground',
+                                                ].join(' ')}
                                             >
-                                                {item.label}
-                                            </Link>
-                                        </Button>
-                                    ))}
+                                                INSTANT ACCESS
+                                            </div>
+
+                                            {studentInstantAccessItems.map((item) => (
+                                                <Button
+                                                    key={item.label}
+                                                    asChild
+                                                    variant="ghost"
+                                                    className={[
+                                                        'h-11 w-full justify-start rounded-lg px-3 opacity-100',
+                                                        isItemActive(item)
+                                                            ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
+                                                            : (isImmersive
+                                                                ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
+                                                                : ''),
+                                                    ].join(' ')}
+                                                >
+                                                    <Link
+                                                        href={route(item.route)}
+                                                        onClick={() => setMobileOpen(false)}
+                                                    >
+                                                        {item.label}
+                                                    </Link>
+                                                </Button>
+                                            ))}
+                                        </>
+                                    )}
                                 </div>
                             </SheetContent>
                         </Sheet>
@@ -823,32 +838,36 @@ function StudentTopNavigation({
                             </Button>
                         ))}
 
-                        <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
-                        <div
-                            className={[
-                                'hidden text-[11px] font-semibold uppercase tracking-[0.28em] lg:block',
-                                isImmersive ? 'text-white/35' : 'text-muted-foreground',
-                            ].join(' ')}
-                        >
-                            INSTANT ACCESS
-                        </div>
-                        {studentInstantAccessItems.map((item) => (
-                            <Button
-                                key={item.label}
-                                asChild
-                                variant="ghost"
-                                className={[
-                                    'rounded-lg px-4 text-xs font-medium opacity-100',
-                                    isItemActive(item)
-                                        ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
-                                        : (isImmersive
-                                            ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
-                                            : ''),
-                                ].join(' ')}
-                            >
-                                <Link href={route(item.route)}>{item.label}</Link>
-                            </Button>
-                        ))}
+                        {studentInstantAccessItems.length > 0 && (
+                            <>
+                                <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
+                                <div
+                                    className={[
+                                        'hidden text-[11px] font-semibold uppercase tracking-[0.28em] lg:block',
+                                        isImmersive ? 'text-white/35' : 'text-muted-foreground',
+                                    ].join(' ')}
+                                >
+                                    INSTANT ACCESS
+                                </div>
+                                {studentInstantAccessItems.map((item) => (
+                                    <Button
+                                        key={item.label}
+                                        asChild
+                                        variant="ghost"
+                                        className={[
+                                            'rounded-lg px-4 text-xs font-medium opacity-100',
+                                            isItemActive(item)
+                                                ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
+                                                : (isImmersive
+                                                    ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
+                                                    : ''),
+                                        ].join(' ')}
+                                    >
+                                        <Link href={route(item.route)}>{item.label}</Link>
+                                    </Button>
+                                ))}
+                            </>
+                        )}
                     </div>
 
                     {/* RIGHT: user menu */}

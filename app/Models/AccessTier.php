@@ -10,7 +10,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'slug', 'description', 'thumbnail', 'price', 'currency_code', 'level', 'is_active', 'payment_link'])]
+#[Fillable([
+    'name',
+    'slug',
+    'description',
+    'thumbnail',
+    'price',
+    'currency_code',
+    'level',
+    'is_active',
+    'payment_link',
+    'has_full_standing_dialog_access',
+    'has_full_floor_dialog_access',
+])]
 class AccessTier extends Model
 {
     /** @use HasFactory<AccessTierFactory> */
@@ -48,6 +60,8 @@ class AccessTier extends Model
             'is_active' => 'boolean',
             'price' => 'decimal:2',
             'level' => 'integer',
+            'has_full_standing_dialog_access' => 'boolean',
+            'has_full_floor_dialog_access' => 'boolean',
         ];
     }
 

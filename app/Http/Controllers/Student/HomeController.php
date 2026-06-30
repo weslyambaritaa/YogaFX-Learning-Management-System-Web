@@ -78,6 +78,8 @@ class HomeController extends Controller
                     'name' => $tier->name,
                     'slug' => $tier->slug,
                     'is_active' => $tier->is_active,
+                    'has_full_standing_dialog_access' => $tier->has_full_standing_dialog_access,
+                    'has_full_floor_dialog_access' => $tier->has_full_floor_dialog_access,
                 ] : null,
             ],
             'accessTimeSummary' => $user

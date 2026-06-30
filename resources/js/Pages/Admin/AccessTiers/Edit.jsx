@@ -8,6 +8,10 @@ export default function EditAccessTier({ accessTier, status }) {
         description: accessTier.description ?? '',
         level: accessTier.level ?? '1',
         is_active: accessTier.is_active ?? true,
+        has_full_standing_dialog_access:
+            accessTier.has_full_standing_dialog_access ?? false,
+        has_full_floor_dialog_access:
+            accessTier.has_full_floor_dialog_access ?? false,
     });
 
     const submit = (event) => {
