@@ -22,6 +22,7 @@ export default function LockedContentDialog({
     open,
     onOpenChange,
     kind = 'module',
+    reason = null,
 }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,7 +43,7 @@ export default function LockedContentDialog({
                         </div>
 
                         <DialogDescription className="pr-8 text-sm leading-7 text-white/70">
-                            {descriptionFor(kind)}
+                            {reason || descriptionFor(kind)}
                         </DialogDescription>
                     </DialogHeader>
 
