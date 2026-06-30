@@ -1,5 +1,7 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import PasswordField from '@/Components/PasswordField';
+import PasswordRequirementsCard from '@/Components/PasswordRequirementsCard';
 import { Button } from '@/Components/ui/button';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
@@ -22,6 +24,10 @@ export default function ResetPassword({ token, email, expires_at }) {
             onFinish: () => reset('password', 'password_confirmation'),
         });
     };
+
+    const confirmationMismatch =
+        data.password_confirmation !== '' &&
+        data.password_confirmation !== data.password;
 
     return (
         <GuestLayout>
@@ -102,12 +108,11 @@ export default function ResetPassword({ token, email, expires_at }) {
                         <div>
                             <InputLabel htmlFor="password" value="Password" />
 
-                            <TextInput
+                            <PasswordField
                                 id="password"
-                                type="password"
-                                name="password"
                                 value={data.password}
-                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
+                                className="mt-1 block w-full"
+                                inputClassName="rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="new-password"
                                 onChange={(e) => setData('password', e.target.value)}
                             />
@@ -115,23 +120,30 @@ export default function ResetPassword({ token, email, expires_at }) {
                             <InputError message={errors.password} className="mt-2" />
                         </div>
 
+                        <PasswordRequirementsCard password={data.password} />
+
                         <div>
                             <InputLabel
                                 htmlFor="password_confirmation"
                                 value="Confirm Password"
                             />
 
-                            <TextInput
-                                type="password"
+                            <PasswordField
                                 id="password_confirmation"
-                                name="password_confirmation"
                                 value={data.password_confirmation}
-                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
+                                className="mt-1 block w-full"
+                                inputClassName="rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 autoComplete="new-password"
                                 onChange={(e) =>
                                     setData('password_confirmation', e.target.value)
                                 }
                             />
+
+                            {confirmationMismatch ? (
+                                <p className="mt-2 text-sm text-red-500">
+                                    Password confirmation does not match the password above.
+                                </p>
+                            ) : null}
 
                             <InputError
                                 message={errors.password_confirmation}
