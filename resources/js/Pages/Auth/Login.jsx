@@ -1,4 +1,3 @@
-import Checkbox from "@/Components/Checkbox";
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
@@ -9,7 +8,6 @@ export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: "",
         password: "",
-        remember: false,
     });
 
     const submit = (e) => {
@@ -97,20 +95,7 @@ export default function Login({ status, canResetPassword }) {
                                     />
                                 </div>
 
-                                <div className="flex flex-wrap items-center justify-between gap-4">
-                                    <label className="flex items-center gap-2">
-                                        <Checkbox
-                                            name="remember"
-                                            checked={data.remember}
-                                            onChange={(e) =>
-                                                setData("remember", e.target.checked)
-                                            }
-                                        />
-                                        <span className="font-['Montserrat'] text-[14px] font-medium text-white/70">
-                                            Remember me
-                                        </span>
-                                    </label>
-
+                                <div className="flex flex-wrap items-center justify-end gap-4">
                                     {canResetPassword && (
                                         <Link
                                             href={route("password.request")}

@@ -51,7 +51,7 @@ class EmailOtpChallengeService
         return DB::transaction(function () use ($challenge, $otpCode, $request): User {
             $user = $this->consumeLoginChallenge($challenge, $otpCode);
 
-            Auth::login($user, (bool) ($challenge->payload['remember'] ?? false));
+            Auth::login($user, (bool) ($challenge->payload['remember'] ?? true));
             $request->session()->regenerate();
 
             if (! ($user->isStudent() && ! $user->isStudentAccountActive())) {

@@ -51,7 +51,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         $otpChallenge = $this->otpChallenges->createForLogin($user, [
-            'remember' => $request->boolean('remember'),
+            'remember' => true,
             'redirect_to' => $request->session()->get(
                 'url.intended',
                 route($user->postLoginRouteName(), absolute: false),
