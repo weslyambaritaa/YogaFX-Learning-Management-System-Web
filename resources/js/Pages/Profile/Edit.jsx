@@ -1,11 +1,12 @@
 import StudentProfileForm from "@/Components/StudentProfileForm";
+import TransientStatusBanner from "@/Components/TransientStatusBanner";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, router, useForm, usePage } from "@inertiajs/react";
+import { useState } from "react";
 
-export default function Edit({ status }) {
-    const user = usePage().props.auth.user;
-    const { data, setData, post, errors, processing, transform } = useForm({
+function buildProfileFormData(user) {
+    return {
         first_name: user.first_name ?? "",
         last_name: user.last_name ?? "",
         email: user.email ?? "",
@@ -24,7 +25,16 @@ export default function Edit({ status }) {
         motivation: user.motivation ?? "",
         why_yogafx: user.why_yogafx ?? "",
         how_did_you_find_us: user.how_did_you_find_us ?? [],
-    });
+    };
+}
+
+export default function Edit({ status }) {
+    const { auth } = usePage().props;
+    const user = auth.user;
+    const [submitNotice, setSubmitNotice] = useState(null);
+    const { data, setData, post, errors, processing, transform } = useForm(
+        buildProfileFormData(user),
+    );
 
     const submit = (event) => {
         event.preventDefault();
@@ -36,6 +46,20 @@ export default function Edit({ status }) {
 
         post(route("profile.update"), {
             forceFormData: true,
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: (page) => {
+                setSubmitNotice(null);
+                setData(buildProfileFormData(page.props.auth.user));
+            },
+            onError: () => {
+                setSubmitNotice({
+                    id: Date.now(),
+                    tone: "error",
+                    message:
+                        "Profile could not be updated. Please review the highlighted fields.",
+                });
+            },
             onFinish: () => transform((current) => current),
         });
     };
@@ -48,11 +72,13 @@ export default function Edit({ status }) {
             <Head title="Profile" />
 
             <div className="mx-auto flex max-w-[1100px] flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
-                {status === "profile-updated" ? (
-                    <div className="rounded-[5px] border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-                        Your profile has been updated.
-                    </div>
-                ) : null}
+                <TransientStatusBanner
+                    message={submitNotice?.message}
+                    tone={submitNotice?.tone}
+                    noticeKey={submitNotice?.id}
+                    onDismiss={() => setSubmitNotice(null)}
+                    className="shadow-[0_10px_30px_rgba(244,63,94,0.12)]"
+                />
 
                 {status === "student-password-change-email-sent" ? (
                     <div className="rounded-[5px] border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">

@@ -6,6 +6,7 @@ use App\Support\CountryDirectory;
 use App\Support\StudentProfileValidationRules;
 use App\Support\StudentProfileValue;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 
@@ -45,6 +46,9 @@ class ProfileUpdateRequest extends FormRequest
         $this->merge([
             'whatsapp' => CountryDirectory::formatPhoneNumber($whatsappCountryCode, $whatsappNumber),
             'birth_date' => $birthDate,
+            'gender' => StudentProfileValue::normalizeGender(
+                $this->input('gender'),
+            ),
             'practicing_yoga_for' => StudentProfileValue::normalizePracticingYogaFor(
                 $this->input('practicing_yoga_for'),
             ),
@@ -54,10 +58,42 @@ class ProfileUpdateRequest extends FormRequest
             'hours_per_week' => StudentProfileValue::normalizeHoursPerWeek(
                 $this->input('hours_per_week'),
             ),
+            'current_fitness_level' => StudentProfileValue::normalizeFitnessLevel(
+                $this->input('current_fitness_level'),
+            ),
+            'flexibility_rating' => StudentProfileValue::normalizeFitnessLevel(
+                $this->input('flexibility_rating'),
+            ),
             'how_did_you_find_us' => StudentProfileValue::normalizeHowDidYouFindUs(
                 $this->input('how_did_you_find_us'),
             ),
         ]);
+
+        if (app()->environment(['local', 'development'])) {
+            logger()->info('Profile update request debug', [
+                'user_id' => $this->user()?->id,
+                'input_gender' => $this->input('gender'),
+                'has_gender' => $this->has('gender'),
+                'input_hours_per_week' => $this->input('hours_per_week'),
+                'input_current_fitness_level' => $this->input('current_fitness_level'),
+                'input_flexibility_rating' => $this->input('flexibility_rating'),
+                'request_keys' => array_keys($this->except(['password', 'profile_photo'])),
+            ]);
+        }
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        if (app()->environment(['local', 'development'])) {
+            logger()->warning('Profile update validation failed', [
+                'user_id' => $this->user()?->id,
+                'input_gender' => $this->input('gender'),
+                'input_hours_per_week' => $this->input('hours_per_week'),
+                'errors' => $validator->errors()->toArray(),
+            ]);
+        }
+
+        parent::failedValidation($validator);
     }
 
     private function normalizeBirthDate(mixed $value): mixed
