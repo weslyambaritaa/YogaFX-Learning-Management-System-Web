@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AccessTierRequest;
@@ -13,7 +12,6 @@ use Inertia\Response;
 
 class AccessTierController extends Controller
 {
-    use BuildsProtectedMediaUrls;
     use HandlesLocalUploads;
 
     public function index(): Response
@@ -28,17 +26,7 @@ class AccessTierController extends Controller
                 ->map(fn (AccessTier $accessTier) => [
                     'id' => $accessTier->id,
                     'name' => $accessTier->name,
-                    'slug' => $accessTier->slug,
                     'description' => $accessTier->description,
-                    'thumbnail_url' => $this->protectedMediaUrl(
-                        'access-tier',
-                        $accessTier->id,
-                        'thumbnail',
-                        $accessTier->thumbnail,
-                        versionSeed: $accessTier->updated_at,
-                    ),
-                    'price' => (float) $accessTier->price,
-                    'currency_code' => $accessTier->currency_code,
                     'level' => $accessTier->level,
                     'is_active' => $accessTier->is_active,
                     'users_count' => $accessTier->users_count,
@@ -56,10 +44,9 @@ class AccessTierController extends Controller
     {
         $data = $request->validated();
         $data['payment_link'] = AccessTier::publicPaymentPathForSlug($data['slug']);
-        $data['thumbnail'] = $this->storeUploadedFile(
-            $request->file('thumbnail'),
-            'access-tiers/thumbnails',
-        );
+        $data['thumbnail'] = null;
+        $data['price'] = 0;
+        $data['currency_code'] = AccessTier::CURRENCY_IDR;
 
         AccessTier::query()->create($data);
 
@@ -76,17 +63,7 @@ class AccessTierController extends Controller
             'accessTier' => [
                 'id' => $accessTier->id,
                 'name' => $accessTier->name,
-                'slug' => $accessTier->slug,
                 'description' => $accessTier->description,
-                'thumbnail_url' => $this->protectedMediaUrl(
-                    'access-tier',
-                    $accessTier->id,
-                    'thumbnail',
-                    $accessTier->thumbnail,
-                    versionSeed: $accessTier->updated_at,
-                ),
-                'price' => (float) $accessTier->price,
-                'currency_code' => $accessTier->currency_code,
                 'level' => $accessTier->level,
                 'is_active' => $accessTier->is_active,
                 'users_count' => $accessTier->users_count,
@@ -99,11 +76,9 @@ class AccessTierController extends Controller
     {
         $data = $request->validated();
         $data['payment_link'] = AccessTier::publicPaymentPathForSlug($data['slug']);
-        $data['thumbnail'] = $this->storeUploadedFile(
-            $request->file('thumbnail'),
-            'access-tiers/thumbnails',
-            $accessTier->thumbnail,
-        );
+        $data['thumbnail'] = $accessTier->thumbnail;
+        $data['price'] = $accessTier->price;
+        $data['currency_code'] = $accessTier->currency_code;
 
         $accessTier->update($data);
 

@@ -5,11 +5,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 export default function CreateAccessTier() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
-        slug: '',
         description: '',
-        thumbnail: null,
-        price: '',
-        currency_code: 'IDR',
         level: '1',
         is_active: true,
     });
@@ -56,7 +52,6 @@ export default function CreateAccessTier() {
                             processing={processing}
                             onSubmit={submit}
                             submitLabel="Create Access Tier"
-                            currentThumbnailUrl={null}
                         />
                     </div>
                 </div>

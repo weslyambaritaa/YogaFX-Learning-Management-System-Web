@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\AccessTier;
-use App\Support\UploadConstraints;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -17,11 +16,16 @@ class AccessTierRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if ($this->filled('slug')) {
-            $this->merge([
-                'slug' => AccessTier::canonicalSlug((string) $this->input('slug')),
-            ]);
+        $accessTier = $this->route('accessTier');
+        $generatedSlug = $accessTier?->slug;
+
+        if ($generatedSlug === null || $generatedSlug === '') {
+            $generatedSlug = AccessTier::canonicalSlug((string) $this->input('name', ''));
         }
+
+        $this->merge([
+            'slug' => $generatedSlug,
+        ]);
     }
 
     /**
@@ -43,18 +47,8 @@ class AccessTierRequest extends FormRequest
                 Rule::unique(AccessTier::class, 'slug')->ignore($accessTier?->id),
             ],
             'description' => ['required', 'string', 'max:2000'],
-            'thumbnail' => ['nullable', 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
-            'price' => ['required', 'numeric', 'min:0'],
-            'currency_code' => ['required', 'string', Rule::in(AccessTier::CURRENCY_OPTIONS)],
             'level' => ['required', 'integer', 'min:1'],
             'is_active' => ['required', 'boolean'],
-        ];
-    }
-
-    public function messages(): array
-    {
-        return [
-            'thumbnail.max' => 'The thumbnail must not be larger than '.UploadConstraints::labelFromMb(UploadConstraints::MAX_FILE_SIZE_MB).'.',
         ];
     }
 }

@@ -1,5 +1,4 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { formatCurrency } from '@/lib/currency';
 import { Head, Link, usePage } from '@inertiajs/react';
 
 export default function AccessTiersIndex({ accessTiers, status }) {
@@ -50,16 +49,7 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
-                                            Thumbnail
-                                        </th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Tier
-                                        </th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
-                                            Slug
-                                        </th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
-                                            Price
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Status
@@ -76,31 +66,12 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                     {accessTiers.map((accessTier) => (
                                         <tr key={accessTier.id}>
                                             <td className="px-4 py-3">
-                                                {accessTier.thumbnail_url ? (
-                                                    <img
-                                                        src={accessTier.thumbnail_url}
-                                                        alt={accessTier.name}
-                                                        className="h-14 w-20 rounded-md object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="flex h-14 w-20 items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-[11px] uppercase tracking-[0.18em] text-gray-400">
-                                                        No image
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3">
                                                 <div className="font-medium text-gray-900">
                                                     {accessTier.name}
                                                 </div>
                                                 <div className="text-xs text-gray-500">
                                                     {accessTier.description}
                                                 </div>
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-700">
-                                                {accessTier.slug}
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-700">
-                                                {formatCurrency(accessTier.price, accessTier.currency_code)}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <span

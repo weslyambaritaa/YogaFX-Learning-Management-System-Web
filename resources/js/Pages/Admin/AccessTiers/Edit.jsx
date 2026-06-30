@@ -5,11 +5,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 export default function EditAccessTier({ accessTier, status }) {
     const { data, setData, patch, processing, errors } = useForm({
         name: accessTier.name ?? '',
-        slug: accessTier.slug ?? '',
         description: accessTier.description ?? '',
-        thumbnail: null,
-        price: accessTier.price ?? '',
-        currency_code: accessTier.currency_code ?? 'IDR',
         level: accessTier.level ?? '1',
         is_active: accessTier.is_active ?? true,
     });
@@ -94,7 +90,6 @@ export default function EditAccessTier({ accessTier, status }) {
                             processing={processing}
                             onSubmit={submit}
                             submitLabel="Save Access Tier"
-                            currentThumbnailUrl={accessTier.thumbnail_url}
                         />
                     </div>
                 </div>
