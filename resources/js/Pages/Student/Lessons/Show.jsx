@@ -69,73 +69,85 @@ function LessonNavCard({ item, onLockedClick }) {
     const body = (
         <div
             className={[
-                "group flex gap-3 rounded-[5px] border p-3 transition",
+                "group overflow-hidden rounded-[5px] border p-3 transition",
                 item.status === "current"
                     ? "border-[#DB202C]/60 bg-[#DB202C]/10 shadow-[0_10px_30px_rgba(219,32,44,0.16)]"
                     : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]",
             ].join(" ")}
         >
-            <div className="relative w-[150px] shrink-0 overflow-hidden rounded-[5px] bg-[#161211]">
-                {item.thumbnail_url ? (
-                    <img
-                        src={item.thumbnail_url}
-                        alt={item.title}
-                        className="aspect-video h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                ) : (
-                    <div className="aspect-video bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
-                )}
-            </div>
+            <div className="space-y-3">
+                <div className="relative overflow-hidden rounded-[5px] bg-[#161211]">
+                    {item.thumbnail_url ? (
+                        <img
+                            src={item.thumbnail_url}
+                            alt={item.title}
+                            className="aspect-video h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        />
+                    ) : (
+                        <div className="aspect-video bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                    )}
 
-            <div className="min-w-0 flex-1 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1.5">
-                        <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.18em] text-white/45">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+
+                    <div className="absolute right-2.5 top-2.5">
+                        <StudentStatusBadge
+                            status={navigationBadgeStatus(item)}
+                            label={navigationBadgeLabel(item)}
+                            className="scale-[0.72] origin-top-right shadow-none"
+                        />
+                    </div>
+
+                    {item.status === "current" ? (
+                        <div className="absolute inset-x-0 bottom-0 h-1 bg-[#DB202C]" />
+                    ) : null}
+                </div>
+
+                <div className="min-w-0 space-y-2.5">
+                    <div className="space-y-1.5">
+                        <p className="font-['Montserrat'] text-[11px] font-medium uppercase tracking-[0.22em] text-white/40">
                             Lesson {item.sort_order}
                         </p>
-                        <p className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium leading-6 text-white">
+                        <p className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium leading-5 text-white">
                             {item.title}
                         </p>
                     </div>
 
-                    <StudentStatusBadge
-                        status={navigationBadgeStatus(item)}
-                        label={navigationBadgeLabel(item)}
-                        className="shrink-0 scale-[0.84] origin-top-right"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between font-['Montserrat'] text-[12px] font-medium text-white/45">
-                        <span>Progress</span>
-                        <span>{item.progress_percentage}%</span>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-3 font-['Montserrat'] text-[12px] font-medium text-white/45">
+                            <span>Progress</span>
+                            <span className="shrink-0">
+                                {item.progress_percentage}%
+                            </span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div
+                                className={[
+                                    "h-full rounded-full transition-all",
+                                    item.status === "completed"
+                                        ? "bg-emerald-500"
+                                        : item.status === "locked"
+                                          ? "bg-[#DB202C]"
+                                          : item.status === "current"
+                                            ? "bg-[#f15b3a]"
+                                            : "bg-white",
+                                ].join(" ")}
+                                style={{
+                                    width: `${item.progress_percentage}%`,
+                                }}
+                            />
+                        </div>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                        <div
-                            className={[
-                                "h-full rounded-full transition-all",
-                                item.status === "completed"
-                                    ? "bg-emerald-500"
-                                    : item.status === "locked"
-                                      ? "bg-[#DB202C]"
-                                      : item.status === "current"
-                                        ? "bg-[#f15b3a]"
-                                        : "bg-white",
-                            ].join(" ")}
-                            style={{ width: `${item.progress_percentage}%` }}
-                        />
-                    </div>
-                </div>
 
-                <div className="inline-flex items-center gap-1.5 font-['Montserrat'] text-[13px] font-medium text-white/68">
-                    <span>
-                        {item.is_locked
-                            ? "Locked for now"
-                            : item.status === "current"
-                              ? "Currently playing"
-                              : "Open lesson"}
-                    </span>
-                    <ChevronRight className="size-3.5 transition group-hover:translate-x-1" />
+                    <div className="inline-flex items-center gap-1.5 font-['Montserrat'] text-[12px] font-medium text-white/58">
+                        <span>
+                            {item.is_locked
+                                ? "Locked for now"
+                                : item.status === "current"
+                                  ? "Currently playing"
+                                  : "Open lesson"}
+                        </span>
+                        <ChevronRight className="size-3 transition group-hover:translate-x-1" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -1156,7 +1168,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     </p>
                                 </div>
 
-                                <div className="lg:h-[calc(100vh-7rem)] lg:overflow-y-auto">
+                                <div
+                                    className="lg:h-[calc(100vh-7rem)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                                    style={{
+                                        scrollbarWidth: "none",
+                                        msOverflowStyle: "none",
+                                    }}
+                                >
                                     <div className="space-y-3 p-4">
                                         {navigationItems?.map((item) => (
                                             <LessonNavCard
