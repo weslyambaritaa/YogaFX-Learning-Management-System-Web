@@ -623,7 +623,10 @@ export default function PublicCheckoutPanel({ checkout }) {
                 payment_type: paymentType,
                 payment_method: paymentMethod,
                 checkout_mode: "paypal",
-                billing_day: isInstallmentSelected ? billingDay : null,
+                billing_day:
+                    isInstallmentSelected && installmentAcceptsBillingDay
+                        ? billingDay
+                        : null,
                 first_name: currentData.first_name,
                 last_name: currentData.last_name,
                 billing_postcode: currentData.billing_postcode,

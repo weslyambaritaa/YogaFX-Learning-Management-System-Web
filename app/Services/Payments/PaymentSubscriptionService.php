@@ -27,7 +27,7 @@ class PaymentSubscriptionService
     public function startInitialCheckout(
         PendingRegistration $pendingRegistration,
         array $urls,
-        int $billingDay,
+        ?int $billingDay,
     ): array {
         $pendingRegistration->loadMissing('package', 'accessTier');
 
@@ -36,6 +36,10 @@ class PaymentSubscriptionService
         if (! $package instanceof Package || ! $this->installmentPlanCalculator->isEligible($package)) {
             abort(422, 'This package is not eligible for installment checkout.');
         }
+
+        $billingDay = $package->checkoutAcceptsBillingDay()
+            ? $package->resolveInstallmentBillingDay($billingDay)
+            : null;
 
         $existingPreparedSubscription = PaymentSubscription::query()
             ->with('invoice')
@@ -51,7 +55,7 @@ class PaymentSubscriptionService
         if (
             $existingPreparedSubscription instanceof PaymentSubscription
             && $existingPreparedSubscription->invoice instanceof Invoice
-            && (int) $existingPreparedSubscription->billing_day === $billingDay
+            && (int) ($existingPreparedSubscription->billing_day ?? 0) === (int) ($billingDay ?? 0)
             && is_string($existingPreparedSubscription->provider_plan_id)
             && $existingPreparedSubscription->provider_plan_id !== ''
         ) {
@@ -64,7 +68,7 @@ class PaymentSubscriptionService
 
         if (
             $existingPreparedSubscription instanceof PaymentSubscription
-            && (int) $existingPreparedSubscription->billing_day !== $billingDay
+            && (int) ($existingPreparedSubscription->billing_day ?? 0) !== (int) ($billingDay ?? 0)
             && (
                 (is_string($existingPreparedSubscription->provider_subscription_id) && $existingPreparedSubscription->provider_subscription_id !== '')
                 || $existingPreparedSubscription->status !== PaymentSubscription::STATUS_DRAFT
@@ -85,9 +89,9 @@ class PaymentSubscriptionService
 
         /** @var array{invoice: Invoice, payment_subscription: PaymentSubscription} $created */
         $created = DB::transaction(function () use ($pendingRegistration, $package, $installmentPlan, $billingDay, $existingPreparedSubscription): array {
-            $pendingRegistration->forceFill([
-                'installment_billing_day' => $billingDay,
-            ])->save();
+                $pendingRegistration->forceFill([
+                    'installment_billing_day' => $billingDay,
+                ])->save();
 
             if (
                 $existingPreparedSubscription instanceof PaymentSubscription
@@ -220,7 +224,7 @@ class PaymentSubscriptionService
             $paypalPlanIds = is_array($metadata['paypal_plan_ids'] ?? null)
                 ? $metadata['paypal_plan_ids']
                 : [];
-            $paypalPlanIds[(string) $billingDay] = $planId;
+            $paypalPlanIds[$this->providerPlanKeyForBillingDay($billingDay)] = $planId;
             $metadata['paypal_plan_ids'] = $paypalPlanIds;
 
             if ($package->paypal_product_id !== $productId || $package->paypal_plan_id !== $planId || $package->metadata !== $metadata) {
@@ -291,13 +295,13 @@ class PaymentSubscriptionService
         return $paymentSubscription->fresh();
     }
 
-    private function providerPlanIdForBillingDay(Package $package, int $billingDay): ?string
+    private function providerPlanIdForBillingDay(Package $package, ?int $billingDay): ?string
     {
         $metadata = is_array($package->metadata) ? $package->metadata : [];
         $paypalPlanIds = is_array($metadata['paypal_plan_ids'] ?? null)
             ? $metadata['paypal_plan_ids']
             : [];
-        $planId = $paypalPlanIds[(string) $billingDay] ?? null;
+        $planId = $paypalPlanIds[$this->providerPlanKeyForBillingDay($billingDay)] ?? null;
 
         if (is_string($planId) && $planId !== '') {
             return $planId;
@@ -312,5 +316,10 @@ class PaymentSubscriptionService
         }
 
         return null;
+    }
+
+    private function providerPlanKeyForBillingDay(?int $billingDay): string
+    {
+        return $billingDay === null ? 'default' : (string) $billingDay;
     }
 }

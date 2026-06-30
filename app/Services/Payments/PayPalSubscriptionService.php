@@ -77,6 +77,11 @@ class PayPalSubscriptionService
         array $installmentPlan,
         string $productId,
     ): array {
+        $intervalUnit = (string) ($installmentPlan['billing_interval_unit']
+            ?? ($package->billing_interval_unit ?: 'MONTH'));
+        $intervalCount = (int) ($installmentPlan['billing_interval_count']
+            ?? ($package->billing_interval_count ?: 1));
+
         $payload = [
             'product_id' => $productId,
             'name' => sprintf('%s Installment Plan', $this->productName($package)),
@@ -88,8 +93,8 @@ class PayPalSubscriptionService
             'status' => 'ACTIVE',
             'billing_cycles' => [[
                 'frequency' => [
-                    'interval_unit' => (string) ($package->billing_interval_unit ?: 'MONTH'),
-                    'interval_count' => (int) ($package->billing_interval_count ?: 1),
+                    'interval_unit' => $intervalUnit,
+                    'interval_count' => $intervalCount,
                 ],
                 'tenure_type' => 'REGULAR',
                 'sequence' => 1,
@@ -97,7 +102,7 @@ class PayPalSubscriptionService
                 'pricing_scheme' => [
                     'fixed_price' => [
                         'currency_code' => $installmentPlan['currency_code'],
-                        'value' => $installmentPlan['monthly_base_amount'],
+                        'value' => $installmentPlan['recurring_payment_amount'],
                     ],
                 ],
             ]],

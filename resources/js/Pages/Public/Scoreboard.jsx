@@ -1,9 +1,14 @@
 import PublicCheckoutPanel from "@/Components/public/PublicCheckoutPanel";
+import FlagOptionSelect from "@/Components/FlagOptionSelect";
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
 import { Button } from "@/Components/ui/button";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
+import {
+    enrichCountryOptions,
+    findCountryOptionByDialCode,
+} from "@/lib/countryFlags";
 import { formatCurrency } from "@/lib/currency";
 import { usePage } from "@inertiajs/react";
 import { useEffect, useRef, useState } from "react";
@@ -39,8 +44,10 @@ export default function Scoreboard({
     is_package_locked = false,
 }) {
     const { directory = {} } = usePage().props;
-    const countryOptions = directory.countries ?? [];
-    const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
+    const countryOptions = enrichCountryOptions(directory.countries ?? []);
+    const phoneCountryCodeOptions = enrichCountryOptions(
+        directory.phone_country_codes ?? [],
+    );
     const [data, setData] = useState({
         first_name: "",
         last_name: "",
@@ -59,6 +66,13 @@ export default function Scoreboard({
         packages.find(
             (pkg) => String(pkg.id) === String(data.package_id),
         ) ?? null;
+    const selectedCountryOption =
+        countryOptions.find((option) => option.value === data.country) ?? null;
+    const selectedPhoneCountryOption = findCountryOptionByDialCode(
+        phoneCountryCodeOptions,
+        data.phone_country_code,
+        data.country,
+    );
     const selectedPackageHasPrice = Number(selectedPackage?.price ?? 0) > 0;
     const isIdentityLocked = checkout !== null;
 
@@ -274,32 +288,29 @@ export default function Scoreboard({
                                 style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
                             <div className="mt-2 grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)]">
-                                <select
+                                <FlagOptionSelect
                                     id="phone_country_code"
                                     value={data.phone_country_code}
-                                    disabled={isIdentityLocked}
-                                    onChange={(event) =>
+                                    selectedOption={selectedPhoneCountryOption}
+                                    options={phoneCountryCodeOptions}
+                                    onChange={(option) =>
                                         setFieldValue(
                                             "phone_country_code",
-                                            event.target.value,
+                                            option.value,
                                         )
                                     }
-                                    className="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
-                                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                    required
-                                >
-                                    {phoneCountryCodeOptions.map((option, index) => (
-                                        <option
-                                            key={`${option.value}-${option.label}-${index}`}
-                                            value={option.value}
-                                            className="bg-gray-900 text-white"
-                                            style={{ fontFamily: FONT_FAMILY }}
-                                        >
-                                            {option.flag ? `${option.flag} ` : ""}
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                    disabled={isIdentityLocked}
+                                    buttonClassName="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    buttonTextClassName="text-sm font-normal text-white"
+                                    placeholderClassName="text-sm font-normal text-white/50"
+                                    panelClassName="border-white/10 bg-[#161616] text-white"
+                                    optionClassName="px-4 py-3 text-sm"
+                                    optionActiveClassName="bg-white/10"
+                                    optionSelectedClassName="text-[#DB202C]"
+                                    optionTextClassName="text-sm font-normal text-white"
+                                    chevronClassName="text-white/60"
+                                    fallbackClassName="bg-white/10 text-white/70"
+                                />
                                 <TextInput
                                     id="phone_number"
                                     value={data.phone_number}
@@ -332,43 +343,39 @@ export default function Scoreboard({
                                 className="text-sm font-medium text-white/90"
                                 style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
-                            <select
-                                id="country"
-                                value={data.country}
-                                disabled={isIdentityLocked}
-                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                onChange={(event) => {
-                                    const value = event.target.value;
-                                    setFieldValue("country", value);
-                                    const matchedDialCode =
-                                        phoneCountryCodeOptions.find((option) =>
-                                            option.label.startsWith(`${value} (`),
-                                        );
-                                    if (matchedDialCode && !data.phone_number) {
-                                        setFieldValue(
-                                            "phone_country_code",
-                                            matchedDialCode.value,
-                                        );
-                                    }
-                                }}
-                                required
-                                >
-                                <option value="" className="bg-gray-900 text-white" style={{ fontFamily: FONT_FAMILY }}>
-                                    Select a country
-                                </option>
-                                {countryOptions.map((option, index) => (
-                                    <option
-                                        key={`${option.value}-${option.label}-${index}`}
-                                        value={option.value}
-                                        className="bg-gray-900 text-white"
-                                        style={{ fontFamily: FONT_FAMILY }}
-                                    >
-                                        {option.flag ? `${option.flag} ` : ""}
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                            <div className="mt-2">
+                                <FlagOptionSelect
+                                    id="country"
+                                    value={data.country}
+                                    selectedOption={selectedCountryOption}
+                                    options={countryOptions}
+                                    onChange={(option) => {
+                                        setFieldValue("country", option.value);
+                                        const matchedDialCode =
+                                            phoneCountryCodeOptions.find((entry) =>
+                                                entry.label.startsWith(`${option.label} (`),
+                                            );
+                                        if (matchedDialCode && !data.phone_number) {
+                                            setFieldValue(
+                                                "phone_country_code",
+                                                matchedDialCode.value,
+                                            );
+                                        }
+                                    }}
+                                    placeholder="Select a country"
+                                    disabled={isIdentityLocked}
+                                    buttonClassName="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    buttonTextClassName="text-sm font-normal text-white"
+                                    placeholderClassName="text-sm font-normal text-white/50"
+                                    panelClassName="border-white/10 bg-[#161616] text-white"
+                                    optionClassName="px-4 py-3 text-sm"
+                                    optionActiveClassName="bg-white/10"
+                                    optionSelectedClassName="text-[#DB202C]"
+                                    optionTextClassName="text-sm font-normal text-white"
+                                    chevronClassName="text-white/60"
+                                    fallbackClassName="bg-white/10 text-white/70"
+                                />
+                            </div>
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
                                 style={{ fontFamily: FONT_FAMILY }}

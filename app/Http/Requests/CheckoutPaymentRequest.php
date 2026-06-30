@@ -59,6 +59,23 @@ class CheckoutPaymentRequest extends FormRequest
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        /** @var PendingRegistration|null $pendingRegistration */
+        $pendingRegistration = $this->route('pendingRegistration');
+        $package = $pendingRegistration?->package;
+
+        if (
+            $package instanceof Package
+            && (string) $this->input('payment_type') === Invoice::PAYMENT_TYPE_INSTALLMENT
+            && ! $package->checkoutAcceptsBillingDay()
+        ) {
+            $this->merge([
+                'billing_day' => null,
+            ]);
+        }
+    }
+
     public function after(): array
     {
         return [

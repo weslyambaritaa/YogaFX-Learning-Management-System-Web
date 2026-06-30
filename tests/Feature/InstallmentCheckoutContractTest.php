@@ -501,8 +501,10 @@ class InstallmentCheckoutContractTest extends TestCase
                 ->where('checkout.installment_allowed_billing_days', []));
     }
 
-    public function test_backend_rejects_billing_day_for_non_monthly_installment_package(): void
+    public function test_backend_ignores_billing_day_for_non_monthly_installment_package(): void
     {
+        Carbon::setTestNow('2026-12-29 09:00:00');
+
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
         ]);
@@ -515,6 +517,8 @@ class InstallmentCheckoutContractTest extends TestCase
             'billing_interval_unit' => 'DAY',
             'billing_interval_count' => 1,
             'allowed_billing_days' => [1, 15],
+            'installment_deadline_month' => 1,
+            'installment_deadline_day' => 1,
         ]);
 
         $pendingRegistration = PendingRegistration::query()->create([
@@ -531,6 +535,15 @@ class InstallmentCheckoutContractTest extends TestCase
             'checkout_opened_at' => now(),
         ]);
 
+        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
+            $mock->shouldReceive('createProduct')
+                ->once()
+                ->andReturn(['id' => 'PROD-DAILY-IGNORED', 'status' => 'ACTIVE']);
+            $mock->shouldReceive('createPlan')
+                ->once()
+                ->andReturn(['id' => 'P-DAILY-IGNORED', 'status' => 'ACTIVE']);
+        });
+
         $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
             'pendingRegistration' => $pendingRegistration->id,
             'accessTierSlug' => $tier->slug,
@@ -541,7 +554,77 @@ class InstallmentCheckoutContractTest extends TestCase
             'billing_day' => 15,
             'terms_accepted' => true,
         ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['billing_day']);
+            ->assertOk()
+            ->assertJsonPath('status', 'prepared')
+            ->assertJsonPath('provider_plan_id', 'P-DAILY-IGNORED');
+
+        $this->assertDatabaseHas('pending_registrations', [
+            'id' => $pendingRegistration->id,
+            'installment_billing_day' => null,
+        ]);
+
+        $this->assertDatabaseHas('payment_subscriptions', [
+            'pending_registration_id' => $pendingRegistration->id,
+            'billing_day' => null,
+            'provider_plan_id' => 'P-DAILY-IGNORED',
+        ]);
+    }
+
+    public function test_backend_allows_daily_installment_checkout_without_billing_day(): void
+    {
+        Carbon::setTestNow('2026-12-29 09:00:00');
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'slug' => 'masterclass-standard-test-daily-plan',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'billing_interval_unit' => 'DAY',
+            'billing_interval_count' => 1,
+            'allowed_billing_days' => [1, 15],
+            'installment_deadline_month' => 1,
+            'installment_deadline_day' => 1,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Ava',
+            'last_name' => 'Stone',
+            'email' => 'ava@example.com',
+            'phone' => '+6281234567890',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+            'checkout_opened_at' => now(),
+        ]);
+
+        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
+            $mock->shouldReceive('createProduct')
+                ->once()
+                ->andReturn(['id' => 'PROD-DAILY-001', 'status' => 'ACTIVE']);
+            $mock->shouldReceive('createPlan')
+                ->once()
+                ->andReturn(['id' => 'P-DAILY-001', 'status' => 'ACTIVE']);
+        });
+
+        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
+            'pendingRegistration' => $pendingRegistration->id,
+            'accessTierSlug' => $tier->slug,
+        ]), [
+            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+            'payment_method' => 'paypal',
+            'checkout_mode' => 'paypal',
+            'terms_accepted' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('status', 'prepared')
+            ->assertJsonPath('flow', 'subscription')
+            ->assertJsonPath('provider_plan_id', 'P-DAILY-001');
     }
 }

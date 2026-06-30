@@ -31,6 +31,8 @@ class InstallmentPlanCalculator
         $checkoutDate = $this->normalizeDate($checkoutAt);
         $billingDay = $this->resolveBillingDay($package, $billingDay);
         [$deadlineMonth, $deadlineDay] = $this->resolveDeadline($package, $billingDay);
+        $intervalUnit = $this->resolveIntervalUnit($package);
+        $intervalCount = $this->resolveIntervalCount($package);
         $finalDueAt = $this->resolveFinalDueAt($checkoutDate, $deadlineMonth, $deadlineDay);
 
         if ($checkoutDate->greaterThan($finalDueAt)) {
@@ -41,12 +43,23 @@ class InstallmentPlanCalculator
             $checkoutDate,
             $finalDueAt,
             $billingDay,
+            $intervalUnit,
+            $intervalCount,
         );
 
         $installmentCount = 1 + count($recurringDueDates);
         $totalAmount = $this->normalizeAmount($package->price);
-        $monthlyBaseAmount = floor($totalAmount / $installmentCount);
-        $firstPaymentAmount = $totalAmount - ($monthlyBaseAmount * ($installmentCount - 1));
+
+        if ($intervalUnit === 'MONTH') {
+            $recurringAmount = floor($totalAmount / $installmentCount);
+            $firstPaymentAmount = $totalAmount - ($recurringAmount * ($installmentCount - 1));
+        } else {
+            $totalAmountCents = $this->amountToCents($totalAmount);
+            $recurringAmountCents = intdiv($totalAmountCents, $installmentCount);
+            $firstPaymentAmountCents = $totalAmountCents - ($recurringAmountCents * ($installmentCount - 1));
+            $recurringAmount = $this->centsToAmount($recurringAmountCents);
+            $firstPaymentAmount = $this->centsToAmount($firstPaymentAmountCents);
+        }
 
         $graceDeadlines = array_map(
             fn (CarbonImmutable $dueDate) => $dueDate->addDays(3)->format('Y-m-d'),
@@ -65,7 +78,7 @@ class InstallmentPlanCalculator
             $scheduleBreakdown[] = [
                 'cycle_number' => $index + 2,
                 'type' => 'recurring',
-                'amount' => $this->formatAmount($monthlyBaseAmount),
+                'amount' => $this->formatAmount($recurringAmount),
                 'due_at' => $dueDate->format('Y-m-d'),
                 'grace_deadline' => $dueDate->addDays(3)->format('Y-m-d'),
             ];
@@ -76,9 +89,11 @@ class InstallmentPlanCalculator
             'currency_code' => (string) $package->currency_code,
             'installment_count' => $installmentCount,
             'first_payment_amount' => $this->formatAmount($firstPaymentAmount),
-            'monthly_base_amount' => $this->formatAmount($monthlyBaseAmount),
-            'recurring_payment_amount' => $this->formatAmount($monthlyBaseAmount),
+            'monthly_base_amount' => $this->formatAmount($recurringAmount),
+            'recurring_payment_amount' => $this->formatAmount($recurringAmount),
             'billing_day' => $billingDay,
+            'billing_interval_unit' => $intervalUnit,
+            'billing_interval_count' => $intervalCount,
             'first_payment_date' => $checkoutDate->format('Y-m-d'),
             'recurring_due_dates' => array_map(
                 fn (CarbonImmutable $date) => $date->format('Y-m-d'),
@@ -103,8 +118,12 @@ class InstallmentPlanCalculator
         return CarbonImmutable::now()->startOfDay();
     }
 
-    private function resolveBillingDay(Package $package, ?int $selectedBillingDay = null): int
+    private function resolveBillingDay(Package $package, ?int $selectedBillingDay = null): ?int
     {
+        if (! $package->usesMonthlyInstallmentCycle()) {
+            return null;
+        }
+
         if ($selectedBillingDay !== null) {
             if (! in_array($selectedBillingDay, [1, 15], true)) {
                 throw new InvalidArgumentException('Selected billing day must be either 1 or 15.');
@@ -123,10 +142,12 @@ class InstallmentPlanCalculator
     /**
      * @return array{0:int,1:int}
      */
-    private function resolveDeadline(Package $package, int $billingDay): array
+    private function resolveDeadline(Package $package, ?int $billingDay): array
     {
         $month = (int) ($package->installment_deadline_month ?: 1);
-        $day = $billingDay;
+        $day = $package->usesMonthlyInstallmentCycle()
+            ? (int) ($billingDay ?? 15)
+            : (int) ($package->installment_deadline_day ?: 15);
 
         if ($month < 1 || $month > 12) {
             throw new InvalidArgumentException('Package installment deadline month is invalid.');
@@ -147,26 +168,62 @@ class InstallmentPlanCalculator
         return CarbonImmutable::create($year, $deadlineMonth, $deadlineDay)->startOfDay();
     }
 
+    private function resolveIntervalUnit(Package $package): string
+    {
+        return $package->normalizedBillingIntervalUnit() ?: 'MONTH';
+    }
+
+    private function resolveIntervalCount(Package $package): int
+    {
+        $intervalCount = (int) ($package->billing_interval_count ?: 1);
+
+        return max(1, $intervalCount);
+    }
+
     /**
      * @return array<int, CarbonImmutable>
      */
     private function buildRecurringDueDates(
         CarbonImmutable $checkoutDate,
         CarbonImmutable $finalDueAt,
-        int $billingDay,
+        ?int $billingDay,
+        string $intervalUnit,
+        int $intervalCount,
     ): array {
-        $firstRecurringMonth = $checkoutDate->startOfMonth()->addMonth();
-        $cursor = CarbonImmutable::create(
-            $firstRecurringMonth->year,
-            $firstRecurringMonth->month,
-            $billingDay,
-        )->startOfDay();
+        if ($intervalUnit === 'MONTH') {
+            $firstRecurringMonth = $checkoutDate->startOfMonth()->addMonth();
+            $cursor = CarbonImmutable::create(
+                $firstRecurringMonth->year,
+                $firstRecurringMonth->month,
+                (int) ($billingDay ?? 15),
+            )->startOfDay();
+
+            $dates = [];
+
+            while ($cursor->lessThanOrEqualTo($finalDueAt)) {
+                $dates[] = $cursor;
+                $cursor = $cursor->addMonthsNoOverflow($intervalCount);
+            }
+
+            return $dates;
+        }
 
         $dates = [];
+        $cursor = match ($intervalUnit) {
+            'DAY' => $checkoutDate->addDays($intervalCount),
+            'WEEK' => $checkoutDate->addWeeks($intervalCount),
+            'YEAR' => $checkoutDate->addYears($intervalCount),
+            default => $checkoutDate->addDays($intervalCount),
+        };
 
         while ($cursor->lessThanOrEqualTo($finalDueAt)) {
             $dates[] = $cursor;
-            $cursor = $cursor->addMonthNoOverflow();
+            $cursor = match ($intervalUnit) {
+                'DAY' => $cursor->addDays($intervalCount),
+                'WEEK' => $cursor->addWeeks($intervalCount),
+                'YEAR' => $cursor->addYears($intervalCount),
+                default => $cursor->addDays($intervalCount),
+            };
         }
 
         return $dates;
@@ -175,6 +232,16 @@ class InstallmentPlanCalculator
     private function normalizeAmount(float|int|string $amount): float
     {
         return round((float) $amount, 2);
+    }
+
+    private function amountToCents(float $amount): int
+    {
+        return (int) round($amount * 100);
+    }
+
+    private function centsToAmount(int $amountCents): float
+    {
+        return $amountCents / 100;
     }
 
     private function formatAmount(float $amount): string
