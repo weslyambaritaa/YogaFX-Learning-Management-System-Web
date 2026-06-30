@@ -2,11 +2,10 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PasswordField from '@/Components/PasswordField';
 import PasswordRequirementsCard from '@/Components/PasswordRequirementsCard';
-import TextInput from '@/Components/TextInput';
 import { Button } from '@/Components/ui/button';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
-import { KeyRound, MailCheck } from 'lucide-react';
+import { MailCheck } from 'lucide-react';
 
 export default function StudentPasswordChange({ token, email, expires_at, status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -30,25 +29,6 @@ export default function StudentPasswordChange({ token, email, expires_at, status
             <Head title="Student Password Change" />
 
             <div className="space-y-6">
-                <div className="rounded-[14px] border border-white/10 bg-[#15110f] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
-                    <div className="flex items-start gap-4">
-                        <div className="rounded-full border border-white/10 bg-white/5 p-3">
-                            <KeyRound className="size-5 text-[#ffd7cf]" />
-                        </div>
-                        <div className="space-y-2">
-                            <p className="text-xs uppercase tracking-[0.24em] text-white/48">
-                                Student Password Flow
-                            </p>
-                            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                                Verify your email code and set a new password
-                            </h1>
-                            <p className="max-w-2xl text-sm leading-7 text-white/62">
-                                Enter the OTP from your email and set a new password.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
                 {status === 'student-password-change-email-sent' && (
                     <div className="rounded-[12px] border border-emerald-300/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
                         Password change email sent. Check your inbox.
@@ -76,11 +56,12 @@ export default function StudentPasswordChange({ token, email, expires_at, status
                     <form onSubmit={submit} className="space-y-5">
                         <div>
                             <InputLabel htmlFor="otp_code" value="OTP Code" />
-                            <TextInput
+                            <PasswordField
                                 id="otp_code"
                                 value={data.otp_code}
                                 onChange={(event) => setData('otp_code', event.target.value)}
-                                className="mt-1 block w-full rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
+                                className="mt-1 block w-full"
+                                inputClassName="rounded-[14px] border-[#DB202C] focus:border-[#DB202C] focus:ring-[#DB202C]"
                                 inputMode="numeric"
                                 autoComplete="one-time-code"
                                 placeholder="Enter the 6-digit code"
