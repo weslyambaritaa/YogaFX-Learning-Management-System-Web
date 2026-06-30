@@ -77,11 +77,15 @@ class PaymentCheckoutService
     {
         $this->assertSupportedPaymentMethod($attributes['payment_method']);
         $pendingRegistration->loadMissing('package', 'accessTier');
+        $normalizedBillingDay = $this->normalizeCheckoutBillingDay(
+            $pendingRegistration->package,
+            isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null,
+        );
         $this->assertInitialCheckoutPaymentTypeSupported(
             $pendingRegistration,
             $attributes['payment_type'],
             $attributes['payment_method'],
-            isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null,
+            $normalizedBillingDay,
         );
 
         if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
@@ -91,7 +95,7 @@ class PaymentCheckoutService
             return $this->paymentSubscriptionService->startInitialCheckout($pendingRegistration, [
                 'return_url' => $this->checkoutSubscriptionReturnUrl($pendingRegistration),
                 'cancel_url' => $this->checkoutSubscriptionCancelUrl($pendingRegistration),
-            ], $package->resolveInstallmentBillingDay(isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null));
+            ], $normalizedBillingDay);
         }
 
         $pendingRegistration->loadMissing('onboardingState');
@@ -661,7 +665,7 @@ class PaymentCheckoutService
         }
 
         try {
-            $resolvedBillingDay = $package->resolveInstallmentBillingDay($billingDay);
+            $resolvedBillingDay = $this->normalizeCheckoutBillingDay($package, $billingDay);
         } catch (\InvalidArgumentException) {
             abort(422, 'The selected billing day is not available for this package.');
         }
@@ -675,6 +679,19 @@ class PaymentCheckoutService
         } catch (\DomainException|\InvalidArgumentException) {
             abort(422, 'This package is not eligible for installment checkout.');
         }
+    }
+
+    private function normalizeCheckoutBillingDay(?Package $package, ?int $billingDay): ?int
+    {
+        if (! $package instanceof Package) {
+            return $billingDay;
+        }
+
+        if (! $package->checkoutAcceptsBillingDay()) {
+            return null;
+        }
+
+        return $package->resolveInstallmentBillingDay($billingDay);
     }
 
     private function assertUpgradePaymentTypeSupported(string $paymentType): void
@@ -702,6 +719,32 @@ class PaymentCheckoutService
                 'selected_billing_day' => null,
                 'allowed_billing_days' => [],
                 'summaries' => [],
+            ];
+        }
+
+        if (! $package->checkoutAcceptsBillingDay()) {
+            try {
+                $summary = $this->installmentPlanCalculator->calculate(
+                    $package,
+                    $pendingRegistration->checkout_opened_at ?? now(),
+                    null,
+                );
+            } catch (\DomainException|\InvalidArgumentException) {
+                return [
+                    'selected_summary' => null,
+                    'selected_billing_day' => null,
+                    'allowed_billing_days' => [],
+                    'summaries' => [],
+                ];
+            }
+
+            return [
+                'selected_summary' => $summary,
+                'selected_billing_day' => null,
+                'allowed_billing_days' => [],
+                'summaries' => [
+                    'default' => $summary,
+                ],
             ];
         }
 

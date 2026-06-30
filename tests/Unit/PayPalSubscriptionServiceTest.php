@@ -176,6 +176,69 @@ class PayPalSubscriptionServiceTest extends TestCase
         });
     }
 
+    public function test_it_creates_paypal_daily_plan_using_non_zero_recurring_amount(): void
+    {
+        Http::fake([
+            'https://api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response([
+                'access_token' => 'paypal-access-token',
+            ]),
+            'https://api-m.sandbox.paypal.com/v1/billing/plans' => Http::response([
+                'id' => 'P-DAILY-123',
+                'status' => 'ACTIVE',
+            ], 201),
+        ]);
+
+        $package = new Package([
+            'access_tier_id' => 1,
+            'title' => 'Masterclass Standard Daily',
+            'slug' => 'masterclass-standard-test-daily-plan',
+            'description' => 'Daily sandbox plan.',
+            'price' => 29.99,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'billing_interval_unit' => 'DAY',
+            'billing_interval_count' => 1,
+            'installment_deadline_month' => 5,
+            'installment_deadline_day' => 15,
+        ]);
+
+        $result = $this->service()->createPlan(
+            $package,
+            [
+                'total_amount' => '29.99',
+                'currency_code' => 'USD',
+                'installment_count' => 319,
+                'first_payment_amount' => '1.37',
+                'monthly_base_amount' => '0.09',
+                'recurring_payment_amount' => '0.09',
+                'billing_interval_unit' => 'DAY',
+                'billing_interval_count' => 1,
+                'final_due_at' => '2027-05-15',
+            ],
+            'PROD-DAILY-123',
+        );
+
+        $this->assertSame([
+            'id' => 'P-DAILY-123',
+            'status' => 'ACTIVE',
+        ], $result);
+
+        Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://api-m.sandbox.paypal.com/v1/billing/plans') {
+                return false;
+            }
+
+            $data = $request->data();
+
+            return $data['product_id'] === 'PROD-DAILY-123'
+                && $data['billing_cycles'][0]['frequency']['interval_unit'] === 'DAY'
+                && $data['billing_cycles'][0]['frequency']['interval_count'] === 1
+                && $data['billing_cycles'][0]['total_cycles'] === 318
+                && $data['billing_cycles'][0]['pricing_scheme']['fixed_price']['value'] === '0.09'
+                && $data['payment_preferences']['setup_fee']['value'] === '1.37';
+        });
+    }
+
     public function test_it_can_get_cancel_suspend_and_activate_subscription(): void
     {
         Http::fake([

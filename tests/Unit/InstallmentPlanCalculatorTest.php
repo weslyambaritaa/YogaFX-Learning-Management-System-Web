@@ -220,14 +220,70 @@ class InstallmentPlanCalculatorTest extends TestCase
         );
     }
 
+    public function test_daily_installment_package_builds_daily_schedule_until_configured_deadline(): void
+    {
+        $plan = $this->calculator()->calculate(
+            $this->eligiblePackage(
+                price: 300,
+                allowedBillingDays: [1, 15],
+                overrides: [
+                    'billing_interval_unit' => 'DAY',
+                    'billing_interval_count' => 1,
+                    'installment_deadline_month' => 1,
+                    'installment_deadline_day' => 1,
+                ],
+            ),
+            '2026-12-29',
+            null,
+        );
+
+        $this->assertSame('DAY', $plan['billing_interval_unit']);
+        $this->assertSame(1, $plan['billing_interval_count']);
+        $this->assertNull($plan['billing_day']);
+        $this->assertSame('2027-01-01', $plan['final_due_at']);
+        $this->assertSame([
+            '2026-12-30',
+            '2026-12-31',
+            '2027-01-01',
+        ], $plan['recurring_due_dates']);
+        $this->assertSame(4, $plan['installment_count']);
+        $this->assertSame('75.00', $plan['first_payment_amount']);
+        $this->assertSame('75.00', $plan['recurring_payment_amount']);
+    }
+
     private function calculator(): InstallmentPlanCalculator
     {
         return new InstallmentPlanCalculator();
     }
 
-    private function eligiblePackage(int $price, array $allowedBillingDays = [1, 15]): Package
+    public function test_daily_installment_keeps_recurring_amount_above_zero_for_long_schedule(): void
     {
-        return new Package([
+        $plan = $this->calculator()->calculate(
+            $this->eligiblePackage(
+                price: 29.99,
+                overrides: [
+                    'billing_interval_unit' => 'DAY',
+                    'billing_interval_count' => 1,
+                    'installment_deadline_month' => 5,
+                    'installment_deadline_day' => 15,
+                ],
+            ),
+            '2026-06-30',
+            null,
+        );
+
+        $this->assertGreaterThan(100, $plan['installment_count']);
+        $this->assertSame('0.09', $plan['recurring_payment_amount']);
+        $this->assertSame('1.28', $plan['first_payment_amount']);
+    }
+
+    private function eligiblePackage(
+        float|int $price,
+        array $allowedBillingDays = [1, 15],
+        array $overrides = [],
+    ): Package
+    {
+        return new Package(array_merge([
             'access_tier_id' => 1,
             'title' => 'Masterclass Standard',
             'slug' => 'masterclass-standard',
@@ -242,6 +298,6 @@ class InstallmentPlanCalculatorTest extends TestCase
             'allowed_billing_days' => $allowedBillingDays,
             'installment_deadline_month' => 1,
             'installment_deadline_day' => 15,
-        ]);
+        ], $overrides));
     }
 }

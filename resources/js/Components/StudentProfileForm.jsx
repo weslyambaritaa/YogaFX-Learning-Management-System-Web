@@ -1,7 +1,12 @@
 import InputError from "@/Components/InputError";
+import FlagOptionSelect from "@/Components/FlagOptionSelect";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
 import { Button } from "@/Components/ui/button";
+import {
+    enrichCountryOptions,
+    findCountryOptionByDialCode,
+} from "@/lib/countryFlags";
 import {
     Dialog,
     DialogContent,
@@ -361,7 +366,16 @@ function ChoiceGrid({
     );
 }
 
-function SelectField({ id, label, value, onChange, error, options, theme }) {
+function SelectField({
+    id,
+    label,
+    value,
+    onChange,
+    error,
+    options,
+    theme,
+    selectedOption = null,
+}) {
     return (
         <div style={{ fontFamily: FONT_FAMILY }}>
             <InputLabel
@@ -370,37 +384,44 @@ function SelectField({ id, label, value, onChange, error, options, theme }) {
                 className={theme.labelWithSpacingClassName}
                 style={{ fontFamily: FONT_FAMILY }}
             />
-            <select
-                id={id}
-                value={value ?? ""}
-                onChange={(event) => onChange(event.target.value)}
-                className={theme.selectClassName}
-                style={{
-                    fontFamily: FONT_FAMILY,
-                    color:
-                        value && value !== ""
-                            ? theme.selectActiveColor
-                            : theme.selectPlaceholderColor,
-                }}
-            >
-                <option
-                    value=""
-                    disabled
-                    className={theme.selectOptionClassName}
+            <div className="relative">
+                <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-lg leading-none"
                 >
-                    Select an option
-                </option>
-                {options.map((option) => (
+                    {resolveCountryFlag(selectedOption)}
+                </span>
+                <select
+                    id={id}
+                    value={value ?? ""}
+                    onChange={(event) => onChange(event.target.value)}
+                    className={`${theme.selectClassName} pl-11`}
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        color:
+                            value && value !== ""
+                                ? theme.selectActiveColor
+                                : theme.selectPlaceholderColor,
+                    }}
+                >
                     <option
-                        key={option.value}
-                        value={option.value}
+                        value=""
+                        disabled
                         className={theme.selectOptionClassName}
                     >
-                        {resolveOptionFlagSafe(option)}{" "}
-                        {option.label}
+                        Select an option
                     </option>
-                ))}
-            </select>
+                    {options.map((option) => (
+                        <option
+                            key={option.value}
+                            value={option.value}
+                            className={theme.selectOptionClassName}
+                        >
+                            {resolveCountryFlag(option)} {option.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
             <InputError
                 message={error}
                 className={`${theme.errorClassName} mt-2`}
@@ -456,8 +477,17 @@ export default function StudentProfileForm({
     currentProfilePhotoUrl = null,
 }) {
     const { directory = {} } = usePage().props;
-    const countryOptions = directory.countries ?? [];
-    const phoneCountryCodeOptions = directory.phone_country_codes ?? [];
+    const countryOptions = enrichCountryOptions(directory.countries ?? []);
+    const phoneCountryCodeOptions = enrichCountryOptions(
+        directory.phone_country_codes ?? [],
+    );
+    const selectedCountryOption =
+        countryOptions.find((option) => option.value === data.country) ?? null;
+    const selectedPhoneCountryOption = findCountryOptionByDialCode(
+        phoneCountryCodeOptions,
+        data.whatsapp_country_code ?? "+62",
+        data.country ?? "",
+    );
     const isScoreboard = variant === "scoreboard";
     const isEnrollment = mode === "enrollment";
     const isAdminMode = mode === "admin";
@@ -820,32 +850,48 @@ export default function StudentProfileForm({
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
                             <div className="mt-2 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
-                                <select
+                                <FlagOptionSelect
                                     id="whatsapp_country_code"
                                     value={data.whatsapp_country_code ?? "+62"}
-                                    onChange={(event) =>
+                                    selectedOption={selectedPhoneCountryOption}
+                                    options={phoneCountryCodeOptions}
+                                    onChange={(option) =>
                                         setData(
                                             "whatsapp_country_code",
-                                            event.target.value,
+                                            option.value,
                                         )
                                     }
-                                    className={theme.selectClassName}
-                                    style={{
-                                        fontFamily: FONT_FAMILY,
-                                        color: "#DB202C",
-                                    }}
-                                >
-                                    {phoneCountryCodeOptions.map((option) => (
-                                        <option
-                                            key={`${option.value}-${option.label}`}
-                                            value={option.value}
-                                            className={theme.selectOptionClassName}
-                                        >
-                                            {resolveOptionFlagSafe(option)}{" "}
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                    buttonClassName={theme.selectClassName}
+                                    buttonTextClassName="text-sm font-normal text-[#DB202C]"
+                                    placeholderClassName={
+                                        isAdminMode
+                                            ? "text-sm font-normal text-slate-400"
+                                            : "text-sm font-normal text-white/50"
+                                    }
+                                    panelClassName={
+                                        isAdminMode
+                                            ? "border-slate-200 bg-white text-slate-900"
+                                            : "border-white/10 bg-[#161616] text-white"
+                                    }
+                                    optionClassName="px-3 py-2.5 text-sm"
+                                    optionActiveClassName={
+                                        isAdminMode
+                                            ? "bg-rose-50"
+                                            : "bg-white/10"
+                                    }
+                                    optionSelectedClassName="text-[#DB202C]"
+                                    optionTextClassName="text-sm font-normal"
+                                    chevronClassName={
+                                        isAdminMode
+                                            ? "text-slate-500"
+                                            : "text-white/60"
+                                    }
+                                    fallbackClassName={
+                                        isAdminMode
+                                            ? "bg-slate-100 text-slate-500"
+                                            : "bg-white/10 text-white/70"
+                                    }
+                                />
                                 <TextInput
                                     id="whatsapp_number"
                                     className={`block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
@@ -976,32 +1022,70 @@ export default function StudentProfileForm({
                             />
                         </div>
 
-                        <SelectField
-                            id="country"
-                            label="Country"
-                            value={data.country}
-                            onChange={(value) => {
-                                setData("country", value);
-                                const matchedCountry = countryOptions.find(
-                                    (option) => option.value === value,
-                                );
-                                const matchedDialCode =
-                                    phoneCountryCodeOptions.find((option) =>
-                                        option.label.startsWith(
-                                            `${matchedCountry?.label ?? ""} (`,
-                                        ),
-                                    );
-                                if (matchedDialCode && !data.whatsapp_number) {
-                                    setData(
-                                        "whatsapp_country_code",
-                                        matchedDialCode.value,
-                                    );
+                        <div>
+                            <InputLabel
+                                htmlFor="country"
+                                value="Country"
+                                className={theme.labelWithSpacingClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
+                            />
+                            <FlagOptionSelect
+                                id="country"
+                                value={data.country}
+                                selectedOption={selectedCountryOption}
+                                options={countryOptions}
+                                onChange={(option) => {
+                                    setData("country", option.value);
+                                    const matchedDialCode =
+                                        phoneCountryCodeOptions.find((entry) =>
+                                            entry.label.startsWith(
+                                                `${option.label} (`,
+                                            ),
+                                        );
+                                    if (matchedDialCode && !data.whatsapp_number) {
+                                        setData(
+                                            "whatsapp_country_code",
+                                            matchedDialCode.value,
+                                        );
+                                    }
+                                }}
+                                placeholder="Select a country"
+                                buttonClassName={theme.selectClassName}
+                                buttonTextClassName="text-sm font-normal text-[#DB202C]"
+                                placeholderClassName={
+                                    isAdminMode
+                                        ? "text-sm font-normal text-slate-400"
+                                        : "text-sm font-normal text-white/50"
                                 }
-                            }}
-                            error={errors.country}
-                            options={countryOptions}
-                            theme={theme}
-                        />
+                                panelClassName={
+                                    isAdminMode
+                                        ? "border-slate-200 bg-white text-slate-900"
+                                        : "border-white/10 bg-[#161616] text-white"
+                                }
+                                optionClassName="px-3 py-2.5 text-sm"
+                                optionActiveClassName={
+                                    isAdminMode
+                                        ? "bg-rose-50"
+                                        : "bg-white/10"
+                                }
+                                optionSelectedClassName="text-[#DB202C]"
+                                optionTextClassName="text-sm font-normal"
+                                chevronClassName={
+                                    isAdminMode
+                                        ? "text-slate-500"
+                                        : "text-white/60"
+                                }
+                                fallbackClassName={
+                                    isAdminMode
+                                        ? "bg-slate-100 text-slate-500"
+                                        : "bg-white/10 text-white/70"
+                                }
+                            />
+                            <InputError
+                                message={errors.country}
+                                className={`${theme.errorClassName} mt-2`}
+                            />
+                        </div>
 
                         <div>
                             <InputLabel
