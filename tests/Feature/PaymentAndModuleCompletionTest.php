@@ -100,8 +100,7 @@ class PaymentAndModuleCompletionTest extends TestCase
             'email' => 'ava@example.com',
             'is_active' => false,
         ]);
-
-        Queue::assertPushed(SendOnboardingContinuationEmailJob::class);
+        Queue::assertNotPushed(SendOnboardingContinuationEmailJob::class);
     }
 
     public function test_public_checkout_page_includes_paypal_client_configuration_for_onsite_components(): void
@@ -416,7 +415,7 @@ class PaymentAndModuleCompletionTest extends TestCase
             'status' => Payment::STATUS_SUCCESS,
         ]);
 
-        Queue::assertPushed(SendOnboardingContinuationEmailJob::class);
+        Queue::assertNotPushed(SendOnboardingContinuationEmailJob::class);
     }
 
     public function test_signup_completion_activates_student_account_and_completes_onboarding(): void

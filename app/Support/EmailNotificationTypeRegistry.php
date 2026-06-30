@@ -98,8 +98,8 @@ class EmailNotificationTypeRegistry
             [
                 'value' => self::SIGNUP,
                 'label' => 'Signup',
-                'description' => 'Welcome new students and optionally inform the admin team about fresh registrations.',
-                'trigger' => 'Triggered immediately after a user account is created successfully.',
+                'description' => 'Welcome students after onboarding is fully completed and the account is ready to use.',
+                'trigger' => 'Triggered after a student finishes signup completion and their onboarding account becomes active.',
                 'merge_tags' => [
                     '{{ user_name }}',
                     '{{ user_email }}',
@@ -107,7 +107,6 @@ class EmailNotificationTypeRegistry
                     '{{ access_tier }}',
                     '{{ access_tier_label }}',
                     '{{ registration_date }}',
-                    '{{ continuation_url }}',
                     '{{ dashboard_url }}',
                     '{{ login_url }}',
                 ],

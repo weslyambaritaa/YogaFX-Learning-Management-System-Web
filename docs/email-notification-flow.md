@@ -148,11 +148,12 @@ Dipicu saat admin mengubah status assignment menjadi rejected.
 Dipicu saat certificate dibuat atau graduation email dikirim dari area Student Progress.
 
 #### Signup
-Dipicu dari event `Registered`.
+Dipicu setelah student menyelesaikan signup completion pada flow onboarding.
 
 Catatan:
-- public signup route belum aktif
-- event ini tetap berguna untuk user yang dibuat lewat flow lain yang tetap memicu `Registered`
+- payment success tidak mengirim email `signup`
+- enrollment tidak mengirim email `signup`
+- email baru dikirim setelah password berhasil dibuat dan onboarding selesai
 
 #### Reset Password
 Dipicu saat user meminta reset password.

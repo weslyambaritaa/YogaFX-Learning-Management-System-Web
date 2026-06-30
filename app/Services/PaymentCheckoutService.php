@@ -534,11 +534,15 @@ class PaymentCheckoutService
     public function completeSignup(OnboardingState $onboardingState, string $password): User
     {
         return DB::transaction(function () use ($onboardingState, $password): User {
-            $onboardingState->loadMissing('user', 'pendingRegistration');
+            /** @var OnboardingState $lockedOnboardingState */
+            $lockedOnboardingState = OnboardingState::query()
+                ->with(['user.accessTier', 'pendingRegistration'])
+                ->lockForUpdate()
+                ->findOrFail($onboardingState->id);
 
-            abort_if($onboardingState->status !== OnboardingState::STATUS_AWAITING_SIGNUP, 409, 'Password creation is not available for this onboarding flow.');
+            abort_if($lockedOnboardingState->status !== OnboardingState::STATUS_AWAITING_SIGNUP, 409, 'Password creation is not available for this onboarding flow.');
 
-            $user = $onboardingState->user;
+            $user = $lockedOnboardingState->user;
             abort_unless($user instanceof User, 404);
 
             $user->forceFill([
@@ -547,12 +551,12 @@ class PaymentCheckoutService
                 'remember_token' => Str::random(60),
             ])->save();
 
-            $onboardingState->forceFill([
+            $lockedOnboardingState->forceFill([
                 'status' => OnboardingState::STATUS_COMPLETED,
                 'signup_completed_at' => now(),
             ])->save();
 
-            $onboardingState->pendingRegistration->forceFill([
+            $lockedOnboardingState->pendingRegistration->forceFill([
                 'status' => PendingRegistration::STATUS_COMPLETED,
                 'completed_at' => now(),
             ])->save();

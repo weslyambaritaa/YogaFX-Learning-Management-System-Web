@@ -26,7 +26,7 @@ class EmailNotificationController extends Controller
     {
         abort_unless(EmailNotificationTypeRegistry::isValid($notificationType), 404);
 
-        $template = $this->emailNotificationService->findOrCreateTemplate($notificationType);
+        $template = $this->emailNotificationService->findOrPrepareTemplate($notificationType);
         $modules = Module::query()
             ->orderBy('sort_order')
             ->orderBy('title')

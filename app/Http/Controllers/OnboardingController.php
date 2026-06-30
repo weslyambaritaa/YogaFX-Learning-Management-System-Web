@@ -7,9 +7,9 @@ use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\EnrollmentUpdateRequest;
 use App\Http\Requests\SignupCompletionRequest;
 use App\Models\OnboardingState;
+use App\Services\EmailNotificationService;
 use App\Services\PaymentCheckoutService;
 use App\Support\StudentProfileValue;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,6 +21,7 @@ class OnboardingController extends Controller
 
     public function __construct(
         private readonly PaymentCheckoutService $paymentFlow,
+        private readonly EmailNotificationService $emailNotifications,
     ) {}
 
     public function showPaymentSuccess(OnboardingState $onboardingState): RedirectResponse
@@ -154,9 +155,11 @@ class OnboardingController extends Controller
             (string) $request->string('password'),
         );
 
-        Auth::login($user);
-        $request->session()->regenerate();
+        $this->emailNotifications->sendSignupNotification(
+            $user,
+            $onboardingState->fresh(['pendingRegistration', 'user.accessTier']),
+        );
 
-        return redirect()->route('student.dashboard');
+        return redirect()->route('login')->with('status', 'Your YogaFX account is now active. Please sign in with your new password.');
     }
 }

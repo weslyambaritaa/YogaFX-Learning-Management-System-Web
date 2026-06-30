@@ -9,6 +9,7 @@ use App\Models\EmailLog;
 use App\Models\EmailTemplate;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Models\OnboardingState;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Models\Lesson;
@@ -41,6 +42,11 @@ class EmailNotificationService
         return EmailTemplate::query()
             ->where('notification_type', $notificationType)
             ->first();
+    }
+
+    public function findOrPrepareTemplate(string $notificationType): EmailTemplate
+    {
+        return $this->preparedTemplate($notificationType);
     }
 
     /**
@@ -245,6 +251,36 @@ class EmailNotificationService
         }
     }
 
+    public function sendSignupNotification(User $user, ?OnboardingState $onboardingState = null): void
+    {
+        $referenceType = 'user';
+        $referenceId = $user->id;
+
+        if ($this->signupNotificationAlreadySent($user, $onboardingState)) {
+            return;
+        }
+
+        $this->sendAutomated(
+            EmailNotificationTypeRegistry::SIGNUP,
+            [
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'admin_email' => config('mail.from.address'),
+                'access_tier' => $user->accessTier?->slug,
+                'access_tier_label' => $user->accessTier?->name,
+                'registration_date' => optional(
+                    $onboardingState?->signup_completed_at
+                    ?? $onboardingState?->pendingRegistration?->completed_at
+                    ?? $user->created_at,
+                )->toDateString() ?? now()->toDateString(),
+                'dashboard_url' => route('student.dashboard'),
+                'login_url' => route('login'),
+            ],
+            $referenceType,
+            $referenceId,
+        );
+    }
+
     public function shouldHandlePasswordResetTemplate(): bool
     {
         $template = $this->preparedTemplate(EmailNotificationTypeRegistry::RESET_PASSWORD);
@@ -386,24 +422,28 @@ class EmailNotificationService
         bool $isTest = false,
     ): array {
         $deliveries = [];
+        $subjectUser = $this->normalizedTemplateContent((string) $template->subject_user, (string) $template->notification_type);
+        $bodyUser = $this->normalizedTemplateContent((string) $template->body_user, (string) $template->notification_type);
+        $subjectAdmin = $this->normalizedTemplateContent((string) $template->subject_admin, (string) $template->notification_type);
+        $bodyAdmin = $this->normalizedTemplateContent((string) $template->body_admin, (string) $template->notification_type);
 
-        if (filled($template->subject_user) && filled($template->body_user) && filled($payload['user_email'] ?? $testRecipient)) {
+        if (filled($subjectUser) && filled($bodyUser) && filled($payload['user_email'] ?? $testRecipient)) {
             $deliveries[] = [
                 'recipient_type' => $isTest ? 'test_user' : 'user',
                 'recipient_email' => $testRecipient ?: (string) $payload['user_email'],
-                'subject' => $this->render((string) $template->subject_user, $payload),
-                'body' => $this->render((string) $template->body_user, $payload),
+                'subject' => $this->render($subjectUser, $payload),
+                'body' => $this->render($bodyUser, $payload),
                 'variant_label' => 'User Email',
             ];
         }
 
-        if (filled($template->subject_admin) && filled($template->body_admin)) {
+        if (filled($subjectAdmin) && filled($bodyAdmin)) {
             foreach ($this->parseRecipients($template->admin_recipients) as $recipient) {
                 $deliveries[] = [
                     'recipient_type' => $isTest ? 'test_admin' : 'admin',
                     'recipient_email' => $testRecipient ?: $recipient,
-                    'subject' => $this->render((string) $template->subject_admin, $payload),
-                    'body' => $this->render((string) $template->body_admin, $payload),
+                    'subject' => $this->render($subjectAdmin, $payload),
+                    'body' => $this->render($bodyAdmin, $payload),
                     'variant_label' => 'Admin Email',
                 ];
 
@@ -437,7 +477,7 @@ class EmailNotificationService
             }
         }
 
-        if (($defaults['auto_enable'] ?? false) && ! $template->is_enabled) {
+        if (($defaults['auto_enable'] ?? false) && $template->wasRecentlyCreated && ! $template->is_enabled) {
             $template->is_enabled = true;
             $hasChanges = true;
         }
@@ -503,23 +543,27 @@ class EmailNotificationService
         string $sendTo,
     ): array {
         $deliveries = [];
+        $subjectUser = $this->normalizedTemplateContent((string) $template->subject_user, (string) $template->notification_type);
+        $bodyUser = $this->normalizedTemplateContent((string) $template->body_user, (string) $template->notification_type);
+        $subjectAdmin = $this->normalizedTemplateContent((string) $template->subject_admin, (string) $template->notification_type);
+        $bodyAdmin = $this->normalizedTemplateContent((string) $template->body_admin, (string) $template->notification_type);
 
-        if (filled($template->subject_user) && filled($template->body_user)) {
+        if (filled($subjectUser) && filled($bodyUser)) {
             $deliveries[] = [
                 'recipient_type' => 'test_user',
                 'recipient_email' => $sendTo,
-                'subject' => $this->renderStrict((string) $template->subject_user, $payload, 'user subject'),
-                'body' => $this->renderStrict((string) $template->body_user, $payload, 'user body'),
+                'subject' => $this->renderStrict($subjectUser, $payload, 'user subject'),
+                'body' => $this->renderStrict($bodyUser, $payload, 'user body'),
                 'variant_label' => 'User Email',
             ];
         }
 
-        if (filled($template->subject_admin) && filled($template->body_admin)) {
+        if (filled($subjectAdmin) && filled($bodyAdmin)) {
             $deliveries[] = [
                 'recipient_type' => 'test_admin',
                 'recipient_email' => $sendTo,
-                'subject' => $this->renderStrict((string) $template->subject_admin, $payload, 'admin subject'),
-                'body' => $this->renderStrict((string) $template->body_admin, $payload, 'admin body'),
+                'subject' => $this->renderStrict($subjectAdmin, $payload, 'admin subject'),
+                'body' => $this->renderStrict($bodyAdmin, $payload, 'admin body'),
                 'variant_label' => 'Admin Email',
             ];
         }
@@ -827,6 +871,41 @@ class EmailNotificationService
             })
             ->values()
             ->all();
+    }
+
+    private function normalizedTemplateContent(string $content, string $notificationType): string
+    {
+        if ($notificationType !== EmailNotificationTypeRegistry::SIGNUP || $content === '') {
+            return $content;
+        }
+
+        return preg_replace(
+            '/{{\s*continuation_url\s*}}|(?<!{){\s*continuation_url\s*}(?!})/',
+            '{{ login_url }}',
+            $content,
+        ) ?? $content;
+    }
+
+    private function signupNotificationAlreadySent(User $user, ?OnboardingState $onboardingState = null): bool
+    {
+        return EmailLog::query()
+            ->where('notification_type', EmailNotificationTypeRegistry::SIGNUP)
+            ->where('recipient_type', 'user')
+            ->where('status', 'sent')
+            ->where(function ($query) use ($user, $onboardingState): void {
+                $query->where(function ($userQuery) use ($user): void {
+                    $userQuery->where('reference_type', 'user')
+                        ->where('reference_id', $user->id);
+                });
+
+                if ($onboardingState instanceof OnboardingState) {
+                    $query->orWhere(function ($onboardingQuery) use ($onboardingState): void {
+                        $onboardingQuery->where('reference_type', 'onboarding_state')
+                            ->where('reference_id', $onboardingState->id);
+                    });
+                }
+            })
+            ->exists();
     }
 
     private function latestStudentAccessAt(User $user)

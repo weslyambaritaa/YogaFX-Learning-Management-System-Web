@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Jobs\SendOnboardingContinuationEmailJob;
 use App\Jobs\SendUpgradeWelcomeEmailJob;
 use App\Models\AccessTier;
 use App\Models\Invoice;
@@ -12,7 +11,6 @@ use App\Models\PendingRegistration;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class PaymentFinalizerService
@@ -228,8 +226,6 @@ class PaymentFinalizerService
             ],
         );
 
-        $shouldSendContinuationEmail = false;
-
         if ($onboardingState->user_id !== $user->id) {
             $onboardingState->forceFill([
                 'user_id' => $user->id,
@@ -240,19 +236,6 @@ class PaymentFinalizerService
             $onboardingState->forceFill([
                 'continuation_sent_at' => now(),
             ])->save();
-
-            $shouldSendContinuationEmail = true;
-        }
-
-        if ($onboardingState->wasRecentlyCreated) {
-            $shouldSendContinuationEmail = true;
-        }
-
-        if ($shouldSendContinuationEmail) {
-            SendOnboardingContinuationEmailJob::dispatch(
-                $this->continuationEmailPayload($user, $onboardingState),
-                $onboardingState->id,
-            );
         }
 
         return [$user, $onboardingState];
@@ -309,32 +292,5 @@ class PaymentFinalizerService
             ->orderByDesc('paid_at')
             ->orderByDesc('id')
             ->first();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function continuationEmailPayload(User $user, OnboardingState $onboardingState): array
-    {
-        return [
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'admin_email' => config('mail.from.address'),
-            'access_tier' => $user->accessTier?->slug,
-            'access_tier_label' => $user->accessTier?->name,
-            'registration_date' => optional($user->created_at)->toDateString() ?? now()->toDateString(),
-            'dashboard_url' => route('login'),
-            'login_url' => route('login'),
-            'continuation_url' => $this->enrollmentUrl($onboardingState),
-        ];
-    }
-
-    private function enrollmentUrl(OnboardingState $onboardingState): string
-    {
-        return URL::temporarySignedRoute(
-            'onboarding.enrollment.show',
-            now()->addDays(7),
-            ['onboardingState' => $onboardingState->id],
-        );
     }
 }

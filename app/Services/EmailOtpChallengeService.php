@@ -18,6 +18,7 @@ class EmailOtpChallengeService
 {
     public function __construct(
         private readonly StudentSessionTrackingService $sessionTrackingService,
+        private readonly EmailNotificationService $emailNotifications,
     ) {}
 
     /**
@@ -78,10 +79,10 @@ class EmailOtpChallengeService
     {
         $this->guardChallenge($challenge, $otpCode, AuthEmailOtpChallenge::CONTEXT_SIGNUP);
 
-        return DB::transaction(function () use ($challenge, $request): User {
+        $result = DB::transaction(function () use ($challenge, $request): array {
             $payload = $challenge->payload ?? [];
             $onboardingState = OnboardingState::query()
-                ->with(['user', 'pendingRegistration'])
+                ->with(['user.accessTier', 'pendingRegistration'])
                 ->findOrFail($payload['onboarding_state_id'] ?? null);
 
             $user = $challenge->user()->firstOrFail();
@@ -111,8 +112,18 @@ class EmailOtpChallengeService
             $request->session()->regenerate();
             $this->sessionTrackingService->startStudentSession($request, $user);
 
-            return $user->fresh(['accessTier']);
+            return [
+                'user' => $user->fresh(['accessTier']),
+                'onboarding_state' => $onboardingState->fresh(['pendingRegistration', 'user.accessTier']),
+            ];
         });
+
+        $this->emailNotifications->sendSignupNotification(
+            $result['user'],
+            $result['onboarding_state'],
+        );
+
+        return $result['user'];
     }
 
     public function redirectPath(AuthEmailOtpChallenge $challenge, User $user): string

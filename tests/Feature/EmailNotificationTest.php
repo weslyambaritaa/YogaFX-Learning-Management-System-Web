@@ -14,6 +14,8 @@ use App\Models\EmailTemplate;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
+use App\Models\OnboardingState;
+use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Services\StudentLearningMilestoneEmailService;
@@ -23,6 +25,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -119,6 +122,69 @@ class EmailNotificationTest extends TestCase
             'recipient_email' => 'qa@yogafx.test',
             'recipient_type' => 'test_user',
             'status' => 'sent',
+        ]);
+    }
+
+    public function test_signup_notification_ui_exposes_only_current_merge_tags_and_new_defaults(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->get(
+            route('admin.email-notifications.show', ['notificationType' => EmailNotificationTypeRegistry::SIGNUP]),
+        );
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/EmailNotifications/Show')
+            ->where('notificationType', EmailNotificationTypeRegistry::SIGNUP)
+            ->where('availableMergeTags', [
+                '{{ user_name }}',
+                '{{ user_email }}',
+                '{{ admin_email }}',
+                '{{ access_tier }}',
+                '{{ access_tier_label }}',
+                '{{ registration_date }}',
+                '{{ dashboard_url }}',
+                '{{ login_url }}',
+            ])
+            ->where('template.subject_admin', 'YogaFX signup completed: {user_email}')
+            ->where('template.body_admin', fn (string $body) => str_contains($body, 'A new student has completed the YogaFX signup process') && ! str_contains($body, 'continuation_url'))
+            ->where('template.body_user', fn (string $body) => str_contains($body, 'Your enrollment and password setup have been completed successfully') && ! str_contains($body, 'continuation_url')));
+    }
+
+    public function test_signup_send_test_supports_legacy_continuation_url_templates_without_missing_variable_error(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->admin()->create();
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+            'notification_name' => 'Signup',
+            'is_enabled' => true,
+            'admin_recipients' => 'legacy-admin@yogafx.test',
+            'subject_user' => 'Welcome {{ user_name }}',
+            'body_user' => 'Login here {{ continuation_url }}',
+            'subject_admin' => 'Legacy signup {{ user_email }}',
+            'body_admin' => 'Student login {{ continuation_url }}',
+        ]);
+
+        $this->actingAs($admin)->post(
+            route('admin.email-notifications.send-test', ['notificationType' => EmailNotificationTypeRegistry::SIGNUP]),
+            [
+                'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+                'send_to' => 'legacy-qa@yogafx.test',
+            ],
+        )->assertRedirect();
+
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+            'recipient_email' => 'legacy-qa@yogafx.test',
+            'status' => 'sent',
+        ]);
+        $this->assertDatabaseMissing('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+            'status' => 'failed',
+            'error_message' => 'The user subject could not be rendered because test data is missing for: continuation_url.',
         ]);
     }
 
@@ -301,6 +367,233 @@ class EmailNotificationTest extends TestCase
 
         Mail::assertSent(TemplatedNotificationMail::class, 2);
         $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+            'reference_type' => 'user',
+            'reference_id' => $user->id,
+        ]);
+    }
+
+    public function test_signup_notification_is_sent_only_after_signup_completion(): void
+    {
+        Mail::fake();
+
+        $tier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => AccessTier::SLUG_ONLINE,
+        ]);
+        $user = User::factory()->student()->create([
+            'name' => 'Onboarding Student',
+            'email' => 'onboarding-student@yogafx.test',
+            'is_active' => false,
+            'access_tier_id' => $tier->id,
+        ]);
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+            'notification_name' => 'Signup',
+            'is_enabled' => true,
+            'admin_recipients' => 'signup-admin@yogafx.test',
+            'subject_user' => 'Welcome to YogaFX, {{ user_name }}',
+            'body_user' => 'Your LMS account is now ready. Login here {{ login_url }}',
+            'subject_admin' => 'YogaFX signup completed: {{ user_email }}',
+            'body_admin' => 'Student {{ user_name }} tier {{ access_tier_label }} login {{ login_url }}',
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Onboarding',
+            'last_name' => 'Student',
+            'email' => $user->email,
+            'phone' => '+6281234567001',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499,
+            'currency_code' => 'USD',
+            'status' => PendingRegistration::STATUS_PAYMENT_SUCCESS,
+            'payment_succeeded_at' => now(),
+        ]);
+
+        $onboardingState = OnboardingState::query()->create([
+            'pending_registration_id' => $pendingRegistration->id,
+            'user_id' => $user->id,
+            'status' => OnboardingState::STATUS_AWAITING_ENROLLMENT,
+        ]);
+
+        $this->post(
+            URL::temporarySignedRoute('onboarding.enrollment.store', now()->addMinutes(5), [
+                'onboardingState' => $onboardingState->id,
+            ]),
+            [
+                'first_name' => 'Onboarding',
+                'last_name' => 'Student',
+                'email' => $user->email,
+                'whatsapp_country_code' => '+62',
+                'whatsapp_number' => '81234567001',
+                'instagram' => '@onboardingstudent',
+                'country' => 'Indonesia',
+                'birth_date' => '1995-05-10',
+                'gender' => 'female',
+                'practicing_yoga_for' => '0_to_3_years',
+                'yoga_sequence_experience' => ['vinyasa'],
+                'hours_per_week' => '4_7',
+                'current_fitness_level' => 'average',
+                'flexibility_rating' => 'good',
+                'motivation' => 'Complete onboarding.',
+                'why_yogafx' => 'Guided learning path.',
+                'how_did_you_find_us' => ['instagram'],
+            ],
+        )->assertSessionHasNoErrors();
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseMissing('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+        ]);
+
+        $this->post(
+            URL::temporarySignedRoute('onboarding.signup.store', now()->addMinutes(5), [
+                'onboardingState' => $onboardingState->id,
+            ]),
+            [
+                'password' => 'StrongPassword123!',
+                'password_confirmation' => 'StrongPassword123!',
+            ],
+        )
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+            'reference_type' => 'user',
+            'reference_id' => $user->id,
+            'recipient_type' => 'user',
+            'recipient_email' => $user->email,
+            'status' => 'sent',
+        ]);
+    }
+
+    public function test_signup_completion_does_not_double_send_signup_notification_on_repeat_submit(): void
+    {
+        Mail::fake();
+
+        $tier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => AccessTier::SLUG_ONLINE,
+        ]);
+        $user = User::factory()->student()->create([
+            'name' => 'Repeat Student',
+            'email' => 'repeat-student@yogafx.test',
+            'is_active' => false,
+            'access_tier_id' => $tier->id,
+        ]);
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+            'notification_name' => 'Signup',
+            'is_enabled' => true,
+            'admin_recipients' => 'signup-admin@yogafx.test',
+            'subject_user' => 'Welcome {{ user_name }}',
+            'body_user' => 'Dashboard {{ dashboard_url }}',
+            'subject_admin' => 'Signup {{ user_email }}',
+            'body_admin' => 'Tier {{ access_tier_label }}',
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Repeat',
+            'last_name' => 'Student',
+            'email' => $user->email,
+            'phone' => '+6281234567002',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499,
+            'currency_code' => 'USD',
+            'status' => PendingRegistration::STATUS_PAYMENT_SUCCESS,
+            'payment_succeeded_at' => now(),
+        ]);
+
+        $onboardingState = OnboardingState::query()->create([
+            'pending_registration_id' => $pendingRegistration->id,
+            'user_id' => $user->id,
+            'status' => OnboardingState::STATUS_AWAITING_SIGNUP,
+            'enrollment_completed_at' => now(),
+        ]);
+
+        $signedUrl = URL::temporarySignedRoute('onboarding.signup.store', now()->addMinutes(5), [
+            'onboardingState' => $onboardingState->id,
+        ]);
+
+        $this->post($signedUrl, [
+            'password' => 'StrongPassword123!',
+            'password_confirmation' => 'StrongPassword123!',
+        ])
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+
+        $this->post($signedUrl, [
+            'password' => 'StrongPassword123!',
+            'password_confirmation' => 'StrongPassword123!',
+        ])->assertStatus(409);
+
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        $this->assertDatabaseCount('email_logs', 2);
+    }
+
+    public function test_signup_completion_does_not_send_email_when_signup_template_is_disabled(): void
+    {
+        Mail::fake();
+
+        $tier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => AccessTier::SLUG_ONLINE,
+        ]);
+        $user = User::factory()->student()->create([
+            'name' => 'Disabled Template Student',
+            'email' => 'disabled-template-student@yogafx.test',
+            'is_active' => false,
+            'access_tier_id' => $tier->id,
+        ]);
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
+            'notification_name' => 'Signup',
+            'is_enabled' => false,
+            'subject_user' => 'Welcome {{ user_name }}',
+            'body_user' => 'Dashboard {{ dashboard_url }}',
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Disabled',
+            'last_name' => 'Template',
+            'email' => $user->email,
+            'phone' => '+6281234567003',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499,
+            'currency_code' => 'USD',
+            'status' => PendingRegistration::STATUS_PAYMENT_SUCCESS,
+            'payment_succeeded_at' => now(),
+        ]);
+
+        $onboardingState = OnboardingState::query()->create([
+            'pending_registration_id' => $pendingRegistration->id,
+            'user_id' => $user->id,
+            'status' => OnboardingState::STATUS_AWAITING_SIGNUP,
+            'enrollment_completed_at' => now(),
+        ]);
+
+        $this->post(
+            URL::temporarySignedRoute('onboarding.signup.store', now()->addMinutes(5), [
+                'onboardingState' => $onboardingState->id,
+            ]),
+            [
+                'password' => 'StrongPassword123!',
+                'password_confirmation' => 'StrongPassword123!',
+            ],
+        )
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseMissing('email_logs', [
             'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
             'reference_type' => 'user',
             'reference_id' => $user->id,
