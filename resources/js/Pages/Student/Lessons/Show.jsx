@@ -8,6 +8,8 @@ import { Head, Link, router } from "@inertiajs/react";
 import { Check, ChevronRight, FileText, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+const CONTENT_COLLAPSED_HEIGHT = 320;
+
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
     const hours = Math.floor(safeSeconds / 3600)
@@ -27,61 +29,112 @@ function workbookStorageKey(lessonId) {
     return `yogafx_workbook_downloaded_${lessonId}`;
 }
 
+function navigationBadgeLabel(item) {
+    if (item.status === "current") {
+        return "Current";
+    }
+
+    if (item.status === "completed") {
+        return "Completed";
+    }
+
+    if (item.status === "locked") {
+        return "Locked";
+    }
+
+    if (Number(item.progress_percentage ?? 0) > 0) {
+        return "In Progress";
+    }
+
+    return "Available";
+}
+
+function navigationBadgeStatus(item) {
+    if (item.status === "completed") {
+        return "completed";
+    }
+
+    if (item.status === "locked") {
+        return "locked";
+    }
+
+    if (item.status === "current") {
+        return "current";
+    }
+
+    return "available";
+}
+
 function LessonNavCard({ item, onLockedClick }) {
     const body = (
-        <div className="group h-full rounded-[5px] border border-white/10 bg-white/[0.04] p-3.5 transition hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
-            <div className="space-y-3">
-                <div className="relative overflow-hidden rounded-[5px] bg-[#161211]">
-                    {item.thumbnail_url ? (
-                        <img
-                            src={item.thumbnail_url}
-                            alt={item.title}
-                            className="aspect-video h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                        />
-                    ) : (
-                        <div className="aspect-video bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
-                    )}
-                    <div className="absolute right-3 top-3">
-                        <StudentStatusBadge
-                            status={item.status}
-                            className="scale-[0.92] origin-right"
-                        />
-                    </div>
-                </div>
+        <div
+            className={[
+                "group flex gap-3 rounded-[5px] border p-3 transition",
+                item.status === "current"
+                    ? "border-[#DB202C]/60 bg-[#DB202C]/10 shadow-[0_10px_30px_rgba(219,32,44,0.16)]"
+                    : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]",
+            ].join(" ")}
+        >
+            <div className="relative w-[150px] shrink-0 overflow-hidden rounded-[5px] bg-[#161211]">
+                {item.thumbnail_url ? (
+                    <img
+                        src={item.thumbnail_url}
+                        alt={item.title}
+                        className="aspect-video h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                    />
+                ) : (
+                    <div className="aspect-video bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                )}
+            </div>
 
-                <div className="space-y-3">
-                    <div className="space-y-1.5">
-                        <p className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white/82">
+            <div className="min-w-0 flex-1 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1.5">
+                        <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.18em] text-white/45">
                             Lesson {item.sort_order}
                         </p>
                         <p className="line-clamp-2 font-['Montserrat'] text-[14px] font-medium leading-6 text-white">
                             {item.title}
                         </p>
                     </div>
+
+                    <StudentStatusBadge
+                        status={navigationBadgeStatus(item)}
+                        label={navigationBadgeLabel(item)}
+                        className="shrink-0 scale-[0.84] origin-top-right"
+                    />
                 </div>
 
                 <div className="space-y-2">
-                    <div className="flex items-center justify-between font-['Montserrat'] text-[14px] font-medium text-white/40">
+                    <div className="flex items-center justify-between font-['Montserrat'] text-[12px] font-medium text-white/45">
                         <span>Progress</span>
                         <span>{item.progress_percentage}%</span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                         <div
                             className={[
-                                "h-full rounded-full",
+                                "h-full rounded-full transition-all",
                                 item.status === "completed"
                                     ? "bg-emerald-500"
                                     : item.status === "locked"
                                       ? "bg-[#DB202C]"
-                                      : "bg-white",
+                                      : item.status === "current"
+                                        ? "bg-[#f15b3a]"
+                                        : "bg-white",
                             ].join(" ")}
                             style={{ width: `${item.progress_percentage}%` }}
                         />
                     </div>
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 font-['Montserrat'] text-[14px] font-medium text-white/80">
-                    {item.is_locked ? "Complete previous lesson" : null}
+                <div className="inline-flex items-center gap-1.5 font-['Montserrat'] text-[13px] font-medium text-white/68">
+                    <span>
+                        {item.is_locked
+                            ? "Locked for now"
+                            : item.status === "current"
+                              ? "Currently playing"
+                              : "Open lesson"}
+                    </span>
                     <ChevronRight className="size-3.5 transition group-hover:translate-x-1" />
                 </div>
             </div>
@@ -90,13 +143,114 @@ function LessonNavCard({ item, onLockedClick }) {
 
     if (item.is_locked || !item.url) {
         return (
-            <button type="button" onClick={onLockedClick} className="text-left">
+            <button
+                type="button"
+                onClick={() => onLockedClick(item.lock_reason)}
+                className="w-full text-left"
+            >
                 {body}
             </button>
         );
     }
 
     return <Link href={item.url}>{body}</Link>;
+}
+
+function ContentSection({ content }) {
+    const contentRef = useRef(null);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [isCollapsible, setIsCollapsible] = useState(false);
+
+    useEffect(() => {
+        const node = contentRef.current;
+
+        if (!node) {
+            return undefined;
+        }
+
+        const updateCollapsibleState = () => {
+            setIsCollapsible(
+                node.scrollHeight > CONTENT_COLLAPSED_HEIGHT + 24,
+            );
+        };
+
+        updateCollapsibleState();
+
+        if (typeof ResizeObserver === "undefined") {
+            window.addEventListener("resize", updateCollapsibleState);
+
+            return () => {
+                window.removeEventListener("resize", updateCollapsibleState);
+            };
+        }
+
+        const observer = new ResizeObserver(() => {
+            updateCollapsibleState();
+        });
+
+        observer.observe(node);
+        window.addEventListener("resize", updateCollapsibleState);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", updateCollapsibleState);
+        };
+    }, [content]);
+
+    useEffect(() => {
+        setIsExpanded(false);
+    }, [content]);
+
+    if (!content) {
+        return (
+            <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-6 font-['Montserrat'] text-sm leading-7 text-white/60">
+                Lesson content will appear here when this learning material
+                includes written guidance.
+            </div>
+        );
+    }
+
+    return (
+        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
+            <div className="mb-4">
+                <h2 className="font-['Montserrat'] text-[16px] font-semibold text-white">
+                    Lesson Notes
+                </h2>
+                <p className="mt-1 font-['Montserrat'] text-sm text-white/50">
+                    Written guidance for this practice.
+                </p>
+            </div>
+
+            <div className="relative">
+                <div
+                    ref={contentRef}
+                    className={[
+                        "prose prose-invert max-w-none overflow-hidden font-['Montserrat'] prose-headings:text-white prose-li:text-white/72 prose-p:text-white/72 prose-strong:text-white transition-[max-height] duration-300",
+                        isExpanded ? "max-h-none" : "max-h-[320px]",
+                    ].join(" ")}
+                    dangerouslySetInnerHTML={{
+                        __html: content,
+                    }}
+                />
+
+                {isCollapsible && !isExpanded ? (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#171211] via-[#171211]/85 to-transparent" />
+                ) : null}
+            </div>
+
+            {isCollapsible ? (
+                <div className="mt-4">
+                    <button
+                        type="button"
+                        onClick={() => setIsExpanded((current) => !current)}
+                        className="font-['Montserrat'] text-sm font-semibold text-[#f15b3a] transition hover:text-[#ff7a5f]"
+                    >
+                        {isExpanded ? "Show less" : "Show more"}
+                    </button>
+                </div>
+            ) : null}
+        </div>
+    );
 }
 
 export default function StudentLessonShow({ lesson, accessTimeSummary }) {
@@ -125,6 +279,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const [isTriggeringWorkbook, setIsTriggeringWorkbook] = useState(false);
     const [downloadNotice, setDownloadNotice] = useState(null);
     const [showLockedDialog, setShowLockedDialog] = useState(false);
+    const [lockedReason, setLockedReason] = useState(null);
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
     );
@@ -155,6 +310,23 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         return ((10 - Math.max(0, autoNextCountdown)) / 10) * 100;
     }, [autoNextCountdown]);
 
+    const currentNavigationItem = useMemo(
+        () => navigationItems.find((item) => item.id === lesson.id) ?? null,
+        [lesson.id, navigationItems],
+    );
+
+    const currentStatusLabel = currentNavigationItem
+        ? navigationBadgeLabel(currentNavigationItem)
+        : isLessonDone
+          ? "Completed"
+          : watchProgress > 0
+            ? "In Progress"
+            : "Current";
+
+    const moduleLabel = lesson.module?.sort_order
+        ? `Module ${lesson.module.sort_order}`
+        : "Lesson";
+
     useEffect(() => {
         const persistedWorkbookDownloaded =
             typeof window !== "undefined" &&
@@ -169,6 +341,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         setAutoNextCountdown(null);
         setDownloadNotice(null);
         setIsTriggeringWorkbook(false);
+        setLockedReason(null);
         setWorkbookDownloaded(
             Boolean(lesson.progress?.is_workbook_downloaded) ||
                 persistedWorkbookDownloaded,
@@ -586,9 +759,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         }
     };
 
-    const moduleLabel = lesson.module?.sort_order
-        ? `Module ${lesson.module.sort_order} - ${lesson.module.title}`
-        : (lesson.module?.title ?? "Lesson");
+    const openLockedDialog = (reason = null) => {
+        setLockedReason(reason);
+        setShowLockedDialog(true);
+    };
 
     return (
         <AuthenticatedLayout
@@ -601,6 +775,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 open={showLockedDialog}
                 onOpenChange={setShowLockedDialog}
                 kind="lesson"
+                reason={lockedReason}
             />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-10">
@@ -611,102 +786,331 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                     )}
                 />
 
-                <section className="space-y-6">
-                    <div className="space-y-4">
-                        <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white">
-                            {moduleLabel} - {lesson.title}
-                        </h1>
-                    </div>
+                <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] lg:items-start">
+                    <div className="min-w-0 space-y-6">
+                        <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+                            <div className="relative border-b border-white/10 bg-black">
+                                {lessonVideoUrl ? (
+                                    <div className="p-4 sm:p-6 lg:p-8">
+                                        <div className="mx-auto aspect-video w-full max-w-5xl">
+                                            <VideoJsPlayer
+                                                src={lessonVideoUrl}
+                                                poster={lesson.thumbnail_url}
+                                                className="h-full w-full overflow-hidden rounded-[5px] shadow-2xl"
+                                                autoplay={Boolean(
+                                                    lesson.autoplay,
+                                                )}
+                                                hideProgressHandle={
+                                                    autoNextCountdown !== null
+                                                }
+                                                onPlaybackError={
+                                                    setPlayerWarning
+                                                }
+                                                onProgressUpdate={
+                                                    handleProgressUpdate
+                                                }
+                                                onTimeUpdate={
+                                                    handlePlayerTimeUpdate
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                ) : lesson.thumbnail_url ? (
+                                    <div className="p-4 sm:p-6 lg:p-8">
+                                        <div className="mx-auto aspect-video w-full max-w-5xl overflow-hidden rounded-[5px]">
+                                            <img
+                                                src={lesson.thumbnail_url}
+                                                alt={lesson.title}
+                                                className="h-full w-full object-cover opacity-70"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-4 sm:p-6 lg:p-8">
+                                        <div className="mx-auto aspect-video w-full max-w-5xl rounded-[5px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                                    </div>
+                                )}
 
-                    {downloadNotice ? (
-                        <div
-                            className={[
-                                "flex items-start justify-between gap-4 rounded-[5px] border px-5 py-4 font-['Montserrat'] text-sm leading-7",
-                                downloadNotice.tone === "warning"
-                                    ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
-                                    : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
-                            ].join(" ")}
-                        >
-                            <div className="space-y-1">
-                                <p className="font-['Montserrat'] text-sm font-semibold text-white">
-                                    {downloadNotice.title}
-                                </p>
-                                <p>{downloadNotice.message}</p>
+                                <div className="absolute right-5 top-5">
+                                    <StudentStatusBadge
+                                        status={
+                                            currentNavigationItem
+                                                ? navigationBadgeStatus(
+                                                      currentNavigationItem,
+                                                  )
+                                                : isLessonDone
+                                                  ? "completed"
+                                                  : "current"
+                                        }
+                                        label={currentStatusLabel}
+                                    />
+                                </div>
+
+                                {autoNextCountdown !== null &&
+                                nextLesson?.title ? (
+                                    <div className="absolute inset-x-5 bottom-5 mx-auto max-w-5xl rounded-[5px] border border-white/15 bg-black/60 px-5 py-4 backdrop-blur">
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="space-y-2">
+                                                <div className="font-['Montserrat'] text-sm font-semibold uppercase tracking-[0.18em] text-white/55">
+                                                    Next Lesson
+                                                </div>
+                                                <div className="font-['Montserrat'] text-lg font-semibold text-white">
+                                                    {nextLesson.title}
+                                                </div>
+                                                <div className="font-['Montserrat'] text-sm text-white/70">
+                                                    Continue in{" "}
+                                                    {autoNextCountdown} seconds
+                                                </div>
+                                            </div>
+                                            {nextLesson.url ? (
+                                                <Button
+                                                    asChild
+                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                >
+                                                    <Link href={nextLesson.url}>
+                                                        Next Lesson
+                                                    </Link>
+                                                </Button>
+                                            ) : null}
+                                        </div>
+                                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                                            <div
+                                                className="h-full rounded-full bg-[#DB202C]"
+                                                style={{
+                                                    width: `${autoNextProgress}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setDownloadNotice(null)}
-                                className="rounded-full border border-white/10 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
-                                aria-label="Dismiss workbook notice"
-                            >
-                                <X className="size-4" />
-                            </button>
                         </div>
-                    ) : null}
 
-                    <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-                        <div className="relative bg-black border-b border-white/10">
-                            {lessonVideoUrl ? (
-                                <div className="p-4 sm:p-6 lg:p-8">
-                                    <div className="mx-auto w-full max-w-5xl aspect-video">
-                                        <VideoJsPlayer
-                                            src={lessonVideoUrl}
-                                            poster={lesson.thumbnail_url}
-                                            className="h-full w-full overflow-hidden rounded-[5px] shadow-2xl"
-                                            autoplay={Boolean(lesson.autoplay)}
-                                            hideProgressHandle={
-                                                autoNextCountdown !== null
+                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-6 sm:p-8">
+                            <div className="space-y-5">
+                                <div className="space-y-3">
+                                    <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
+                                        {moduleLabel}
+                                    </p>
+                                    <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
+                                        {lesson.title}
+                                    </h1>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <StudentStatusBadge
+                                            status={
+                                                currentNavigationItem
+                                                    ? navigationBadgeStatus(
+                                                          currentNavigationItem,
+                                                      )
+                                                    : isLessonDone
+                                                      ? "completed"
+                                                      : "current"
                                             }
-                                            onPlaybackError={setPlayerWarning}
-                                            onProgressUpdate={
-                                                handleProgressUpdate
-                                            }
-                                            onTimeUpdate={
-                                                handlePlayerTimeUpdate
-                                            }
+                                            label={currentStatusLabel}
                                         />
+                                        <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/65">
+                                            Watch progress {watchProgress}%
+                                        </div>
                                     </div>
                                 </div>
-                            ) : lesson.thumbnail_url ? (
-                                <div className="p-4 sm:p-6 lg:p-8">
-                                    <div className="mx-auto w-full max-w-5xl aspect-video overflow-hidden rounded-[5px]">
-                                        <img
-                                            src={lesson.thumbnail_url}
-                                            alt={lesson.title}
-                                            className="h-full w-full object-cover opacity-70"
-                                        />
+
+                                <div className="grid gap-4 xl:grid-cols-2">
+                                    <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
+                                        <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
+                                            {moduleState?.completed_lessons ?? 0}{" "}
+                                            of{" "}
+                                            {moduleState?.lesson_count ?? 0}{" "}
+                                            lessons completed
+                                        </h2>
+                                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                                            <div
+                                                className="h-full rounded-full bg-emerald-500"
+                                                style={{
+                                                    width: `${moduleState?.progress_percentage ?? 0}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
+                                        <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
+                                            Total Access Time
+                                        </h2>
+                                        <div className="mt-3 font-['Montserrat'] text-3xl font-semibold tracking-[0.08em] text-white">
+                                            {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
+                                        </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="p-4 sm:p-6 lg:p-8">
-                                    <div className="mx-auto w-full max-w-5xl aspect-video rounded-[5px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
-                                </div>
-                            )}
 
-                            <div className="absolute right-5 top-5">
-                                <StudentStatusBadge
-                                    status={
-                                        isLessonDone ? "completed" : "available"
-                                    }
-                                />
-                            </div>
+                                {playbackErrorMessage ? (
+                                    <div className="rounded-[5px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 font-['Montserrat'] text-sm leading-7 text-amber-100">
+                                        {playbackErrorMessage}
+                                    </div>
+                                ) : null}
 
-                            {autoNextCountdown !== null && nextLesson?.title ? (
-                                <div className="absolute inset-x-5 bottom-5 mx-auto max-w-5xl rounded-[5px] border border-white/15 bg-black/60 px-5 py-4 backdrop-blur">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div className="space-y-2">
-                                            <div className="font-['Montserrat'] text-sm font-semibold uppercase tracking-[0.18em] text-white/55">
-                                                Next Lesson
+                                {downloadNotice ? (
+                                    <div
+                                        className={[
+                                            "flex items-start justify-between gap-4 rounded-[5px] border px-5 py-4 font-['Montserrat'] text-sm leading-7",
+                                            downloadNotice.tone === "warning"
+                                                ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
+                                                : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
+                                        ].join(" ")}
+                                    >
+                                        <div className="space-y-1">
+                                            <p className="font-['Montserrat'] text-sm font-semibold text-white">
+                                                {downloadNotice.title}
+                                            </p>
+                                            <p>{downloadNotice.message}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setDownloadNotice(null)
+                                            }
+                                            className="rounded-full border border-white/10 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                                            aria-label="Dismiss workbook notice"
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    </div>
+                                ) : null}
+
+                                {lesson.assessment ? (
+                                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-5 py-5 text-white">
+                                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                            <div>
+                                                <div className="font-['Montserrat'] text-[14px] font-semibold text-white">
+                                                    {assessmentState.title}
+                                                </div>
+                                                <p className="mt-1 font-['Montserrat'] text-[14px] font-medium text-white">
+                                                    {assessmentState.is_completed
+                                                        ? "This assessment has already been completed."
+                                                        : assessmentState.is_unlocked
+                                                          ? "This assessment is ready to start."
+                                                          : "Assessment unlocks after your lesson watch progress reaches 95%."}
+                                                </p>
                                             </div>
-                                            <div className="font-['Montserrat'] text-lg font-semibold text-white">
-                                                {nextLesson.title}
+
+                                            {assessmentState.is_unlocked ? (
+                                                <Button
+                                                    asChild
+                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                >
+                                                    <Link
+                                                        href={route(
+                                                            "assessments.intro",
+                                                            lesson.id,
+                                                        )}
+                                                    >
+                                                        {assessmentState.current_attempt_id
+                                                            ? "Resume Assessment"
+                                                            : assessmentState.is_completed
+                                                              ? "View Assessment Result"
+                                                              : "Open Assessment"}
+                                                    </Link>
+                                                </Button>
+                                            ) : (
+                                                <StudentStatusBadge
+                                                    status="locked"
+                                                    label="Locked"
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                <div className="grid gap-4 xl:grid-cols-2">
+                                    {lesson.workbook_download_url ? (
+                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
+                                            <div className="mb-4">
+                                                <h2 className="font-['Montserrat'] text-[16px] font-semibold text-white">
+                                                    Workbook
+                                                </h2>
+                                                <p className="mt-1 font-['Montserrat'] text-sm text-white/50">
+                                                    Download the practice
+                                                    workbook for this lesson.
+                                                </p>
                                             </div>
-                                            <div className="font-['Montserrat'] text-sm text-white/70">
-                                                Continue in {autoNextCountdown}{" "}
-                                                seconds
+
+                                            <div className="flex flex-wrap gap-3">
+                                                <Button
+                                                    asChild
+                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                >
+                                                    <a
+                                                        href={lesson.workbook_download_url}
+                                                        onClick={() => {
+                                                            setWorkbookDownloaded(
+                                                                true,
+                                                            );
+                                                            setDownloadNotice({
+                                                                tone: "success",
+                                                                title: "Manual workbook download",
+                                                                message:
+                                                                    "If the automatic download did not start on your device, this manual download will open the workbook now.",
+                                                            });
+                                                        }}
+                                                    >
+                                                        {workbookDownloaded ? (
+                                                            <Check className="mr-2 size-4 rounded-full bg-emerald-500 p-0.5 text-white" />
+                                                        ) : (
+                                                            <FileText className="mr-2 size-4" />
+                                                        )}
+                                                        {workbookDownloaded
+                                                            ? "Workbook Downloaded"
+                                                            : "Download Workbook"}
+                                                    </a>
+                                                </Button>
+
+                                                {hasWorkbook &&
+                                                isTriggeringWorkbook ? (
+                                                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/70">
+                                                        Starting workbook
+                                                        download...
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         </div>
-                                        {nextLesson.url ? (
+                                    ) : null}
+
+                                    {lesson.audio_url ? (
+                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
+                                            <div className="mb-3 flex items-center gap-2 font-['Montserrat'] text-sm font-medium text-white">
+                                                <Volume2 className="size-4 text-[#f15b3a]" />
+                                                Audio Companion
+                                            </div>
+                                            <audio
+                                                controls
+                                                src={lesson.audio_url}
+                                                className="w-full"
+                                            >
+                                                Your browser does not support
+                                                the audio element.
+                                            </audio>
+                                        </div>
+                                    ) : null}
+                                </div>
+
+                                <ContentSection content={lesson.content} />
+
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        className="h-auto rounded-[5px] border-white/15 bg-white/5 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-white/10 hover:text-white"
+                                    >
+                                        <Link
+                                            href={route(
+                                                "modules.show",
+                                                lesson.module.url_slug,
+                                            )}
+                                        >
+                                            Back to module
+                                        </Link>
+                                    </Button>
+                                    {nextLesson ? (
+                                        canOpenNextLesson ? (
                                             <Button
                                                 asChild
                                                 className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
@@ -715,224 +1119,59 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                     Next Lesson
                                                 </Link>
                                             </Button>
-                                        ) : null}
-                                    </div>
-                                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                                        <div
-                                            className="h-full rounded-full bg-[#DB202C]"
-                                            style={{
-                                                width: `${autoNextProgress}%`,
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            ) : null}
-                        </div>
-
-                        <div className="space-y-6 p-6 sm:p-8">
-                            {playbackErrorMessage && (
-                                <div className="rounded-[5px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 font-['Montserrat'] text-sm leading-7 text-amber-100">
-                                    {playbackErrorMessage}
-                                </div>
-                            )}
-
-                            <div className="flex flex-wrap gap-3">
-                                {lesson.workbook_download_url ? (
-                                    <Button
-                                        asChild
-                                        className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
-                                    >
-                                        <a
-                                            href={lesson.workbook_download_url}
-                                            onClick={() => {
-                                                setWorkbookDownloaded(true);
-                                                setDownloadNotice({
-                                                    tone: "success",
-                                                    title: "Manual workbook download",
-                                                    message:
-                                                        "If the automatic download did not start on your device, this manual download will open the workbook now.",
-                                                });
-                                            }}
-                                        >
-                                            {workbookDownloaded ? (
-                                                <Check className="mr-2 size-4 rounded-full bg-emerald-500 p-0.5 text-white" />
-                                            ) : (
-                                                <FileText className="mr-2 size-4" />
-                                            )}
-                                            {workbookDownloaded
-                                                ? "Workbook Downloaded"
-                                                : "Download Workbook"}
-                                        </a>
-                                    </Button>
-                                ) : null}
-                                {hasWorkbook && isTriggeringWorkbook ? (
-                                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/70">
-                                        Starting workbook download...
-                                    </div>
-                                ) : null}
-                            </div>
-
-                            {lesson.audio_url && (
-                                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
-                                    <div className="mb-3 flex items-center gap-2 font-['Montserrat'] text-sm font-medium text-white">
-                                        <Volume2 className="size-4 text-[#f15b3a]" />
-                                        Audio Companion
-                                    </div>
-                                    <audio
-                                        controls
-                                        src={lesson.audio_url}
-                                        className="w-full"
-                                    >
-                                        Your browser does not support the audio
-                                        element.
-                                    </audio>
-                                </div>
-                            )}
-
-                            {lesson.content ? (
-                                <div
-                                    className="prose prose-invert max-w-none prose-p:text-white/72 prose-headings:text-white prose-strong:text-white font-['Montserrat']"
-                                    dangerouslySetInnerHTML={{
-                                        __html: lesson.content,
-                                    }}
-                                />
-                            ) : (
-                                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-6 font-['Montserrat'] text-sm leading-7 text-white/60">
-                                    Lesson content will appear here when this
-                                    learning material includes written guidance.
-                                </div>
-                            )}
-
-                            {lesson.assessment && (
-                                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-5 text-white">
-                                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                        <div>
-                                            <div className="font-['Montserrat'] text-[14px] font-semibold text-white">
-                                                {assessmentState.title}
-                                            </div>
-                                            <p className="mt-1 font-['Montserrat'] text-[14px] font-medium text-white">
-                                                {assessmentState.is_completed
-                                                    ? "This assessment has already been completed."
-                                                    : assessmentState.is_unlocked
-                                                      ? "This assessment is ready to start."
-                                                      : "Assessment unlocks after your lesson watch progress reaches 95%."}
-                                            </p>
-                                        </div>
-
-                                        {assessmentState.is_unlocked ? (
+                                        ) : (
                                             <Button
-                                                asChild
+                                                type="button"
+                                                onClick={() =>
+                                                    openLockedDialog(
+                                                        nextLesson?.lock_reason,
+                                                    )
+                                                }
                                                 className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                             >
-                                                <Link
-                                                    href={route(
-                                                        "assessments.intro",
-                                                        lesson.id,
-                                                    )}
-                                                >
-                                                    {assessmentState.current_attempt_id
-                                                        ? "Resume Assessment"
-                                                        : assessmentState.is_completed
-                                                          ? "View Assessment Result"
-                                                          : "Open Assessment"}
-                                                </Link>
+                                                Next Lesson
                                             </Button>
-                                        ) : (
-                                            <StudentStatusBadge status="locked" />
-                                        )}
+                                        )
+                                    ) : null}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside className="min-w-0">
+                        <div className="lg:sticky lg:top-24">
+                            <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.28)]">
+                                <div className="border-b border-white/10 px-5 py-5">
+                                    <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/40">
+                                        Same Module
+                                    </p>
+                                    <h2 className="mt-2 font-['Montserrat'] text-[22px] font-medium tracking-tight text-white">
+                                        {moduleState?.title ??
+                                            "More lessons in this module"}
+                                    </h2>
+                                    <p className="mt-2 font-['Montserrat'] text-sm leading-6 text-white/55">
+                                        {moduleState?.completed_lessons ?? 0} of{" "}
+                                        {moduleState?.lesson_count ?? 0} lessons
+                                        completed
+                                    </p>
+                                </div>
+
+                                <div className="lg:h-[calc(100vh-7rem)] lg:overflow-y-auto">
+                                    <div className="space-y-3 p-4">
+                                        {navigationItems?.map((item) => (
+                                            <LessonNavCard
+                                                key={item.id}
+                                                item={item}
+                                                onLockedClick={
+                                                    openLockedDialog
+                                                }
+                                            />
+                                        ))}
                                     </div>
                                 </div>
-                            )}
-
-                            <div className="flex flex-wrap items-center gap-3">
-                                <Button
-                                    asChild
-                                    variant="outline"
-                                    className="h-auto rounded-[5px] border-white/15 bg-white/5 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-white/10 hover:text-white"
-                                >
-                                    <Link
-                                        href={route(
-                                            "modules.show",
-                                            lesson.module.url_slug,
-                                        )}
-                                    >
-                                        Back to module
-                                    </Link>
-                                </Button>
-                                {nextLesson ? (
-                                    canOpenNextLesson ? (
-                                        <Button
-                                            asChild
-                                            className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
-                                        >
-                                            <Link href={nextLesson.url}>
-                                                Next Lesson
-                                            </Link>
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            type="button"
-                                            onClick={() =>
-                                                setShowLockedDialog(true)
-                                            }
-                                            className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
-                                        >
-                                            Next Lesson
-                                        </Button>
-                                    )
-                                ) : null}
                             </div>
                         </div>
-                    </div>
-                </section>
-
-                <section className="space-y-5">
-                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
-                            <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
-                                {moduleState?.completed_lessons ?? 0} of{" "}
-                                {moduleState?.lesson_count ?? 0} lessons
-                                completed
-                            </h2>
-                            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                                <div
-                                    className="h-full rounded-full bg-emerald-500"
-                                    style={{
-                                        width: `${moduleState?.progress_percentage ?? 0}%`,
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
-                            <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
-                                Total Access Time
-                            </h2>
-                            <div className="mt-3 font-['Montserrat'] text-3xl font-semibold tracking-[0.08em] text-white">
-                                {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div>
-                            <h2 className="font-['Montserrat'] text-[22px] font-medium tracking-tight text-white">
-                                More lessons in this module
-                            </h2>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            {navigationItems?.map((item) => (
-                                <LessonNavCard
-                                    key={item.id}
-                                    item={item}
-                                    onLockedClick={() =>
-                                        setShowLockedDialog(true)
-                                    }
-                                />
-                            ))}
-                        </div>
-                    </div>
+                    </aside>
                 </section>
             </div>
         </AuthenticatedLayout>
