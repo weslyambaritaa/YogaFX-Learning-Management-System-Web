@@ -39,6 +39,12 @@ export default function Login({ status, canResetPassword }) {
                             </Link>
                         </header>
 
+                        <div className="mb-8 text-center">
+                            <h1 className="font-['Montserrat'] text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                                Sign in to Your Account
+                            </h1>
+                        </div>
+
                         {/* Form */}
                         <div className="w-full max-w-xl">
                             <form onSubmit={submit} className="space-y-6">
