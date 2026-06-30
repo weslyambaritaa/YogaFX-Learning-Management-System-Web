@@ -7,6 +7,7 @@ use App\Models\Package;
 use App\Models\PendingRegistration;
 use App\Services\PayPalService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -199,6 +200,9 @@ class PublicPaymentLinkTest extends TestCase
             $mock->shouldReceive('clientId')
                 ->once()
                 ->andReturn('PAYPAL-CLIENT-ID-INLINE-001');
+            $mock->shouldReceive('environment')
+                ->once()
+                ->andReturn('sandbox');
         });
 
         $response = $this->postJson('/online', [
@@ -260,6 +264,62 @@ class PublicPaymentLinkTest extends TestCase
         $this->get('/p/masterclass-easter')->assertNotFound();
     }
 
+    public function test_direct_package_link_renders_server_side_open_graph_metadata_in_initial_html(): void
+    {
+        config()->set('app.url', 'http://127.0.0.1:8000');
+        config()->set('app.public_url', 'http://192.168.0.11:8000');
+
+        Storage::disk('local')->put('packages/images/masterclass-share.jpg', 'fake-package-image');
+
+        $tier = AccessTier::factory()->create([
+            'name' => 'Masterclass',
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'is_active' => true,
+        ]);
+
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Masterclass Standard',
+            'slug' => 'masterclass-standard',
+            'description' => 'Deepen your yoga journey with guided masterclass content.',
+            'image' => 'packages/images/masterclass-share.jpg',
+            'is_active' => true,
+        ]);
+
+        $response = $this->get('/p/masterclass-standard');
+
+        $response->assertOk();
+        $response->assertSee('<title inertia>Masterclass Standard | YogaFX</title>', false);
+        $response->assertSee('meta property="og:title" content="Masterclass Standard | YogaFX"', false);
+        $response->assertSee('meta property="og:description" content="Deepen your yoga journey with guided masterclass content."', false);
+        $response->assertSee('meta property="og:url" content="http://192.168.0.11:8000/p/masterclass-standard"', false);
+        $response->assertSee('meta property="og:image" content="http://192.168.0.11:8000/public-media/package/'.$package->id.'/image', false);
+        $response->assertSee('meta name="twitter:image" content="http://192.168.0.11:8000/public-media/package/'.$package->id.'/image', false);
+    }
+
+    public function test_public_package_image_route_is_accessible_without_authentication(): void
+    {
+        Storage::disk('local')->put('packages/images/masterclass-share.jpg', 'fake-package-image');
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'is_active' => true,
+        ]);
+
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'slug' => 'masterclass-standard',
+            'image' => 'packages/images/masterclass-share.jpg',
+            'is_active' => true,
+        ]);
+
+        $this->get(route('public-media.show', [
+            'entity' => 'package',
+            'id' => $package->id,
+            'field' => 'image',
+        ]))->assertOk();
+    }
+
     public function test_direct_package_link_submission_returns_checkout_payload_for_locked_package(): void
     {
         $tier = AccessTier::factory()->create([
@@ -280,6 +340,9 @@ class PublicPaymentLinkTest extends TestCase
             $mock->shouldReceive('clientId')
                 ->once()
                 ->andReturn('PAYPAL-CLIENT-ID-DIRECT-001');
+            $mock->shouldReceive('environment')
+                ->once()
+                ->andReturn('sandbox');
         });
 
         $response = $this->postJson('/p/masterclass-standard', [
