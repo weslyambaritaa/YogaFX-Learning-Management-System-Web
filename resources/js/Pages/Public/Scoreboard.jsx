@@ -164,6 +164,7 @@ export default function Scoreboard({
     return (
         <PublicFlowLayout
             title="Scoreboard"
+            showBackButton={!is_package_locked}
             heading={
                 // Heading is rendered by PublicFlowLayout, so we pass an
                 // explicitly styled node instead of a plain string to

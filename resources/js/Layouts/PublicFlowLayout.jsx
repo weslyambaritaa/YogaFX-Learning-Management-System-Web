@@ -9,6 +9,7 @@ export default function PublicFlowLayout({
     aside,
     children,
     footer,
+    showBackButton = true,
 }) {
     return (
         <>
@@ -18,9 +19,11 @@ export default function PublicFlowLayout({
                 <div className="absolute inset-0" />
 
                 <div className="relative mx-auto flex min-h-screen max-w-[1280px] flex-col px-4 py-6 sm:px-6 lg:px-10">
-                    <div className="pt-4 w-full">
-                        <StudentBackButton fallbackHref={route("login")} />
-                    </div>
+                    {showBackButton ? (
+                        <div className="w-full pt-4">
+                            <StudentBackButton fallbackHref={route("login")} />
+                        </div>
+                    ) : null}
 
                     {/* Wrapper utama diubah menjadi flex-col untuk menengahkan semua elemen */}
                     <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-6 lg:pt-8">
