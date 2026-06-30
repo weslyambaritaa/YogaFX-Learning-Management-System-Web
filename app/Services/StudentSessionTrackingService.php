@@ -226,7 +226,7 @@ class StudentSessionTrackingService
             return;
         }
 
-        $cutoff = now()->subMinutes((int) config('session.lifetime', 120));
+        $cutoff = now()->subMinutes((int) config('session.tracking_idle_lifetime', 120));
 
         $user->userSessions()
             ->where('is_active', true)
