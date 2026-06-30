@@ -6,6 +6,7 @@ import {
 } from "@headlessui/react";
 import { Check, ChevronDown, Globe } from "lucide-react";
 import { resolveCountryIso2 } from "@/lib/countryFlags";
+import { useEffect, useMemo, useState } from "react";
 
 function FlagVisual({ option, fallbackClassName = "" }) {
     const iso2 = resolveCountryIso2(option);
@@ -51,8 +52,34 @@ export default function FlagOptionSelect({
     chevronClassName,
     fallbackClassName,
 }) {
+    const [searchQuery, setSearchQuery] = useState("");
     const currentOption =
         selectedOption ?? options.find((option) => option.value === value) ?? null;
+    const filteredOptions = useMemo(() => {
+        const normalizedQuery = searchQuery.trim().toLowerCase();
+
+        if (!normalizedQuery) {
+            return options;
+        }
+
+        return options.filter((option) => {
+            const haystacks = [
+                option.label,
+                option.value,
+                String(option.label ?? "")
+                    .replace(/\s*\(.+\)\s*$/, "")
+                    .trim(),
+            ]
+                .filter(Boolean)
+                .map((entry) => String(entry).toLowerCase());
+
+            return haystacks.some((entry) => entry.includes(normalizedQuery));
+        });
+    }, [options, searchQuery]);
+
+    useEffect(() => {
+        setSearchQuery("");
+    }, [value]);
 
     return (
         <Listbox
@@ -96,49 +123,82 @@ export default function FlagOptionSelect({
                 <ListboxOptions
                     anchor="bottom start"
                     className={[
-                        "z-50 mt-2 max-h-72 w-[var(--button-width)] overflow-auto rounded-[5px] border shadow-lg focus:outline-none",
+                        "z-50 mt-2 w-[var(--button-width)] overflow-hidden rounded-[5px] border shadow-lg focus:outline-none",
                         panelClassName,
                     ].join(" ")}
                 >
-                    {options.map((option) => (
-                        <ListboxOption
-                            key={`${option.value}-${option.label}`}
-                            value={option}
-                            className={({ focus, selected }) =>
-                                [
-                                    "cursor-pointer list-none",
-                                    optionClassName,
-                                    focus ? optionActiveClassName : "",
-                                    selected ? optionSelectedClassName : "",
-                                ].join(" ")
+                    <div className="border-b border-current/10 p-2">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(event) =>
+                                setSearchQuery(event.target.value)
                             }
-                        >
-                            {({ selected }) => (
-                                <div className="flex items-center justify-between gap-3">
-                                    <span className="flex min-w-0 items-center gap-3">
-                                        <FlagVisual
-                                            option={option}
-                                            fallbackClassName={fallbackClassName}
-                                        />
-                                        <span
-                                            className={[
-                                                "block truncate",
-                                                optionTextClassName,
-                                            ].join(" ")}
-                                        >
-                                            {option.label}
-                                        </span>
-                                    </span>
-                                    {selected ? (
-                                        <Check
-                                            className="size-4 shrink-0"
-                                            aria-hidden="true"
-                                        />
-                                    ) : null}
-                                </div>
-                            )}
-                        </ListboxOption>
-                    ))}
+                            onKeyDown={(event) => {
+                                event.stopPropagation();
+                            }}
+                            placeholder="Search country or code"
+                            className="h-10 w-full rounded-[5px] border border-current/10 bg-transparent px-3 text-sm outline-none placeholder:text-current/45"
+                        />
+                    </div>
+
+                    <div
+                        className="max-h-72 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                        style={{
+                            scrollbarWidth: "none",
+                            msOverflowStyle: "none",
+                        }}
+                    >
+                        {filteredOptions.length ? (
+                            filteredOptions.map((option) => (
+                                <ListboxOption
+                                    key={`${option.value}-${option.label}`}
+                                    value={option}
+                                    className={({ focus, selected }) =>
+                                        [
+                                            "cursor-pointer list-none",
+                                            optionClassName,
+                                            focus ? optionActiveClassName : "",
+                                            selected
+                                                ? optionSelectedClassName
+                                                : "",
+                                        ].join(" ")
+                                    }
+                                >
+                                    {({ selected }) => (
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="flex min-w-0 items-center gap-3">
+                                                <FlagVisual
+                                                    option={option}
+                                                    fallbackClassName={
+                                                        fallbackClassName
+                                                    }
+                                                />
+                                                <span
+                                                    className={[
+                                                        "block truncate",
+                                                        optionTextClassName,
+                                                    ].join(" ")}
+                                                >
+                                                    {option.label}
+                                                </span>
+                                            </span>
+                                            {selected ? (
+                                                <Check
+                                                    className="size-4 shrink-0"
+                                                    aria-hidden="true"
+                                                />
+                                            ) : null}
+                                        </div>
+                                    )}
+                                </ListboxOption>
+                            ))
+                        ) : (
+                            <div className="px-3 py-4 text-sm text-current/60">
+                                No results found.
+                            </div>
+                        )}
+                    </div>
                 </ListboxOptions>
             </div>
         </Listbox>

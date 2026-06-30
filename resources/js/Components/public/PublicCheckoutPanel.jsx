@@ -1,9 +1,12 @@
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
+import FlagOptionSelect from "@/Components/FlagOptionSelect";
 import { Button } from "@/Components/ui/button";
+import { enrichCountryOptions } from "@/lib/countryFlags";
 import { formatCurrency } from "@/lib/currency";
 import { AlertCircle, LoaderCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePage } from "@inertiajs/react";
 
 const INITIAL_ERRORS = {
     first_name: "",
@@ -87,6 +90,8 @@ function formatIntervalLabel(unit, count = 1) {
 }
 
 export default function PublicCheckoutPanel({ checkout }) {
+    const { directory = {} } = usePage().props;
+    const countryOptions = enrichCountryOptions(directory.countries ?? []);
     const paymentOptions = Array.isArray(checkout.payment_options)
         ? checkout.payment_options
         : [];
@@ -182,6 +187,10 @@ export default function PublicCheckoutPanel({ checkout }) {
         installmentAllowedBillingDays.length > 1;
     const usesMonthlyInstallmentSchedule = installmentIntervalUnit === "MONTH";
     const canUseMock = mockAvailable && !isInstallmentSelected;
+    const selectedBillingCountryOption =
+        countryOptions.find(
+            (option) => option.value === formData.billing_country,
+        ) ?? null;
 
     const paypalScriptUrl = useMemo(() => {
         const params = new URLSearchParams(
@@ -996,21 +1005,33 @@ export default function PublicCheckoutPanel({ checkout }) {
                             style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                         />
                         <div className="relative mt-2">
-                            <input
+                            <FlagOptionSelect
+                                id="billing_country"
                                 value={formData.billing_country}
-                                onChange={(event) =>
-                                    setFieldValue("billing_country", event.target.value)
+                                selectedOption={selectedBillingCountryOption}
+                                options={countryOptions}
+                                onChange={(option) =>
+                                    setFieldValue(
+                                        "billing_country",
+                                        option.value,
+                                    )
                                 }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
+                                placeholder="Select billing country"
+                                buttonClassName={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 ${
                                     fieldErrors.billing_country
-                                        ? "border-rose-500 pr-11 focus:border-rose-500"
+                                        ? "border-rose-500 focus:border-rose-500"
                                         : "border-white/20 focus:border-white/40"
                                 }`}
+                                buttonTextClassName="text-sm font-normal text-white"
+                                placeholderClassName="text-sm font-normal text-white/50"
+                                panelClassName="border-white/10 bg-[#161616] text-white"
+                                optionClassName="px-4 py-3 text-sm"
+                                optionActiveClassName="bg-white/10"
+                                optionSelectedClassName="text-[#DB202C]"
+                                optionTextClassName="text-sm font-normal text-white"
+                                chevronClassName="text-white/60"
+                                fallbackClassName="bg-white/10 text-white/70"
                             />
-                            {fieldErrors.billing_country && (
-                                <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
-                            )}
                         </div>
                         <InputError
                             className="mt-2 text-sm font-medium text-rose-400"

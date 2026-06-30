@@ -287,7 +287,7 @@ export default function Scoreboard({
                                 className="text-sm font-medium text-white/90"
                                 style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
-                            <div className="mt-2 grid gap-4 sm:grid-cols-[160px_minmax(0,1fr)]">
+                            <div className="mt-2 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)] md:items-start">
                                 <FlagOptionSelect
                                     id="phone_country_code"
                                     value={data.phone_country_code}
@@ -393,26 +393,39 @@ export default function Scoreboard({
                             />
                             {is_package_locked && selectedPackage ? (
                                 <div
-    className="mt-2 min-h-[52px] rounded-[5px] bg-[#ffffff] px-5 py-4 text-black shadow-sm"
-    style={{ fontFamily: FONT_FAMILY }}
->
-    <div className="text-sm font-medium text-black" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}>
-        {selectedPackage.title}
-    </div>
-    <div className="mt-1 text-sm font-normal text-black" style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}>
-        {Number(selectedPackage.price) > 0
-            ? formatCurrency(
-                  selectedPackage.price,
-                  selectedPackage.currency_code,
-              )
-            : "Price not set yet"}
-    </div>
-    {selectedPackage.access_tier?.name ? (
-        <div className="mt-1 text-xs text-black/70" style={{ fontFamily: FONT_FAMILY }}>
-            Grants access to {selectedPackage.access_tier.name}
-        </div>
-    ) : null}
-</div>
+                                    className="mt-2 min-h-[52px] rounded-[5px] bg-[#ffffff] px-5 py-4 text-black shadow-sm"
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <div
+                                                className="text-sm font-medium text-black"
+                                                style={{
+                                                    fontFamily: FONT_FAMILY,
+                                                    fontSize: "14px",
+                                                    fontWeight: 500,
+                                                }}
+                                            >
+                                                {selectedPackage.title}
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="shrink-0 text-right text-sm font-medium text-black"
+                                            style={{
+                                                fontFamily: FONT_FAMILY,
+                                                fontSize: "14px",
+                                                fontWeight: 500,
+                                            }}
+                                        >
+                                            {Number(selectedPackage.price) > 0
+                                                ? formatCurrency(
+                                                      selectedPackage.price,
+                                                      selectedPackage.currency_code,
+                                                  )
+                                                : "Price not set yet"}
+                                        </div>
+                                    </div>
+                                </div>
                             ) : (
                                 <select
                                     id="package_id"
