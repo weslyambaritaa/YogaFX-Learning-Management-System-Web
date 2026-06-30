@@ -849,7 +849,7 @@ export default function StudentProfileForm({
                                 className={theme.labelClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
-                            <div className="mt-2 grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                            <div className="mt-2 grid gap-3 md:grid-cols-[180px_minmax(0,1fr)] md:items-start">
                                 <FlagOptionSelect
                                     id="whatsapp_country_code"
                                     value={data.whatsapp_country_code ?? "+62"}
@@ -894,7 +894,7 @@ export default function StudentProfileForm({
                                 />
                                 <TextInput
                                     id="whatsapp_number"
-                                    className={`block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                    className={`block w-full min-w-0 rounded-[5px] px-[10px] py-[8px] ${inputClassName}`}
                                     style={{ fontFamily: FONT_FAMILY }}
                                     value={data.whatsapp_number ?? ""}
                                     onChange={(event) =>
