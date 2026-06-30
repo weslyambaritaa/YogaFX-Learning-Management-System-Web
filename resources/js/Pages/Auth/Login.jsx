@@ -46,7 +46,7 @@ export default function Login({ status, canResetPassword }) {
                         </div>
 
                         {/* Form */}
-                        <div className="w-full max-w-xl">
+                        <div className="w-full max-w-[360px]">
                             <form onSubmit={submit} className="space-y-6">
                                 {status && (
                                     <p className="font-['Montserrat'] text-[14px] font-medium leading-6 text-green-400">
