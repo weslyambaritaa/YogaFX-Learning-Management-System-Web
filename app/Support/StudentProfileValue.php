@@ -53,15 +53,42 @@ class StudentProfileValue
         '0-3' => '0_3',
         '0_3' => '0_3',
         '03' => '0_3',
+        '3' => '0_3',
         '4-7' => '4_7',
         '4_7' => '4_7',
         '47' => '4_7',
+        '4' => '4_7',
+        '5' => '4_7',
+        '6' => '4_7',
         '7-10' => '7_10',
         '7_10' => '7_10',
         '710' => '7_10',
+        '7' => '7_10',
+        '8' => '7_10',
+        '9' => '7_10',
+        '10' => '10_plus',
         '10+' => '10_plus',
         '10_plus' => '10_plus',
         '10plus' => '10_plus',
+    ];
+
+    private const GENDER_MAP = [
+        'male' => 'male',
+        'female' => 'female',
+        'm' => 'male',
+        'f' => 'female',
+    ];
+
+    private const FITNESS_LEVEL_MAP = [
+        'poor' => 'poor',
+        'average' => 'average',
+        'good' => 'good',
+        'low' => 'poor',
+        'beginner' => 'poor',
+        'moderate' => 'average',
+        'intermediate' => 'average',
+        'high' => 'good',
+        'advanced' => 'good',
     ];
 
     /**
@@ -143,6 +170,28 @@ class StudentProfileValue
         }
 
         return self::HOURS_PER_WEEK_MAP[strtolower($normalized)] ?? $normalized;
+    }
+
+    public static function normalizeGender(mixed $value): ?string
+    {
+        $normalized = self::normalizeString($value);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        return self::GENDER_MAP[strtolower($normalized)] ?? strtolower($normalized);
+    }
+
+    public static function normalizeFitnessLevel(mixed $value): ?string
+    {
+        $normalized = self::normalizeString($value);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        return self::FITNESS_LEVEL_MAP[strtolower($normalized)] ?? strtolower($normalized);
     }
 
     /**

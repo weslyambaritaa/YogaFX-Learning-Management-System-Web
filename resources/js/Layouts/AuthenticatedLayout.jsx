@@ -1,4 +1,5 @@
 import { Button } from '@/Components/ui/button';
+import TransientStatusBanner from '@/Components/TransientStatusBanner';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -652,9 +653,12 @@ function StudentTopNavigation({
     variant = 'default',
     contentClassName = '',
 }) {
+    const { flash = {} } = usePage().props;
     const [mobileOpen, setMobileOpen] = useState(false);
     const currentRouteName = route().current();
     const isImmersive = variant === 'immersive';
+    const flashMessage = flash.success ?? flash.error ?? null;
+    const flashTone = flash.error ? 'error' : 'success';
 
     useEffect(() => {
         const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
@@ -868,7 +872,18 @@ function StudentTopNavigation({
                 </header>
             )}
 
-            <main className={contentClassName}>{children}</main>
+            <main className={contentClassName}>
+                {flashMessage ? (
+                    <div className="mx-auto max-w-[1400px] px-4 pt-4 sm:px-6 lg:px-10">
+                        <TransientStatusBanner
+                            message={flashMessage}
+                            tone={flashTone}
+                        />
+                    </div>
+                ) : null}
+
+                {children}
+            </main>
         </div>
     );
 }

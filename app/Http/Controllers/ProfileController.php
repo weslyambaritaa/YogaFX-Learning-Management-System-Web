@@ -52,6 +52,16 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $validated = $request->validated();
+
+        if (app()->environment(['local', 'development'])) {
+            logger()->info('Profile update validated debug', [
+                'user_id' => $user?->id,
+                'validated_gender' => $validated['gender'] ?? null,
+                'validated_hours_per_week' => $validated['hours_per_week'] ?? null,
+                'gender_before' => $user?->getOriginal('gender'),
+            ]);
+        }
+
         unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
         $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
         $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
@@ -72,6 +82,16 @@ class ProfileController extends Controller
 
         $user->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        if (app()->environment(['local', 'development'])) {
+            logger()->info('Profile update saved debug', [
+                'user_id' => $user->id,
+                'gender_after' => $user->fresh()->gender,
+                'hours_per_week_after' => $user->fresh()->hours_per_week,
+            ]);
+        }
+
+        return Redirect::route('profile.edit')
+            ->with('status', 'profile-updated')
+            ->with('success', 'Profile updated successfully.');
     }
 }

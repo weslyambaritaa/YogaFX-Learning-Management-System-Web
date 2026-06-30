@@ -81,6 +81,11 @@ class HandleInertiaRequests extends Middleware
                     'missing_profile_fields' => $user->missingStudentProfileFields(),
                 ] : null,
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'status' => fn () => $request->session()->get('status'),
+            ],
             'directory' => [
                 'countries' => CountryDirectory::countryOptions(),
                 'phone_country_codes' => CountryDirectory::phoneCountryCodeOptions(),
