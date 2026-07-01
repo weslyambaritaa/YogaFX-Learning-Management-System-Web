@@ -1,4 +1,6 @@
 import { Button } from '@/Components/ui/button';
+import StudentBackButton from '@/Components/student/StudentBackButton';
+import StudentStatusBadge from '@/Components/student/StudentStatusBadge';
 import VideoJsPlayer from '@/Components/VideoJsPlayer';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
@@ -22,6 +24,14 @@ export default function StudentCourseShow({ course }) {
         typeof playerWarning === 'string'
             ? playerWarning
             : playerWarning?.message ?? null;
+    const currentNavigationItem =
+        (course.navigation ?? []).find((item) => item.id === course.id) ?? null;
+    const currentStatusLabel =
+        currentNavigationItem?.status === 'current'
+            ? 'Current Lecture'
+            : course.video?.is_ready
+              ? 'Available'
+              : 'Lecture Unavailable';
 
     return (
         <AuthenticatedLayout
@@ -30,7 +40,10 @@ export default function StudentCourseShow({ course }) {
         >
             <Head title={course.title} />
 
-            <div className="mx-auto grid max-w-[1400px] gap-8 px-4 pt-8 sm:px-6 lg:grid-cols-[minmax(0,1.75fr)_360px] lg:px-10">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-10">
+                <StudentBackButton fallbackHref={route('courses.index')} />
+
+                <div className="grid gap-8 lg:grid-cols-[minmax(0,1.75fr)_360px]">
                 <section className="space-y-6">
                     <div className="space-y-4">
                         <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
@@ -45,31 +58,39 @@ export default function StudentCourseShow({ course }) {
                     </div>
 
                     <div className="overflow-hidden rounded-[16px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-                        <div className="relative">
+                        <div className="relative border-b border-white/10 bg-black">
                             {course.video?.hls_url ? (
-                                <div className="border-b border-white/10 bg-black/20 p-4 sm:p-6">
-                                    <VideoJsPlayer
-                                        src={course.video.hls_url}
-                                        poster={course.thumbnail_url}
-                                        className="overflow-hidden rounded-[14px]"
-                                        onPlaybackError={setPlayerWarning}
-                                    />
+                                <div className="p-4 sm:p-6 lg:p-8">
+                                    <div className="mx-auto aspect-video w-full max-w-5xl">
+                                        <VideoJsPlayer
+                                            src={course.video.hls_url}
+                                            poster={course.thumbnail_url}
+                                            className="h-full w-full overflow-hidden rounded-[5px] shadow-2xl"
+                                            onPlaybackError={setPlayerWarning}
+                                        />
+                                    </div>
                                 </div>
                             ) : course.thumbnail_url ? (
-                                <>
-                                    <img
-                                        src={course.thumbnail_url}
-                                        alt={course.title}
-                                        className="aspect-[16/8] h-full w-full object-cover opacity-70"
-                                    />
-                                    <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(0,0,0,0.16)_0%,_rgba(0,0,0,0.58)_100%)]" />
-                                </>
+                                <div className="p-4 sm:p-6 lg:p-8">
+                                    <div className="mx-auto aspect-video w-full max-w-5xl overflow-hidden rounded-[5px]">
+                                        <img
+                                            src={course.thumbnail_url}
+                                            alt={course.title}
+                                            className="h-full w-full object-cover opacity-70"
+                                        />
+                                    </div>
+                                </div>
                             ) : (
-                                <div className="aspect-[16/8] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                                <div className="p-4 sm:p-6 lg:p-8">
+                                    <div className="mx-auto aspect-video w-full max-w-5xl rounded-[5px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                                </div>
                             )}
 
-                            <div className="absolute left-5 top-5 rounded-md border border-white/12 bg-black/30 px-4 py-2 text-xs uppercase tracking-[0.22em] text-white/72 backdrop-blur">
-                                {course.video?.is_ready ? 'Lecture ready' : 'Lecture unavailable'}
+                            <div className="absolute right-5 top-5">
+                                <StudentStatusBadge
+                                    status={course.video?.is_ready ? 'current' : 'locked'}
+                                    label={currentStatusLabel}
+                                />
                             </div>
                         </div>
 
@@ -163,6 +184,7 @@ export default function StudentCourseShow({ course }) {
                         </div>
                     </div>
                 </aside>
+                </div>
             </div>
         </AuthenticatedLayout>
     );
