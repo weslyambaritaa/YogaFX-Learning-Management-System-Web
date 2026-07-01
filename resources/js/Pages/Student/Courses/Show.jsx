@@ -51,7 +51,7 @@ export default function StudentCourseShow({ course }) {
                 <div className="grid gap-8 lg:grid-cols-[minmax(0,1.75fr)_360px]">
                     <section className="space-y-6">
                         <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-                            <div className="relative border-b border-white/10 bg-black">
+                            <div className="border-b border-white/10 bg-black">
                                 {course.video?.hls_url ? (
                                     <div className="p-4 sm:p-6 lg:p-8">
                                         <div className="mx-auto aspect-video w-full max-w-5xl">
@@ -79,34 +79,28 @@ export default function StudentCourseShow({ course }) {
                                     </div>
                                 )}
 
-                                <div className="absolute right-5 top-5">
-                                    <StudentStatusBadge
-                                        status={course.video?.is_ready ? 'current' : 'locked'}
-                                        label={currentStatusLabel}
-                                    />
-                                </div>
                             </div>
 
                             <div className="space-y-6 p-6 sm:p-8">
                                 <div className="space-y-5">
                                     <div className="space-y-3">
-                                        <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
-                                            {originModuleLabel}
-                                        </p>
-                                        <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
-                                            {course.title}
-                                        </h1>
                                         <div className="flex flex-wrap items-center gap-3">
+                                            <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
+                                                {originModuleLabel}
+                                            </p>
                                             <StudentStatusBadge
                                                 status={course.video?.is_ready ? 'current' : 'locked'}
                                                 label={currentStatusLabel}
                                             />
-                                            {course.index ? (
-                                                <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/65">
-                                                    Lecture {course.index}
-                                                </div>
-                                            ) : null}
                                         </div>
+                                        <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
+                                            {course.title}
+                                        </h1>
+                                        {course.index ? (
+                                            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/65">
+                                                Lecture {course.index}
+                                            </div>
+                                        ) : null}
                                         <p className="max-w-3xl font-['Montserrat'] text-sm leading-7 text-white/65 sm:text-base">
                                             {course.description || 'Premium YogaFX lecturer content stays inside a full lesson-like viewing experience, so playback never feels detached from the platform.'}
                                         </p>

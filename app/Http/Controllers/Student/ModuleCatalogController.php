@@ -416,7 +416,7 @@ class ModuleCatalogController extends Controller
             ->orderBy('title')
             ->get()
             ->values()
-            ->map(function (Course $course, int $index) {
+            ->map(function (Course $course, int $index) use ($module) {
                 $videoState = $this->videoStateForCourse($course);
 
                 return [
