@@ -575,7 +575,7 @@ function ModuleCard({ module, onLockedClick }) {
         </>
     );
 
-    if (module.status === "locked" || !module.cta_url) {
+    if (module.status === "locked" || !module.url) {
         return (
             <button
                 type="button"
@@ -588,7 +588,7 @@ function ModuleCard({ module, onLockedClick }) {
     }
 
     return (
-        <Link href={module.cta_url} className="block w-full text-left">
+        <Link href={module.url} className="block w-full text-left">
             {card}
         </Link>
     );

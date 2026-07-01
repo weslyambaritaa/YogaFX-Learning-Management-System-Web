@@ -599,6 +599,7 @@ class HomeController extends Controller
                 'title' => $module->title,
                 'description' => $moduleAccess['description'] ?? $module->description,
                 'url_slug' => $module->url_slug,
+                'url' => ($moduleAccess['is_visible'] ?? false) ? route('modules.show', $module->url_slug) : null,
                 'sort_order' => $module->sort_order,
                 'lesson_count' => $totalLessons,
                 'assignments_count' => $module->assignments->count(),
@@ -615,7 +616,7 @@ class HomeController extends Controller
                     'locked' => 'Locked Module',
                     default => 'Open Module',
                 },
-                'cta_url' => $continueLesson && ($moduleAccess['is_visible'] ?? false)
+                'continue_url' => $continueLesson && ($moduleAccess['is_visible'] ?? false)
                     ? route('lessons.show', $continueLesson)
                     : null,
                 'thumbnail_url' => $this->moduleThumbnailUrl($module),
