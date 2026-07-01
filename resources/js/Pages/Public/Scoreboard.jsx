@@ -251,7 +251,7 @@ export default function Scoreboard({
                     className="block text-balance"
                     style={{
                         fontFamily: FONT_FAMILY,
-                        fontSize: "48px",
+                        fontSize: "clamp(26px, 3.4vw, 34px)",
                         fontWeight: 700,
                         lineHeight: 1.2,
                     }}

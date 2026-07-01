@@ -135,7 +135,7 @@ class LeadRegistrationController extends Controller
             'client_id' => $this->paypalService->clientId(),
             'client_token' => null,
             'currency_code' => $pendingRegistration->currency_code ?? $pendingRegistration->package?->currency_code ?? $pendingRegistration->accessTier->currency_code,
-            'components' => 'buttons,card-fields',
+            'components' => 'buttons',
             'intent' => 'capture',
             'environment' => $this->paypalService->environment(),
         ];
