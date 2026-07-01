@@ -9,7 +9,6 @@ use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\AssessmentAttempt;
 use App\Models\Certificate;
-use App\Models\CertificateDownloadEvent;
 use App\Models\Course;
 use App\Models\Ebook;
 use App\Models\Lesson;
@@ -61,17 +60,12 @@ class ModuleCatalogController extends Controller
             $user?->id,
             $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
         );
-        $certificateDownloadMap = $this->certificateDownloadMap(
-            $user?->id,
-            $modules->pluck('id'),
-        );
         $moduleAccessMap = $this->moduleAccessMap(
             $user,
             $modules,
             $lessonProgressMap,
             $completedAssessmentIds,
             $assignmentSubmissionMap,
-            $certificateDownloadMap,
             $resourceModuleVisitMap,
         );
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
@@ -179,17 +173,12 @@ class ModuleCatalogController extends Controller
             $user?->id,
             $modules->flatMap(fn (Module $item) => $item->assignments->pluck('id')),
         );
-        $certificateDownloadMap = $this->certificateDownloadMap(
-            $user?->id,
-            $modules->pluck('id'),
-        );
         $moduleAccessMap = $this->moduleAccessMap(
             $user,
             $modules,
             $lessonProgressMap,
             $completedAssessmentIds,
             $assignmentSubmissionMap,
-            $certificateDownloadMap,
             $resourceModuleVisitMap,
         );
         $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
@@ -214,7 +203,6 @@ class ModuleCatalogController extends Controller
                 $lessonProgressMap,
                 $completedAssessmentIds,
                 $assignmentSubmissionMap,
-                $certificateDownloadMap,
                 $resourceModuleVisitMap,
             );
             $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
@@ -458,7 +446,6 @@ class ModuleCatalogController extends Controller
         Collection $lessonProgressMap,
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
-        Collection $certificateDownloadMap,
         Collection $resourceModuleVisitMap,
     ): Collection {
         $accessMap = collect();
@@ -466,11 +453,7 @@ class ModuleCatalogController extends Controller
 
         foreach ($modules as $module) {
             if ($this->isCertificateDownloadModule($module)) {
-                $certificateState = $this->certificateAccessState(
-                    $user,
-                    $allPreviousModulesComplete,
-                    $certificateDownloadMap->has($module->id),
-                );
+                $certificateState = $this->certificateAccessState($user);
 
                 $accessMap->put($module->id, [
                     'is_visible' => (bool) ($certificateState['is_visible'] ?? false),
@@ -480,6 +463,9 @@ class ModuleCatalogController extends Controller
                     'certificate_state' => $certificateState,
                 ]);
 
+                $allPreviousModulesComplete = $allPreviousModulesComplete
+                    && (bool) ($certificateState['is_complete'] ?? false);
+
                 continue;
             }
 
@@ -488,7 +474,6 @@ class ModuleCatalogController extends Controller
                 $lessonProgressMap,
                 $completedAssessmentIds,
                 $assignmentSubmissionMap,
-                $certificateDownloadMap,
                 $resourceModuleVisitMap,
             );
 
@@ -687,7 +672,6 @@ class ModuleCatalogController extends Controller
         Collection $lessonProgressMap,
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
-        Collection $certificateDownloadMap,
         Collection $resourceModuleVisitMap,
     ): bool {
         $liveAssignments = $module->assignments->where('status', Assignment::STATUS_LIVE);
@@ -711,7 +695,7 @@ class ModuleCatalogController extends Controller
         }
 
         if ($this->isCertificateDownloadModule($module)) {
-            return $certificateDownloadMap->has($module->id);
+            return false;
         }
 
         if ($this->isOpenOnceResourceModule($module)) {
@@ -724,22 +708,6 @@ class ModuleCatalogController extends Controller
     private function isAssignmentComplete(?AssignmentSubmission $submission): bool
     {
         return $submission?->assignment_status === AssignmentSubmission::STATUS_APPROVED;
-    }
-
-    private function certificateDownloadMap(?int $userId, iterable $moduleIds): Collection
-    {
-        $moduleIds = collect($moduleIds)->filter()->values();
-
-        if (! $userId || $moduleIds->isEmpty()) {
-            return collect();
-        }
-
-        return CertificateDownloadEvent::query()
-            ->where('user_id', $userId)
-            ->whereIn('module_id', $moduleIds)
-            ->pluck('module_id')
-            ->map(fn ($moduleId) => (int) $moduleId)
-            ->flip();
     }
 
     private function resourceModuleVisitMap(?int $userId, iterable $moduleIds): Collection
@@ -780,8 +748,6 @@ class ModuleCatalogController extends Controller
 
     private function certificateAccessState(
         $user,
-        bool $prerequisitePathComplete,
-        bool $isDownloaded,
     ): array {
         $tier = $user?->accessTier;
         $summary = $user ? $this->certificateEligibilityService->summaryForStudent($user) : null;
@@ -797,45 +763,43 @@ class ModuleCatalogController extends Controller
             : collect();
         $latestCertificate = $generatedCertificates->first();
         $eligibleTier = $user && $user->access_tier_id !== null && collect($summary['available_types'] ?? [])->isNotEmpty();
-        $learningEligible = $eligibleTier && $prerequisitePathComplete;
+        $learningEligible = $eligibleTier && (bool) ($summary['learning_eligible'] ?? false);
         $hasCertificate = $generatedCertificates->isNotEmpty();
         $isVisible = $eligibleTier && ($learningEligible || $hasCertificate);
         $state = ! $eligibleTier
             ? 'not_available'
             : ($hasCertificate
-                ? ($isDownloaded ? 'downloaded' : 'download_available')
+                ? 'generated'
                 : ($learningEligible ? 'ready' : 'locked'));
 
         return [
             'state' => $state,
             'is_visible' => $isVisible,
-            'is_complete' => $isDownloaded,
+            'is_complete' => $hasCertificate,
             'module_status' => $hasCertificate
-                ? ($isDownloaded ? 'completed' : 'available')
+                ? 'completed'
                 : ($learningEligible ? 'available' : 'locked'),
             'module_description' => $hasCertificate
-                ? ($isDownloaded
-                    ? 'Your certificate library has already been opened and downloaded from this module.'
-                    : 'Your certificate library is ready. Open this module to review and download your available certificates.')
+                ? 'Your certificate library has been generated. This module is now complete and every module after it is unlocked.'
                 : ($learningEligible
-                    ? 'Your accessible YogaFX path is complete. This certificate module is now unlocked while certificate files are being finalized.'
-                    : 'Certificate access unlocks after the accessible modules in your current tier path are complete.'),
+                    ? 'All required submitted assignment videos have been approved. This certificate module is now ready for admin generation.'
+                    : 'Certificate access unlocks after all required submitted assignment videos in this certificate path are approved by admin.'),
             'title' => $hasCertificate
                 ? 'Your certificate library is ready.'
                 : ($learningEligible
-                    ? 'Your certificate area is unlocked from the learning path.'
+                    ? 'Your certificate area is unlocked from approved assignment videos.'
                     : 'Certificate access is not unlocked yet.'),
             'description' => $hasCertificate
                 ? 'This module now acts as your student certificate library. Review and download every generated certificate available for your account.'
                 : ($learningEligible
-                    ? 'Your accessible module path is complete. If certificate files are not listed yet, please wait for the YogaFX team to finish generation.'
-                    : 'Certificate access opens after the accessible learning path for your current tier has been completed.'),
+                    ? 'All required submitted assignment videos have been approved. If certificate files are not listed yet, please wait for the YogaFX team to finish generation.'
+                    : 'Certificate access opens after all required submitted assignment videos for your current certificate path have been approved by admin.'),
             'eligibility_label' => $eligibleTier
                 ? 'Certificate included in '.($tier?->name ?? 'your current tier')
                 : 'Certificate not available in this tier',
             'support_note' => $hasCertificate
-                ? 'Every generated certificate available for your account is listed inside this module.'
-                : 'This page unlocks after your accessible tier path is complete, even if certificate files are still waiting to be generated.',
+                ? 'Every generated certificate available for your account is listed inside this module, and later modules stay unlocked after generation.'
+                : 'This page unlocks after the required submitted videos are approved, even if certificate files are still waiting to be generated.',
             'requirements' => $summary['requirements'] ?? [],
             'learning_eligible' => $learningEligible,
             'has_required_name' => (bool) ($summary['has_required_name'] ?? false),

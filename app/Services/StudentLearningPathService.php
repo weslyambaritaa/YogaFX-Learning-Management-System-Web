@@ -65,6 +65,28 @@ class StudentLearningPathService
             ->values();
     }
 
+    /**
+     * @return Collection<int, int>
+     */
+    public function certificateAssignmentIdsForStudent(User $user): Collection
+    {
+        if (! $this->certificateModuleAccessibleForStudent($user)) {
+            return collect();
+        }
+
+        return $this->accessibleModulesForStudent($user)
+            ->flatMap(fn (Module $module) => $module->assignments->pluck('id'))
+            ->map(fn ($assignmentId) => (int) $assignmentId)
+            ->unique()
+            ->values();
+    }
+
+    public function certificateModuleAccessibleForStudent(User $user): bool
+    {
+        return $this->accessibleModulesForStudent($user)
+            ->contains(fn (Module $module) => (bool) $module->certificate_enabled);
+    }
+
     private function moduleBelongsToStudentPath(User $user, Module $module): bool
     {
         $liveAssignments = $module->assignments->where('status', Assignment::STATUS_LIVE);

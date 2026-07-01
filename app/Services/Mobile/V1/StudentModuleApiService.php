@@ -8,7 +8,6 @@ use App\Models\AssessmentAttempt;
 use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\Ebook;
-use App\Models\CertificateDownloadEvent;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
@@ -58,14 +57,12 @@ class StudentModuleApiService
             $user->id,
             $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
         );
-        $certificateDownloadMap = $this->certificateDownloadMap($user->id, $modules->pluck('id'));
         $moduleAccessMap = $this->moduleAccessMap(
             $user,
             $modules,
             $lessonProgressMap,
             $completedAssessmentIds,
             $assignmentSubmissionMap,
-            $certificateDownloadMap,
             $resourceModuleVisitMap,
         );
         $activeLessonId = $this->latestProgressLessonId($lessonProgressMap);
@@ -281,14 +278,12 @@ class StudentModuleApiService
             $user->id,
             $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
         );
-        $certificateDownloadMap = $this->certificateDownloadMap($user->id, $modules->pluck('id'));
         $moduleAccessMap = $this->moduleAccessMap(
             $user,
             $modules,
             $lessonProgressMap,
             $completedAssessmentIds,
             $assignmentSubmissionMap,
-            $certificateDownloadMap,
             $resourceModuleVisitMap,
         );
         $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
@@ -472,7 +467,6 @@ class StudentModuleApiService
         Collection $lessonProgressMap,
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
-        Collection $certificateDownloadMap,
         Collection $resourceModuleVisitMap,
     ): Collection {
         $accessMap = collect();
@@ -480,20 +474,18 @@ class StudentModuleApiService
 
         foreach ($modules as $module) {
             if ($this->isCertificateDownloadModule($module)) {
-                $certificateState = $this->certificateAccessState(
-                    $user,
-                    $modules,
-                    $lessonProgressMap,
-                    $completedAssessmentIds,
-                );
+                $certificateState = $this->certificateAccessState($user);
 
                 $accessMap->put($module->id, [
                     'is_visible' => (bool) ($certificateState['is_visible'] ?? false),
                     'status' => $certificateState['module_status'] ?? 'locked',
                     'description' => $certificateState['module_description'] ?? $module->description,
-                    'is_complete' => ($certificateState['state'] ?? null) === 'download_available',
+                    'is_complete' => (bool) ($certificateState['is_complete'] ?? false),
                     'certificate_state' => $certificateState,
                 ]);
+
+                $allPreviousModulesComplete = $allPreviousModulesComplete
+                    && (bool) ($certificateState['is_complete'] ?? false);
 
                 continue;
             }
@@ -503,7 +495,6 @@ class StudentModuleApiService
                 $lessonProgressMap,
                 $completedAssessmentIds,
                 $assignmentSubmissionMap,
-                $certificateDownloadMap,
                 $resourceModuleVisitMap,
             );
 
@@ -527,7 +518,6 @@ class StudentModuleApiService
         Collection $lessonProgressMap,
         Collection $completedAssessmentIds,
         Collection $assignmentSubmissionMap,
-        Collection $certificateDownloadMap,
         Collection $resourceModuleVisitMap,
     ): bool {
         $liveAssignments = $module->assignments->where('status', Assignment::STATUS_LIVE);
@@ -550,7 +540,7 @@ class StudentModuleApiService
         }
 
         if ($this->isCertificateDownloadModule($module)) {
-            return $certificateDownloadMap->has($module->id);
+            return false;
         }
 
         if ($this->isOpenOnceResourceModule($module)) {
@@ -643,22 +633,6 @@ class StudentModuleApiService
         }
 
         return StudentModuleVisit::query()
-            ->where('user_id', $userId)
-            ->whereIn('module_id', $moduleIds)
-            ->pluck('module_id')
-            ->map(fn ($moduleId) => (int) $moduleId)
-            ->flip();
-    }
-
-    private function certificateDownloadMap(?int $userId, iterable $moduleIds): Collection
-    {
-        $moduleIds = collect($moduleIds)->filter()->values();
-
-        if (! $userId || $moduleIds->isEmpty()) {
-            return collect();
-        }
-
-        return CertificateDownloadEvent::query()
             ->where('user_id', $userId)
             ->whereIn('module_id', $moduleIds)
             ->pluck('module_id')
@@ -846,56 +820,53 @@ class StudentModuleApiService
             ->all();
     }
 
-    private function certificateAccessState(
-        User $user,
-        Collection $modules,
-        Collection $lessonProgressMap,
-        Collection $completedAssessmentIds,
-    ): array {
+    private function certificateAccessState(User $user): array
+    {
         $summary = $this->certificateEligibilityService->summaryForStudent($user);
         $availableTypes = $summary['available_types'] ?? [];
-        $latestCertificate = Certificate::query()
-            ->where('user_id', $user->id)
-            ->latest('generated_at')
-            ->latest('id')
-            ->first();
-        $eligibleTier = $user->access_tier_id !== null && collect($availableTypes)->isNotEmpty();
-        $learningModules = $modules
-            ->reject(fn (Module $module) => $this->isCertificateDownloadModule($module))
-            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+        $generatedCertificates = $this->certificateEligibilityService
+            ->latestCertificatesByType($user, $availableTypes)
+            ->sortByDesc(fn (Certificate $certificate) => sprintf(
+                '%010d-%010d',
+                $certificate->generated_at?->getTimestamp() ?? 0,
+                $certificate->id,
+            ))
             ->values();
+        $latestCertificate = $generatedCertificates->first();
+        $eligibleTier = $user->access_tier_id !== null && collect($availableTypes)->isNotEmpty();
         $learningEligible = (bool) ($summary['learning_eligible'] ?? false);
-        $hasCertificate = (bool) $latestCertificate;
+        $hasCertificate = $generatedCertificates->isNotEmpty();
         $isVisible = $eligibleTier && ($learningEligible || $hasCertificate);
         $state = ! $eligibleTier
             ? 'not_available'
-            : ($hasCertificate ? 'download_available' : ($learningEligible ? 'ready' : 'locked'));
+            : ($hasCertificate ? 'generated' : ($learningEligible ? 'ready' : 'locked'));
 
         return [
             'state' => $state,
             'is_visible' => $isVisible,
+            'is_complete' => $hasCertificate,
             'module_status' => $hasCertificate ? 'completed' : ($learningEligible ? 'available' : 'locked'),
             'module_description' => $hasCertificate
-                ? 'Your certificate is ready. Open this module to review and download your latest YogaFX certificate.'
+                ? 'Your certificate has been generated. This module is now complete and every module after it is unlocked.'
                 : ($learningEligible
-                    ? 'Your learning journey is complete and this certificate module is now open while certificate generation is being finalized.'
-                    : 'Complete your full YogaFX learning journey to unlock certificate access.'),
+                    ? 'All required submitted assignment videos have been approved. This certificate module is now ready for admin generation.'
+                    : 'Certificate access unlocks after all required submitted assignment videos in this certificate path are approved by admin.'),
             'title' => $hasCertificate
                 ? 'Your latest certificate is ready to download.'
                 : ($learningEligible
-                    ? 'Your certificate milestone is ready from the learning side.'
+                    ? 'Your certificate milestone is ready from approved assignment videos.'
                     : 'Certificate access is not unlocked yet.'),
             'description' => $hasCertificate
                 ? 'This module now acts as your student certificate area. Download the latest certificate record generated for your account.'
                 : ($learningEligible
-                    ? 'You have completed the accessible learning path for your current tier. If the certificate file has not been generated yet, please wait for the YogaFX team to finalize it.'
-                    : 'Certificate access opens after the required YogaFX journey has been completed.'),
+                    ? 'All required submitted assignment videos have been approved. If the certificate file has not been generated yet, please wait for the YogaFX team to finalize it.'
+                    : 'Certificate access opens after all required submitted assignment videos for your current certificate path have been approved by admin.'),
             'eligibility_label' => $eligibleTier
                 ? 'Certificate included in '.($summary['tier']['name'] ?? 'your current tier')
                 : 'Certificate not available in this tier',
             'support_note' => $hasCertificate
-                ? 'The latest available certificate record is surfaced here so you do not need a separate student certificate menu.'
-                : 'This page opens as soon as your learning path reaches certificate readiness, even if the final file is still waiting to be generated.',
+                ? 'The latest available certificate record is surfaced here and later modules stay unlocked after generation.'
+                : 'This page opens as soon as the required submitted videos are approved, even if the final file is still waiting to be generated.',
             'requirements' => $summary['requirements'] ?? [],
             'learning_eligible' => $learningEligible,
             'has_required_name' => (bool) ($summary['has_required_name'] ?? false),

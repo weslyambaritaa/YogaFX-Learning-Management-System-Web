@@ -2,13 +2,8 @@
 
 namespace App\Services\Certificates;
 
-use App\Models\AccessTier;
-use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
-use App\Models\AssessmentAttempt;
 use App\Models\Certificate;
-use App\Models\LessonProgress;
-use App\Models\Module;
 use App\Models\User;
 use App\Services\StudentLearningPathService;
 use Illuminate\Support\Collection;
@@ -28,21 +23,12 @@ class CertificateEligibilityService
         $availableTypes = collect(config("certificates.tiers.{$tierSlug}", []))
             ->filter(fn ($type) => isset(Certificate::TYPES[$type]))
             ->values();
-
-        $accessibleModules = $this->studentLearningPathService->accessibleModulesForStudent($student, withAssessments: true);
-        $pathSummary = $this->learningPathRequirementSummary($student, $accessibleModules);
         $assignmentSummary = $this->assignmentRequirementSummary($student);
 
         $requirements = collect([
             [
-                'key' => 'learning_path',
-                'label' => 'Learning Path',
-                'completed' => $pathSummary['completed'],
-                'total' => $pathSummary['total'],
-            ],
-            [
-                'key' => 'assignments',
-                'label' => 'Assignments',
+                'key' => 'approved_videos',
+                'label' => 'Approved Videos',
                 'completed' => $assignmentSummary['completed'],
                 'total' => $assignmentSummary['total'],
             ],
@@ -58,7 +44,6 @@ class CertificateEligibilityService
         $hasRelevantFlow = $tier !== null && $availableTypes->isNotEmpty();
         $learningEligible = $tier !== null
             && $availableTypes->isNotEmpty()
-            && $pathSummary['completed'] >= $pathSummary['total']
             && $assignmentSummary['completed'] >= $assignmentSummary['total'];
 
         return [
@@ -74,12 +59,9 @@ class CertificateEligibilityService
             'has_relevant_flow' => $hasRelevantFlow,
             'requirements' => $requirements->all(),
             'message' => $this->eligibilityMessage(
-                $tierSlug,
                 $availableTypes,
                 $tier !== null,
-                $hasRelevantFlow,
                 $requirements,
-                $pathSummary,
                 $assignmentSummary,
             ),
         ];
@@ -161,13 +143,13 @@ class CertificateEligibilityService
 
     private function assignmentRequirementSummary(User $student): array
     {
-        $assignmentIds = $this->relevantAssignmentIds($student);
+        $assignmentIds = $this->certificateRelevantAssignmentIds($student);
 
         if ($assignmentIds->isEmpty()) {
             return [
                 'completed' => 0,
                 'total' => 0,
-                'detail' => 'Assignments are not part of this tier certificate path.',
+                'detail' => 'This certificate path does not require any approved assignment videos.',
             ];
         }
 
@@ -183,70 +165,14 @@ class CertificateEligibilityService
         return [
             'completed' => $approvedAssignmentIds->count(),
             'total' => $assignmentIds->count(),
-            'detail' => 'Certificate unlocks after every required live assignment in the active tier has been approved.',
+            'detail' => 'Certificate unlocks after every required submitted assignment video in the active certificate path has been approved by admin.',
         ];
-    }
-
-    private function learningPathRequirementSummary(User $student, Collection $accessibleModules): array
-    {
-        $prerequisiteModules = $accessibleModules
-            ->reject(fn (Module $module) => $this->isCertificateDownloadModule($module))
-            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
-            ->values();
-
-        if ($prerequisiteModules->isEmpty()) {
-            return [
-                'completed' => 0,
-                'total' => 0,
-                'detail' => 'This tier does not have any lesson-based learning module blocking certificate access.',
-            ];
-        }
-
-        $lessonIds = $prerequisiteModules->flatMap(fn (Module $module) => $module->lessons->pluck('id'))->filter()->values();
-        $assessmentIds = $prerequisiteModules->flatMap(fn (Module $module) => $module->lessons->pluck('assessment_id'))->filter()->values();
-
-        $lessonProgressMap = LessonProgress::query()
-            ->where('user_id', $student->id)
-            ->whereIn('lesson_id', $lessonIds)
-            ->get()
-            ->keyBy('lesson_id');
-
-        $completedAssessmentIds = AssessmentAttempt::query()
-            ->where('user_id', $student->id)
-            ->whereIn('assessment_id', $assessmentIds)
-            ->where('status', AssessmentAttempt::STATUS_COMPLETED)
-            ->pluck('assessment_id')
-            ->map(fn ($assessmentId) => (int) $assessmentId)
-            ->unique()
-            ->values();
-
-        $completedModules = $prerequisiteModules->filter(
-            fn (Module $module) => $this->isModuleComplete(
-                $module,
-                $lessonProgressMap,
-                $completedAssessmentIds,
-            ),
-        )->count();
-
-        return [
-            'completed' => $completedModules,
-            'total' => $prerequisiteModules->count(),
-            'detail' => 'Certificate unlock follows the modules that are actually accessible in the student tier path.',
-        ];
-    }
-
-    private function relevantAssignmentIds(User $student): Collection
-    {
-        return $this->studentLearningPathService->relevantAssignmentIdsForStudent($student);
     }
 
     private function eligibilityMessage(
-        ?string $tierSlug,
         Collection $availableTypes,
         bool $hasTier,
-        bool $hasRelevantFlow,
         Collection $requirements,
-        array $pathSummary,
         array $assignmentSummary,
     ): string {
         if (! $hasTier) {
@@ -263,55 +189,18 @@ class CertificateEligibilityService
             ->values();
 
         if ($incomplete->isNotEmpty()) {
-            if ($incomplete->contains('Learning Path')) {
-                return $pathSummary['detail'];
-            }
-
-            if ($incomplete->contains('Assignments')) {
+            if ($incomplete->contains('Approved Videos')) {
                 return $assignmentSummary['detail'];
             }
 
             return 'Student must complete all relevant '.str($incomplete->join(', '))->lower()->value().' before certificate generation.';
         }
 
-        return 'All accessible prerequisite modules are complete and certificate access is unlocked.';
+        return 'All required submitted assignment videos have been approved and certificate access is unlocked.';
     }
 
-    private function isModuleComplete(
-        Module $module,
-        Collection $lessonProgressMap,
-        Collection $completedAssessmentIds,
-    ): bool {
-        return $module->lessons->isNotEmpty() && $module->lessons->every(
-            fn ($lesson) => $this->isLessonComplete(
-                $lesson,
-                $lessonProgressMap->get($lesson->id),
-                $completedAssessmentIds,
-            ),
-        );
-    }
-
-    private function isLessonComplete($lesson, ?LessonProgress $lessonProgress, Collection $completedAssessmentIds): bool
+    private function certificateRelevantAssignmentIds(User $student): Collection
     {
-        if ($lesson->lesson_video_id !== null && (float) ($lessonProgress?->watch_progress ?? 0) < 95) {
-            return false;
-        }
-
-        if (
-            $lesson->assessment_id !== null
-            && $lesson->assessment?->status === 'live'
-            && $lesson->assessment?->is_active
-        ) {
-            return $completedAssessmentIds->contains((int) $lesson->assessment_id);
-        }
-
-        return true;
-    }
-
-    private function isCertificateDownloadModule(Module $module): bool
-    {
-        return $module->lessons->isEmpty()
-            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty()
-            && (bool) $module->certificate_enabled;
+        return $this->studentLearningPathService->certificateAssignmentIdsForStudent($student);
     }
 }
