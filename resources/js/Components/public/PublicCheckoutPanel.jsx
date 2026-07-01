@@ -356,8 +356,8 @@ export default function PublicCheckoutPanel({ checkout }) {
             onApprove: async (data) => {
                 await captureApprovedOrder(data.orderID);
             },
-            onCancel: async (data) => {
-                await cancelActiveOrder(data.orderID);
+            onCancel: () => {
+                handleDismissedOrder();
             },
             onError: () => {
                 setGeneralError(
@@ -386,7 +386,12 @@ export default function PublicCheckoutPanel({ checkout }) {
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isInstallmentSelected, sdkReady, paymentType, checkout.create_order_url]);
+    }, [
+        isInstallmentSelected,
+        sdkReady,
+        paymentType,
+        checkout.create_order_url,
+    ]);
 
     useEffect(() => {
         if (!isInstallmentSelected) {
@@ -807,35 +812,13 @@ export default function PublicCheckoutPanel({ checkout }) {
         setIsSubmitting(false);
     };
 
-    const cancelActiveOrder = async (orderId) => {
-        const activeOrder = activeOrderRef.current;
-
-        if (!activeOrder?.cancel_url) {
-            setGeneralError("The PayPal checkout was cancelled.");
-            setIsSubmitting(false);
-            return;
-        }
-
-        const response = await fetch(activeOrder.cancel_url, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                "X-CSRF-TOKEN": getCsrfToken() ?? "",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            body: JSON.stringify({ order_id: orderId }),
-        });
-
-        const payload = await parseJsonSafely(response);
-
-        if (payload.redirect_url) {
-            window.location.assign(payload.redirect_url);
-            return;
-        }
-
-        setGeneralError("The PayPal checkout was cancelled.");
+    const handleDismissedOrder = () => {
+        // Closing the PayPal card sheet should keep buyers on the current
+        // YogaFX package page so they can switch funding choices without
+        // losing the prepared checkout form or being pushed to invoice status.
+        activeOrderRef.current = null;
+        setDebugInfo(null);
+        setGeneralError("");
         setIsSubmitting(false);
     };
 
@@ -1536,6 +1519,7 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <span>Loading secure payment methods...</span>
                     </div>
                 )}
+
             </div>
 
             {canUseMock && (

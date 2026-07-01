@@ -365,6 +365,7 @@ class PublicPaymentLinkTest extends TestCase
             ->assertJsonPath('checkout.amount', 300)
             ->assertJsonPath('checkout.currency_code', AccessTier::CURRENCY_USD)
             ->assertJsonPath('checkout.paypal.client_id', 'PAYPAL-CLIENT-ID-DIRECT-001')
+            ->assertJsonPath('checkout.paypal.client_token', null)
             ->assertJsonPath(
                 'checkout.create_order_url',
                 URL::temporarySignedRoute('checkout.orders.store', now()->addDays(7), [
