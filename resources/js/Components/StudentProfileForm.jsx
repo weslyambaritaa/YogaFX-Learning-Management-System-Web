@@ -212,6 +212,10 @@ function normalizePhoneNumberInput(value) {
 // Single source of truth for the font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
+const PUBLIC_FORM_LABEL_CLASS = "text-sm font-medium text-white/90";
+const PUBLIC_FORM_FIELD_CLASS =
+    "min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20";
+const PUBLIC_FORM_SELECT_PANEL_CLASS = "border-white/10 bg-[#161616] text-white";
 
 function wordsCount(value) {
     return String(value || "")
@@ -580,15 +584,14 @@ export default function StudentProfileForm({
                   "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#c31c28]",
           }
         : {
-              labelClassName: "text-[14px] font-medium text-white",
-              labelWithSpacingClassName:
-                  "mb-2 text-[14px] font-medium text-white",
+              labelClassName: PUBLIC_FORM_LABEL_CLASS,
+              labelWithSpacingClassName: `mb-2 ${PUBLIC_FORM_LABEL_CLASS}`,
               choiceDescriptionClassName:
                   "mt-1 text-[12px] font-normal text-white/70",
               choiceCheckedClassName:
                   "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_12px_rgba(219,32,44,0.28)]",
               choiceUncheckedClassName:
-                  "border-white/40 bg-transparent text-white/80 hover:border-white hover:bg-[#DB202C]/5",
+                  "border-white/20 bg-black/20 text-white/80 shadow-sm transition-all duration-200 hover:border-white/40 hover:bg-white/[0.06]",
               choiceIndicatorCheckedClassName:
                   "border-white bg-white text-[#DB202C]",
               choiceIndicatorUncheckedClassName:
@@ -598,16 +601,14 @@ export default function StudentProfileForm({
                   "mb-2 text-[22px] font-medium tracking-tight text-white",
               descriptionClassName:
                   "text-[12px] font-normal leading-6 text-white/70",
-              inputClassName:
-                  "!border-white bg-transparent text-white text-sm font-normal placeholder:text-white/30 focus:!border-white focus:ring-1 focus:ring-white/40",
+              inputClassName: PUBLIC_FORM_FIELD_CLASS,
               selectClassName:
-                  "block w-full rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-sm font-normal text-white shadow-sm focus:border-white focus:ring-1 focus:ring-white/40 [&::-webkit-calendar-picker-indicator]:invert",
+                  `block w-full ${PUBLIC_FORM_FIELD_CLASS} [&::-webkit-calendar-picker-indicator]:invert`,
               selectOptionClassName:
                   "text-sm font-normal text-black",
               selectActiveColor: "#DB202C",
               selectPlaceholderColor: "#FFFFFF",
-              textareaClassName:
-                  "block w-full rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-sm font-normal text-white shadow-sm placeholder:text-white/30 focus:border-white focus:ring-1 focus:ring-white/40",
+              textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS}`,
               helperClassName: "mt-2 text-sm font-semibold text-white/60",
               sectionDividerClassName: "mb-6 border-b border-white pb-4",
               footerDividerClassName: "flex items-center border-t border-white pt-8",
@@ -628,7 +629,7 @@ export default function StudentProfileForm({
                   "text-[12px] font-normal leading-relaxed text-white/70",
               dateInputStyle: { colorScheme: "dark" },
               dateInputClassName:
-                  "block w-full appearance-none rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] pr-12 text-sm font-normal text-white shadow-sm focus:border-white focus:ring-1 focus:ring-white/40 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0",
+                  `block w-full appearance-none ${PUBLIC_FORM_FIELD_CLASS} pr-12 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0`,
               dateIconClassName:
                   "absolute right-3 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white",
               primaryButtonClassName:
@@ -771,7 +772,7 @@ export default function StudentProfileForm({
                 <section className={sectionClassName}>
                     <div className="mb-6">
                         <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
-                            Personal Information
+                            Enrollment Form
                         </h3>
                         <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
                             Basic account details and your preferred certificate
@@ -779,7 +780,7 @@ export default function StudentProfileForm({
                         </p>
                     </div>
 
-                    <div className="grid gap-8 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2">
                         <div>
                             <InputLabel
                                 htmlFor="first_name"
@@ -789,7 +790,7 @@ export default function StudentProfileForm({
                             />
                             <TextInput
                                 id="first_name"
-                                className={`mt-2 block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                className={`mt-2 block w-full ${inputClassName}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.first_name}
                                 onChange={(event) =>
@@ -812,7 +813,7 @@ export default function StudentProfileForm({
                             />
                             <TextInput
                                 id="last_name"
-                                className={`mt-2 block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                className={`mt-2 block w-full ${inputClassName}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.last_name}
                                 onChange={(event) =>
@@ -835,7 +836,7 @@ export default function StudentProfileForm({
                             <TextInput
                                 id="email"
                                 type="email"
-                                className={`mt-2 block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                className={`mt-2 block w-full ${inputClassName}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.email}
                                 onChange={(event) =>
@@ -855,7 +856,7 @@ export default function StudentProfileForm({
                                 className={theme.labelClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
-                            <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]">
+                            <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]">
                                 <FlagOptionSelect
                                     id="whatsapp_country_code"
                                     value={data.whatsapp_country_code ?? "+62"}
@@ -870,7 +871,7 @@ export default function StudentProfileForm({
                                     displayMode="phone-code"
                                     searchPlaceholder="Search phone code or country"
                                     buttonClassName={theme.selectClassName}
-                                    buttonTextClassName="text-sm font-normal text-[#DB202C]"
+                                    buttonTextClassName="text-sm font-normal text-white"
                                     placeholderClassName={
                                         isAdminMode
                                             ? "text-sm font-normal text-slate-400"
@@ -879,9 +880,9 @@ export default function StudentProfileForm({
                                     panelClassName={
                                         isAdminMode
                                             ? "border-slate-200 bg-white text-slate-900"
-                                            : "border-white/10 bg-[#161616] text-white"
+                                            : PUBLIC_FORM_SELECT_PANEL_CLASS
                                     }
-                                    optionClassName="px-3 py-2.5 text-sm"
+                                    optionClassName="px-4 py-3 text-sm"
                                     optionActiveClassName={
                                         isAdminMode
                                             ? "bg-rose-50"
@@ -902,7 +903,7 @@ export default function StudentProfileForm({
                                 />
                                 <TextInput
                                     id="whatsapp_number"
-                                    className={`block w-full min-w-0 rounded-[5px] px-[10px] py-[8px] ${inputClassName}`}
+                                    className={`block w-full min-w-0 ${inputClassName}`}
                                     style={{ fontFamily: FONT_FAMILY }}
                                     value={data.whatsapp_number ?? ""}
                                     onChange={(event) =>
@@ -1019,7 +1020,7 @@ export default function StudentProfileForm({
                             />
                             <TextInput
                                 id="instagram"
-                                className={`mt-2 block w-full rounded-[5px] py-[8px] px-[10px] ${inputClassName}`}
+                                className={`mt-2 block w-full ${inputClassName}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.instagram ?? ""}
                                 onChange={(event) =>
@@ -1061,7 +1062,7 @@ export default function StudentProfileForm({
                                 }}
                                 placeholder="Select a country"
                                 buttonClassName={theme.selectClassName}
-                                buttonTextClassName="text-sm font-normal text-[#DB202C]"
+                                buttonTextClassName="text-sm font-normal text-white"
                                 placeholderClassName={
                                     isAdminMode
                                         ? "text-sm font-normal text-slate-400"
@@ -1070,9 +1071,9 @@ export default function StudentProfileForm({
                                 panelClassName={
                                     isAdminMode
                                         ? "border-slate-200 bg-white text-slate-900"
-                                        : "border-white/10 bg-[#161616] text-white"
+                                        : PUBLIC_FORM_SELECT_PANEL_CLASS
                                 }
-                                optionClassName="px-3 py-2.5 text-sm"
+                                optionClassName="px-4 py-3 text-sm"
                                 optionActiveClassName={
                                     isAdminMode
                                         ? "bg-rose-50"
