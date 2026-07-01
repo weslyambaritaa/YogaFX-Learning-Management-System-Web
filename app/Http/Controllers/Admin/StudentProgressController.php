@@ -400,11 +400,7 @@ class StudentProgressController extends Controller
         $student = $this->resolveStudent($student);
         abort_unless($certificate->user_id === $student->id, 404);
 
-        if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
-            $this->bunnyStorage->delete($certificate->file_path);
-        } elseif (Storage::disk('local')->exists($certificate->file_path)) {
-            Storage::disk('local')->delete($certificate->file_path);
-        }
+        $this->bunnyStorage->delete($certificate->file_path);
 
         $certificate->delete();
 

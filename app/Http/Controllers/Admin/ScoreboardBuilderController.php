@@ -245,17 +245,11 @@ class ScoreboardBuilderController extends Controller
             ]);
         }
 
-        $validated['image'] = $question->question_type === Question::TYPE_IMAGE_BUTTON
-            ? $this->storeUploadedFileToBunny(
-                $request->file('image'),
-                'assessments/question-options',
-                $option->image,
-            )
-            : $this->storeUploadedFile(
-                $request->file('image'),
-                'assessments/question-options',
-                $option->image,
-            );
+        $validated['image'] = $this->storeUploadedFileToBunny(
+            $request->file('image'),
+            'assessments/question-options',
+            $option->image,
+        );
 
         DB::transaction(function () use ($option, $validated, $question): void {
             $option->update($validated);
@@ -310,7 +304,7 @@ class ScoreboardBuilderController extends Controller
         ]);
 
         $design = $assessment->design()->firstOrCreate([]);
-        $validated['logo'] = $this->storeUploadedFile(
+        $validated['logo'] = $this->storeUploadedFileToBunny(
             $request->file('logo'),
             'assessments/designs',
             $design->logo,

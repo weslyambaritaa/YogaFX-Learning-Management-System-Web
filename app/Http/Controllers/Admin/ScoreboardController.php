@@ -58,7 +58,7 @@ class ScoreboardController extends Controller
     public function store(ScoreboardRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['thumbnail'] = $this->storeUploadedFileToBunnyWithLocalFallback(
+        $data['thumbnail'] = $this->storeUploadedFileToBunny(
             $request->file('thumbnail'),
             'assessments/thumbnails',
         );
@@ -85,7 +85,7 @@ class ScoreboardController extends Controller
     public function update(ScoreboardRequest $request, Assessment $assessment): RedirectResponse
     {
         $data = $request->validated();
-        $data['thumbnail'] = $this->storeUploadedFileToBunnyWithLocalFallback(
+        $data['thumbnail'] = $this->storeUploadedFileToBunny(
             $request->file('thumbnail'),
             'assessments/thumbnails',
             $assessment->thumbnail,

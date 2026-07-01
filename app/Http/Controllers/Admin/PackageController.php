@@ -81,7 +81,7 @@ class PackageController extends Controller
         $data['allowed_billing_days'] = $allowedBillingDays;
         $data['fixed_billing_day'] = $fixedBillingDay;
 
-        $data['image'] = $this->storeUploadedFile(
+        $data['image'] = $this->storeUploadedFileToBunny(
             $request->file('image'),
             'packages/images',
         );
@@ -142,7 +142,7 @@ class PackageController extends Controller
         $data['allowed_billing_days'] = $allowedBillingDays;
         $data['fixed_billing_day'] = $fixedBillingDay;
 
-        $data['image'] = $this->storeUploadedFile(
+        $data['image'] = $this->storeUploadedFileToBunny(
             $request->file('image'),
             'packages/images',
             $package->image,
@@ -167,7 +167,7 @@ class PackageController extends Controller
                 ]);
         }
 
-        $this->deleteUploadedFile($package->image);
+        $this->deleteUploadedFileFromAnyStorage($package->image);
         $package->delete();
 
         return redirect()

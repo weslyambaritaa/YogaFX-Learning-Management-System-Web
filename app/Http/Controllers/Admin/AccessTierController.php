@@ -101,7 +101,7 @@ class AccessTierController extends Controller
                 ]);
         }
 
-        $this->deleteUploadedFile($accessTier->thumbnail);
+        $this->deleteUploadedFileFromAnyStorage($accessTier->thumbnail);
         $accessTier->delete();
 
         return redirect()

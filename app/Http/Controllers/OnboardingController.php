@@ -106,7 +106,7 @@ class OnboardingController extends Controller
 
         $user = $onboardingState->user;
         $validated['birth_date'] = $validated['birth_date'] ?? $request->input('birth_date');
-        $validated['profile_photo'] = $this->storeUploadedFileToBunnyWithLocalFallback(
+        $validated['profile_photo'] = $this->storeUploadedFileToBunny(
             $request->file('profile_photo'),
             'users/profile-photos',
             $user->profile_photo,

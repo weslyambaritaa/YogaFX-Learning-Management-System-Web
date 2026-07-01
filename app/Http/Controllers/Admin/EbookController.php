@@ -48,7 +48,7 @@ class EbookController extends Controller
     public function store(EbookRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['file'] = $this->storeUploadedFileToBunnyWithLocalFallback(
+        $data['file'] = $this->storeUploadedFileToBunny(
             $request->file('file'),
             'ebooks/files',
         );
@@ -115,7 +115,7 @@ class EbookController extends Controller
     public function update(EbookRequest $request, Ebook $ebook): RedirectResponse
     {
         $data = $request->validated();
-        $data['file'] = $this->storeUploadedFileToBunnyWithLocalFallback(
+        $data['file'] = $this->storeUploadedFileToBunny(
             $request->file('file'),
             'ebooks/files',
             $ebook->file,

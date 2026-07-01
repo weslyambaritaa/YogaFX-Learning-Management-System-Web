@@ -24,7 +24,6 @@ use App\Services\StudentSessionTrackingService;
 use App\Support\CountryDirectory;
 use App\Support\StudentProfileValue;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -238,7 +237,7 @@ class StudentController extends Controller
         $student->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $student->birth_date;
         $student->syncDisplayName();
 
-        $student->profile_photo = $this->storeUploadedFileToBunnyWithLocalFallback(
+        $student->profile_photo = $this->storeUploadedFileToBunny(
             $request->file('profile_photo'),
             'users/profile-photos',
             $student->profile_photo,
@@ -342,11 +341,7 @@ class StudentController extends Controller
             $student->delete();
         });
 
-        $certificateFiles->each(function (string $path) {
-            if (Storage::disk('local')->exists($path)) {
-                Storage::disk('local')->delete($path);
-            }
-        });
+        $certificateFiles->each(fn (string $path) => $this->bunnyStorage->delete($path));
 
         return redirect()
             ->route($this->studentIndexRouteNameForContext($managementContext))

@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -118,19 +119,67 @@ HTML;
     {
         $path = parse_url($src, PHP_URL_PATH);
 
-        if (! is_string($path) || ! str_starts_with($path, '/storage/email-notifications/media/')) {
+        if (is_string($path) && str_starts_with($path, '/storage/email-notifications/media/')) {
+            $relativePath = Str::after($path, '/storage/');
+            $absolutePath = storage_path('app/public/'.$relativePath);
+
+            if (! is_file($absolutePath) || ! is_readable($absolutePath)) {
+                return null;
+            }
+
+            $mimeType = mime_content_type($absolutePath) ?: '';
+
+            return str_starts_with($mimeType, 'image/') ? $absolutePath : null;
+        }
+
+        if (! filter_var($src, FILTER_VALIDATE_URL)) {
             return null;
         }
 
-        $relativePath = Str::after($path, '/storage/');
-        $absolutePath = storage_path('app/public/'.$relativePath);
+        $response = Http::timeout(30)->get($src);
 
-        if (! is_file($absolutePath) || ! is_readable($absolutePath)) {
+        if (! $response->successful() || $response->body() === '') {
             return null;
         }
 
-        $mimeType = mime_content_type($absolutePath) ?: '';
+        $mimeType = $response->header('Content-Type') ?: '';
 
-        return str_starts_with($mimeType, 'image/') ? $absolutePath : null;
+        if (! str_starts_with($mimeType, 'image/')) {
+            return null;
+        }
+
+        $extension = match ($mimeType) {
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            'image/svg+xml' => 'svg',
+            'image/avif' => 'avif',
+            'image/bmp' => 'bmp',
+            default => 'img',
+        };
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'yogafx-email-');
+
+        if ($temporaryPath === false) {
+            return null;
+        }
+
+        $imagePath = $temporaryPath.'.'.$extension;
+
+        if (! @rename($temporaryPath, $imagePath)) {
+            $imagePath = $temporaryPath;
+        }
+
+        if (file_put_contents($imagePath, $response->body()) === false) {
+            @unlink($imagePath);
+
+            return null;
+        }
+
+        register_shutdown_function(static function () use ($imagePath): void {
+            @unlink($imagePath);
+        });
+
+        return $imagePath;
     }
 }
