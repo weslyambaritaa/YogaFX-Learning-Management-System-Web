@@ -861,6 +861,8 @@ export default function StudentProfileForm({
                                             option.value,
                                         )
                                     }
+                                    displayMode="phone-code"
+                                    searchPlaceholder="Search phone code or country"
                                     buttonClassName={theme.selectClassName}
                                     buttonTextClassName="text-sm font-normal text-[#DB202C]"
                                     placeholderClassName={

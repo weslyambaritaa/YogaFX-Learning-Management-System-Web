@@ -60,7 +60,9 @@ export default function Scoreboard({
     const [errors, setErrors] = useState({});
     const [processing, setProcessing] = useState(false);
     const [checkout, setCheckout] = useState(null);
+    const [autoPreparePaused, setAutoPreparePaused] = useState(false);
     const checkoutRef = useRef(null);
+    const lastPreparedSignatureRef = useRef(null);
 
     const selectedPackage =
         packages.find(
@@ -75,6 +77,33 @@ export default function Scoreboard({
     );
     const selectedPackageHasPrice = Number(selectedPackage?.price ?? 0) > 0;
     const isIdentityLocked = checkout !== null;
+    const packageTitle = selectedPackage?.title ?? "YogaFX Package";
+    const packagePrice = selectedPackageHasPrice
+        ? formatCurrency(
+              selectedPackage.price,
+              selectedPackage.currency_code,
+          )
+        : "Price not set yet";
+    const normalizedEmail = (data.email ?? "").trim().toLowerCase();
+    const formSignature = [
+        data.first_name.trim(),
+        data.last_name.trim(),
+        normalizedEmail,
+        data.phone_country_code.trim(),
+        data.phone_number.trim(),
+        data.country.trim(),
+        String(data.package_id ?? ""),
+    ].join("|");
+    const canPrepareCheckout =
+        packages.length > 0 &&
+        selectedPackageHasPrice &&
+        data.first_name.trim() !== "" &&
+        data.last_name.trim() !== "" &&
+        normalizedEmail !== "" &&
+        data.phone_country_code.trim() !== "" &&
+        data.phone_number.trim() !== "" &&
+        data.country.trim() !== "" &&
+        String(data.package_id ?? "") !== "";
 
     useEffect(() => {
         if (!checkoutRef.current) {
@@ -87,6 +116,33 @@ export default function Scoreboard({
         });
     }, [checkout]);
 
+    useEffect(() => {
+        if (
+            !canPrepareCheckout ||
+            checkout ||
+            processing ||
+            autoPreparePaused ||
+            lastPreparedSignatureRef.current === formSignature
+        ) {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            prepareCheckout();
+        }, 350);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        autoPreparePaused,
+        canPrepareCheckout,
+        checkout,
+        formSignature,
+        processing,
+    ]);
+
     const setFieldValue = (field, value) => {
         setData((current) => ({
             ...current,
@@ -97,12 +153,17 @@ export default function Scoreboard({
             ...current,
             [field]: "",
         }));
+        setAutoPreparePaused(false);
     };
 
-    const submit = async (event) => {
-        event.preventDefault();
+    const prepareCheckout = async () => {
+        if (!canPrepareCheckout || processing) {
+            return;
+        }
+
         setProcessing(true);
         setErrors({});
+        lastPreparedSignatureRef.current = formSignature;
 
         try {
             const response = await fetch(submit_url, {
@@ -161,16 +222,27 @@ export default function Scoreboard({
         }
     };
 
+    const submit = async (event) => {
+        event.preventDefault();
+        await prepareCheckout();
+    };
+
+    const resetCheckoutPreparation = () => {
+        setCheckout(null);
+        setAutoPreparePaused(true);
+        setErrors({});
+    };
+
     return (
         <PublicFlowLayout
             title="Scoreboard"
             showBackButton={!is_package_locked}
             heading={
-                // Heading is rendered by PublicFlowLayout, so we pass an
-                // explicitly styled node instead of a plain string to
-                // guarantee Montserrat / 48px / 700 regardless of any
-                // default heading styles the layout applies.
+                // Heading is rendered by PublicFlowLayout, so we pass a
+                // styled node to preserve the existing premium hero
+                // hierarchy while letting package data stay dynamic.
                 <span
+                    className="block text-balance"
                     style={{
                         fontFamily: FONT_FAMILY,
                         fontSize: "48px",
@@ -178,7 +250,20 @@ export default function Scoreboard({
                         lineHeight: 1.2,
                     }}
                 >
-                    Start your YogaFX Journey!
+                    {`We Are Thrilled That You Will Be Joining Our ${packageTitle}`}
+                </span>
+            }
+            description={
+                <span
+                    className="block text-balance"
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "18px",
+                        fontWeight: 500,
+                        lineHeight: 1.6,
+                    }}
+                >
+                    {`Please Continue Your ${packagePrice} Transfer Below.`}
                 </span>
             }
             aside={
@@ -199,6 +284,20 @@ export default function Scoreboard({
                             {errors.general}
                         </div>
                     )}
+
+                    {checkout ? (
+                        <div className="flex justify-end">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={resetCheckoutPreparation}
+                                className="rounded-[5px] border-white/20 bg-transparent px-2.5 py-2 text-sm font-medium text-white hover:bg-white/10"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            >
+                                Edit Details
+                            </Button>
+                        </div>
+                    ) : null}
 
                     <div className="grid gap-6 md:grid-cols-2">
                         {/* First Name */}
@@ -300,6 +399,8 @@ export default function Scoreboard({
                                             option.value,
                                         )
                                     }
+                                    displayMode="phone-code"
+                                    searchPlaceholder="Search phone code or country"
                                     disabled={isIdentityLocked}
                                     buttonClassName="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
                                     buttonTextClassName="text-sm font-normal text-white"
@@ -469,26 +570,18 @@ export default function Scoreboard({
                         </div>
                     </div>
 
-                    {!checkout && (
-                        <div className="mt-8 flex justify-start">
-                            <Button
-                                type="submit"
-                                disabled={
-                                    processing ||
-                                    packages.length === 0 ||
-                                    !selectedPackageHasPrice
-                                }
-                                className="rounded-[5px] bg-[#DB202C] px-2.5 py-2 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:bg-[#c01a25] hover:shadow-xl disabled:pointer-events-none disabled:opacity-60"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                            >
-                                {processing
-                                    ? "Preparing Payment..."
-                                    : selectedPackageHasPrice
-                                      ? "Continue to Payment"
-                                      : "Set Package Price First"}
-                            </Button>
-                        </div>
-                    )}
+                    {!checkout ? (
+                        <p
+                            className="text-sm text-white/65"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                        >
+                            {processing
+                                ? "Preparing payment options..."
+                                : selectedPackageHasPrice
+                                  ? "Complete the identity form above to unlock payment options automatically."
+                                  : "Set package price first."}
+                        </p>
+                    ) : null}
                 </form>
 
                 {checkout ? (
