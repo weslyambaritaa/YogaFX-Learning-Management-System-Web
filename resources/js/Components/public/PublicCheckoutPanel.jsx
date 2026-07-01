@@ -165,6 +165,24 @@ export default function PublicCheckoutPanel({ checkout }) {
         activeInstallmentSummary?.final_due_at ??
         selectedPaymentOption?.final_due_at ??
         null;
+    const installmentScheduleBreakdown = Array.isArray(
+        activeInstallmentSummary?.schedule_breakdown,
+    )
+        ? activeInstallmentSummary.schedule_breakdown
+        : [];
+    const nextInstallment =
+        installmentScheduleBreakdown[0] ??
+        (activeInstallmentSummary?.recurring_due_dates?.[0]
+            ? {
+                  amount:
+                      activeInstallmentSummary?.recurring_payment_amount ??
+                      recurringAmount,
+                  due_at: activeInstallmentSummary.recurring_due_dates[0],
+              }
+            : null);
+    const lastInstallment =
+        installmentScheduleBreakdown[installmentScheduleBreakdown.length - 1] ??
+        null;
     const showBillingDaySelector =
         isInstallmentSelected &&
         installmentAcceptsBillingDay &&
@@ -991,66 +1009,125 @@ export default function PublicCheckoutPanel({ checkout }) {
                                         : "today, then continue on this monthly installment schedule"
                                     : `today, then continue on the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} recurring schedule`}
                             </h3>
+                            <p
+                                className="mt-3 text-sm leading-6 text-white/65"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            >
+                                Clear breakdown of your YogaFX installment schedule before you continue to PayPal approval.
+                            </p>
                         </div>
 
-                        <div
-                            className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-3 text-right"
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                Final due date
-                            </p>
-                            <p className="mt-1 text-sm font-medium text-white">
-                                {formatScheduleDate(finalDueAt)}
-                            </p>
-                        </div>
+
                     </div>
 
-                    <div className="mt-5 grid gap-4 md:grid-cols-3">
-                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
-                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                First payment
-                            </p>
-                            <p className="mt-2 text-lg font-semibold text-white">
-                                {formatCurrency(
-                                    amountDueToday,
-                                    activeCurrencyCode,
-                                )}
-                            </p>
-                            <p className="mt-1 text-sm text-white/55">
-                                Charged immediately when PayPal approval succeeds.
-                            </p>
+                    <div
+                        className="overflow-hidden rounded-[5px] border border-white/10 bg-black/20"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
+                        <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)] border-b border-white/10 bg-white/[0.03] px-5 py-3 text-xs uppercase tracking-[0.16em] text-white/45 md:grid">
+                            <span>Detail</span>
+                            <span>Value</span>
                         </div>
 
-                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
-                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                Recurring payment
-                            </p>
-                            <p className="mt-2 text-lg font-semibold text-white">
-                                {formatCurrency(
-                                    recurringAmount,
-                                    activeCurrencyCode,
-                                )}
-                            </p>
-                            <p className="mt-1 text-sm text-white/55">
-                                {usesMonthlyInstallmentSchedule
-                                    ? showBillingDaySelector
-                                        ? `Auto-billed every month on the ${formatBillingDayLabel(activeBillingDay)}.`
-                                        : "Auto-billed on the package's monthly recurring schedule."
-                                    : `Auto-billed on the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} recurring schedule.`}
-                            </p>
-                        </div>
+                        <div className="divide-y divide-white/10">
+                            {[
+                                {
+                                    label: "Course Price",
+                                    value: formatCurrency(
+                                        Number(
+                                            activeInstallmentSummary?.total_amount ??
+                                                checkout.amount ??
+                                                0,
+                                        ),
+                                        activeCurrencyCode,
+                                    ),
+                                    helper: "Total package price for this checkout.",
+                                },
+                                {
+                                    label: "Number of Installments",
+                                    value: `${installmentCount} total payments`,
+                                    helper: "Includes the first payment due at checkout.",
+                                },
+                                {
+                                    label: "Monthly Installment",
+                                    value: formatCurrency(
+                                        recurringAmount,
+                                        activeCurrencyCode,
+                                    ),
+                                    helper: usesMonthlyInstallmentSchedule
+                                        ? showBillingDaySelector
+                                            ? `Auto-billed every month on the ${formatBillingDayLabel(activeBillingDay)}.`
+                                            : "Auto-billed on the package's monthly recurring schedule."
+                                        : `Auto-billed on the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} recurring schedule.`,
+                                },
+                                {
+                                    label: "Last Installment",
+                                    value: formatCurrency(
+                                        Number(
+                                            lastInstallment?.amount ??
+                                                recurringAmount,
+                                        ),
+                                        activeCurrencyCode,
+                                    ),
+                                    helper: lastInstallment?.due_at
+                                        ? `Final scheduled charge on ${formatScheduleDate(lastInstallment.due_at)}.`
+                                        : "Final scheduled charge in this installment plan.",
+                                },
+                                {
+                                    label: "First Installment Due Today",
+                                    value: formatCurrency(
+                                        amountDueToday,
+                                        activeCurrencyCode,
+                                    ),
+                                    helper: "Charged immediately when PayPal approval succeeds.",
+                                },
+                                {
+                                    label: "Next Installment",
+                                    value: nextInstallment
+                                        ? `${formatCurrency(Number(nextInstallment.amount ?? recurringAmount), activeCurrencyCode)} on ${formatScheduleDate(nextInstallment.due_at)}`
+                                        : "Will be scheduled after the first payment.",
+                                    helper: "Your next recurring installment after checkout.",
+                                },
+                                {
+                                    label: "Last Installment Date",
+                                    value: formatScheduleDate(finalDueAt),
+                                    helper: "End date of this current installment schedule.",
+                                },
+                                installmentAcceptsBillingDay
+                                    ? {
+                                          label: "Preferred Monthly Billing Day",
+                                          value: `Every ${formatBillingDayLabel(activeBillingDay)} of the month`,
+                                          helper: showBillingDaySelector
+                                              ? "You can change this before continuing to PayPal."
+                                              : "Set by the package's installment billing configuration.",
+                                      }
+                                    : null,
+                            ]
+                                .filter(Boolean)
+                                .map((row) => (
+                                    <div
+                                        key={row.label}
+                                        className="grid gap-2 px-5 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)] md:gap-6"
+                                    >
+                                        <div className="min-w-0">
+                                            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45 md:hidden">
+                                                {row.label}
+                                            </p>
+                                            <p className="hidden text-sm font-medium text-white/72 md:block">
+                                                {row.label}
+                                            </p>
+                                        </div>
 
-                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
-                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                Installment count
-                            </p>
-                            <p className="mt-2 text-lg font-semibold text-white">
-                                {installmentCount} total payments
-                            </p>
-                            <p className="mt-1 text-sm text-white/55">
-                                Includes the checkout payment and recurring cycles through January 15.
-                            </p>
+                                        <div className="min-w-0">
+                                            <p className="text-base font-semibold text-white md:text-[15px]">
+                                                {row.value}
+                                            </p>
+                                            <p className="mt-1 text-sm leading-6 text-white/55">
+                                                {row.helper}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
                         </div>
                     </div>
                 </div>
@@ -1130,7 +1207,7 @@ export default function PublicCheckoutPanel({ checkout }) {
                     style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                 >
                     {isInstallmentSelected
-                        ? "Installment checkout continues through the PayPal subscription approval flow. YogaFX will wait for the payment confirmation webhook before opening onboarding."
+                        ? ""
                         : "Pay with PayPal or your debit or credit card safely below."}
                 </p>
                 {paypalConfig.environment && (
