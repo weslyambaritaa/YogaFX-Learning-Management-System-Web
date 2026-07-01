@@ -203,6 +203,12 @@ const COUNTRY_FLAG_UNICODE_MAP = {
     Vietnam: "\uD83C\uDDFB\uD83C\uDDF3",
 };
 
+function normalizePhoneNumberInput(value) {
+    return String(value ?? "")
+        .replace(/^\s+/, "")
+        .replace(/^0+/, "");
+}
+
 // Single source of truth for the font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
@@ -849,7 +855,7 @@ export default function StudentProfileForm({
                                 className={theme.labelClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
-                            <div className="mt-2 grid gap-3 md:grid-cols-[180px_minmax(0,1fr)] md:items-start">
+                            <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]">
                                 <FlagOptionSelect
                                     id="whatsapp_country_code"
                                     value={data.whatsapp_country_code ?? "+62"}
@@ -902,7 +908,9 @@ export default function StudentProfileForm({
                                     onChange={(event) =>
                                         setData(
                                             "whatsapp_number",
-                                            event.target.value,
+                                            normalizePhoneNumberInput(
+                                                event.target.value,
+                                            ),
                                         )
                                     }
                                     placeholder="81233456788"

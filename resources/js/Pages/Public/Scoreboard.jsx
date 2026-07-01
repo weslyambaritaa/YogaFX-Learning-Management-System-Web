@@ -37,6 +37,12 @@ async function parseJsonSafely(response) {
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
 
+function normalizePhoneNumberInput(value) {
+    return String(value ?? "")
+        .replace(/^\s+/, "")
+        .replace(/^0+/, "");
+}
+
 export default function Scoreboard({
     packages,
     submit_url,
@@ -387,10 +393,10 @@ export default function Scoreboard({
                                 className="text-sm font-medium text-white/90"
                                 style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
                             />
-                            <div className="mt-2 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)] md:items-start">
-                                <FlagOptionSelect
-                                    id="phone_country_code"
-                                    value={data.phone_country_code}
+                                    <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]">
+                                        <FlagOptionSelect
+                                            id="phone_country_code"
+                                            value={data.phone_country_code}
                                     selectedOption={selectedPhoneCountryOption}
                                     options={phoneCountryCodeOptions}
                                     onChange={(option) =>
@@ -420,7 +426,12 @@ export default function Scoreboard({
                                     className="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
                                     style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                     onChange={(event) =>
-                                        setFieldValue("phone_number", event.target.value)
+                                        setFieldValue(
+                                            "phone_number",
+                                            normalizePhoneNumberInput(
+                                                event.target.value,
+                                            ),
+                                        )
                                     }
                                     placeholder="81234567890"
                                     required
