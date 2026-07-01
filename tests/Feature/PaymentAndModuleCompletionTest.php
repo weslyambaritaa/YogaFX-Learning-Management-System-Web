@@ -244,10 +244,6 @@ class PaymentAndModuleCompletionTest extends TestCase
                 'payment_type' => Payment::TYPE_PAY_FULL,
                 'payment_method' => Payment::METHOD_PAYPAL,
                 'checkout_mode' => 'card',
-                'first_name' => 'Maya',
-                'last_name' => 'Cole',
-                'billing_postcode' => '90123',
-                'billing_country' => 'Indonesia',
                 'terms_accepted' => true,
             ],
         );

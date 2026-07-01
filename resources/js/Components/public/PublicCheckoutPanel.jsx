@@ -1,18 +1,11 @@
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
-import FlagOptionSelect from "@/Components/FlagOptionSelect";
 import { Button } from "@/Components/ui/button";
-import { enrichCountryOptions } from "@/lib/countryFlags";
 import { formatCurrency } from "@/lib/currency";
 import { AlertCircle, LoaderCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePage } from "@inertiajs/react";
 
 const INITIAL_ERRORS = {
-    first_name: "",
-    last_name: "",
-    billing_postcode: "",
-    billing_country: "",
     billing_day: "",
     terms_accepted: "",
     payment_method: "",
@@ -90,8 +83,6 @@ function formatIntervalLabel(unit, count = 1) {
 }
 
 export default function PublicCheckoutPanel({ checkout }) {
-    const { directory = {} } = usePage().props;
-    const countryOptions = enrichCountryOptions(directory.countries ?? []);
     const paymentOptions = Array.isArray(checkout.payment_options)
         ? checkout.payment_options
         : [];
@@ -125,12 +116,6 @@ export default function PublicCheckoutPanel({ checkout }) {
             15,
     );
     const [formData, setFormData] = useState({
-        first_name: checkout.first_name ?? "",
-        last_name: checkout.last_name ?? "",
-        billing_postcode: "",
-        billing_country: checkout.country ?? "",
-        billing_address_line_1: "",
-        billing_address_line_2: "",
         terms_accepted: false,
     });
     const formDataRef = useRef(formData);
@@ -187,10 +172,6 @@ export default function PublicCheckoutPanel({ checkout }) {
         installmentAllowedBillingDays.length > 1;
     const usesMonthlyInstallmentSchedule = installmentIntervalUnit === "MONTH";
     const canUseMock = mockAvailable && !isInstallmentSelected;
-    const selectedBillingCountryOption =
-        countryOptions.find(
-            (option) => option.value === formData.billing_country,
-        ) ?? null;
 
     const paypalScriptUrl = useMemo(() => {
         const params = new URLSearchParams(
@@ -580,22 +561,6 @@ export default function PublicCheckoutPanel({ checkout }) {
         const nextErrors = { ...INITIAL_ERRORS };
         const currentData = formDataRef.current;
 
-        if (!(currentData.first_name || "").trim()) {
-            nextErrors.first_name = "First name is required.";
-        }
-
-        if (!(currentData.last_name || "").trim()) {
-            nextErrors.last_name = "Last name is required.";
-        }
-
-        if (!(currentData.billing_postcode || "").trim()) {
-            nextErrors.billing_postcode = "Postcode is required.";
-        }
-
-        if (!(currentData.billing_country || "").trim()) {
-            nextErrors.billing_country = "Billing country is required.";
-        }
-
         if (!currentData.terms_accepted) {
             nextErrors.terms_accepted = "You must agree before continuing.";
         }
@@ -641,12 +606,6 @@ export default function PublicCheckoutPanel({ checkout }) {
                     isInstallmentSelected && installmentAcceptsBillingDay
                         ? billingDay
                         : null,
-                first_name: currentData.first_name,
-                last_name: currentData.last_name,
-                billing_postcode: currentData.billing_postcode,
-                billing_country: currentData.billing_country,
-                billing_address_line_1: currentData.billing_address_line_1,
-                billing_address_line_2: currentData.billing_address_line_2,
                 terms_accepted: currentData.terms_accepted,
             }),
         });
@@ -852,228 +811,64 @@ export default function PublicCheckoutPanel({ checkout }) {
                 </div>
             )}
 
-            <div className="space-y-6 rounded-[5px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
-                <div className="grid gap-6 md:grid-cols-2">
-                    <div className="md:col-span-2">
+            <div className="rounded-[5px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
                         <p
                             className="text-sm font-semibold text-[#DB202C]"
                             style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
                         >
-                            Billing identity
+                            Buyer Details
+                        </p>
+                        <p
+                            className="mt-2 text-sm leading-6 text-white/60"
+                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                        >
+                            Identity details stay synced from the package form above and remain available for onboarding after payment succeeds.
                         </p>
                     </div>
 
-                    <div>
-                        <InputLabel
-                            value="First Name"
-                            className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                        />
-                        <div className="relative mt-2">
-                            <input
-                                value={formData.first_name}
-                                onChange={(event) =>
-                                    setFieldValue("first_name", event.target.value)
-                                }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                                    fieldErrors.first_name
-                                        ? "border-rose-500 pr-11 focus:border-rose-500"
-                                        : "border-white/20 focus:border-white/40"
-                                }`}
-                            />
-                            {fieldErrors.first_name && (
-                                <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
-                            )}
-                        </div>
-                        <InputError
-                            className="mt-2 text-sm font-medium text-rose-400"
-                            style={{ fontFamily: FONT_FAMILY }}
-                            message={fieldErrors.first_name}
-                        />
-                    </div>
-
-                    <div>
-                        <InputLabel
-                            value="Last Name"
-                            className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                        />
-                        <div className="relative mt-2">
-                            <input
-                                value={formData.last_name}
-                                onChange={(event) =>
-                                    setFieldValue("last_name", event.target.value)
-                                }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                                    fieldErrors.last_name
-                                        ? "border-rose-500 pr-11 focus:border-rose-500"
-                                        : "border-white/20 focus:border-white/40"
-                                }`}
-                            />
-                            {fieldErrors.last_name && (
-                                <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
-                            )}
-                        </div>
-                        <InputError
-                            className="mt-2 text-sm font-medium text-rose-400"
-                            style={{ fontFamily: FONT_FAMILY }}
-                            message={fieldErrors.last_name}
-                        />
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <InputLabel
-                            value="Email"
-                            className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                        />
-                        <input
-                            value={checkout.email}
-                            disabled
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                            className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white/60 opacity-70 transition-all duration-200"
-                        />
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <InputLabel
-                            value="Mobile Phone"
-                            className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                        />
-                        <input
-                            value={checkout.phone}
-                            disabled
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                            className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white/60 opacity-70 transition-all duration-200"
-                        />
-                    </div>
-
-                    <div>
-                        <InputLabel
-                            value="Billing Postcode"
-                            className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                        />
-                        <div className="relative mt-2">
-                            <input
-                                value={formData.billing_postcode}
-                                onChange={(event) =>
-                                    setFieldValue("billing_postcode", event.target.value)
-                                }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                className={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                                    fieldErrors.billing_postcode
-                                        ? "border-rose-500 pr-11 focus:border-rose-500"
-                                        : "border-white/20 focus:border-white/40"
-                                }`}
-                            />
-                            {fieldErrors.billing_postcode && (
-                                <AlertCircle className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-rose-400" />
-                            )}
-                        </div>
-                        <InputError
-                            className="mt-2 text-sm font-medium text-rose-400"
-                            style={{ fontFamily: FONT_FAMILY }}
-                            message={fieldErrors.billing_postcode}
-                        />
-                    </div>
-
-                    <div>
-                        <InputLabel
-                            value="Billing Country"
-                            className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                        />
-                        <div className="relative mt-2">
-                            <FlagOptionSelect
-                                id="billing_country"
-                                value={formData.billing_country}
-                                selectedOption={selectedBillingCountryOption}
-                                options={countryOptions}
-                                onChange={(option) =>
-                                    setFieldValue(
-                                        "billing_country",
-                                        option.value,
-                                    )
-                                }
-                                placeholder="Select billing country"
-                                buttonClassName={`block w-full min-h-[52px] rounded-[5px] border bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/20 ${
-                                    fieldErrors.billing_country
-                                        ? "border-rose-500 focus:border-rose-500"
-                                        : "border-white/20 focus:border-white/40"
-                                }`}
-                                buttonTextClassName="text-sm font-normal text-white"
-                                placeholderClassName="text-sm font-normal text-white/50"
-                                panelClassName="border-white/10 bg-[#161616] text-white"
-                                optionClassName="px-4 py-3 text-sm"
-                                optionActiveClassName="bg-white/10"
-                                optionSelectedClassName="text-[#DB202C]"
-                                optionTextClassName="text-sm font-normal text-white"
-                                chevronClassName="text-white/60"
-                                fallbackClassName="bg-white/10 text-white/70"
-                            />
-                        </div>
-                        <InputError
-                            className="mt-2 text-sm font-medium text-rose-400"
-                            style={{ fontFamily: FONT_FAMILY }}
-                            message={fieldErrors.billing_country}
-                        />
+                    <div
+                        className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-3 text-right"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
+                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                            Buyer country
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-white">
+                            {checkout.country || "Not set"}
+                        </p>
                     </div>
                 </div>
 
-                <div className="my-6 border-t border-white/10" />
-
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <p
-                            className="text-sm font-semibold text-[#DB202C]"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
-                        >
-                            Billing address
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                            Full name
                         </p>
-                        <span
-                            className="text-xs text-white/40"
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            Optional second line supported
-                        </span>
+                        <p className="mt-2 text-sm font-medium text-white">
+                            {[checkout.first_name, checkout.last_name]
+                                .filter(Boolean)
+                                .join(" ") || "Not set"}
+                        </p>
                     </div>
 
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <div className="md:col-span-2">
-                            <InputLabel
-                                value="Billing Address Line 1"
-                                className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                            />
-                            <input
-                                value={formData.billing_address_line_1}
-                                onChange={(event) =>
-                                    setFieldValue("billing_address_line_1", event.target.value)
-                                }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
-                            />
-                        </div>
+                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                            Email
+                        </p>
+                        <p className="mt-2 text-sm font-medium text-white break-all">
+                            {checkout.email || "Not set"}
+                        </p>
+                    </div>
 
-                        <div className="md:col-span-2">
-                            <InputLabel
-                                value="Billing Address Line 2"
-                                className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                            />
-                            <input
-                                value={formData.billing_address_line_2}
-                                onChange={(event) =>
-                                    setFieldValue("billing_address_line_2", event.target.value)
-                                }
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 placeholder:text-white/30 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
-                            />
-                        </div>
+                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4 md:col-span-2">
+                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                            Mobile phone
+                        </p>
+                        <p className="mt-2 text-sm font-medium text-white">
+                            {checkout.phone || "Not set"}
+                        </p>
                     </div>
                 </div>
             </div>
