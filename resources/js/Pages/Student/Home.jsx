@@ -3,7 +3,7 @@ import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link } from "@inertiajs/react";
-import { Check, ChevronRight, Play, X } from "lucide-react";
+import { ChevronRight, Play, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const ONBOARDING_KEY = "yogafx_onboarding_done";
@@ -777,17 +777,6 @@ export default function StudentHome({
                     ) : null}
                 </section>
 
-                {assignmentMilestone?.state === "approved" ? (
-                    <section className="flex flex-wrap gap-3 pb-4">
-                        <div
-                            className="inline-flex items-center gap-2 rounded-[5px] border border-emerald-500 bg-emerald-500 px-5 py-3 text-sm font-semibold text-white"
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            <Check className="size-4" />
-                            Assignment Approved
-                        </div>
-                    </section>
-                ) : null}
             </div>
         </AuthenticatedLayout>
     );
