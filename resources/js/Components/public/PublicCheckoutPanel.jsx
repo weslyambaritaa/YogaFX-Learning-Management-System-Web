@@ -812,68 +812,6 @@ export default function PublicCheckoutPanel({ checkout }) {
             )}
 
             <div className="rounded-[5px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                        <p
-                            className="text-sm font-semibold text-[#DB202C]"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
-                        >
-                            Buyer Details
-                        </p>
-                        <p
-                            className="mt-2 text-sm leading-6 text-white/60"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                        >
-                            Identity details stay synced from the package form above and remain available for onboarding after payment succeeds.
-                        </p>
-                    </div>
-
-                    <div
-                        className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-3 text-right"
-                        style={{ fontFamily: FONT_FAMILY }}
-                    >
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                            Buyer country
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-white">
-                            {checkout.country || "Not set"}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="mt-5 grid gap-4 md:grid-cols-2">
-                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                            Full name
-                        </p>
-                        <p className="mt-2 text-sm font-medium text-white">
-                            {[checkout.first_name, checkout.last_name]
-                                .filter(Boolean)
-                                .join(" ") || "Not set"}
-                        </p>
-                    </div>
-
-                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                            Email
-                        </p>
-                        <p className="mt-2 text-sm font-medium text-white break-all">
-                            {checkout.email || "Not set"}
-                        </p>
-                    </div>
-
-                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4 md:col-span-2">
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                            Mobile phone
-                        </p>
-                        <p className="mt-2 text-sm font-medium text-white">
-                            {checkout.phone || "Not set"}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="rounded-[5px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
                 <div className="space-y-4">
                     <div>
                         <InputLabel

@@ -36,11 +36,31 @@ async function parseJsonSafely(response) {
 // Single source of truth for the new font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
+const FIELD_ORDER = [
+    "first_name",
+    "last_name",
+    "email",
+    "phone_country_code",
+    "phone_number",
+    "country",
+];
+const FIELD_ELEMENT_IDS = {
+    first_name: "first_name",
+    last_name: "last_name",
+    email: "email",
+    phone_country_code: "phone_country_code",
+    phone_number: "phone_number",
+    country: "country",
+};
 
 function normalizePhoneNumberInput(value) {
     return String(value ?? "")
         .replace(/^\s+/, "")
         .replace(/^0+/, "");
+}
+
+function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim());
 }
 
 export default function Scoreboard({
@@ -66,9 +86,8 @@ export default function Scoreboard({
     const [errors, setErrors] = useState({});
     const [processing, setProcessing] = useState(false);
     const [checkout, setCheckout] = useState(null);
-    const [autoPreparePaused, setAutoPreparePaused] = useState(false);
     const checkoutRef = useRef(null);
-    const lastPreparedSignatureRef = useRef(null);
+    const fieldContainersRef = useRef({});
 
     const selectedPackage =
         packages.find(
@@ -91,25 +110,6 @@ export default function Scoreboard({
           )
         : "Price not set yet";
     const normalizedEmail = (data.email ?? "").trim().toLowerCase();
-    const formSignature = [
-        data.first_name.trim(),
-        data.last_name.trim(),
-        normalizedEmail,
-        data.phone_country_code.trim(),
-        data.phone_number.trim(),
-        data.country.trim(),
-        String(data.package_id ?? ""),
-    ].join("|");
-    const canPrepareCheckout =
-        packages.length > 0 &&
-        selectedPackageHasPrice &&
-        data.first_name.trim() !== "" &&
-        data.last_name.trim() !== "" &&
-        normalizedEmail !== "" &&
-        data.phone_country_code.trim() !== "" &&
-        data.phone_number.trim() !== "" &&
-        data.country.trim() !== "" &&
-        String(data.package_id ?? "") !== "";
 
     useEffect(() => {
         if (!checkoutRef.current) {
@@ -122,32 +122,90 @@ export default function Scoreboard({
         });
     }, [checkout]);
 
-    useEffect(() => {
-        if (
-            !canPrepareCheckout ||
-            checkout ||
-            processing ||
-            autoPreparePaused ||
-            lastPreparedSignatureRef.current === formSignature
-        ) {
-            return undefined;
+    const setFieldContainerRef = (field, node) => {
+        if (node) {
+            fieldContainersRef.current[field] = node;
+            return;
         }
 
-        const timeoutId = window.setTimeout(() => {
-            prepareCheckout();
-        }, 350);
+        delete fieldContainersRef.current[field];
+    };
 
-        return () => {
-            window.clearTimeout(timeoutId);
+    const focusFirstInvalidField = (field) => {
+        const fieldElementId = FIELD_ELEMENT_IDS[field];
+        const focusTarget = fieldElementId
+            ? document.getElementById(fieldElementId)
+            : null;
+        const scrollTarget =
+            fieldContainersRef.current[field] ?? focusTarget ?? null;
+
+        if (scrollTarget && typeof scrollTarget.scrollIntoView === "function") {
+            scrollTarget.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        }
+
+        if (focusTarget && typeof focusTarget.focus === "function") {
+            window.setTimeout(() => {
+                focusTarget.focus({ preventScroll: true });
+            }, 220);
+        }
+    };
+
+    const validateIdentityFields = () => {
+        const nextErrors = {};
+
+        if (data.first_name.trim() === "") {
+            nextErrors.first_name = "First name is required.";
+        }
+
+        if (data.last_name.trim() === "") {
+            nextErrors.last_name = "Last name is required.";
+        }
+
+        if (normalizedEmail === "") {
+            nextErrors.email = "Email is required.";
+        } else if (!isValidEmail(normalizedEmail)) {
+            nextErrors.email = "Enter a valid email address.";
+        }
+
+        if (data.phone_country_code.trim() === "") {
+            nextErrors.phone_country_code = "Phone country code is required.";
+        }
+
+        if (data.phone_number.trim() === "") {
+            nextErrors.phone_number = "Mobile phone is required.";
+        }
+
+        if (data.country.trim() === "") {
+            nextErrors.country = "Country is required.";
+        }
+
+        if (String(data.package_id ?? "") === "") {
+            nextErrors.package_id = "Package is required.";
+        } else if (!selectedPackageHasPrice) {
+            nextErrors.package_id =
+                "This package is not ready for checkout yet.";
+        }
+
+        setErrors((current) => ({
+            ...current,
+            ...nextErrors,
+            general: "",
+        }));
+
+        const firstInvalidField = FIELD_ORDER.find((field) => nextErrors[field]);
+
+        if (firstInvalidField) {
+            focusFirstInvalidField(firstInvalidField);
+        }
+
+        return {
+            isValid: Object.keys(nextErrors).length === 0,
+            nextErrors,
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        autoPreparePaused,
-        canPrepareCheckout,
-        checkout,
-        formSignature,
-        processing,
-    ]);
+    };
 
     const setFieldValue = (field, value) => {
         setData((current) => ({
@@ -159,17 +217,21 @@ export default function Scoreboard({
             ...current,
             [field]: "",
         }));
-        setAutoPreparePaused(false);
     };
 
     const prepareCheckout = async () => {
-        if (!canPrepareCheckout || processing) {
+        if (processing) {
+            return;
+        }
+
+        const validation = validateIdentityFields();
+
+        if (!validation.isValid) {
             return;
         }
 
         setProcessing(true);
         setErrors({});
-        lastPreparedSignatureRef.current = formSignature;
 
         try {
             const response = await fetch(submit_url, {
@@ -235,7 +297,6 @@ export default function Scoreboard({
 
     const resetCheckoutPreparation = () => {
         setCheckout(null);
-        setAutoPreparePaused(true);
         setErrors({});
     };
 
@@ -307,7 +368,7 @@ export default function Scoreboard({
 
                     <div className="grid gap-6 md:grid-cols-2">
                         {/* First Name */}
-                        <div>
+                        <div ref={(node) => setFieldContainerRef("first_name", node)}>
                             <InputLabel
                                 htmlFor="first_name"
                                 value="First Name"
@@ -333,7 +394,7 @@ export default function Scoreboard({
                         </div>
 
                         {/* Last Name */}
-                        <div>
+                        <div ref={(node) => setFieldContainerRef("last_name", node)}>
                             <InputLabel
                                 htmlFor="last_name"
                                 value="Last Name"
@@ -359,7 +420,10 @@ export default function Scoreboard({
                         </div>
 
                         {/* Email */}
-                        <div className="md:col-span-2">
+                        <div
+                            className="md:col-span-2"
+                            ref={(node) => setFieldContainerRef("email", node)}
+                        >
                             <InputLabel
                                 htmlFor="email"
                                 value="Email"
@@ -386,7 +450,10 @@ export default function Scoreboard({
                         </div>
 
                         {/* Mobile Phone */}
-                        <div className="md:col-span-2">
+                        <div
+                            className="md:col-span-2"
+                            ref={(node) => setFieldContainerRef("phone_country_code", node)}
+                        >
                             <InputLabel
                                 htmlFor="phone_number"
                                 value="Mobile Phone"
@@ -449,7 +516,10 @@ export default function Scoreboard({
                         </div>
 
                         {/* Country */}
-                        <div className="md:col-span-2">
+                        <div
+                            className="md:col-span-2"
+                            ref={(node) => setFieldContainerRef("country", node)}
+                        >
                             <InputLabel
                                 htmlFor="country"
                                 value="Country"
@@ -582,16 +652,26 @@ export default function Scoreboard({
                     </div>
 
                     {!checkout ? (
-                        <p
-                            className="text-sm text-white/65"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                        >
-                            {processing
-                                ? "Preparing payment options..."
-                                : selectedPackageHasPrice
-                                  ? "Complete the identity form above to unlock payment options automatically."
-                                  : "Set package price first."}
-                        </p>
+                        <div className="space-y-4">
+                            <p
+                                className="text-sm text-white/65"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            >
+                                {selectedPackageHasPrice
+                                    ? "Complete your details, then continue to open the payment section."
+                                    : "Set package price first."}
+                            </p>
+                            <Button
+                                type="submit"
+                                disabled={processing || !selectedPackageHasPrice}
+                                className="min-h-[52px] w-full rounded-[5px] bg-[#DB202C] px-4 py-3 text-sm font-medium text-white hover:bg-[#c01a25] disabled:pointer-events-none disabled:opacity-60"
+                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            >
+                                {processing
+                                    ? "Opening payment options..."
+                                    : "Continue to Payment"}
+                            </Button>
+                        </div>
                     ) : null}
                 </form>
 
