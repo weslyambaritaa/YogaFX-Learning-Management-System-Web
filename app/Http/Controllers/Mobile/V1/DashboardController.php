@@ -123,9 +123,21 @@ class DashboardController extends Controller
             ->latest('generated_at')
             ->latest('id')
             ->first();
+        $hasGeneratedCertificate = $latestCertificate !== null;
+        $learningEligible = (bool) ($summary['learning_eligible'] ?? false);
 
         return [
-            'learning_eligible' => (bool) ($summary['learning_eligible'] ?? false),
+            'state' => $hasGeneratedCertificate
+                ? 'generated'
+                : ($learningEligible ? 'ready' : 'locked'),
+            'status' => $hasGeneratedCertificate
+                ? 'Generated'
+                : ($learningEligible ? 'Eligible' : 'Not Eligible'),
+            'learning_eligible' => $learningEligible,
+            'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
+            'message' => $summary['message'] ?? null,
+            'requirements' => $summary['requirements'] ?? [],
+            'generated_count' => $hasGeneratedCertificate ? 1 : 0,
             'available_types' => $summary['available_types'] ?? [],
             'latest_certificate' => $latestCertificate ? [
                 'id' => $latestCertificate->id,

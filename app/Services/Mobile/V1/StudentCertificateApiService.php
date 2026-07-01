@@ -31,9 +31,17 @@ class StudentCertificateApiService
     {
         $summary = $this->certificateEligibilityService->summaryForStudent($user);
         $certificates = $this->generatedCertificatesForUser($user, $summary['available_types'] ?? []);
+        $hasGeneratedCertificate = $certificates->isNotEmpty();
+        $state = $hasGeneratedCertificate
+            ? 'generated'
+            : ((bool) ($summary['learning_eligible'] ?? false) ? 'ready' : 'locked');
 
         return [
             'summary' => [
+                'state' => $state,
+                'status' => $hasGeneratedCertificate
+                    ? 'Generated'
+                    : ((bool) ($summary['learning_eligible'] ?? false) ? 'Eligible' : 'Not Eligible'),
                 'learning_eligible' => (bool) ($summary['learning_eligible'] ?? false),
                 'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
                 'message' => $summary['message'] ?? null,
@@ -41,6 +49,7 @@ class StudentCertificateApiService
                 'available_types' => $summary['available_types'] ?? [],
                 'requirements' => $summary['requirements'] ?? [],
                 'generated_count' => $certificates->count(),
+                'latest_certificate' => ($latestCertificate = $certificates->first()) ? $this->certificatePayload($latestCertificate) : null,
             ],
             'items' => $certificates
                 ->map(fn (Certificate $certificate) => $this->certificatePayload($certificate))
@@ -59,14 +68,22 @@ class StudentCertificateApiService
         }
 
         $summary = $this->certificateEligibilityService->summaryForStudent($user);
+        $hasGeneratedCertificate = filled($certificate->generated_at);
 
         return [
             'certificate' => $this->certificatePayload($certificate),
             'summary' => [
+                'state' => $hasGeneratedCertificate
+                    ? 'generated'
+                    : ((bool) ($summary['learning_eligible'] ?? false) ? 'ready' : 'locked'),
+                'status' => $hasGeneratedCertificate
+                    ? 'Generated'
+                    : ((bool) ($summary['learning_eligible'] ?? false) ? 'Eligible' : 'Not Eligible'),
                 'learning_eligible' => (bool) ($summary['learning_eligible'] ?? false),
                 'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
                 'message' => $summary['message'] ?? null,
                 'tier' => $summary['tier'] ?? null,
+                'requirements' => $summary['requirements'] ?? [],
             ],
         ];
     }
