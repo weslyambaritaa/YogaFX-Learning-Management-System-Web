@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AccessTier;
 use App\Models\AssignmentSubmission;
 use App\Models\Assignment;
+use App\Models\AssessmentAttempt;
 use App\Models\Certificate;
 use App\Models\Ebook;
 use App\Models\LessonProgress;
@@ -265,22 +266,30 @@ class HomeController extends Controller
             ];
         }
 
-        $completedLessonIds = LessonProgress::query()
-            ->where('user_id', $user->id)
-            ->whereIn('lesson_id', $lessonCollection->pluck('id'))
-            ->where('is_done', true)
-            ->pluck('lesson_id')
-            ->map(fn ($lessonId) => (int) $lessonId)
-            ->unique()
-            ->values();
-
-        $completedLessonLookup = $completedLessonIds->flip();
+        $lessonProgressMap = $this->lessonProgressMap(
+            $user->id,
+            $lessonCollection->pluck('id'),
+        );
+        $completedAssessmentIds = $this->completedAssessmentIds(
+            $user->id,
+            $lessonCollection->pluck('assessment_id')->filter(),
+        );
         $lessonsTotal = $lessonCollection->count();
-        $lessonsCompleted = $completedLessonIds->count();
+        $lessonsCompleted = $lessonCollection
+            ->filter(fn ($lesson) => $this->isLessonFullyComplete(
+                $lesson,
+                $lessonProgressMap->get($lesson->id),
+                $completedAssessmentIds,
+            ))
+            ->count();
         $modulesTotal = $moduleCollection->count();
         $modulesCompleted = $moduleCollection
-            ->filter(fn (Module $module) => $module->lessons->every(
-                fn ($lesson) => $completedLessonLookup->has((int) $lesson->id)
+            ->filter(fn (Module $module) => $this->isModuleFullyComplete(
+                $module,
+                $lessonProgressMap,
+                $completedAssessmentIds,
+                collect(),
+                collect(),
             ))
             ->count();
 
@@ -519,59 +528,76 @@ class HomeController extends Controller
             $user->id,
             $moduleCollection->flatMap(fn (Module $module) => $module->lessons->pluck('id')),
         );
+        $completedAssessmentIds = $this->completedAssessmentIds(
+            $user->id,
+            $moduleCollection->flatMap(fn (Module $module) => $module->lessons->pluck('assessment_id'))->filter(),
+        );
+        $assignmentSubmissionMap = $this->assignmentSubmissionMap(
+            $user->id,
+            $moduleCollection->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
+        );
         $resourceModuleVisitMap = $this->resourceModuleVisitMap(
             $user->id,
             $moduleCollection->pluck('id'),
         );
+        $moduleAccessMap = $this->moduleAccessMap(
+            $user,
+            $moduleCollection,
+            $lessonProgressMap,
+            $completedAssessmentIds,
+            $assignmentSubmissionMap,
+            $resourceModuleVisitMap,
+        );
+        $lessonUnlockMap = $this->lessonUnlockMap($user->id, $moduleCollection, $lessonProgressMap);
         $activeLessonId = $this->latestProgressLessonId($user->id, $lessonProgressMap);
-        $moduleStates = collect();
+        $lastOpenedLessonIds = $lessonProgressMap
+            ->sortByDesc(fn (LessonProgress $progress) => sprintf(
+                '%010d-%010d',
+                $progress->updated_at?->getTimestamp() ?? 0,
+                $progress->id,
+            ))
+            ->pluck('lesson_id')
+            ->map(fn ($lessonId) => (int) $lessonId)
+            ->values();
 
-        $items = $moduleCollection->values()->map(function (Module $module, int $index) use ($activeLessonId, $lessonProgressMap, $resourceModuleVisitMap, &$moduleStates, $moduleCollection) {
+        $items = $moduleCollection->values()->map(function (Module $module) use (
+            $activeLessonId,
+            $lessonProgressMap,
+            $completedAssessmentIds,
+            $moduleAccessMap,
+            $lessonUnlockMap,
+            $lastOpenedLessonIds,
+        ) {
+            $moduleAccess = $moduleAccessMap->get($module->id, [
+                'is_visible' => false,
+                'status' => 'locked',
+                'is_complete' => false,
+            ]);
             $totalLessons = $module->lessons->count();
-            $completedLessons = $module->lessons
-                ->filter(fn ($lesson) => (bool) optional($lessonProgressMap->get($lesson->id))->is_done)
-                ->count();
-            $isResourceOnlyModule = $totalLessons === 0
-                && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty();
-            $isVisitedResourceModule = $isResourceOnlyModule
-                && $resourceModuleVisitMap->has($module->id);
-            $hasStartedLesson = $module->lessons->contains(function ($lesson) use ($lessonProgressMap) {
-                $progress = $lessonProgressMap->get($lesson->id);
-
-                return $progress && (
-                    (bool) $progress->is_done
-                    || (float) $progress->watch_progress > 0
-                    || $progress->video_completed_at !== null
-                    || $progress->completed_at !== null
-                );
-            });
-            $isCompleted = $isVisitedResourceModule || ($totalLessons > 0 && $completedLessons === $totalLessons);
-            $isInProgress = ! $isCompleted && (
-                $module->lessons->contains(fn ($lesson) => $lesson->id === $activeLessonId)
-                || ($totalLessons > 0 && $hasStartedLesson)
+            $completedLessons = $module->lessons->filter(fn ($lesson) => $this->isLessonFullyComplete(
+                $lesson,
+                $lessonProgressMap->get($lesson->id),
+                $completedAssessmentIds,
+            ))->count();
+            $isActive = $module->lessons->contains(fn ($lesson) => $lesson->id === $activeLessonId);
+            $continueLesson = $module->lessons->first(
+                fn ($lesson) => $lastOpenedLessonIds->contains((int) $lesson->id),
+            ) ?? $module->lessons->first(
+                fn ($lesson) => (bool) ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false),
             );
-            $allPreviousCompleted = $index === 0
-                || $moduleCollection
-                    ->slice(0, $index)
-                    ->every(fn (Module $previousModule) => ($moduleStates->get($previousModule->id)['is_completed'] ?? false) === true);
-            $status = $isCompleted
-                ? 'completed'
-                : ($isInProgress ? 'in_progress' : ($allPreviousCompleted ? 'available' : 'locked'));
+            $status = $moduleAccess['status'] === 'available' && $isActive
+                ? 'active'
+                : $moduleAccess['status'];
             $statusLabel = match ($status) {
                 'completed' => 'Completed',
-                'in_progress' => 'In Progress',
                 'locked' => 'Locked',
                 default => 'Available',
             };
 
-            $moduleStates->put($module->id, [
-                'is_completed' => $isCompleted,
-                'status' => $status,
-            ]);
-
             return [
                 'id' => $module->id,
                 'title' => $module->title,
+                'description' => $moduleAccess['description'] ?? $module->description,
                 'url_slug' => $module->url_slug,
                 'sort_order' => $module->sort_order,
                 'lesson_count' => $totalLessons,
@@ -579,38 +605,42 @@ class HomeController extends Controller
                 'completed_lessons' => $completedLessons,
                 'progress_percentage' => $totalLessons > 0
                     ? (int) round(($completedLessons / $totalLessons) * 100)
-                    : ($isVisitedResourceModule ? 100 : 0),
+                    : (($moduleAccess['is_complete'] ?? false) ? 100 : 0),
                 'show_progress' => $totalLessons > 0,
-                  'status' => $status,
-                  'status_label' => $statusLabel,
-                  'cta_label' => match ($status) {
-                      'completed' => 'Review Module',
-                      'in_progress' => 'Continue Module',
-                      'locked' => 'Locked Module',
-                      default => 'Open Module',
-                  },
-                  'cta_url' => $status === 'locked'
-                      ? null
-                      : route('modules.show', $module->url_slug),
-                  'thumbnail_url' => $this->moduleThumbnailUrl($module),
-                  'lessons' => $module->lessons->map(fn ($lesson) => [
-                      'id'                  => $lesson->id,
-                      'title'               => $lesson->title,
-                      'sort_order'          => $lesson->sort_order,
-                      'url'                 => $status === 'locked' ? null : route('lessons.show', $lesson),
-                      'status'              => $status === 'locked'
-                                                  ? 'locked'
-                                                  : (($progress = $lessonProgressMap->get($lesson->id)) && $progress->is_done
-                                                      ? 'completed'
-                                                      : ((($progress?->watch_progress ?? 0) > 0 || $lesson->id === $activeLessonId)
-                                                          ? 'in_progress'
-                                                          : 'available')),
-                      'progress_percentage' => (($progress = $lessonProgressMap->get($lesson->id)) !== null)
-                                                  ? (int) round((float) $progress->watch_progress)
-                                                  : 0,
-                  ])->values()->toArray(),
-              ];  // <-- penutup array return
-          })->values();
+                'status' => $status,
+                'status_label' => $statusLabel,
+                'cta_label' => match ($status) {
+                    'completed' => 'Review Module',
+                    'active' => 'Continue Module',
+                    'locked' => 'Locked Module',
+                    default => 'Open Module',
+                },
+                'cta_url' => $continueLesson && ($moduleAccess['is_visible'] ?? false)
+                    ? route('lessons.show', $continueLesson)
+                    : null,
+                'thumbnail_url' => $this->moduleThumbnailUrl($module),
+                'lessons' => $module->lessons->map(fn ($lesson) => [
+                    'id' => $lesson->id,
+                    'title' => $lesson->title,
+                    'sort_order' => $lesson->sort_order,
+                    'url' => ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false)
+                        ? route('lessons.show', $lesson)
+                        : null,
+                    'status' => $this->isLessonFullyComplete(
+                        $lesson,
+                        $lessonProgressMap->get($lesson->id),
+                        $completedAssessmentIds,
+                    )
+                        ? 'completed'
+                        : (! ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false)
+                            ? 'locked'
+                            : ($lesson->id === $activeLessonId ? 'active' : 'available')),
+                    'progress_percentage' => (($progress = $lessonProgressMap->get($lesson->id)) !== null)
+                        ? (int) round((float) $progress->watch_progress)
+                        : 0,
+                ])->values()->toArray(),
+            ];
+        })->values();
 
         
         return [
@@ -622,7 +652,7 @@ class HomeController extends Controller
             'summary' => [
                 'total' => $items->count(),
                 'completed' => $items->where('status', 'completed')->count(),
-                'in_progress' => $items->where('status', 'in_progress')->count(),
+                'active' => $items->where('status', 'active')->count(),
                 'available' => $items->where('status', 'available')->count(),
                 'locked' => $items->where('status', 'locked')->count(),
             ],
@@ -1329,6 +1359,269 @@ class HomeController extends Controller
             ->whereIn('lesson_id', $lessonIds)
             ->get()
             ->keyBy('lesson_id');
+    }
+
+    protected function assignmentSubmissionMap(?int $userId, iterable $assignmentIds): Collection
+    {
+        $assignmentIds = collect($assignmentIds)->filter()->values();
+
+        if (! $userId || $assignmentIds->isEmpty()) {
+            return collect();
+        }
+
+        return AssignmentSubmission::query()
+            ->where('user_id', $userId)
+            ->whereIn('assignment_id', $assignmentIds)
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('assignment_id')
+            ->keyBy('assignment_id');
+    }
+
+    protected function completedAssessmentIds(?int $userId, Collection $assessmentIds): Collection
+    {
+        if (! $userId || $assessmentIds->isEmpty()) {
+            return collect();
+        }
+
+        return AssessmentAttempt::query()
+            ->where('user_id', $userId)
+            ->whereIn('assessment_id', $assessmentIds)
+            ->where('status', AssessmentAttempt::STATUS_COMPLETED)
+            ->pluck('assessment_id')
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values();
+    }
+
+    protected function moduleAccessMap(
+        User $user,
+        Collection $modules,
+        Collection $lessonProgressMap,
+        Collection $completedAssessmentIds,
+        Collection $assignmentSubmissionMap,
+        Collection $resourceModuleVisitMap,
+    ): Collection {
+        $accessMap = collect();
+        $allPreviousModulesComplete = true;
+
+        foreach ($modules as $module) {
+            if ($this->isCertificateDownloadModule($module)) {
+                $certificateState = $this->certificateAccessState($user);
+
+                $accessMap->put($module->id, [
+                    'is_visible' => (bool) ($certificateState['is_visible'] ?? false),
+                    'status' => $certificateState['module_status'] ?? 'locked',
+                    'description' => $certificateState['module_description'] ?? $module->description,
+                    'is_complete' => (bool) ($certificateState['is_complete'] ?? false),
+                    'certificate_state' => $certificateState,
+                ]);
+
+                $allPreviousModulesComplete = $allPreviousModulesComplete
+                    && (bool) ($certificateState['is_complete'] ?? false);
+
+                continue;
+            }
+
+            $isComplete = $this->isModuleFullyComplete(
+                $module,
+                $lessonProgressMap,
+                $completedAssessmentIds,
+                $assignmentSubmissionMap,
+                $resourceModuleVisitMap,
+            );
+
+            $accessMap->put($module->id, [
+                'is_visible' => $allPreviousModulesComplete,
+                'status' => $isComplete
+                    ? 'completed'
+                    : ($allPreviousModulesComplete ? 'available' : 'locked'),
+                'description' => $module->description,
+                'is_complete' => $isComplete,
+            ]);
+
+            $allPreviousModulesComplete = $allPreviousModulesComplete && $isComplete;
+        }
+
+        return $accessMap;
+    }
+
+    protected function lessonUnlockMap(?int $userId, Collection $modules, Collection $lessonProgressMap): Collection
+    {
+        $orderedLessons = $modules->flatMap(fn (Module $module) => $module->lessons)->values();
+        $completedAssessmentIds = $this->completedAssessmentIds(
+            $userId,
+            $orderedLessons->pluck('assessment_id')->filter(),
+        );
+        $unlockMap = collect();
+
+        foreach ($orderedLessons as $index => $lesson) {
+            if ($index === 0) {
+                $unlockMap->put($lesson->id, [
+                    'is_unlocked' => true,
+                    'reason' => null,
+                ]);
+
+                continue;
+            }
+
+            $previousLesson = $orderedLessons[$index - 1];
+            $previousProgress = $lessonProgressMap->get($previousLesson->id);
+            $unlockMap->put(
+                $lesson->id,
+                $this->lessonAdvanceGate($previousLesson, $previousProgress, $completedAssessmentIds),
+            );
+        }
+
+        return $unlockMap;
+    }
+
+    protected function lessonAdvanceGate(
+        $lesson,
+        ?LessonProgress $lessonProgress,
+        Collection $completedAssessmentIds,
+    ): array {
+        $watchProgress = (float) ($lessonProgress?->watch_progress ?? 0);
+
+        if ($lesson->lesson_video_id !== null && $watchProgress < 95) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Complete the lesson video to at least 95% before continuing.',
+            ];
+        }
+
+        if (
+            $lesson->assessment_id !== null
+            && $lesson->assessment?->status === 'live'
+            && $lesson->assessment?->is_active
+            && ! $completedAssessmentIds->contains((int) $lesson->assessment_id)
+        ) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Complete the lesson assessment before continuing.',
+            ];
+        }
+
+        return [
+            'is_unlocked' => true,
+            'reason' => null,
+        ];
+    }
+
+    protected function isModuleFullyComplete(
+        Module $module,
+        Collection $lessonProgressMap,
+        Collection $completedAssessmentIds,
+        Collection $assignmentSubmissionMap,
+        Collection $resourceModuleVisitMap,
+    ): bool {
+        $liveAssignments = $module->assignments->where('status', Assignment::STATUS_LIVE);
+
+        if ($module->lessons->isNotEmpty()) {
+            return $module->lessons->every(
+                fn ($lesson) => $this->isLessonFullyComplete(
+                    $lesson,
+                    $lessonProgressMap->get($lesson->id),
+                    $completedAssessmentIds,
+                ),
+            );
+        }
+
+        if ($liveAssignments->isNotEmpty()) {
+            return $liveAssignments->every(
+                fn (Assignment $assignment) => $this->isAssignmentComplete(
+                    $assignmentSubmissionMap->get($assignment->id),
+                ),
+            );
+        }
+
+        if ($this->isCertificateDownloadModule($module)) {
+            return false;
+        }
+
+        if ($this->isOpenOnceResourceModule($module)) {
+            return $resourceModuleVisitMap->has($module->id);
+        }
+
+        return false;
+    }
+
+    protected function isLessonFullyComplete(
+        $lesson,
+        ?LessonProgress $lessonProgress,
+        Collection $completedAssessmentIds,
+    ): bool {
+        if ($lesson->lesson_video_id !== null && (float) ($lessonProgress?->watch_progress ?? 0) < 95) {
+            return false;
+        }
+
+        if (
+            $lesson->assessment_id !== null
+            && $lesson->assessment?->status === 'live'
+            && $lesson->assessment?->is_active
+        ) {
+            return $completedAssessmentIds->contains((int) $lesson->assessment_id);
+        }
+
+        return true;
+    }
+
+    protected function isAssignmentComplete(?AssignmentSubmission $submission): bool
+    {
+        return $submission?->assignment_status === AssignmentSubmission::STATUS_APPROVED;
+    }
+
+    protected function isCertificateDownloadModule(Module $module): bool
+    {
+        return $module->lessons->isEmpty()
+            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty()
+            && (bool) $module->certificate_enabled;
+    }
+
+    protected function isOpenOnceResourceModule(Module $module): bool
+    {
+        return $module->lessons->isEmpty()
+            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty()
+            && ! $this->isCertificateDownloadModule($module)
+            && ((bool) $module->ebook_enabled || (bool) $module->video_lecturer_enabled);
+    }
+
+    protected function certificateAccessState(User $user): array
+    {
+        $tier = $user->accessTier;
+        $summary = $this->certificateEligibilityService->summaryForStudent($user);
+        $generatedCertificates = $this->certificateEligibilityService
+            ->latestCertificatesByType($user, $summary['available_types'] ?? [])
+            ->sortByDesc(fn (Certificate $certificate) => sprintf(
+                '%010d-%010d',
+                $certificate->generated_at?->getTimestamp() ?? 0,
+                $certificate->id,
+            ))
+            ->values();
+        $eligibleTier = $user->access_tier_id !== null && collect($summary['available_types'] ?? [])->isNotEmpty();
+        $learningEligible = $eligibleTier && (bool) ($summary['learning_eligible'] ?? false);
+        $hasCertificate = $generatedCertificates->isNotEmpty();
+        $isVisible = $eligibleTier && ($learningEligible || $hasCertificate);
+
+        return [
+            'state' => ! $eligibleTier
+                ? 'not_available'
+                : ($hasCertificate ? 'generated' : ($learningEligible ? 'ready' : 'locked')),
+            'is_visible' => $isVisible,
+            'is_complete' => $hasCertificate,
+            'module_status' => $hasCertificate ? 'completed' : ($learningEligible ? 'available' : 'locked'),
+            'module_description' => $hasCertificate
+                ? 'Your certificate library has been generated. This module is now complete and every module after it is unlocked.'
+                : ($learningEligible
+                    ? 'All required submitted assignment videos have been approved. This certificate module is now ready for admin generation.'
+                    : 'Certificate access unlocks after all required submitted assignment videos in this certificate path are approved by admin.'),
+            'title' => $hasCertificate
+                ? 'Your certificate library is ready.'
+                : ($learningEligible
+                    ? 'Your certificate area is unlocked from approved assignment videos.'
+                    : 'Certificate access is not unlocked yet.'),
+        ];
     }
 
     protected function latestProgressLessonId(?int $userId, Collection $lessonProgressMap): ?int
