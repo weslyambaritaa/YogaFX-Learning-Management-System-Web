@@ -319,7 +319,7 @@ class ModuleCatalogController extends Controller
                     ? $this->ebooksForStudent($user?->access_tier_id)
                     : [],
                 'video_lecturers' => $module->video_lecturer_enabled
-                    ? $this->videoLecturersForStudent($user?->access_tier_id)
+                    ? $this->videoLecturersForStudent($user?->access_tier_id, $module)
                     : [],
                 'certificates' => $module->certificate_enabled
                     ? $this->certificateEligibilityService
@@ -409,7 +409,7 @@ class ModuleCatalogController extends Controller
             ->all();
     }
 
-    private function videoLecturersForStudent(?int $accessTierId): array
+    private function videoLecturersForStudent(?int $accessTierId, ?Module $module = null): array
     {
         return Course::query()
             ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
@@ -423,7 +423,7 @@ class ModuleCatalogController extends Controller
                     'id' => $course->id,
                     'title' => $course->title,
                     'url_slug' => $course->url_slug,
-                    'url' => route('courses.show', $course->url_slug),
+                    'url' => route('courses.show', $course->url_slug).($module ? '?module='.$module->url_slug : ''),
                     'description' => $course->description,
                     'index' => $index + 1,
                     'video' => $videoState,

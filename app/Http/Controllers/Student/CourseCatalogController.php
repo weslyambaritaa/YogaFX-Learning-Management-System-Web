@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\Module;
 use App\Services\BunnyStreamService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -51,16 +52,24 @@ class CourseCatalogController extends Controller
 
         $currentIndex = $courses->search(fn (Course $item) => $item->id === $course->id);
         $nextCourse = $currentIndex !== false ? $courses->get($currentIndex + 1) : null;
+        $originModule = $this->originModuleForRequest($request, $user?->access_tier_id);
 
         return Inertia::render('Student/Courses/Show', [
             'course' => array_merge(
                 $this->coursePayload($course, $currentIndex === false ? null : $currentIndex + 1),
                 [
+                    'origin_module' => $originModule ? [
+                        'id' => $originModule->id,
+                        'title' => $originModule->title,
+                        'url_slug' => $originModule->url_slug,
+                        'sort_order' => $originModule->sort_order,
+                        'url' => route('modules.show', $originModule->url_slug),
+                    ] : null,
                     'next_course' => $nextCourse ? [
                         'id' => $nextCourse->id,
                         'title' => $nextCourse->title,
                         'url_slug' => $nextCourse->url_slug,
-                        'url' => route('courses.show', $nextCourse->url_slug),
+                        'url' => route('courses.show', $nextCourse->url_slug).($originModule ? '?module='.$originModule->url_slug : ''),
                     ] : null,
                     'navigation' => $courses->map(fn (Course $item, int $index) => [
                         'id' => $item->id,
@@ -75,11 +84,26 @@ class CourseCatalogController extends Controller
                         ) ?: $this->bunnyStreamService->thumbnailUrl($item->video),
                         'status' => $item->id === $course->id ? 'current' : 'available',
                         'index' => $index + 1,
-                        'url' => route('courses.show', $item->url_slug),
+                        'url' => route('courses.show', $item->url_slug).($originModule ? '?module='.$originModule->url_slug : ''),
                     ])->all(),
                 ],
             ),
         ]);
+    }
+
+    private function originModuleForRequest(Request $request, ?int $accessTierId): ?Module
+    {
+        $moduleSlug = $request->query('module');
+
+        if (! is_string($moduleSlug) || trim($moduleSlug) === '' || ! $accessTierId) {
+            return null;
+        }
+
+        return Module::query()
+            ->where('url_slug', $moduleSlug)
+            ->where('video_lecturer_enabled', true)
+            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
+            ->first();
     }
 
     /**
