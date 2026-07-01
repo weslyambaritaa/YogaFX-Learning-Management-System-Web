@@ -3,6 +3,7 @@
 namespace App\Services\Certificates;
 
 use App\Models\AssignmentSubmission;
+use App\Models\Assignment;
 use App\Models\Certificate;
 use App\Models\User;
 use App\Services\StudentLearningPathService;
@@ -153,13 +154,13 @@ class CertificateEligibilityService
             ];
         }
 
-        $approvedAssignmentIds = AssignmentSubmission::query()
-            ->where('user_id', $student->id)
-            ->whereIn('assignment_id', $assignmentIds)
-            ->where('assignment_status', AssignmentSubmission::STATUS_APPROVED)
-            ->pluck('assignment_id')
+        $assignments = Assignment::query()
+            ->whereIn('id', $assignmentIds)
+            ->get(['id', 'title']);
+        $approvedAssignmentIds = AssignmentSubmission::latestMapForUserAssignments($student->id, $assignments)
+            ->filter(fn (AssignmentSubmission $submission) => $submission->assignment_status === AssignmentSubmission::STATUS_APPROVED)
+            ->keys()
             ->map(fn ($assignmentId) => (int) $assignmentId)
-            ->unique()
             ->values();
 
         return [

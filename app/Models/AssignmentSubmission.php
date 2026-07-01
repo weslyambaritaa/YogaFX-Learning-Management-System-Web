@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Database\Factories\AssignmentSubmissionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'user_id',
@@ -74,5 +77,79 @@ class AssignmentSubmission extends Model
         }
 
         return str($this->assignment_type)->replace('_', ' ')->title()->value();
+    }
+
+    public function scopeMatchingAssignment(Builder $query, Assignment $assignment): Builder
+    {
+        $assignmentType = self::assignmentTypeFor($assignment);
+
+        return $query->where(function (Builder $builder) use ($assignment, $assignmentType) {
+            $builder
+                ->where('assignment_id', $assignment->id)
+                ->orWhere(function (Builder $fallback) use ($assignmentType) {
+                    $fallback
+                        ->whereNull('assignment_id')
+                        ->where('assignment_type', $assignmentType);
+                });
+        });
+    }
+
+    public static function latestForUserAssignment(int $userId, Assignment $assignment): ?self
+    {
+        return self::latestMapForUserAssignments($userId, [$assignment])->get($assignment->id);
+    }
+
+    /**
+     * @param  iterable<int, Assignment>  $assignments
+     * @return Collection<int, self>
+     */
+    public static function latestMapForUserAssignments(int $userId, iterable $assignments): Collection
+    {
+        $assignmentCollection = collect($assignments)
+            ->filter(fn ($assignment) => $assignment instanceof Assignment)
+            ->keyBy(fn (Assignment $assignment) => (int) $assignment->id);
+
+        if ($assignmentCollection->isEmpty()) {
+            return collect();
+        }
+
+        $assignmentIds = $assignmentCollection->keys()->map(fn ($id) => (int) $id)->values();
+        $assignmentTypes = $assignmentCollection
+            ->map(fn (Assignment $assignment) => self::assignmentTypeFor($assignment))
+            ->unique()
+            ->values();
+
+        $submissions = self::query()
+            ->where('user_id', $userId)
+            ->where(function (Builder $query) use ($assignmentIds, $assignmentTypes) {
+                $query->whereIn('assignment_id', $assignmentIds);
+
+                if ($assignmentTypes->isNotEmpty()) {
+                    $query->orWhere(function (Builder $fallback) use ($assignmentTypes) {
+                        $fallback
+                            ->whereNull('assignment_id')
+                            ->whereIn('assignment_type', $assignmentTypes);
+                    });
+                }
+            })
+            ->orderByDesc('submitted_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return $assignmentCollection->mapWithKeys(function (Assignment $assignment) use ($submissions) {
+            $assignmentType = self::assignmentTypeFor($assignment);
+
+            $submission = $submissions->first(function (self $submission) use ($assignment, $assignmentType) {
+                return (int) $submission->assignment_id === (int) $assignment->id
+                    || ($submission->assignment_id === null && $submission->assignment_type === $assignmentType);
+            });
+
+            return [$assignment->id => $submission];
+        })->filter();
+    }
+
+    public static function assignmentTypeFor(Assignment $assignment): string
+    {
+        return Str::snake((string) $assignment->title);
     }
 }

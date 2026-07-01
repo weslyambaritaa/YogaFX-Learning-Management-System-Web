@@ -534,7 +534,7 @@ class HomeController extends Controller
         );
         $assignmentSubmissionMap = $this->assignmentSubmissionMap(
             $user->id,
-            $moduleCollection->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
+            $moduleCollection->flatMap(fn (Module $module) => $module->assignments),
         );
         $resourceModuleVisitMap = $this->resourceModuleVisitMap(
             $user->id,
@@ -888,19 +888,11 @@ class HomeController extends Controller
             ];
         }
 
-        $submissions = AssignmentSubmission::query()
-            ->where('user_id', $user->id)
-            ->orderByDesc('submitted_at')
-            ->orderByDesc('id')
-            ->get();
-
-        $submittedEntries = $submissions
-            ->filter(fn (AssignmentSubmission $submission) => $requiredAssignmentIds->contains((int) $submission->assignment_id))
+        $submittedEntries = AssignmentSubmission::latestMapForUserAssignments($user->id, $requiredAssignments)
             ->filter(fn (AssignmentSubmission $submission) => filled($submission->assignment_video) || filled($submission->submitted_at))
-            ->unique('assignment_id')
             ->values();
 
-        $latestFeedback = $submissions
+        $latestFeedback = $submittedEntries
             ->first(fn (AssignmentSubmission $submission) => filled($submission->assignment_feedback));
 
         $submittedAssignmentLookup = $submittedEntries
@@ -1362,22 +1354,17 @@ class HomeController extends Controller
             ->keyBy('lesson_id');
     }
 
-    protected function assignmentSubmissionMap(?int $userId, iterable $assignmentIds): Collection
+    protected function assignmentSubmissionMap(?int $userId, iterable $assignments): Collection
     {
-        $assignmentIds = collect($assignmentIds)->filter()->values();
+        $assignments = collect($assignments)
+            ->filter(fn ($assignment) => $assignment instanceof Assignment)
+            ->values();
 
-        if (! $userId || $assignmentIds->isEmpty()) {
+        if (! $userId || $assignments->isEmpty()) {
             return collect();
         }
 
-        return AssignmentSubmission::query()
-            ->where('user_id', $userId)
-            ->whereIn('assignment_id', $assignmentIds)
-            ->orderByDesc('submitted_at')
-            ->orderByDesc('id')
-            ->get()
-            ->unique('assignment_id')
-            ->keyBy('assignment_id');
+        return AssignmentSubmission::latestMapForUserAssignments($userId, $assignments);
     }
 
     protected function completedAssessmentIds(?int $userId, Collection $assessmentIds): Collection

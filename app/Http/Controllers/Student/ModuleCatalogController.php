@@ -58,7 +58,7 @@ class ModuleCatalogController extends Controller
         $lessonUnlockMap = $this->lessonUnlockMap($user?->id, $modules, $lessonProgressMap);
         $assignmentSubmissionMap = $this->assignmentSubmissionMap(
             $user?->id,
-            $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
+            $modules->flatMap(fn (Module $module) => $module->assignments),
         );
         $moduleAccessMap = $this->moduleAccessMap(
             $user,
@@ -171,7 +171,7 @@ class ModuleCatalogController extends Controller
         );
         $assignmentSubmissionMap = $this->assignmentSubmissionMap(
             $user?->id,
-            $modules->flatMap(fn (Module $item) => $item->assignments->pluck('id')),
+            $modules->flatMap(fn (Module $item) => $item->assignments),
         );
         $moduleAccessMap = $this->moduleAccessMap(
             $user,
@@ -351,22 +351,17 @@ class ModuleCatalogController extends Controller
         return $this->studentLearningPathService->accessibleModulesForStudent($user, withAssessments: true);
     }
 
-    private function assignmentSubmissionMap(?int $userId, iterable $assignmentIds): Collection
+    private function assignmentSubmissionMap(?int $userId, iterable $assignments): Collection
     {
-        $assignmentIds = collect($assignmentIds)->filter()->values();
+        $assignments = collect($assignments)
+            ->filter(fn ($assignment) => $assignment instanceof Assignment)
+            ->values();
 
-        if (! $userId || $assignmentIds->isEmpty()) {
+        if (! $userId || $assignments->isEmpty()) {
             return collect();
         }
 
-        return AssignmentSubmission::query()
-            ->where('user_id', $userId)
-            ->whereIn('assignment_id', $assignmentIds)
-            ->orderByDesc('submitted_at')
-            ->orderByDesc('id')
-            ->get()
-            ->unique('assignment_id')
-            ->keyBy('assignment_id');
+        return AssignmentSubmission::latestMapForUserAssignments($userId, $assignments);
     }
 
     private function ebooksForStudent(?int $accessTierId): array

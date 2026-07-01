@@ -12,7 +12,6 @@ use App\Services\BunnyStorageService;
 use App\Services\StudentLearningPathService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,12 +40,7 @@ class AssignmentController extends Controller
             403,
         );
 
-        $submission = AssignmentSubmission::query()
-            ->where('assignment_id', $assignment->id)
-            ->where('user_id', $user->id)
-            ->latest('submitted_at')
-            ->latest('id')
-            ->first();
+        $submission = AssignmentSubmission::latestForUserAssignment($user->id, $assignment);
 
         return Inertia::render('Student/Assignments/Show', [
             'assignment' => [
@@ -102,12 +96,7 @@ class AssignmentController extends Controller
             403,
         );
 
-        $existingSubmission = AssignmentSubmission::query()
-            ->where('assignment_id', $assignment->id)
-            ->where('user_id', $user->id)
-            ->latest('submitted_at')
-            ->latest('id')
-            ->first();
+        $existingSubmission = AssignmentSubmission::latestForUserAssignment($user->id, $assignment);
 
         $newVideoPath = $this->bunnyStorage->upload(
             $request->file('video'),
@@ -122,7 +111,7 @@ class AssignmentController extends Controller
 
         $submission->assignment_id = $assignment->id;
         $submission->user_id = $user->id;
-        $submission->assignment_type = Str::snake($assignment->title);
+        $submission->assignment_type = AssignmentSubmission::assignmentTypeFor($assignment);
         $submission->assignment_video = $newVideoPath;
         $submission->assignment_status = AssignmentSubmission::STATUS_SUBMITTED;
         $submission->assignment_feedback = null;

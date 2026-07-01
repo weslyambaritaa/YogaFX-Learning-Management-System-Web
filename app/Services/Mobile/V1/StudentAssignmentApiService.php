@@ -154,7 +154,7 @@ class StudentAssignmentApiService
 
         $submission->assignment_id = $assignment->id;
         $submission->user_id = $user->id;
-        $submission->assignment_type = Str::snake($assignment->title);
+        $submission->assignment_type = AssignmentSubmission::assignmentTypeFor($assignment);
         $submission->assignment_video = $newVideoPath;
         $submission->assignment_status = AssignmentSubmission::STATUS_SUBMITTED;
         $submission->assignment_feedback = null;
@@ -200,12 +200,7 @@ class StudentAssignmentApiService
             return null;
         }
 
-        $submission = AssignmentSubmission::query()
-            ->where('assignment_id', $assignment->id)
-            ->where('user_id', $user->id)
-            ->latest('submitted_at')
-            ->latest('id')
-            ->first();
+        $submission = AssignmentSubmission::latestForUserAssignment($user->id, $assignment);
 
         if (($moduleDetail['is_visible'] ?? true) === false || ($moduleDetail['status'] ?? null) === 'locked') {
             return [
