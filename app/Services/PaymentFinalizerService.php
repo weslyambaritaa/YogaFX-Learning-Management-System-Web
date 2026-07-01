@@ -7,14 +7,20 @@ use App\Models\AccessTier;
 use App\Models\Invoice;
 use App\Models\OnboardingState;
 use App\Models\Payment;
+use App\Models\PaymentSubscription;
 use App\Models\PendingRegistration;
 use App\Models\User;
+use App\Services\Payments\PayPalSubscriptionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class PaymentFinalizerService
 {
+    public function __construct(
+        private readonly PayPalSubscriptionService $payPalSubscriptionService,
+    ) {}
+
     /**
      * @return array{invoice: Invoice, payment_activity: Payment, user: ?User, onboarding_state: ?OnboardingState, skipped: bool}
      */
@@ -247,6 +253,7 @@ class PaymentFinalizerService
         $user = $invoice->user()->firstOrFail();
         $targetTier = $invoice->accessTier()->first();
         $basisInvoice = $this->relevantUpgradeBasisInvoice($invoice, $user, $targetTier);
+        $legacySubscriptions = $this->legacySubscriptionsToCancel($user, $invoice);
 
         if ($user->access_tier_id !== $invoice->access_tier_id) {
             $user->forceFill([
@@ -259,6 +266,54 @@ class PaymentFinalizerService
                 'status' => Invoice::STATUS_UPGRADED,
             ])->save();
         }
+
+        $legacySubscriptions
+            ->filter(fn (PaymentSubscription $subscription) => ! is_string($subscription->provider_subscription_id) || $subscription->provider_subscription_id === '')
+            ->each(function (PaymentSubscription $subscription) use ($invoice): void {
+                $subscription->forceFill([
+                    'status' => PaymentSubscription::STATUS_CANCELLED,
+                    'cancelled_at' => now(),
+                    'last_synced_at' => now(),
+                    'metadata' => array_merge($subscription->metadata ?? [], [
+                        'cancelled_by_upgrade_invoice_id' => $invoice->id,
+                    ]),
+                ])->save();
+            });
+
+        DB::afterCommit(function () use ($invoice, $legacySubscriptions): void {
+            $legacySubscriptions
+                ->filter(fn (PaymentSubscription $subscription) => is_string($subscription->provider_subscription_id) && $subscription->provider_subscription_id !== '')
+                ->each(function (PaymentSubscription $subscription) use ($invoice): void {
+                    try {
+                        $this->payPalSubscriptionService->cancelSubscription(
+                            $subscription->provider_subscription_id,
+                            'Cancelled after YogaFX tier upgrade.',
+                        );
+
+                        PaymentSubscription::query()
+                            ->whereKey($subscription->id)
+                            ->update([
+                                'status' => PaymentSubscription::STATUS_CANCELLED,
+                                'cancelled_at' => now(),
+                                'last_synced_at' => now(),
+                            ]);
+                    } catch (\Throwable $throwable) {
+                        report($throwable);
+
+                        $freshSubscription = PaymentSubscription::query()->find($subscription->id);
+
+                        if ($freshSubscription instanceof PaymentSubscription) {
+                            $freshSubscription->forceFill([
+                                'metadata' => array_merge($freshSubscription->metadata ?? [], [
+                                    'upgrade_cancellation_failed_at' => now()->toIso8601String(),
+                                    'upgrade_cancellation_failed_reason' => $throwable->getMessage(),
+                                    'upgrade_cancellation_trigger_invoice_id' => $invoice->id,
+                                ]),
+                            ])->save();
+                        }
+                    }
+                });
+        });
 
         if ($shouldSendUpgradeEmail) {
             SendUpgradeWelcomeEmailJob::dispatch(
@@ -292,5 +347,23 @@ class PaymentFinalizerService
             ->orderByDesc('paid_at')
             ->orderByDesc('id')
             ->first();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, PaymentSubscription>
+     */
+    private function legacySubscriptionsToCancel(User $user, Invoice $upgradeInvoice): \Illuminate\Support\Collection
+    {
+        return PaymentSubscription::query()
+            ->where('user_id', $user->id)
+            ->where('invoice_id', '!=', $upgradeInvoice->id)
+            ->whereIn('status', [
+                PaymentSubscription::STATUS_DRAFT,
+                PaymentSubscription::STATUS_APPROVAL_PENDING,
+                PaymentSubscription::STATUS_ACTIVE,
+                PaymentSubscription::STATUS_PAST_DUE,
+                PaymentSubscription::STATUS_SUSPENDED,
+            ])
+            ->get();
     }
 }

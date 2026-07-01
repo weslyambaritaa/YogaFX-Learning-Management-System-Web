@@ -146,6 +146,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/courses/{course:url_slug}', [CourseCatalogController::class, 'show'])->name('courses.show');
         Route::get('/upgrades/{accessTier}', [UpgradeController::class, 'show'])->name('student.upgrades.show');
         Route::post('/upgrades/{accessTier}', [UpgradeController::class, 'pay'])->name('student.upgrades.pay');
+        Route::post('/upgrades/{accessTier}/installments/approve', [UpgradeController::class, 'approveInstallment'])->name('student.upgrades.installments.approve');
+        Route::get('/upgrades/{accessTier}/installments/status', [UpgradeController::class, 'installmentStatus'])->name('student.upgrades.installments.status');
+        Route::get('/upgrades/{accessTier}/installments/return', [UpgradeController::class, 'subscriptionReturn'])->name('student.upgrades.installments.return');
+        Route::get('/upgrades/{accessTier}/installments/cancel', [UpgradeController::class, 'subscriptionCancel'])->name('student.upgrades.installments.cancel');
     });
 
     Route::middleware('role:admin,super_admin')->prefix('admin')->name('admin.')->group(function () {

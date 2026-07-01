@@ -2,7 +2,7 @@ import StudentProfileForm from "@/Components/StudentProfileForm";
 import TransientStatusBanner from "@/Components/TransientStatusBanner";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, router, useForm, usePage } from "@inertiajs/react";
+import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
 import { useState } from "react";
 
 function buildProfileFormData(user) {
@@ -28,7 +28,7 @@ function buildProfileFormData(user) {
     };
 }
 
-export default function Edit({ status }) {
+export default function Edit({ status, upgradeOptions = [] }) {
     const { auth } = usePage().props;
     const user = auth.user;
     const [submitNotice, setSubmitNotice] = useState(null);
@@ -108,6 +108,50 @@ export default function Edit({ status }) {
                         </Button>
                     </div>
                 </div>
+
+                {upgradeOptions.length > 0 ? (
+                    <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <h2 className="font-['Montserrat'] text-lg font-semibold text-white">
+                                    Upgrade Class
+                                </h2>
+                                <p className="mt-1 text-sm text-white/60">
+                                    Choose your next tier.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-3 md:grid-cols-2">
+                                {upgradeOptions.map((option) => (
+                                    <div
+                                        key={option.id}
+                                        className="rounded-[5px] border border-white/10 bg-black/20 p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div>
+                                                <p className="font-['Montserrat'] text-base font-semibold text-white">
+                                                    {option.name}
+                                                </p>
+                                                <p className="mt-1 text-sm text-white/55">
+                                                    {option.currency_code} {Number(option.price).toFixed(2)}
+                                                </p>
+                                            </div>
+
+                                            <Button
+                                                asChild
+                                                className="rounded-[5px] bg-[#DB202C] px-4 text-white hover:bg-[#c31c28]"
+                                            >
+                                                <Link href={option.upgrade_url}>
+                                                    Upgrade
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
 
                 <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-6 sm:p-8">
                     <StudentProfileForm

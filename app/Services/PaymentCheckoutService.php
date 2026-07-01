@@ -201,10 +201,37 @@ class PaymentCheckoutService
     public function startUpgradeCheckout(User $user, AccessTier $targetTier, array $attributes): array
     {
         $this->assertSupportedPaymentMethod($attributes['payment_method']);
-        $this->assertUpgradePaymentTypeSupported($attributes['payment_type']);
-
         $amountDue = $this->relevantUpgradeAmountDue($user, $targetTier);
         abort_if($amountDue <= 0, 422, 'No additional upgrade payment is required for this tier.');
+
+        $targetPackage = $this->activeUpgradePackage($targetTier);
+        $normalizedBillingDay = $this->normalizeCheckoutBillingDay(
+            $targetPackage,
+            isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null,
+        );
+        $this->assertUpgradePaymentTypeSupported(
+            $targetPackage,
+            $attributes['payment_type'],
+            $attributes['payment_method'],
+            $normalizedBillingDay,
+            $amountDue,
+        );
+
+        if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            abort_unless($targetPackage instanceof Package, 422, 'This upgrade target is not ready for installment checkout.');
+
+            return $this->paymentSubscriptionService->startUpgradeCheckout(
+                $user,
+                $targetTier,
+                $targetPackage,
+                $amountDue,
+                [
+                    'return_url' => $this->upgradeSubscriptionReturnUrl($targetTier),
+                    'cancel_url' => $this->upgradeSubscriptionCancelUrl($targetTier),
+                ],
+                $normalizedBillingDay,
+            );
+        }
 
         /** @var array{invoice: Invoice, payment_activity: Payment} $created */
         $created = DB::transaction(function () use ($user, $targetTier, $attributes, $amountDue): array {
@@ -584,6 +611,93 @@ class PaymentCheckoutService
         );
     }
 
+    public function upgradeSubscriptionReturnUrl(AccessTier $targetTier): string
+    {
+        return route('student.upgrades.installments.return', [
+            'accessTier' => $targetTier,
+        ]);
+    }
+
+    public function upgradeSubscriptionCancelUrl(AccessTier $targetTier): string
+    {
+        return route('student.upgrades.installments.cancel', [
+            'accessTier' => $targetTier,
+        ]);
+    }
+
+    public function upgradeSubscriptionStatusUrl(AccessTier $targetTier): string
+    {
+        return route('student.upgrades.installments.status', [
+            'accessTier' => $targetTier,
+        ]);
+    }
+
+    public function upgradeSubscriptionApproveUrl(AccessTier $targetTier): string
+    {
+        return route('student.upgrades.installments.approve', [
+            'accessTier' => $targetTier,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function upgradePayload(User $user, AccessTier $targetTier): array
+    {
+        $currentTier = $user->accessTier;
+        $amountDue = $this->relevantUpgradeAmountDue($user, $targetTier);
+        $totalPaid = $this->relevantUpgradePaidAmount($user, $targetTier);
+        $installmentData = $this->availableUpgradeInstallmentData($targetTier, $amountDue);
+        $installmentSummary = $installmentData['selected_summary'];
+
+        return [
+            'submit_url' => route('student.upgrades.pay', $targetTier),
+            'amount_due' => $amountDue,
+            'total_paid' => $totalPaid,
+            'current_tier' => $currentTier ? [
+                'id' => $currentTier->id,
+                'name' => $currentTier->name,
+                'slug' => $currentTier->slug,
+                'price' => (float) $currentTier->price,
+                'currency_code' => $currentTier->currency_code,
+                'level' => $currentTier->level,
+            ] : null,
+            'target_tier' => [
+                'id' => $targetTier->id,
+                'name' => $targetTier->name,
+                'slug' => $targetTier->slug,
+                'price' => (float) $targetTier->price,
+                'currency_code' => $targetTier->currency_code,
+                'level' => $targetTier->level,
+            ],
+            'payment_method_options' => $this->availablePaymentMethodOptions(),
+            'payment_options' => $this->checkoutPaymentOptions(
+                totalAmount: $amountDue,
+                currencyCode: (string) $targetTier->currency_code,
+                installmentSummary: $installmentSummary,
+                allowedBillingDays: $installmentData['allowed_billing_days'],
+            ),
+            'installment_summary' => $installmentSummary,
+            'installment_summaries' => $installmentData['summaries'],
+            'installment_allowed_billing_days' => $installmentData['allowed_billing_days'],
+            'installment_selected_billing_day' => $installmentData['selected_billing_day'],
+            'installment_accepts_billing_day' => $installmentData['accepts_billing_day'],
+            'installment_requires_billing_day_choice' => $installmentData['requires_billing_day_choice'],
+            'installment_billing_day_options' => $installmentData['visible_billing_day_options'],
+            'installment_billing_interval_unit' => $installmentData['billing_interval_unit'],
+            'installment_billing_interval_count' => $installmentData['billing_interval_count'],
+            'installment_approve_url' => $this->upgradeSubscriptionApproveUrl($targetTier),
+            'installment_status_url' => $this->upgradeSubscriptionStatusUrl($targetTier),
+            'package' => $installmentData['package'],
+            'paypal' => [
+                'client_id' => $this->paypalService->clientId(),
+                'currency_code' => (string) $targetTier->currency_code,
+                'intent' => 'capture',
+                'environment' => $this->paypalService->environment(),
+            ],
+        ];
+    }
+
     public function relevantUpgradePaidAmount(User $user, AccessTier $targetTier): float
     {
         $basisInvoice = $this->relevantUpgradeBasisInvoice($user, $targetTier);
@@ -698,10 +812,61 @@ class PaymentCheckoutService
         return $package->resolveInstallmentBillingDay($billingDay);
     }
 
-    private function assertUpgradePaymentTypeSupported(string $paymentType): void
+    private function assertUpgradePaymentTypeSupported(
+        ?Package $package,
+        string $paymentType,
+        string $paymentMethod,
+        ?int $billingDay,
+        float $amountDue,
+    ): void
     {
-        if ($paymentType === Invoice::PAYMENT_TYPE_INSTALLMENT) {
-            abort(422, 'Installment upgrade checkout is not available yet.');
+        if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            return;
+        }
+
+        if (! $package instanceof Package) {
+            abort(422, 'This upgrade target is not ready for installment checkout.');
+        }
+
+        if ($paymentMethod !== Payment::METHOD_PAYPAL) {
+            abort(422, 'Installment checkout currently requires PayPal.');
+        }
+
+        if ($amountDue <= 0) {
+            abort(422, 'No additional upgrade payment is required for this tier.');
+        }
+
+        if (! $this->installmentPlanCalculator->isEligible($package)) {
+            abort(422, 'This package is not eligible for installment checkout.');
+        }
+
+        if ($billingDay !== null && ! in_array((int) $billingDay, Package::CUSTOMER_BILLING_DAY_OPTIONS, true)) {
+            abort(422, 'Billing day must be either the 1st or the 15th.');
+        }
+
+        if ($billingDay !== null && ! $package->checkoutAcceptsBillingDay()) {
+            abort(422, 'Billing day is not available for this package.');
+        }
+
+        if ($billingDay === null && $package->checkoutRequiresBillingDayChoice()) {
+            abort(422, 'Billing day is required for this package checkout.');
+        }
+
+        try {
+            $resolvedBillingDay = $this->normalizeCheckoutBillingDay($package, $billingDay);
+        } catch (\InvalidArgumentException) {
+            abort(422, 'The selected billing day is not available for this package.');
+        }
+
+        try {
+            $this->installmentPlanCalculator->calculateForAmount(
+                $package,
+                $amountDue,
+                now(),
+                $resolvedBillingDay,
+            );
+        } catch (\DomainException|\InvalidArgumentException) {
+            abort(422, 'This package is not eligible for installment checkout.');
         }
     }
 
@@ -798,6 +963,115 @@ class PaymentCheckoutService
     }
 
     /**
+     * @return array{
+     *     package: array<string, mixed>|null,
+     *     selected_summary: array<string, mixed>|null,
+     *     selected_billing_day: int|null,
+     *     allowed_billing_days: array<int, int>,
+     *     visible_billing_day_options: array<int, int>,
+     *     accepts_billing_day: bool,
+     *     requires_billing_day_choice: bool,
+     *     billing_interval_unit: string|null,
+     *     billing_interval_count: int|null,
+     *     summaries: array<string, array<string, mixed>>
+     * }
+     */
+    private function availableUpgradeInstallmentData(AccessTier $targetTier, float $amountDue): array
+    {
+        $package = $this->activeUpgradePackage($targetTier);
+
+        if (! $package instanceof Package || ! $this->installmentPlanCalculator->isEligible($package) || $amountDue <= 0) {
+            return [
+                'package' => null,
+                'selected_summary' => null,
+                'selected_billing_day' => null,
+                'allowed_billing_days' => [],
+                'visible_billing_day_options' => [],
+                'accepts_billing_day' => false,
+                'requires_billing_day_choice' => false,
+                'billing_interval_unit' => null,
+                'billing_interval_count' => null,
+                'summaries' => [],
+            ];
+        }
+
+        $acceptsBillingDay = $package->checkoutAcceptsBillingDay();
+        $visibleBillingDayOptions = $package->checkoutBillingDayOptions();
+        $calculationBillingDays = $acceptsBillingDay
+            ? ($visibleBillingDayOptions !== []
+                ? $visibleBillingDayOptions
+                : [$package->defaultInstallmentBillingDay()])
+            : [null];
+        $summaries = [];
+
+        foreach ($calculationBillingDays as $billingDay) {
+            try {
+                $summary = $this->installmentPlanCalculator->calculateForAmount(
+                    $package,
+                    $amountDue,
+                    now(),
+                    $billingDay,
+                );
+                $summaries[(string) ($billingDay ?? 'default')] = $summary;
+            } catch (\DomainException|\InvalidArgumentException) {
+                continue;
+            }
+        }
+
+        if ($summaries === []) {
+            return [
+                'package' => [
+                    'id' => $package->id,
+                    'title' => $package->title,
+                    'slug' => $package->slug,
+                    'installment_enabled' => (bool) $package->installment_enabled,
+                ],
+                'selected_summary' => null,
+                'selected_billing_day' => null,
+                'allowed_billing_days' => $visibleBillingDayOptions,
+                'visible_billing_day_options' => $visibleBillingDayOptions,
+                'accepts_billing_day' => $acceptsBillingDay,
+                'requires_billing_day_choice' => $package->checkoutRequiresBillingDayChoice(),
+                'billing_interval_unit' => $package->normalizedBillingIntervalUnit(),
+                'billing_interval_count' => $package->billing_interval_count,
+                'summaries' => [],
+            ];
+        }
+
+        $selectedBillingDay = $acceptsBillingDay
+            ? (in_array(15, $visibleBillingDayOptions, true)
+                ? 15
+                : $package->defaultInstallmentBillingDay())
+            : null;
+        $selectedSummaryKey = (string) ($selectedBillingDay ?? 'default');
+
+        if (! array_key_exists($selectedSummaryKey, $summaries)) {
+            $selectedSummaryKey = (string) array_key_first($summaries);
+            $selectedBillingDay = $selectedSummaryKey === 'default'
+                ? null
+                : (int) $selectedSummaryKey;
+        }
+
+        return [
+            'package' => [
+                'id' => $package->id,
+                'title' => $package->title,
+                'slug' => $package->slug,
+                'installment_enabled' => (bool) $package->installment_enabled,
+            ],
+            'selected_summary' => $summaries[$selectedSummaryKey] ?? null,
+            'selected_billing_day' => $selectedBillingDay,
+            'allowed_billing_days' => $visibleBillingDayOptions,
+            'visible_billing_day_options' => $visibleBillingDayOptions,
+            'accepts_billing_day' => $acceptsBillingDay,
+            'requires_billing_day_choice' => $package->checkoutRequiresBillingDayChoice(),
+            'billing_interval_unit' => $package->normalizedBillingIntervalUnit(),
+            'billing_interval_count' => $package->billing_interval_count,
+            'summaries' => $summaries,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>|null  $installmentSummary
      * @param  array<int, int>  $allowedBillingDays
      * @return array<int, array<string, mixed>>
@@ -873,6 +1147,14 @@ class PaymentCheckoutService
         return $query
             ->orderByDesc('paid_at')
             ->orderByDesc('id')
+            ->first();
+    }
+
+    private function activeUpgradePackage(AccessTier $targetTier): ?Package
+    {
+        return $targetTier->packages()
+            ->where('is_active', true)
+            ->latest('id')
             ->first();
     }
 

@@ -24,6 +24,24 @@ class InstallmentPlanCalculator
         ?int $billingDay = null,
     ): array
     {
+        return $this->calculateForAmount(
+            $package,
+            (float) $package->price,
+            $checkoutAt,
+            $billingDay,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function calculateForAmount(
+        Package $package,
+        float|int|string $totalAmountOverride,
+        CarbonInterface|string|null $checkoutAt = null,
+        ?int $billingDay = null,
+    ): array
+    {
         if (! $this->isEligible($package)) {
             throw new DomainException('This package is not eligible for installment checkout.');
         }
@@ -48,7 +66,7 @@ class InstallmentPlanCalculator
         );
 
         $installmentCount = 1 + count($recurringDueDates);
-        $totalAmount = $this->normalizeAmount($package->price);
+        $totalAmount = $this->normalizeAmount($totalAmountOverride);
 
         if ($intervalUnit === 'MONTH') {
             $recurringAmount = floor($totalAmount / $installmentCount);
