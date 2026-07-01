@@ -33,6 +33,30 @@ function FlagVisual({ option, fallbackClassName = "" }) {
     );
 }
 
+function getOptionSearchTerms(option) {
+    return [
+        option.label,
+        option.value,
+        String(option.label ?? "")
+            .replace(/\s*\(.+\)\s*$/, "")
+            .trim(),
+    ]
+        .filter(Boolean)
+        .map((entry) => String(entry).toLowerCase());
+}
+
+function formatOptionLabel(option, displayMode) {
+    if (!option) {
+        return "";
+    }
+
+    if (displayMode === "phone-code") {
+        return String(option.value ?? "").trim();
+    }
+
+    return String(option.label ?? "").trim();
+}
+
 export default function FlagOptionSelect({
     id,
     value,
@@ -51,6 +75,8 @@ export default function FlagOptionSelect({
     optionTextClassName,
     chevronClassName,
     fallbackClassName,
+    displayMode = "default",
+    searchPlaceholder = "Search country or code",
 }) {
     const [searchQuery, setSearchQuery] = useState("");
     const currentOption =
@@ -62,19 +88,11 @@ export default function FlagOptionSelect({
             return options;
         }
 
-        return options.filter((option) => {
-            const haystacks = [
-                option.label,
-                option.value,
-                String(option.label ?? "")
-                    .replace(/\s*\(.+\)\s*$/, "")
-                    .trim(),
-            ]
-                .filter(Boolean)
-                .map((entry) => String(entry).toLowerCase());
-
-            return haystacks.some((entry) => entry.includes(normalizedQuery));
-        });
+        return options.filter((option) =>
+            getOptionSearchTerms(option).some((entry) =>
+                entry.includes(normalizedQuery),
+            ),
+        );
     }, [options, searchQuery]);
 
     useEffect(() => {
@@ -111,7 +129,9 @@ export default function FlagOptionSelect({
                                     : placeholderClassName,
                             ].join(" ")}
                         >
-                            {currentOption ? currentOption.label : placeholder}
+                            {currentOption
+                                ? formatOptionLabel(currentOption, displayMode)
+                                : placeholder}
                         </span>
                     </span>
                     <ChevronDown
@@ -137,7 +157,7 @@ export default function FlagOptionSelect({
                             onKeyDown={(event) => {
                                 event.stopPropagation();
                             }}
-                            placeholder="Search country or code"
+                            placeholder={searchPlaceholder}
                             className="h-10 w-full rounded-[5px] border border-current/10 bg-transparent px-3 text-sm outline-none placeholder:text-current/45"
                         />
                     </div>
@@ -180,7 +200,10 @@ export default function FlagOptionSelect({
                                                         optionTextClassName,
                                                     ].join(" ")}
                                                 >
-                                                    {option.label}
+                                                    {formatOptionLabel(
+                                                        option,
+                                                        displayMode,
+                                                    )}
                                                 </span>
                                             </span>
                                             {selected ? (
