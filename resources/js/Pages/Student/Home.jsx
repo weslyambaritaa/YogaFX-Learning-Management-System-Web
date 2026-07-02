@@ -382,7 +382,7 @@ function ModuleCard({ module, onLockedClick }) {
 
     const mobileCard = (
         <div
-            className="space-y-2 p-3.5 md:hidden"
+            className="space-y-2 p-2 md:hidden"
             style={{ fontFamily: FONT_FAMILY }}
         >
             <div className="relative aspect-video overflow-hidden rounded-[5px]">
@@ -752,8 +752,8 @@ export default function StudentHome({
                             All Modules
                         </h1>
                     </div>
-                    <div className="py-6">
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="py-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                             {rawModules.map((module) => (
                                 <div key={module.id} className="w-full">
                                     <ModuleCard

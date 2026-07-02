@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import 'video.js/dist/video-js.css';
 
 const HLS_SOURCE_TYPE = 'application/vnd.apple.mpegurl';
+const SKIP_SECONDS = 30;
 
 export default function VideoJsPlayer({
     src,
@@ -23,6 +24,7 @@ export default function VideoJsPlayer({
     const latestTimeUpdateHandlerRef = useRef(onTimeUpdate);
     const lastReportedProgressRef = useRef(0);
     const [loadFailed, setLoadFailed] = useState(false);
+    const [isPaused, setIsPaused] = useState(true);
 
     useEffect(() => {
         latestPlaybackErrorHandlerRef.current = onPlaybackError;
@@ -88,8 +90,7 @@ export default function VideoJsPlayer({
 
                 const videoElement = document.createElement('video-js');
                 videoElement.className =
-                    'video-js vjs-big-play-centered overflow-hidden rounded-[24px]';
-                // videoElement.setAttribute('referrerpolicy', 'no-referrer');
+                    'video-js vjs-big-play-centered overflow-hidden rounded-[5px]';
                 containerRef.current.appendChild(videoElement);
 
                 const player = videojs(videoElement, {
@@ -109,9 +110,10 @@ export default function VideoJsPlayer({
                         durationDisplay: true,
                         progressControl: true,
                         skipButtons: {
-                            backward: 10,
-                            forward: 10,
+                            backward: SKIP_SECONDS,
+                            forward: SKIP_SECONDS,
                         },
+                        pictureInPictureToggle: true,
                         fullscreenToggle: true,
                     },
                     sources: latestSourceRef.current
@@ -159,6 +161,9 @@ export default function VideoJsPlayer({
                         }
                     }
                 });
+
+                player.on('play', () => setIsPaused(false));
+                player.on('pause', () => setIsPaused(true));
 
                 player.on('timeupdate', () => {
                     const duration = player.duration();
@@ -222,10 +227,19 @@ export default function VideoJsPlayer({
         };
     }, []);
 
+    const handleCenterToggle = () => {
+        if (!playerRef.current) return;
+        if (playerRef.current.paused()) {
+            playerRef.current.play();
+        } else {
+            playerRef.current.pause();
+        }
+    };
+
     if (loadFailed) {
         return (
             <div
-                className={`flex aspect-video items-center justify-center rounded-[24px] border border-white/10 bg-black/30 px-6 py-10 text-center text-sm text-white/70 ${className}`}
+                className={`flex aspect-video items-center justify-center rounded-[5px] border border-white/10 bg-black/30 px-6 py-10 text-center text-sm text-white/70 ${className}`}
             >
                 Video player could not be loaded yet. Refresh the page after the Vite cache finishes updating.
             </div>
@@ -242,12 +256,91 @@ export default function VideoJsPlayer({
                         border-radius: 5px;
                         overflow: hidden;
                         background: #000;
+                        font-family: 'Montserrat', sans-serif;
                     }
 
                     .yogafx-video-shell .video-js .vjs-tech {
                         width: 100%;
                         height: 100%;
                         object-fit: contain;
+                    }
+
+                    /* Sembunyikan play toggle bawaan di control bar, karena diganti tombol tengah custom */
+                    .yogafx-video-shell .video-js .vjs-control-bar .vjs-play-control {
+                        display: none;
+                    }
+
+                    /* Control bar bawah: gradasi gelap, rounded */
+                    .yogafx-video-shell .video-js .vjs-control-bar {
+                        background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0));
+                        height: 3em;
+                    }
+
+                    /* Progress bar merah khas YogaFX */
+                    .yogafx-video-shell .video-js .vjs-progress-control .vjs-play-progress {
+                        background-color: #dc2626;
+                    }
+                    .yogafx-video-shell .video-js .vjs-progress-control .vjs-load-progress div {
+                        background: rgba(255,255,255,0.25);
+                    }
+                    .yogafx-video-shell .video-js .vjs-progress-holder {
+                        background: rgba(255,255,255,0.15);
+                        height: 0.4em;
+                    }
+                    .yogafx-video-shell .video-js .vjs-play-progress::before {
+                        color: #dc2626;
+                    }
+
+                    /* Tombol skip mundur/maju 30 detik - dibuat lingkaran seperti referensi */
+                    .yogafx-video-shell .video-js [class*="vjs-skip-backward"],
+                    .yogafx-video-shell .video-js [class*="vjs-skip-forward"] {
+                        position: absolute;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 3em;
+                        height: 3em;
+                        border-radius: 9999px;
+                        background: rgba(0, 0, 0, 0.45);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .yogafx-video-shell .video-js [class*="vjs-skip-backward"] {
+                        left: calc(50% - 4.5em);
+                    }
+                    .yogafx-video-shell .video-js [class*="vjs-skip-forward"] {
+                        left: calc(50% + 1.5em);
+                    }
+                    .yogafx-video-shell .video-js [class*="vjs-skip-backward"]:hover,
+                    .yogafx-video-shell .video-js [class*="vjs-skip-forward"]:hover {
+                        background: rgba(220, 38, 38, 0.55);
+                    }
+
+                    /* Tombol play/pause custom di tengah video */
+                    .yogafx-video-shell .yogafx-center-toggle {
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 4em;
+                        height: 4em;
+                        border-radius: 9999px;
+                        background: rgba(0, 0, 0, 0.5);
+                        border: none;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        z-index: 20;
+                        transition: background 0.2s ease;
+                    }
+                    .yogafx-video-shell .yogafx-center-toggle:hover {
+                        background: rgba(220, 38, 38, 0.55);
+                    }
+                    .yogafx-video-shell .yogafx-center-toggle svg {
+                        width: 1.8em;
+                        height: 1.8em;
+                        fill: #fff;
                     }
 
                     .yogafx-video-shell.hide-progress-handle .video-js .vjs-play-progress::before,
@@ -259,10 +352,23 @@ export default function VideoJsPlayer({
             <div
                 ref={containerRef}
                 className={[
-                    'yogafx-video-shell h-full w-full',
+                    'yogafx-video-shell relative h-full w-full',
                     hideProgressHandle ? 'hide-progress-handle' : '',
                 ].join(' ')}
-            />
+            >
+                <button
+                    type="button"
+                    className="yogafx-center-toggle"
+                    onClick={handleCenterToggle}
+                    aria-label={isPaused ? 'Play' : 'Pause'}
+                >
+                    {isPaused ? (
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                    ) : (
+                        <svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
+                    )}
+                </button>
+            </div>
         </div>
     );
 }
