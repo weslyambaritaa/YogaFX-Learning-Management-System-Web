@@ -27,6 +27,7 @@ import {
     ChevronRight,
     ClipboardList,
     FileSpreadsheet,
+    House,
     LayoutDashboard,
     Mail,
     Menu,
@@ -359,9 +360,19 @@ function UserMenu({ user, isImmersive = false }) {
                         isImmersive
                             ? 'border-white/15 bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white'
                             : '',
+                        isImmersive
+                            ? 'max-md:h-11 max-md:w-11 max-md:rounded-[10px] max-md:border-[#db202c]/55 max-md:bg-[#db202c] max-md:px-0 max-md:hover:bg-[#c31c28]'
+                            : '',
                     ].join(' ')}
                 >
-                    <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current">
+                    <span
+                        className={[
+                            'flex size-8 items-center justify-center overflow-hidden border border-white/10 bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current',
+                            isImmersive
+                                ? 'rounded-[8px] max-md:size-9 max-md:border-0 max-md:bg-transparent'
+                                : 'rounded-full',
+                        ].join(' ')}
+                    >
                         {user?.profile_photo ? (
                             <img
                                 src={user.profile_photo}
@@ -375,7 +386,7 @@ function UserMenu({ user, isImmersive = false }) {
                     <span className="hidden max-w-32 truncate md:inline">
                         {displayName}
                     </span>
-                    <ChevronDown className="size-4 opacity-70" />
+                    <ChevronDown className="hidden size-4 opacity-70 md:inline" />
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-white text-gray-900 border-gray-200">
@@ -687,32 +698,31 @@ function StudentTopNavigation({
     contentClassName = '',
 }) {
     const { flash = {} } = usePage().props;
-    const [mobileOpen, setMobileOpen] = useState(false);
     const currentRouteName = route().current();
     const isImmersive = variant === 'immersive';
     const flashMessage = flash.success ?? flash.error ?? null;
     const flashTone = flash.error ? 'error' : 'success';
     const studentInstantAccessItems = studentInstantAccessItemsForUser(user);
-
-    useEffect(() => {
-        const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
-        const handleBreakpointChange = (event) => {
-            if (event.matches) {
-                setMobileOpen(false);
-            }
-        };
-
-        handleBreakpointChange(mediaQuery);
-        mediaQuery.addEventListener('change', handleBreakpointChange);
-
-        return () => {
-            mediaQuery.removeEventListener('change', handleBreakpointChange);
-        };
-    }, []);
-
-    useEffect(() => {
-        setMobileOpen(false);
-    }, [currentRouteName]);
+    const mobileStudentNavItems = [
+        {
+            label: 'Home',
+            route: 'student.dashboard',
+            match: ['student.dashboard'],
+            icon: House,
+        },
+        {
+            label: 'Modules',
+            route: 'modules.index',
+            match: ['modules.index', 'modules.show', 'lessons.show', 'assignments.show'],
+            icon: BookOpen,
+        },
+        {
+            label: 'Profile',
+            route: 'profile.edit',
+            match: ['profile.edit'],
+            icon: UserRound,
+        },
+    ];
 
     return (
         <div
@@ -731,118 +741,53 @@ function StudentTopNavigation({
                 ].join(' ')}
             >
                 <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
-                    {/* LEFT: student logo + mobile menu */}
                     <div className="flex min-w-0 items-center gap-3">
-                        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-                            <SheetTrigger asChild>
-                                <Button
-                                    variant={isImmersive ? 'ghost' : 'outline'}
-                                    size="icon"
-                                    className={[
-                                        'shrink-0 md:hidden',
-                                        isImmersive
-                                            ? 'border border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white'
-                                            : '',
-                                    ].join(' ')}
-                                >
-                                    <Menu className="size-4" />
-                                    <span className="sr-only">Open navigation</span>
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent
-                                side="left"
-                                className={[
-                                    'w-[85vw] max-w-72 p-0',
-                                    isImmersive
-                                        ? 'border-white/10 bg-[#0d0b0a] text-white'
-                                        : '',
-                                ].join(' ')}
-                            >
-                                <SheetHeader
-                                    className={[
-                                        'border-b',
-                                        isImmersive
-                                            ? 'border-white/10'
-                                            : 'border-border',
-                                    ].join(' ')}
-                                >
-                                    <SheetTitle>YogaFX LMS</SheetTitle>
-                                    <SheetDescription>Student navigation</SheetDescription>
-                                </SheetHeader>
-                                <div className="space-y-2 p-4">
-                                    {studentNavigationItems.map((item) => (
-                                        <Button
-                                            key={item.route}
-                                            asChild
-                                            variant="ghost"
-                                            className={[
-                                                'h-11 w-full justify-start rounded-lg px-3',
-                                                isItemActive(item)
-                                                    ? 'text-[#ff5a3c] hover:text-[#ff5a3c] hover:bg-[#ff5a3c]/10'
-                                                    : (isImmersive
-                                                        ? 'text-white/78 hover:bg-white/10 hover:text-white'
-                                                        : ''),
-                                            ].join(' ')}
-                                        >
-                                            <Link
-                                                href={route(item.route)}
-                                                onClick={() => setMobileOpen(false)}
-                                            >
-                                                {item.label}
-                                            </Link>
-                                        </Button>
-                                    ))}
-
-                                    {studentInstantAccessItems.length > 0 && (
-                                        <>
-                                            <div
-                                                className={[
-                                                    'px-3 pt-3 text-[11px] font-semibold uppercase tracking-[0.28em]',
-                                                    isImmersive
-                                                        ? 'text-white/35'
-                                                        : 'text-muted-foreground',
-                                                ].join(' ')}
-                                            >
-                                                INSTANT ACCESS
-                                            </div>
-
-                                            {studentInstantAccessItems.map((item) => (
-                                                <Button
-                                                    key={item.label}
-                                                    asChild
-                                                    variant="ghost"
-                                                    className={[
-                                                        'h-11 w-full justify-start rounded-lg px-3 opacity-100',
-                                                        isItemActive(item)
-                                                            ? 'border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]'
-                                                            : (isImmersive
-                                                                ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
-                                                                : ''),
-                                                    ].join(' ')}
-                                                >
-                                                    <Link
-                                                        href={route(item.route)}
-                                                        onClick={() => setMobileOpen(false)}
-                                                    >
-                                                        {item.label}
-                                                    </Link>
-                                                </Button>
-                                            ))}
-                                        </>
-                                    )}
-                                </div>
-                            </SheetContent>
-                        </Sheet>
-
-                        {/* Student logo only */}
                         <img
                             src={STUDENT_LOGO_URL}
                             alt="YogaFX"
-                            className="h-10 w-auto object-contain shrink-0"
+                            className="h-7 w-auto shrink-0 object-contain sm:h-10"
                         />
                     </div>
 
-                    {/* CENTER: desktop nav links */}
+                    <div className="min-w-0 md:hidden">
+                        {studentInstantAccessItems.length > 0 ? (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="h-11 max-w-[180px] rounded-full border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
+                                    >
+                                        <span className="truncate text-sm font-medium">
+                                            Instant Access Dialog
+                                        </span>
+                                        <ChevronDown className="ml-2 size-4 shrink-0 opacity-70" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="center"
+                                    className="w-56 border-white/10 bg-[#171311] text-white"
+                                >
+                                    <DropdownMenuLabel className="text-white/55">
+                                        Instant Access
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator className="bg-white/10" />
+                                    {studentInstantAccessItems.map((item) => (
+                                        <DropdownMenuItem
+                                            key={item.label}
+                                            className="cursor-pointer focus:bg-white/10 focus:text-white"
+                                            onSelect={(event) => {
+                                                event.preventDefault();
+                                                router.visit(route(item.route));
+                                            }}
+                                        >
+                                            {item.label}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : null}
+                    </div>
+
                     <div className="hidden min-w-0 items-center gap-2 md:flex">
                         {studentNavigationItems.map((item) => (
                             <Button
@@ -893,7 +838,6 @@ function StudentTopNavigation({
                         )}
                     </div>
 
-                    {/* RIGHT: user menu */}
                     <div className="flex items-center gap-2">
                         <UserMenu user={user} isImmersive={isImmersive} />
                     </div>
@@ -914,7 +858,7 @@ function StudentTopNavigation({
                 </header>
             )}
 
-            <main className={contentClassName}>
+            <main className={['pb-20 md:pb-0', contentClassName].join(' ')}>
                 {flashMessage ? (
                     <div className="mx-auto max-w-[1400px] px-4 pt-4 sm:px-6 lg:px-10">
                         <TransientStatusBanner
@@ -926,6 +870,31 @@ function StudentTopNavigation({
 
                 {children}
             </main>
+
+            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0908]/95 backdrop-blur-xl md:hidden">
+                <div className="mx-auto grid max-w-[1400px] grid-cols-3 px-2 py-2">
+                    {mobileStudentNavItems.map((item) => {
+                        const Icon = item.icon;
+                        const active = isItemActive(item);
+
+                        return (
+                            <Link
+                                key={item.route}
+                                href={route(item.route)}
+                                className={[
+                                    'flex flex-col items-center justify-center gap-1 rounded-[12px] px-2 py-2 text-[11px] font-medium transition',
+                                    active
+                                        ? 'bg-[#db202c]/14 text-white'
+                                        : 'text-white/58 hover:bg-white/6 hover:text-white',
+                                ].join(' ')}
+                            >
+                                <Icon className="size-4" />
+                                <span>{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }

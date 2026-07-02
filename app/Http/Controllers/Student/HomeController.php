@@ -180,6 +180,7 @@ class HomeController extends Controller
                 'cta_url' => route('lessons.show', $lesson),
                 'module' => [
                     'title' => $module->title,
+                    'sort_order' => $module->sort_order,
                     'url_slug' => $module->url_slug,
                     'url' => route('modules.show', $module->url_slug),
                 ],
@@ -210,6 +211,7 @@ class HomeController extends Controller
                 'cta_url' => route('lessons.show', $startingLesson),
                 'module' => [
                     'title' => $startingModule->title,
+                    'sort_order' => $startingModule->sort_order,
                     'url_slug' => $startingModule->url_slug,
                     'url' => route('modules.show', $startingModule->url_slug),
                 ],
