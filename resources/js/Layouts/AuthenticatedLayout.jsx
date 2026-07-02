@@ -696,6 +696,7 @@ function StudentTopNavigation({
     const flashMessage = flash.success ?? flash.error ?? null;
     const flashTone = flash.error ? 'error' : 'success';
     const studentInstantAccessItems = studentInstantAccessItemsForUser(user);
+    const [instantAccessOpen, setInstantAccessOpen] = useState(false);
     const mobileStudentNavItems = [
         {
             label: 'Home',
@@ -744,8 +745,11 @@ function StudentTopNavigation({
 
                     <div className="min-w-0 md:hidden">
                         {studentInstantAccessItems.length > 0 ? (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
+                            <Sheet
+                                open={instantAccessOpen}
+                                onOpenChange={setInstantAccessOpen}
+                            >
+                                <SheetTrigger asChild>
                                     <Button
                                         variant="outline"
                                         className="h-11 max-w-[180px] rounded-full border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
@@ -755,29 +759,37 @@ function StudentTopNavigation({
                                         </span>
                                         <ChevronDown className="ml-2 size-4 shrink-0 opacity-70" />
                                     </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    align="center"
-                                    className="w-56 border-white/10 bg-[#171311] text-white"
+                                </SheetTrigger>
+                                <SheetContent
+                                    side="bottom"
+                                    className="rounded-t-[22px] border-white/10 bg-[#171311] px-0 text-white"
                                 >
-                                    <DropdownMenuLabel className="text-white/55">
-                                        Instant Access
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator className="bg-white/10" />
-                                    {studentInstantAccessItems.map((item) => (
-                                        <DropdownMenuItem
-                                            key={item.label}
-                                            className="cursor-pointer focus:bg-white/10 focus:text-white"
-                                            onSelect={(event) => {
-                                                event.preventDefault();
-                                                router.visit(route(item.route));
-                                            }}
-                                        >
-                                            {item.label}
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                    <SheetHeader className="px-4 text-left">
+                                        <SheetTitle className="text-white">
+                                            Instant Access Dialog
+                                        </SheetTitle>
+                                        <SheetDescription className="text-white/55">
+                                            Pick a dialog to open.
+                                        </SheetDescription>
+                                    </SheetHeader>
+                                    <div className="space-y-2 px-4 pb-6 pt-2">
+                                        {studentInstantAccessItems.map((item) => (
+                                            <Button
+                                                key={item.label}
+                                                type="button"
+                                                variant="ghost"
+                                                className="h-12 w-full justify-start rounded-[14px] border border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
+                                                onClick={() => {
+                                                    setInstantAccessOpen(false);
+                                                    router.visit(route(item.route));
+                                                }}
+                                            >
+                                                {item.label}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
                         ) : null}
                     </div>
 
