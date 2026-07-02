@@ -97,39 +97,43 @@ export default function StudentModuleShow({ module }) {
             <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-8 sm:gap-8 sm:px-6 lg:px-10">
                 <StudentBackButton fallbackHref={route("modules.index")} />
 
-                <section className="relative overflow-hidden rounded-[5px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-                    <div className="absolute inset-0">
+                <section className="overflow-hidden rounded-[5px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+                    {/* IMAGE FIRST */}
+                    <div className="relative aspect-video w-full overflow-hidden bg-[#161211]">
                         {module.thumbnail_url ? (
                             <img
                                 src={module.thumbnail_url}
                                 alt={module.title}
-                                className="h-full w-full object-cover opacity-55"
+                                className="h-full w-full object-cover"
                             />
                         ) : (
                             <div className="h-full w-full bg-[radial-gradient(circle_at_20%_18%,_rgba(211,101,52,0.45),_transparent_30%),linear-gradient(160deg,_#2f1d16_0%,_#120f0e_100%)]" />
                         )}
-                    </div>
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,_rgba(0,0,0,0.22)_0%,_rgba(0,0,0,0.72)_72%,_rgba(0,0,0,0.92)_100%)]" />
 
-                    <div className="relative flex min-h-[420px] flex-col justify-end gap-6 px-6 py-8 sm:px-8 lg:px-10 lg:py-10">
-                        <div className="absolute right-6 top-6 sm:right-8 sm:top-8 lg:right-10 lg:top-10">
+                        <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
                             <StudentStatusBadge status={module.status} />
                         </div>
+                    </div>
+
+                    {/* TEXT AFTER IMAGE */}
+                    <div className="space-y-5 px-5 py-6 sm:px-8 sm:py-8 lg:px-10">
                         <div className="max-w-3xl space-y-4">
-                            <p className="font-['Montserrat'] text-[22px] font-medium tracking-tight text-white">
+                            <p className="font-['Montserrat'] text-[18px] font-medium tracking-tight text-white sm:text-[22px]">
                                 Module {module.sort_order}
                             </p>
-                            <h1 className="font-['Montserrat'] text-[48px] font-bold tracking-[-0.03em] text-white">
+
+                            <h1 className="font-['Montserrat'] text-[30px] font-bold leading-tight tracking-[-0.03em] text-white sm:text-[40px] lg:text-[48px]">
                                 {module.title}
                             </h1>
+
                             {module.description ? (
-                                <p className="max-w-2xl font-['Montserrat'] text-sm font-medium leading-7 text-white sm:text-base">
+                                <p className="max-w-3xl font-['Montserrat'] text-[14px] font-medium leading-7 text-white/80 sm:text-base">
                                     {module.description}
                                 </p>
                             ) : null}
                         </div>
 
-                        <div className="flex flex-wrap gap-3 pt-2">
+                        <div className="flex flex-wrap gap-3 pt-1">
                             {module.continue_last_lesson_url ? (
                                 <Button
                                     asChild
