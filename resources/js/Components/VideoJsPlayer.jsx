@@ -558,6 +558,8 @@ export default function VideoJsPlayer({
                     }
 
                     .yogafx-video-shell .video-js {
+                        position: relative !important;
+                        top: auto !important;
                         width: 100% !important;
                         height: 100% !important;
                         border-radius: 5px;

@@ -792,10 +792,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
                 <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] lg:items-start">
                     <div className="min-w-0 space-y-0 sm:space-y-6">
-                        <div className="overflow-hidden bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
-                            <div className="relative bg-black">
+                        <div className="static overflow-hidden bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
+                            <div className="relative static bg-black">
                                 {lessonVideoUrl ? (
-                                    <div className="aspect-video w-full">
+                                    <div className="static aspect-video w-full">
                                         <VideoJsPlayer
                                             src={lessonVideoUrl}
                                             poster={lesson.thumbnail_url}
