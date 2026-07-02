@@ -788,9 +788,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
-                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] pb-[50vh]">
-                    <div className="min-w-0 space-y-0 sm:space-y-6 h-full">
-                        <div className="sticky top-0 z-40 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:top-24">
+                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)]">
+                    <div className="min-w-0 flex flex-col space-y-0 sm:space-y-6 lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
+                        <div className="shrink-0 z-40 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
                             {lessonVideoUrl ? (
                                 <div className="aspect-video w-full">
                                     <VideoJsPlayer
@@ -870,7 +870,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 </div>
                             ) : null}
                         </div>
-                        <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
+                        <div
+                            className="min-h-0 flex-1 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                            style={{
+                                scrollbarWidth: "none",
+                                msOverflowStyle: "none",
+                            }}
+                        >
                             <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:border-t-0 sm:p-6 lg:p-8">
                                 <div className="space-y-4 sm:space-y-5">
                                     <div className="space-y-3">
