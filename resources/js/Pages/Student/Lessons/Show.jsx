@@ -1,5 +1,4 @@
 import LockedContentDialog from "@/Components/student/LockedContentDialog";
-import StudentBackButton from "@/Components/student/StudentBackButton";
 import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
 import VideoJsPlayer from "@/Components/VideoJsPlayer";
@@ -791,14 +790,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
-                <StudentBackButton
-                    fallbackHref={route(
-                        "modules.show",
-                        lesson.module?.url_slug,
-                    )}
-                    className="hidden md:inline-flex"
-                />
-
                 <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] lg:items-start">
                     <div className="min-w-0 space-y-0 sm:space-y-6">
                         <div className="overflow-hidden bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">

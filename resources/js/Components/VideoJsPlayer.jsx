@@ -707,10 +707,10 @@ export default function VideoJsPlayer({
 
                     {/* BAGIAN BAWAH (Volume, Slider, Fullscreen - Menempel absolut di dasar) */}
                     <div
-                        className="absolute inset-x-0 bottom-0 pointer-events-auto p-3 pt-4 sm:p-4"
+                        className="absolute inset-x-0 bottom-0 pointer-events-auto px-3 pb-3 pt-5 sm:px-4 sm:pb-4 sm:pt-5"
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <div className="mb-1.5 flex items-center">
+                        <div className="mb-1.5 flex translate-y-1 items-center">
                             <SmallControlButton
                                 icon={isPlaying ? Pause : Play}
                                 label={isPlaying ? "Pause video" : "Play video"}
