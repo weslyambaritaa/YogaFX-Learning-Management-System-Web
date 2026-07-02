@@ -305,6 +305,8 @@ class InstallmentWebhookHandlerTest extends TestCase
             'notification_name' => 'Installment Payment Success',
             'is_enabled' => true,
             'admin_recipients' => 'ops-installment@yogafx.test',
+            'subject_user' => 'Installment success',
+            'body_user' => '{{ payment_amount }} paid successfully',
             'subject_admin' => 'Installment success {{ user_email }}',
             'body_admin' => '{{ payment_amount }} paid',
         ]);
@@ -388,6 +390,14 @@ class InstallmentWebhookHandlerTest extends TestCase
             'notification_type' => EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_SUCCESS,
             'reference_type' => 'payment_subscription',
             'reference_id' => $subscription->id,
+            'recipient_type' => 'user',
+            'recipient_email' => $user->email,
+            'status' => 'sent',
+        ]);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_SUCCESS,
+            'reference_type' => 'payment_subscription',
+            'reference_id' => $subscription->id,
             'recipient_type' => 'admin',
             'recipient_email' => 'ops-installment@yogafx.test',
             'status' => 'sent',
@@ -411,6 +421,8 @@ class InstallmentWebhookHandlerTest extends TestCase
             'notification_name' => 'Installment Payment Failed',
             'is_enabled' => true,
             'admin_recipients' => 'ops-failed@yogafx.test',
+            'subject_user' => 'Installment failed',
+            'body_user' => 'Grace until {{ grace_deadline_at }}',
             'subject_admin' => 'Installment failed {{ user_email }}',
             'body_admin' => 'Grace until {{ grace_deadline_at }}',
         ]);
@@ -440,6 +452,14 @@ class InstallmentWebhookHandlerTest extends TestCase
         $this->assertSame('2026-08-18', optional($fresh->grace_deadline_at)->format('Y-m-d'));
         $this->assertNotNull($fresh->last_payment_failed_at);
         $this->assertTrue($invoice->fresh()->status === Invoice::STATUS_UNPAID);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_FAILED,
+            'reference_type' => 'payment_subscription',
+            'reference_id' => $subscription->id,
+            'recipient_type' => 'user',
+            'recipient_email' => $pendingRegistration->email,
+            'status' => 'sent',
+        ]);
         $this->assertDatabaseHas('email_logs', [
             'notification_type' => EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_FAILED,
             'reference_type' => 'payment_subscription',

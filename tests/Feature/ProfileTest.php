@@ -7,6 +7,7 @@ use App\Models\OnboardingState;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -155,6 +156,7 @@ class ProfileTest extends TestCase
                 'email' => 'after-enrollment@example.com',
                 'whatsapp_country_code' => '+62',
                 'whatsapp_number' => '81333333333',
+                'profile_photo' => UploadedFile::fake()->image('enrollment-photo.jpg'),
                 'instagram' => '@afterenrollment',
                 'country' => 'Indonesia',
                 'birth_date' => '1994-04-21',
@@ -167,6 +169,8 @@ class ProfileTest extends TestCase
                 'motivation' => 'Complete my onboarding profile properly.',
                 'why_yogafx' => 'It matches my learning goals.',
                 'how_did_you_find_us' => ['google'],
+                'terms_accepted' => true,
+                'recaptcha_confirmed' => true,
             ],
         );
 
@@ -230,6 +234,7 @@ class ProfileTest extends TestCase
                 'email' => 'hours-tester@example.com',
                 'whatsapp_country_code' => '+62',
                 'whatsapp_number' => '81333333333',
+                'profile_photo' => UploadedFile::fake()->image('hours-photo.jpg'),
                 'instagram' => '@hourstester',
                 'country' => 'Indonesia',
                 'birth_date' => '1994-04-21',
@@ -242,6 +247,8 @@ class ProfileTest extends TestCase
                 'motivation' => 'Complete my onboarding profile properly.',
                 'why_yogafx' => 'It matches my learning goals.',
                 'how_did_you_find_us' => ['google'],
+                'terms_accepted' => true,
+                'recaptcha_confirmed' => true,
             ],
         );
 

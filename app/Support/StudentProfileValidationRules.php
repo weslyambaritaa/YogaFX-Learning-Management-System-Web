@@ -10,8 +10,10 @@ class StudentProfileValidationRules
     /**
      * @return array<string, array<int, mixed>>
      */
-    public static function make(?int $ignoreUserId = null): array
+    public static function make(?int $ignoreUserId = null, array $options = []): array
     {
+        $requireProfilePhoto = (bool) ($options['require_profile_photo'] ?? false);
+        $requireInstagram = (bool) ($options['require_instagram'] ?? false);
         $wordLimit = static function (string $attribute, mixed $value, \Closure $fail): void {
             if (str_word_count(strip_tags((string) $value)) > 50) {
                 $fail('Use 50 words or less.');
@@ -32,8 +34,18 @@ class StudentProfileValidationRules
             'whatsapp_country_code' => ['required', 'string', 'max:10'],
             'whatsapp_number' => ['required', 'string', 'max:50'],
             'whatsapp' => ['required', 'string', 'max:50'],
-            'profile_photo' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'instagram' => ['nullable', 'string', 'max:255'],
+            'profile_photo' => array_values(array_filter([
+                $requireProfilePhoto ? 'required' : 'nullable',
+                'file',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ])),
+            'instagram' => array_values(array_filter([
+                $requireInstagram ? 'required' : 'nullable',
+                'string',
+                'max:255',
+            ])),
             'country' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date', 'before_or_equal:today'],
             'gender' => ['required', 'string', Rule::in(['female', 'male'])],

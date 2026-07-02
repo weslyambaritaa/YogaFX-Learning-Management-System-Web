@@ -30,6 +30,8 @@ class SyncOverdueInstallmentsCommandTest extends TestCase
             'notification_name' => 'Installment Overdue Inactive',
             'is_enabled' => true,
             'admin_recipients' => 'ops@yogafx.test',
+            'subject_user' => 'Installment overdue',
+            'body_user' => 'Student is now {{ student_status }}.',
             'subject_admin' => 'Installment overdue for {{ user_email }}',
             'body_admin' => 'Subscription {{ provider_subscription_id }} is overdue and student is now {{ student_status }}.',
         ]);
@@ -41,6 +43,14 @@ class SyncOverdueInstallmentsCommandTest extends TestCase
         Artisan::call('installments:sync-overdue-status');
 
         $this->assertFalse((bool) $user->fresh()->is_active);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => OverdueInstallmentService::NOTIFICATION_TYPE_OVERDUE_INACTIVE,
+            'reference_type' => OverdueInstallmentService::REFERENCE_TYPE_PAYMENT_SUBSCRIPTION,
+            'reference_id' => $subscription->id,
+            'recipient_type' => 'user',
+            'recipient_email' => $user->email,
+            'status' => 'sent',
+        ]);
         $this->assertDatabaseHas('email_logs', [
             'notification_type' => OverdueInstallmentService::NOTIFICATION_TYPE_OVERDUE_INACTIVE,
             'reference_type' => OverdueInstallmentService::REFERENCE_TYPE_PAYMENT_SUBSCRIPTION,
@@ -59,6 +69,7 @@ class SyncOverdueInstallmentsCommandTest extends TestCase
         $this->assertSame(1, EmailLog::query()
             ->where('notification_type', OverdueInstallmentService::NOTIFICATION_TYPE_OVERDUE_INACTIVE)
             ->where('reference_id', $subscription->id)
+            ->where('recipient_type', 'admin')
             ->count());
     }
 

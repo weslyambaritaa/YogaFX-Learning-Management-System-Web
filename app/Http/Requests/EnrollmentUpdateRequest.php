@@ -25,7 +25,15 @@ class EnrollmentUpdateRequest extends FormRequest
         /** @var OnboardingState|null $onboardingState */
         $onboardingState = $this->route('onboardingState');
 
-        return StudentProfileValidationRules::make($onboardingState?->user_id);
+        $rules = StudentProfileValidationRules::make($onboardingState?->user_id, [
+            'require_profile_photo' => ! filled($onboardingState?->user?->profile_photo),
+            'require_instagram' => true,
+        ]);
+
+        $rules['terms_accepted'] = ['required', 'accepted'];
+        $rules['recaptcha_confirmed'] = ['required', 'accepted'];
+
+        return $rules;
     }
 
     protected function prepareForValidation(): void

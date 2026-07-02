@@ -643,7 +643,7 @@ export default function PublicCheckoutPanel({ checkout }) {
             } catch {
                 if (!cancelled) {
                     setInstallmentApprovalMessage(
-                        "PayPal approval is attached. YogaFX is still waiting for the first payment confirmation.",
+                        "PayPal approval received. We are confirming your first payment now.",
                     );
                 }
             }
@@ -851,7 +851,7 @@ export default function PublicCheckoutPanel({ checkout }) {
         setInstallmentStatus(payload);
         setInstallmentApprovalMessage(
             payload.message ??
-                "PayPal approval received. YogaFX is now waiting for the first payment confirmation from the sandbox webhook.",
+                "PayPal approval received. We are confirming your first payment now.",
         );
         setIsSubmitting(false);
     };
@@ -1380,7 +1380,7 @@ export default function PublicCheckoutPanel({ checkout }) {
                                 style={{ fontFamily: FONT_FAMILY }}
                             >
                                 {installmentApprovalMessage ||
-                                    "PayPal approval is already attached to this checkout. YogaFX is waiting for the first payment confirmation webhook before opening onboarding."}
+                                    "PayPal approval has been received. We are confirming your first payment now."}
                             </div>
                         ) : (
                             <div className="mt-5 space-y-4">

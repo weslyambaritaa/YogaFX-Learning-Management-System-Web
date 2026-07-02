@@ -209,6 +209,14 @@ function normalizePhoneNumberInput(value) {
         .replace(/^0+/, "");
 }
 
+function isBlankString(value) {
+    return String(value ?? "").trim() === "";
+}
+
+function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim());
+}
+
 // Single source of truth for the font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
@@ -240,9 +248,11 @@ function firstAvailableErrorKey(errors) {
         "first_name",
         "last_name",
         "email",
+        "profile_photo",
         "whatsapp_number",
         "whatsapp_country_code",
         "whatsapp",
+        "instagram",
         "country",
         "birth_date",
         "gender",
@@ -564,6 +574,10 @@ export default function StudentProfileForm({
         () => firstAvailableErrorKey(errors),
         [errors],
     );
+    const formErrors = useMemo(
+        () => ({ ...(errors ?? {}), ...(localErrors ?? {}) }),
+        [errors, localErrors],
+    );
     const localErrorKey = useMemo(
         () => firstAvailableErrorKey(localErrors),
         [localErrors],
@@ -740,6 +754,10 @@ export default function StudentProfileForm({
             );
             setPhotoPreview(url);
             setData("profile_photo", file);
+            setLocalErrors((current) => ({
+                ...current,
+                profile_photo: "",
+            }));
             setIsCropModalOpen(false);
         } catch (e) {
             console.error(e);
@@ -749,13 +767,105 @@ export default function StudentProfileForm({
     const handleSubmit = (event) => {
         const nextLocalErrors = {};
 
-        if (isEnrollment && !data.terms_accepted) {
-            nextLocalErrors.terms_accepted = "Please agree to the terms first.";
-        }
+        if (isEnrollment) {
+            if (isBlankString(data.first_name)) {
+                nextLocalErrors.first_name = "First name is required.";
+            }
 
-        if (isEnrollment && !data.recaptcha_confirmed) {
-            nextLocalErrors.recaptcha_confirmed =
-                "Please confirm the reCAPTCHA checkbox.";
+            if (isBlankString(data.last_name)) {
+                nextLocalErrors.last_name = "Last name is required.";
+            }
+
+            if (isBlankString(data.email)) {
+                nextLocalErrors.email = "Email is required.";
+            } else if (!isValidEmail(data.email)) {
+                nextLocalErrors.email = "Enter a valid email address.";
+            }
+
+            if (isBlankString(data.whatsapp_country_code)) {
+                nextLocalErrors.whatsapp_country_code =
+                    "WhatsApp country code is required.";
+            }
+
+            if (isBlankString(data.whatsapp_number)) {
+                nextLocalErrors.whatsapp_number =
+                    "WhatsApp number is required.";
+            }
+
+            if (!photoPreview && !data.profile_photo) {
+                nextLocalErrors.profile_photo = "Profile photo is required.";
+            }
+
+            if (isBlankString(data.instagram)) {
+                nextLocalErrors.instagram = "Instagram is required.";
+            }
+
+            if (isBlankString(data.country)) {
+                nextLocalErrors.country = "Country is required.";
+            }
+
+            if (isBlankString(data.birth_date)) {
+                nextLocalErrors.birth_date = "Birth date is required.";
+            }
+
+            if (isBlankString(data.gender)) {
+                nextLocalErrors.gender = "Gender is required.";
+            }
+
+            if (isBlankString(data.practicing_yoga_for)) {
+                nextLocalErrors.practicing_yoga_for =
+                    "Current yoga experience is required.";
+            }
+
+            if (
+                !Array.isArray(data.yoga_sequence_experience) ||
+                data.yoga_sequence_experience.length === 0
+            ) {
+                nextLocalErrors.yoga_sequence_experience =
+                    "Select at least one yoga sequence experience.";
+            }
+
+            if (isBlankString(data.hours_per_week)) {
+                nextLocalErrors.hours_per_week =
+                    "Hours per week is required.";
+            }
+
+            if (isBlankString(data.current_fitness_level)) {
+                nextLocalErrors.current_fitness_level =
+                    "Current fitness level is required.";
+            }
+
+            if (isBlankString(data.flexibility_rating)) {
+                nextLocalErrors.flexibility_rating =
+                    "Flexibility rating is required.";
+            }
+
+            if (isBlankString(data.motivation)) {
+                nextLocalErrors.motivation = "Motivation is required.";
+            }
+
+            if (isBlankString(data.why_yogafx)) {
+                nextLocalErrors.why_yogafx =
+                    "Please tell us why you chose YogaFX.";
+            }
+
+            if (
+                !Array.isArray(data.how_did_you_find_us) ||
+                data.how_did_you_find_us.length === 0
+            ) {
+                nextLocalErrors.how_did_you_find_us =
+                    "Select at least one discovery source.";
+            }
+
+            if (!data.terms_accepted) {
+                nextLocalErrors.terms_accepted =
+                    "Please agree to the terms first.";
+            }
+
+            if (!data.recaptcha_confirmed) {
+                nextLocalErrors.recaptcha_confirmed =
+                    "Please confirm the reCAPTCHA checkbox.";
+            }
         }
 
         setLocalErrors(nextLocalErrors);
@@ -863,6 +973,15 @@ export default function StudentProfileForm({
                     </div>
                 ) : null}
 
+                {isEnrollment ? (
+                    <div
+                        className="rounded-[5px] border border-amber-300/35 bg-amber-500/10 px-[10px] py-[8px] text-sm text-white/90"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
+                        All enrollment fields are required, including your profile photo and Instagram.
+                    </div>
+                ) : null}
+
                 <section className={sectionClassName}>
                     <div className="mb-6">
                         <h3
@@ -899,7 +1018,7 @@ export default function StudentProfileForm({
                                 isFocused
                             />
                             <InputError
-                                message={firstError(errors, "first_name")}
+                                message={firstError(formErrors, "first_name")}
                                 className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
@@ -921,7 +1040,7 @@ export default function StudentProfileForm({
                                 }
                             />
                             <InputError
-                                message={firstError(errors, "last_name")}
+                                message={firstError(formErrors, "last_name")}
                                 className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
@@ -944,7 +1063,7 @@ export default function StudentProfileForm({
                                 }
                             />
                             <InputError
-                                message={firstError(errors, "email")}
+                                message={firstError(formErrors, "email")}
                                 className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
@@ -1025,12 +1144,12 @@ export default function StudentProfileForm({
                             </div>
                             <InputError
                                 message={
-                                    firstError(errors, "whatsapp_number") ??
+                                    firstError(formErrors, "whatsapp_number") ??
                                     firstError(
-                                        errors,
+                                        formErrors,
                                         "whatsapp_country_code",
                                     ) ??
-                                    firstError(errors, "whatsapp")
+                                    firstError(formErrors, "whatsapp")
                                 }
                                 className={`${theme.errorClassName} mt-2`}
                             />
@@ -1116,7 +1235,7 @@ export default function StudentProfileForm({
 
                                     <InputError
                                         message={firstError(
-                                            errors,
+                                            formErrors,
                                             "profile_photo",
                                         )}
                                         className={theme.errorClassName}
@@ -1128,7 +1247,7 @@ export default function StudentProfileForm({
                         <div>
                             <InputLabel
                                 htmlFor="instagram"
-                                value="Instagram (Optional)"
+                                value="Instagram"
                                 className={theme.labelClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
@@ -1142,7 +1261,7 @@ export default function StudentProfileForm({
                                 }
                             />
                             <InputError
-                                message={firstError(errors, "instagram")}
+                                message={firstError(formErrors, "instagram")}
                                 className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
@@ -1208,7 +1327,7 @@ export default function StudentProfileForm({
                                 }
                             />
                             <InputError
-                                message={errors.country}
+                                message={firstError(formErrors, "country")}
                                 className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
@@ -1261,7 +1380,7 @@ export default function StudentProfileForm({
                                 </button>
                             </div>
                             <InputError
-                                message={firstError(errors, "birth_date")}
+                                message={firstError(formErrors, "birth_date")}
                                 className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
@@ -1271,7 +1390,7 @@ export default function StudentProfileForm({
                                 id="gender"
                                 label="Gender"
                                 value={data.gender}
-                                error={firstError(errors, "gender")}
+                                error={firstError(formErrors, "gender")}
                                 options={GENDER_OPTIONS}
                                 onChange={(value) => setData("gender", value)}
                                 theme={theme}
@@ -1302,7 +1421,7 @@ export default function StudentProfileForm({
                             label="Current Yoga Experience"
                             description="Practicing Yoga For (Years & Months)"
                             value={data.practicing_yoga_for}
-                            error={firstError(errors, "practicing_yoga_for")}
+                            error={firstError(formErrors, "practicing_yoga_for")}
                             options={PRACTICING_OPTIONS}
                             onChange={(value) =>
                                 setData("practicing_yoga_for", value)
@@ -1315,7 +1434,7 @@ export default function StudentProfileForm({
                             label="Yoga Sequence Experience"
                             value={data.yoga_sequence_experience ?? []}
                             error={firstError(
-                                errors,
+                                formErrors,
                                 "yoga_sequence_experience",
                             )}
                             options={SEQUENCE_OPTIONS}
@@ -1330,7 +1449,7 @@ export default function StudentProfileForm({
                             id="hours_per_week"
                             label="How Many Hours P/Week Practicing Yoga?"
                             value={data.hours_per_week}
-                            error={firstError(errors, "hours_per_week")}
+                            error={firstError(formErrors, "hours_per_week")}
                             options={HOURS_OPTIONS}
                             onChange={(value) =>
                                 setData("hours_per_week", value)
@@ -1342,7 +1461,7 @@ export default function StudentProfileForm({
                             id="current_fitness_level"
                             label="Your Current Fitness Level"
                             value={data.current_fitness_level}
-                            error={firstError(errors, "current_fitness_level")}
+                            error={firstError(formErrors, "current_fitness_level")}
                             options={SIMPLE_LEVEL_OPTIONS}
                             onChange={(value) =>
                                 setData("current_fitness_level", value)
@@ -1354,7 +1473,7 @@ export default function StudentProfileForm({
                             id="flexibility_rating"
                             label="How would you rate your flexibility"
                             value={data.flexibility_rating}
-                            error={firstError(errors, "flexibility_rating")}
+                            error={firstError(formErrors, "flexibility_rating")}
                             options={SIMPLE_LEVEL_OPTIONS}
                             onChange={(value) =>
                                 setData("flexibility_rating", value)
@@ -1386,7 +1505,7 @@ export default function StudentProfileForm({
                             label="What is Your Motivation In Becoming A Yoga Teacher?"
                             value={data.motivation}
                             onChange={(value) => setData("motivation", value)}
-                            error={firstError(errors, "motivation")}
+                            error={firstError(formErrors, "motivation")}
                             helper={`${wordsCount(data.motivation)}/50 words`}
                             theme={theme}
                         />
@@ -1396,7 +1515,7 @@ export default function StudentProfileForm({
                             label="Please Let Us Know Why You Chose YogaFX"
                             value={data.why_yogafx}
                             onChange={(value) => setData("why_yogafx", value)}
-                            error={firstError(errors, "why_yogafx")}
+                            error={firstError(formErrors, "why_yogafx")}
                             helper={`${wordsCount(data.why_yogafx)}/50 words`}
                             theme={theme}
                         />
@@ -1405,7 +1524,7 @@ export default function StudentProfileForm({
                             id="how_did_you_find_us"
                             label="Please Share How Did You Find Us"
                             value={data.how_did_you_find_us ?? []}
-                            error={firstError(errors, "how_did_you_find_us")}
+                            error={firstError(formErrors, "how_did_you_find_us")}
                             options={DISCOVERY_OPTIONS}
                             onChange={(value) =>
                                 setData("how_did_you_find_us", value)

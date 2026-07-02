@@ -27,6 +27,7 @@ use App\Support\PublicUrl;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -199,6 +200,14 @@ class EmailNotificationTest extends TestCase
             ->where('template.subject_admin', 'YogaFX enrollment completed: {user_email}')
             ->where('template.body_user', fn (string $body) => str_contains($body, '{signup_url}'))
             ->where('template.body_admin', fn (string $body) => str_contains($body, '{signup_url}')));
+
+        $this->actingAs($admin)->get(
+            route('admin.email-notifications.show', ['notificationType' => EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_SUCCESS]),
+        )->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/EmailNotifications/Show')
+            ->where('notificationType', EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_SUCCESS)
+            ->where('template.subject_user', 'Your YogaFX installment payment was successful')
+            ->where('template.subject_admin', 'Installment payment success for {user_email}'));
     }
 
     public function test_admin_can_send_test_email_for_payment_and_enrollment_notifications_and_logs_are_recorded(): void
@@ -553,6 +562,7 @@ class EmailNotificationTest extends TestCase
                 'email' => $user->email,
                 'whatsapp_country_code' => '+62',
                 'whatsapp_number' => '81234567001',
+                'profile_photo' => UploadedFile::fake()->image('onboarding-student.jpg'),
                 'instagram' => '@onboardingstudent',
                 'country' => 'Indonesia',
                 'birth_date' => '1995-05-10',
@@ -565,6 +575,8 @@ class EmailNotificationTest extends TestCase
                 'motivation' => 'Complete onboarding.',
                 'why_yogafx' => 'Guided learning path.',
                 'how_did_you_find_us' => ['instagram'],
+                'terms_accepted' => true,
+                'recaptcha_confirmed' => true,
             ],
         )->assertSessionHasNoErrors();
 
@@ -764,6 +776,7 @@ class EmailNotificationTest extends TestCase
                 'email' => $user->email,
                 'whatsapp_country_code' => '+62',
                 'whatsapp_number' => '81234567999',
+                'profile_photo' => UploadedFile::fake()->image('disabled-enrollment.jpg'),
                 'instagram' => '@disabledenrollment',
                 'country' => 'Indonesia',
                 'birth_date' => '1995-05-10',
@@ -776,6 +789,8 @@ class EmailNotificationTest extends TestCase
                 'motivation' => 'Complete onboarding.',
                 'why_yogafx' => 'Guided learning path.',
                 'how_did_you_find_us' => ['instagram'],
+                'terms_accepted' => true,
+                'recaptcha_confirmed' => true,
             ],
         )->assertSessionHasNoErrors();
 

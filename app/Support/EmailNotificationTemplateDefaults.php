@@ -189,6 +189,15 @@ class EmailNotificationTemplateDefaults
                 'auto_enable' => true,
             ],
             EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_SUCCESS => [
+                'subject_user' => 'Your YogaFX installment payment was successful',
+                'body_user' => implode('', [
+                    '<p>Hi {user_name},</p>',
+                    '<p>We have received your installment payment for <strong>{package_title}</strong>.</p>',
+                    '<p>Payment amount: <strong>{currency_code} {payment_amount}</strong></p>',
+                    '<p>Installments paid: {installments_paid_count} of {installment_count}</p>',
+                    '<p>Remaining balance: <strong>{currency_code} {balance_due}</strong></p>',
+                    '<p>Next due date: {next_due_at}</p>',
+                ]),
                 'subject_admin' => 'Installment payment success for {user_email}',
                 'body_admin' => implode('', [
                     '<p>A successful installment payment has been recorded.</p>',
@@ -205,6 +214,15 @@ class EmailNotificationTemplateDefaults
                 'auto_enable' => true,
             ],
             EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_FAILED => [
+                'subject_user' => 'Your YogaFX installment payment needs attention',
+                'body_user' => implode('', [
+                    '<p>Hi {user_name},</p>',
+                    '<p>Your latest installment payment for <strong>{package_title}</strong> was not completed.</p>',
+                    '<p>Expected payment amount: <strong>{currency_code} {payment_amount}</strong></p>',
+                    '<p>Remaining balance: <strong>{currency_code} {balance_due}</strong></p>',
+                    '<p>Next due date: {next_due_at}</p>',
+                    '<p>Grace deadline: {grace_deadline_at}</p>',
+                ]),
                 'subject_admin' => 'Installment payment failed for {user_email}',
                 'body_admin' => implode('', [
                     '<p>An installment payment failed and the subscription is now in grace period.</p>',
@@ -221,6 +239,14 @@ class EmailNotificationTemplateDefaults
                 'auto_enable' => true,
             ],
             EmailNotificationTypeRegistry::INSTALLMENT_OVERDUE_INACTIVE => [
+                'subject_user' => 'Your YogaFX access is temporarily inactive',
+                'body_user' => implode('', [
+                    '<p>Hi {user_name},</p>',
+                    '<p>Your installment grace period for <strong>{package_title}</strong> has ended, so your YogaFX access is temporarily inactive.</p>',
+                    '<p>Remaining balance: <strong>{currency_code} {balance_due}</strong></p>',
+                    '<p>Next due date: {next_due_at}</p>',
+                    '<p>Grace deadline: {grace_deadline_at}</p>',
+                ]),
                 'subject_admin' => 'Installment overdue: account inactive for {user_email}',
                 'body_admin' => implode('', [
                     '<p>The installment grace deadline has passed and the student account is now inactive.</p>',
