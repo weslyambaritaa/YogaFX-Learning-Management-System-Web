@@ -645,7 +645,111 @@ export default function StudentHome({
                 />
             ) : null}
 
-            <section className="relative overflow-hidden">
+            <section className="sm:hidden">
+                <div className="mx-auto max-w-[1400px] px-4 pt-6">
+                    <div
+                        className="overflow-hidden rounded-[14px] border border-white/12 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
+                        <div className="relative aspect-[4/5]">
+                            {continueLearning?.thumbnail_url ? (
+                                <img
+                                    src={continueLearning.thumbnail_url}
+                                    alt={
+                                        continueLearning?.title ??
+                                        "Continue learning"
+                                    }
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <div className="h-full w-full bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),linear-gradient(160deg,#1e1210,#0a0908)]" />
+                            )}
+                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.24)_0%,rgba(0,0,0,0.14)_24%,rgba(0,0,0,0.72)_68%,rgba(0,0,0,0.96)_100%)]" />
+
+                            <div className="absolute inset-x-0 bottom-0 p-4">
+                                <div className="space-y-3 text-white">
+                                    <div
+                                        className="text-white"
+                                        style={{
+                                            fontFamily: FONT_FAMILY,
+                                            fontSize: "14px",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        {homeExperience?.state ===
+                                        "new_student"
+                                            ? `Hello, ${studentName}`
+                                            : `Welcome back, ${studentName}`}
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/70">
+                                            {continueLearning?.module_label ??
+                                                "Continue Learning"}
+                                        </div>
+                                        <h1
+                                            className="text-[22px] leading-[1.04] tracking-[-0.03em] text-white"
+                                            style={{
+                                                fontFamily: FONT_FAMILY,
+                                                fontWeight: 700,
+                                            }}
+                                        >
+                                            {continueLearning?.title ??
+                                                homeExperience?.hero_title ??
+                                                "Start your learning journey"}
+                                        </h1>
+                                    </div>
+
+                                    <p
+                                        className="line-clamp-3 leading-5 text-white/88"
+                                        style={{
+                                            fontFamily: FONT_FAMILY,
+                                            fontSize: "14px",
+                                            fontWeight: 400,
+                                        }}
+                                    >
+                                        {continueLearning?.description ??
+                                            homeExperience?.hero_description}
+                                    </p>
+
+                                    <Button
+                                        asChild
+                                        className="h-auto w-full rounded-[5px] bg-white px-5 py-3 text-black transition-colors hover:bg-white/85"
+                                        style={{
+                                            fontFamily: FONT_FAMILY,
+                                            fontSize: "14px",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        <Link
+                                            href={
+                                                continueLearning?.cta_url ??
+                                                route("modules.index")
+                                            }
+                                            className="flex items-center justify-center"
+                                        >
+                                            <Play className="mr-2 size-5 fill-black text-black" />
+                                            {continueLearning?.cta_label ??
+                                                homeExperience?.primary_cta_label ??
+                                                "Continue Learning"}
+                                        </Link>
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {accessTimeSummary ? (
+                        <div className="mt-4 flex justify-start">
+                            <AccessTimeCard
+                                accessTimeSummary={accessTimeSummary}
+                            />
+                        </div>
+                    ) : null}
+                </div>
+            </section>
+
+            <section className="relative hidden overflow-hidden sm:block">
                 <div className="absolute inset-0">
                     {continueLearning?.thumbnail_url ? (
                         <img
