@@ -1,12 +1,15 @@
 import StudentProfileForm from "@/Components/StudentProfileForm";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { useForm } from "@inertiajs/react";
+import { useEffect, useRef } from "react";
 
 // Single source of truth for the font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
 
 export default function Enrollment({ onboarding, student }) {
+    const errorBannerRef = useRef(null);
+
     const { data, setData, post, errors, processing } = useForm({
         first_name: student.first_name ?? "",
         last_name: student.last_name ?? "",
@@ -30,10 +33,18 @@ export default function Enrollment({ onboarding, student }) {
         recaptcha_confirmed: false,
     });
 
+    // Effect untuk melakukan auto-scroll ketika ada error
+    useEffect(() => {
+        if (Object.keys(errors).length > 0 && errorBannerRef.current) {
+            errorBannerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }, [errors]);
+
     const submit = (event) => {
         event.preventDefault();
         post(onboarding.submit_url, {
             forceFormData: true,
+            preserveScroll: true, // Mencegah inertia mereset scroll secara kasar
         });
     };
 
@@ -54,6 +65,16 @@ export default function Enrollment({ onboarding, student }) {
                 </span>
             }
         >
+            {/* Banner Error UI dengan ref jangkar */}
+            {Object.keys(errors).length > 0 && (
+                <div 
+                    ref={errorBannerRef}
+                    className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium text-center scroll-mt-24"
+                >
+                    Terdapat isian yang masih kosong atau belum valid. Silakan periksa tanda merah pada form di bawah.
+                </div>
+            )}
+
             <StudentProfileForm
                 data={data}
                 setData={setData}
