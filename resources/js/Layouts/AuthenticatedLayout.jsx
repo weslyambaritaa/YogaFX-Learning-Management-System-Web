@@ -142,6 +142,22 @@ const adminNavigationItems = [
                 activeWhen: { notificationType: 'certificate_created' },
             },
             {
+                label: 'Payment Success',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'payment_success' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'payment_success' },
+            },
+            {
+                label: 'Enrollment Success',
+                icon: Mail,
+                route: 'admin.email-notifications.show',
+                params: { notificationType: 'enrollment_success' },
+                match: ['admin.email-notifications.show'],
+                activeWhen: { notificationType: 'enrollment_success' },
+            },
+            {
                 label: 'Signup',
                 icon: Mail,
                 route: 'admin.email-notifications.show',

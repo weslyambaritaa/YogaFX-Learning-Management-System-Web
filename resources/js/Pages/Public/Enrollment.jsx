@@ -50,30 +50,8 @@ export default function Enrollment({ onboarding, student }) {
                         lineHeight: 1.2,
                     }}
                 >
-                    Complete your YogaFX enrollment before creating your
-                    final password
+                    Complete your YogaFX enrollment
                 </span>
-            }
-            description={
-                <div
-                    className="rounded-[5px] px-[10px] py-[8px]"
-                    style={{
-                        fontFamily: FONT_FAMILY,
-                        backgroundColor: "#00B14F",
-                    }}
-                >
-                    <span
-                        className="text-white"
-                        style={{
-                            fontFamily: FONT_FAMILY,
-                            fontSize: "14px",
-                            fontWeight: 400,
-                        }}
-                    >
-                        Your payment is complete. Finish your profile before
-                        creating the final password.
-                    </span>
-                </div>
             }
         >
             <StudentProfileForm

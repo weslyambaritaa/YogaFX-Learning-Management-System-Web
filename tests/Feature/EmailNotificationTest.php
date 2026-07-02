@@ -158,6 +158,113 @@ class EmailNotificationTest extends TestCase
             ->where('template.body_user', fn (string $body) => str_contains($body, 'Your enrollment and password setup have been completed successfully') && ! str_contains($body, 'continuation_url')));
     }
 
+    public function test_payment_and_enrollment_notifications_expose_defaults_and_merge_tags_in_admin_email_ui(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->get(
+            route('admin.email-notifications.show', ['notificationType' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS]),
+        )->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/EmailNotifications/Show')
+            ->where('notificationType', EmailNotificationTypeRegistry::PAYMENT_SUCCESS)
+            ->where('availableMergeTags', [
+                '{{ user_name }}',
+                '{{ user_email }}',
+                '{{ access_tier }}',
+                '{{ access_tier_label }}',
+                '{{ invoice_number }}',
+                '{{ payment_reference }}',
+                '{{ amount }}',
+                '{{ currency_code }}',
+                '{{ enrollment_url }}',
+            ])
+            ->where('template.subject_user', 'Payment successful: welcome to YogaFX, {user_name}')
+            ->where('template.subject_admin', 'YogaFX payment successful: {user_email}')
+            ->where('template.body_user', fn (string $body) => str_contains($body, '{enrollment_url}'))
+            ->where('template.body_admin', fn (string $body) => str_contains($body, '{payment_reference}')));
+
+        $this->actingAs($admin)->get(
+            route('admin.email-notifications.show', ['notificationType' => EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS]),
+        )->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/EmailNotifications/Show')
+            ->where('notificationType', EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS)
+            ->where('availableMergeTags', [
+                '{{ user_name }}',
+                '{{ user_email }}',
+                '{{ access_tier }}',
+                '{{ access_tier_label }}',
+                '{{ signup_url }}',
+            ])
+            ->where('template.subject_user', 'Enrollment completed: your YogaFX signup is ready')
+            ->where('template.subject_admin', 'YogaFX enrollment completed: {user_email}')
+            ->where('template.body_user', fn (string $body) => str_contains($body, '{signup_url}'))
+            ->where('template.body_admin', fn (string $body) => str_contains($body, '{signup_url}')));
+    }
+
+    public function test_admin_can_send_test_email_for_payment_and_enrollment_notifications_and_logs_are_recorded(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->admin()->create();
+
+        foreach ([
+            EmailNotificationTypeRegistry::PAYMENT_SUCCESS => [
+                'subject_user' => 'Payment success {{ invoice_number }}',
+                'body_user' => 'Continue here {{ enrollment_url }}',
+                'subject_admin' => 'Payment success {{ user_email }}',
+                'body_admin' => '{{ payment_reference }} {{ amount }}',
+            ],
+            EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS => [
+                'subject_user' => 'Enrollment complete {{ access_tier_label }}',
+                'body_user' => 'Create password {{ signup_url }}',
+                'subject_admin' => 'Enrollment complete {{ user_email }}',
+                'body_admin' => 'Signup link {{ signup_url }}',
+            ],
+        ] as $notificationType => $templateData) {
+            EmailTemplate::factory()->create([
+                'notification_type' => $notificationType,
+                'notification_name' => EmailNotificationTypeRegistry::labelFor($notificationType),
+                'is_enabled' => true,
+                'admin_recipients' => 'ops@yogafx.test',
+                ...$templateData,
+            ]);
+
+            $this->actingAs($admin)->post(
+                route('admin.email-notifications.send-test', ['notificationType' => $notificationType]),
+                [
+                    'notification_type' => $notificationType,
+                    'send_to' => 'qa@yogafx.test',
+                ],
+            )->assertRedirect();
+        }
+
+        Mail::assertSent(TemplatedNotificationMail::class, 4);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'recipient_type' => 'test_user',
+            'recipient_email' => 'qa@yogafx.test',
+            'status' => 'sent',
+        ]);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'recipient_type' => 'test_admin',
+            'recipient_email' => 'qa@yogafx.test',
+            'status' => 'sent',
+        ]);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            'recipient_type' => 'test_user',
+            'recipient_email' => 'qa@yogafx.test',
+            'status' => 'sent',
+        ]);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            'recipient_type' => 'test_admin',
+            'recipient_email' => 'qa@yogafx.test',
+            'status' => 'sent',
+        ]);
+    }
+
     public function test_signup_send_test_supports_legacy_continuation_url_templates_without_missing_variable_error(): void
     {
         Mail::fake();
@@ -569,6 +676,119 @@ class EmailNotificationTest extends TestCase
         $this->assertSame(2, \App\Models\EmailLog::query()
             ->where('notification_type', EmailNotificationTypeRegistry::PAYMENT_SUCCESS)
             ->count());
+    }
+
+    public function test_disabled_payment_success_template_prevents_email_delivery_and_logs(): void
+    {
+        Mail::fake();
+
+        [$pendingRegistration, , $paymentActivity] = $this->createInitialPaymentFixture();
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'notification_name' => 'Payment Success',
+            'is_enabled' => false,
+            'admin_recipients' => 'payments-admin@yogafx.test',
+            'subject_user' => 'Payment success {{ invoice_number }}',
+            'body_user' => 'Continue {{ enrollment_url }}',
+            'subject_admin' => 'Payment success {{ user_email }}',
+            'body_admin' => '{{ payment_reference }} {{ amount }}',
+        ]);
+
+        app(PaymentFinalizerService::class)->finalizeSuccessfulPayment($paymentActivity, 'PAYPAL-ORDER-001');
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseMissing('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'reference_type' => 'payment_activity',
+            'reference_id' => $paymentActivity->id,
+        ]);
+        $this->assertDatabaseHas('pending_registrations', [
+            'id' => $pendingRegistration->id,
+            'status' => PendingRegistration::STATUS_PAYMENT_SUCCESS,
+        ]);
+    }
+
+    public function test_disabled_enrollment_success_template_prevents_email_delivery_and_logs(): void
+    {
+        Mail::fake();
+
+        $tier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => AccessTier::SLUG_ONLINE,
+        ]);
+        $user = User::factory()->student()->create([
+            'name' => 'Disabled Enrollment Student',
+            'email' => 'disabled-enrollment-student@yogafx.test',
+            'is_active' => false,
+            'access_tier_id' => $tier->id,
+        ]);
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            'notification_name' => 'Enrollment Success',
+            'is_enabled' => false,
+            'admin_recipients' => 'enrollment-admin@yogafx.test',
+            'subject_user' => 'Enrollment complete {{ access_tier_label }}',
+            'body_user' => 'Finish here {{ signup_url }}',
+            'subject_admin' => 'Enrollment completed {{ user_email }}',
+            'body_admin' => 'Next step {{ signup_url }}',
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'first_name' => 'Disabled',
+            'last_name' => 'Enrollment',
+            'email' => $user->email,
+            'phone' => '+6281234567999',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499,
+            'currency_code' => 'USD',
+            'status' => PendingRegistration::STATUS_PAYMENT_SUCCESS,
+            'payment_succeeded_at' => now(),
+        ]);
+
+        $onboardingState = OnboardingState::query()->create([
+            'pending_registration_id' => $pendingRegistration->id,
+            'user_id' => $user->id,
+            'status' => OnboardingState::STATUS_AWAITING_ENROLLMENT,
+        ]);
+
+        $this->post(
+            URL::temporarySignedRoute('onboarding.enrollment.store', now()->addMinutes(5), [
+                'onboardingState' => $onboardingState->id,
+            ]),
+            [
+                'first_name' => 'Disabled',
+                'last_name' => 'Enrollment',
+                'email' => $user->email,
+                'whatsapp_country_code' => '+62',
+                'whatsapp_number' => '81234567999',
+                'instagram' => '@disabledenrollment',
+                'country' => 'Indonesia',
+                'birth_date' => '1995-05-10',
+                'gender' => 'female',
+                'practicing_yoga_for' => '0_to_3_years',
+                'yoga_sequence_experience' => ['vinyasa'],
+                'hours_per_week' => '4_7',
+                'current_fitness_level' => 'average',
+                'flexibility_rating' => 'good',
+                'motivation' => 'Complete onboarding.',
+                'why_yogafx' => 'Guided learning path.',
+                'how_did_you_find_us' => ['instagram'],
+            ],
+        )->assertSessionHasNoErrors();
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseMissing('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            'reference_type' => 'onboarding_state',
+            'reference_id' => $onboardingState->id,
+        ]);
+        $this->assertDatabaseHas('onboarding_states', [
+            'id' => $onboardingState->id,
+            'status' => OnboardingState::STATUS_AWAITING_SIGNUP,
+        ]);
     }
 
     public function test_payment_success_page_is_rendered_with_enrollment_cta(): void

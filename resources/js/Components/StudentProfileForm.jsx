@@ -16,7 +16,7 @@ import {
 } from "@/Components/ui/dialog";
 import { usePage } from "@inertiajs/react";
 import { CalendarDays, Check, UploadCloud } from "lucide-react";
-import { useMemo, useState, useRef, useCallback } from "react";
+import { useMemo, useState, useRef, useCallback, useEffect } from "react";
 import Cropper from "react-easy-crop";
 
 // --- Utility Function untuk Memotong Gambar (Canvas) ---
@@ -215,7 +215,8 @@ const FONT_FAMILY = "'Montserrat', sans-serif";
 const PUBLIC_FORM_LABEL_CLASS = "text-sm font-medium text-white/90";
 const PUBLIC_FORM_FIELD_CLASS =
     "min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20";
-const PUBLIC_FORM_SELECT_PANEL_CLASS = "border-white/10 bg-[#161616] text-white";
+const PUBLIC_FORM_SELECT_PANEL_CLASS =
+    "border-white/10 bg-[#161616] text-white";
 
 function wordsCount(value) {
     return String(value || "")
@@ -232,6 +233,38 @@ function firstError(errors, field) {
         key.startsWith(`${field}.`),
     );
     return nestedKey ? errors[nestedKey] : null;
+}
+
+function firstAvailableErrorKey(errors) {
+    const priority = [
+        "first_name",
+        "last_name",
+        "email",
+        "whatsapp_number",
+        "whatsapp_country_code",
+        "whatsapp",
+        "country",
+        "birth_date",
+        "gender",
+        "practicing_yoga_for",
+        "yoga_sequence_experience",
+        "hours_per_week",
+        "current_fitness_level",
+        "flexibility_rating",
+        "motivation",
+        "why_yogafx",
+        "how_did_you_find_us",
+        "terms_accepted",
+        "recaptcha_confirmed",
+    ];
+
+    for (const key of priority) {
+        if (firstError(errors, key)) {
+            return key;
+        }
+    }
+
+    return Object.keys(errors || {})[0] ?? null;
 }
 
 function resolveOptionFlag(option) {
@@ -466,7 +499,10 @@ function TextAreaField({
                 style={{ fontFamily: FONT_FAMILY }}
             />
             {helper ? (
-                <p className={theme.helperClassName} style={{ fontFamily: FONT_FAMILY }}>
+                <p
+                    className={theme.helperClassName}
+                    style={{ fontFamily: FONT_FAMILY }}
+                >
                     {helper}
                 </p>
             ) : null}
@@ -512,6 +548,7 @@ export default function StudentProfileForm({
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
     const birthDateInputRef = useRef(null);
+    const errorSummaryRef = useRef(null);
 
     const todayLabel = useMemo(
         () =>
@@ -523,6 +560,41 @@ export default function StudentProfileForm({
         [],
     );
     const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), []);
+    const backendErrorKey = useMemo(
+        () => firstAvailableErrorKey(errors),
+        [errors],
+    );
+    const localErrorKey = useMemo(
+        () => firstAvailableErrorKey(localErrors),
+        [localErrors],
+    );
+    const errorSummaryMessage = isEnrollment
+        ? "Please complete the highlighted fields before continuing."
+        : null;
+
+    useEffect(() => {
+        const firstErrorKey = localErrorKey ?? backendErrorKey;
+
+        if (!firstErrorKey) {
+            return;
+        }
+
+        const target = document.getElementById(firstErrorKey);
+
+        if (target instanceof HTMLElement) {
+            target.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+            target.focus({ preventScroll: true });
+            return;
+        }
+
+        errorSummaryRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+        });
+    }, [backendErrorKey, localErrorKey]);
 
     // Desain Form Tanpa Frame
     const sectionClassName = "space-y-8 pt-8";
@@ -550,14 +622,16 @@ export default function StudentProfileForm({
                   "!border-slate-400 bg-white text-slate-900 text-sm font-normal placeholder:text-slate-400 focus:!border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
               selectClassName:
                   "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
-              selectOptionClassName: "bg-white text-slate-900 text-sm font-normal",
+              selectOptionClassName:
+                  "bg-white text-slate-900 text-sm font-normal",
               selectActiveColor: "#DB202C",
               selectPlaceholderColor: "#0f172a",
               textareaClassName:
                   "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
               helperClassName: "mt-2 text-sm font-medium text-slate-500",
               sectionDividerClassName: "mb-6 border-b border-slate-200 pb-4",
-              footerDividerClassName: "flex items-center border-t border-slate-200 pt-8",
+              footerDividerClassName:
+                  "flex items-center border-t border-slate-200 pt-8",
               dialogContentClassName:
                   "max-w-xl border-slate-200 bg-white text-slate-900",
               dialogTitleClassName: "text-xl font-bold text-slate-900",
@@ -602,16 +676,15 @@ export default function StudentProfileForm({
               descriptionClassName:
                   "text-[12px] font-normal leading-6 text-white/70",
               inputClassName: PUBLIC_FORM_FIELD_CLASS,
-              selectClassName:
-                  `block w-full ${PUBLIC_FORM_FIELD_CLASS} [&::-webkit-calendar-picker-indicator]:invert`,
-              selectOptionClassName:
-                  "text-sm font-normal text-black",
+              selectClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS} [&::-webkit-calendar-picker-indicator]:invert`,
+              selectOptionClassName: "text-sm font-normal text-black",
               selectActiveColor: "#DB202C",
               selectPlaceholderColor: "#FFFFFF",
               textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS}`,
               helperClassName: "mt-2 text-sm font-semibold text-white/60",
               sectionDividerClassName: "mb-6 border-b border-white pb-4",
-              footerDividerClassName: "flex items-center border-t border-white pt-8",
+              footerDividerClassName:
+                  "flex items-center border-t border-white pt-8",
               dialogContentClassName:
                   "max-w-xl border-white bg-[#141110] text-white",
               dialogTitleClassName: "text-xl font-bold text-white",
@@ -628,8 +701,7 @@ export default function StudentProfileForm({
               photoHelperClassName:
                   "text-[12px] font-normal leading-relaxed text-white/70",
               dateInputStyle: { colorScheme: "dark" },
-              dateInputClassName:
-                  `block w-full appearance-none ${PUBLIC_FORM_FIELD_CLASS} pr-12 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0`,
+              dateInputClassName: `block w-full appearance-none ${PUBLIC_FORM_FIELD_CLASS} pr-12 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0`,
               dateIconClassName:
                   "absolute right-3 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white",
               primaryButtonClassName:
@@ -752,14 +824,22 @@ export default function StudentProfileForm({
                         <Button
                             variant="outline"
                             onClick={() => setIsCropModalOpen(false)}
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                             className={theme.dialogCancelButtonClassName}
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleSaveCrop}
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                             className={theme.dialogSaveButtonClassName}
                         >
                             Crop & Save
@@ -768,13 +848,33 @@ export default function StudentProfileForm({
                 </DialogContent>
             </Dialog>
 
-            <form onSubmit={handleSubmit} className="space-y-12" style={{ fontFamily: FONT_FAMILY }}>
+            <form
+                onSubmit={handleSubmit}
+                className="space-y-12"
+                style={{ fontFamily: FONT_FAMILY }}
+            >
+                {isEnrollment && (backendErrorKey || localErrorKey) ? (
+                    <div
+                        ref={errorSummaryRef}
+                        className="rounded-[5px] border border-[#DB202C]/60 bg-[#DB202C]/10 px-[10px] py-[8px] text-sm text-white"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
+                        {errorSummaryMessage}
+                    </div>
+                ) : null}
+
                 <section className={sectionClassName}>
                     <div className="mb-6">
-                        <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
+                        <h3
+                            className={titleClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Enrollment Form
                         </h3>
-                        <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
+                        <p
+                            className={descriptionClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Basic account details and your preferred certificate
                             picture.
                         </p>
@@ -859,8 +959,8 @@ export default function StudentProfileForm({
                             <div
                                 className={`mt-2 grid items-start gap-4 ${
                                     isEnrollment
-                                        ? "grid-cols-[104px_minmax(0,1fr)] sm:grid-cols-[118px_minmax(0,1fr)] md:grid-cols-[132px_minmax(0,1fr)]"
-                                        : "grid-cols-[128px_minmax(0,1fr)] sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]"
+                                        ? "grid-cols-[104px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)] md:grid-cols-[120px_minmax(0,1fr)]"
+                                        : "grid-cols-[112px_minmax(0,1fr)] sm:grid-cols-[136px_minmax(0,1fr)] md:grid-cols-[152px_minmax(0,1fr)]"
                                 }`}
                             >
                                 <FlagOptionSelect
@@ -951,7 +1051,9 @@ export default function StudentProfileForm({
 
                             <div className="mt-4 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
                                 {/* Area Preview Berbentuk Lonjong (Oval) */}
-                                <div className={theme.photoPreviewFrameClassName}>
+                                <div
+                                    className={theme.photoPreviewFrameClassName}
+                                >
                                     {photoPreview ? (
                                         <img
                                             src={photoPreview}
@@ -959,7 +1061,11 @@ export default function StudentProfileForm({
                                             className="h-full w-full object-cover"
                                         />
                                     ) : (
-                                        <div className={theme.photoFallbackClassName}>
+                                        <div
+                                            className={
+                                                theme.photoFallbackClassName
+                                            }
+                                        >
                                             <UploadCloud className="size-8 mb-2 text-[#DB202C]" />
                                         </div>
                                     )}
@@ -968,7 +1074,9 @@ export default function StudentProfileForm({
                                 <div className="flex-1 space-y-4">
                                     <div>
                                         <p
-                                            className={theme.photoHelperClassName}
+                                            className={
+                                                theme.photoHelperClassName
+                                            }
                                             style={{
                                                 fontFamily: FONT_FAMILY,
                                                 fontSize: "12px",
@@ -1059,7 +1167,10 @@ export default function StudentProfileForm({
                                                 `${option.label} (`,
                                             ),
                                         );
-                                    if (matchedDialCode && !data.whatsapp_number) {
+                                    if (
+                                        matchedDialCode &&
+                                        !data.whatsapp_number
+                                    ) {
                                         setData(
                                             "whatsapp_country_code",
                                             matchedDialCode.value,
@@ -1081,9 +1192,7 @@ export default function StudentProfileForm({
                                 }
                                 optionClassName="px-4 py-3 text-sm"
                                 optionActiveClassName={
-                                    isAdminMode
-                                        ? "bg-rose-50"
-                                        : "bg-white/10"
+                                    isAdminMode ? "bg-rose-50" : "bg-white/10"
                                 }
                                 optionSelectedClassName="text-[#DB202C]"
                                 optionTextClassName="text-sm font-normal"
@@ -1173,10 +1282,16 @@ export default function StudentProfileForm({
 
                 <section className={sectionClassName}>
                     <div className={theme.sectionDividerClassName}>
-                        <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
+                        <h3
+                            className={titleClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Learning Background
                         </h3>
-                        <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
+                        <p
+                            className={descriptionClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Your practice background.
                         </p>
                     </div>
@@ -1251,10 +1366,16 @@ export default function StudentProfileForm({
 
                 <section className={sectionClassName}>
                     <div className={theme.sectionDividerClassName}>
-                        <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
+                        <h3
+                            className={titleClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Motivation
                         </h3>
-                        <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
+                        <p
+                            className={descriptionClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             Keep each answer within 50 words.
                         </p>
                     </div>
@@ -1298,10 +1419,16 @@ export default function StudentProfileForm({
                 {isEnrollment ? (
                     <section className={sectionClassName}>
                         <div className={theme.sectionDividerClassName}>
-                            <h3 className={titleClassName} style={{ fontFamily: FONT_FAMILY }}>
+                            <h3
+                                className={titleClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
+                            >
                                 Terms & Confirmation
                             </h3>
-                            <p className={descriptionClassName} style={{ fontFamily: FONT_FAMILY }}>
+                            <p
+                                className={descriptionClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
+                            >
                                 Confirm your final enrollment details.
                             </p>
                         </div>
@@ -1316,6 +1443,7 @@ export default function StudentProfileForm({
                                 ].join(" ")}
                             >
                                 <input
+                                    id="terms_accepted"
                                     type="checkbox"
                                     checked={Boolean(data.terms_accepted)}
                                     onChange={(event) =>
@@ -1380,6 +1508,7 @@ export default function StudentProfileForm({
                                 ].join(" ")}
                             >
                                 <input
+                                    id="recaptcha_confirmed"
                                     type="checkbox"
                                     checked={Boolean(data.recaptcha_confirmed)}
                                     onChange={(event) =>
@@ -1409,7 +1538,11 @@ export default function StudentProfileForm({
                     <Button
                         type="submit"
                         disabled={processing}
-                        style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "14px",
+                            fontWeight: 500,
+                        }}
                         className={theme.primaryButtonClassName}
                     >
                         {submitLabel}
