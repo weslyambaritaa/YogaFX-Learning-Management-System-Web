@@ -299,6 +299,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         pending: null,
     });
     const autoNextStartedRef = useRef(false);
+    const autoNextNavigatingRef = useRef(false);
     const workbookTriggerAttemptedRef = useRef(false);
     const lessonVideoUrl = lesson.video?.hls_url ?? null;
     const playbackErrorMessage =
@@ -390,6 +391,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 persistedWorkbookDownloaded,
         );
         setIsPlayerPlaying(false);
+        autoNextNavigatingRef.current = false;
         autoNextStartedRef.current = false;
         workbookTriggerAttemptedRef.current = false;
         progressRequestRef.current = {
@@ -413,30 +415,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
         window.localStorage.removeItem(storageKey);
     }, [lesson.id, workbookDownloaded]);
-
-    useEffect(() => {
-        if (
-            autoNextCountdown === null ||
-            !nextTarget?.url ||
-            !isPlayerPlaying
-        ) {
-            return undefined;
-        }
-
-        if (autoNextCountdown <= 0) {
-            router.visit(nextTarget.url);
-
-            return undefined;
-        }
-
-        const timeout = window.setTimeout(() => {
-            setAutoNextCountdown((current) =>
-                current === null ? null : Math.max(0, current - 1),
-            );
-        }, 1000);
-
-        return () => window.clearTimeout(timeout);
-    }, [autoNextCountdown, isPlayerPlaying, nextTarget]);
 
     useEffect(() => {
         if (
@@ -790,13 +768,17 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
     const handlePlayerTimeUpdate = ({ remainingSeconds, isEnded }) => {
         if (!canAutoAdvance) {
+            setAutoNextCountdown(null);
+            autoNextStartedRef.current = false;
             return;
         }
 
         if (isEnded) {
-            if (!autoNextStartedRef.current) {
-                autoNextStartedRef.current = true;
-                setAutoNextCountdown(0);
+            setAutoNextCountdown(0);
+
+            if (!autoNextNavigatingRef.current && nextTarget?.url) {
+                autoNextNavigatingRef.current = true;
+                router.visit(nextTarget.url);
             }
 
             return;
