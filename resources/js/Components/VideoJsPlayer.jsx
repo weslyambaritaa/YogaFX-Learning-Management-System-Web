@@ -95,6 +95,7 @@ export default function VideoJsPlayer({
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [supportsHoverControls, setSupportsHoverControls] = useState(false);
 
     const clearControlsTimer = () => {
         if (controlsTimerRef.current) {
@@ -147,6 +148,10 @@ export default function VideoJsPlayer({
     };
 
     const toggleControlsVisibility = () => {
+        if (supportsHoverControls) {
+            return;
+        }
+
         if (controlsVisible) {
             clearControlsTimer();
             setControlsVisible(false);
@@ -241,12 +246,69 @@ export default function VideoJsPlayer({
         syncPlayerState();
     };
 
+    const handlePointerEnter = () => {
+        if (!supportsHoverControls) {
+            return;
+        }
+
+        showControls();
+    };
+
+    const handlePointerMove = () => {
+        if (!supportsHoverControls) {
+            return;
+        }
+
+        showControls();
+    };
+
+    const handlePointerLeave = () => {
+        if (!supportsHoverControls) {
+            return;
+        }
+
+        if (!isPlaying) {
+            setControlsVisible(true);
+            return;
+        }
+
+        clearControlsTimer();
+        setControlsVisible(false);
+    };
+
     useEffect(() => {
         latestPlaybackErrorHandlerRef.current = onPlaybackError;
         latestProgressHandlerRef.current = onProgressUpdate;
         latestTimeUpdateHandlerRef.current = onTimeUpdate;
         latestAutoplayRef.current = autoplay;
     }, [autoplay, onPlaybackError, onProgressUpdate, onTimeUpdate]);
+
+    useEffect(() => {
+        if (typeof window === "undefined" || !window.matchMedia) {
+            return undefined;
+        }
+
+        const mediaQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+        const syncHoverSupport = () => {
+            setSupportsHoverControls(mediaQuery.matches);
+        };
+
+        syncHoverSupport();
+
+        if (typeof mediaQuery.addEventListener === "function") {
+            mediaQuery.addEventListener("change", syncHoverSupport);
+
+            return () => {
+                mediaQuery.removeEventListener("change", syncHoverSupport);
+            };
+        }
+
+        mediaQuery.addListener(syncHoverSupport);
+
+        return () => {
+            mediaQuery.removeListener(syncHoverSupport);
+        };
+    }, []);
 
     useEffect(() => {
         latestSourceRef.current = src;
@@ -628,6 +690,9 @@ export default function VideoJsPlayer({
                     "yogafx-video-shell",
                     hideProgressHandle ? "hide-progress-handle" : "",
                 ].join(" ")}
+                onMouseEnter={handlePointerEnter}
+                onMouseMove={handlePointerMove}
+                onMouseLeave={handlePointerLeave}
             >
                 {/* Indikator Loading */}
                 {isReady ? null : (
@@ -662,12 +727,14 @@ export default function VideoJsPlayer({
                 </div>
 
                 {/* TOMBOL PENDETEKSI KLIK BACKGROUND (Diubah agar bekerja di area penuh) */}
-                <button
-                    type="button"
-                    aria-label="Toggle video controls"
-                    onClick={toggleControlsVisibility}
-                    className="absolute inset-0 z-[25] h-full w-full bg-transparent focus:outline-none"
-                />
+                {!supportsHoverControls ? (
+                    <button
+                        type="button"
+                        aria-label="Toggle video controls"
+                        onClick={toggleControlsVisibility}
+                        className="absolute inset-0 z-[25] h-full w-full bg-transparent focus:outline-none"
+                    />
+                ) : null}
 
                 {/* KONTROL VIDEO (Layer Z-30) */}
                 <div

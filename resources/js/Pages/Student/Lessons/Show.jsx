@@ -863,7 +863,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 <div className="aspect-video w-full bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                             )}
                             {autoNextCountdown !== null && nextTarget?.title ? (
-                                <div className="absolute inset-x-2 bottom-2 rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:max-w-[520px] sm:px-5 sm:py-4 lg:left-auto lg:right-5">
+                                <div className="absolute inset-x-2 bottom-2 z-20 rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4 lg:inset-x-auto lg:bottom-5 lg:right-5 lg:w-[min(360px,calc(100%-2.5rem))]">
                                     <div className="flex min-w-0 items-end justify-between gap-2 sm:items-center sm:gap-4">
                                         <div className="min-w-0 space-y-1 sm:space-y-2">
                                             <div className="font-['Montserrat'] text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
