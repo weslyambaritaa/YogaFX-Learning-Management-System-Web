@@ -39,13 +39,13 @@ function BigVideoActionButton({
             onClick={onClick}
             aria-label={label}
             className={[
-                'relative flex items-center justify-center rounded-full border border-white/16 bg-black/45 text-white transition hover:bg-black/60',
+                'relative flex items-center justify-center rounded-full text-white transition hover:text-white/80',
                 size === 'primary' ? 'h-16 w-16' : 'h-12 w-12',
             ].join(' ')}
         >
             <Icon className={size === 'primary' ? 'size-8' : 'size-5'} />
             {size !== 'primary' ? (
-                <span className="absolute -bottom-1.5 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-semibold leading-none">
+                <span className="absolute -bottom-1.5 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white/85">
                     10
                 </span>
             ) : null}
@@ -142,6 +142,16 @@ export default function VideoJsPlayer({
     const showControls = () => {
         setControlsVisible(true);
         scheduleControlsHide();
+    };
+
+    const toggleControlsVisibility = () => {
+        if (controlsVisible) {
+            clearControlsTimer();
+            setControlsVisible(false);
+            return;
+        }
+
+        showControls();
     };
 
     const runControlAction = async (action) => {
@@ -443,15 +453,6 @@ export default function VideoJsPlayer({
                     'yogafx-video-shell',
                     hideProgressHandle ? 'hide-progress-handle' : '',
                 ].join(' ')}
-                onClick={() => {
-                    if (controlsVisible) {
-                        clearControlsTimer();
-                        setControlsVisible(false);
-                        return;
-                    }
-
-                    showControls();
-                }}
             >
                 {isReady ? null : (
                     <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/40">
@@ -483,9 +484,18 @@ export default function VideoJsPlayer({
                     ) : null}
                 </div>
 
+                <button
+                    type="button"
+                    aria-label={
+                        controlsVisible ? 'Hide video controls' : 'Show video controls'
+                    }
+                    onClick={toggleControlsVisibility}
+                    className="absolute inset-0 z-[25] cursor-default bg-transparent"
+                />
+
                 <div
                     className={[
-                        'absolute inset-0 z-30 transition-opacity duration-200',
+                        'absolute inset-0 z-30 pointer-events-none transition-opacity duration-200',
                         controlsVisible ? 'opacity-100' : 'pointer-events-none opacity-0',
                     ].join(' ')}
                 >
@@ -493,7 +503,7 @@ export default function VideoJsPlayer({
                         <div />
 
                         <div
-                            className="flex items-center justify-center gap-4 sm:gap-[18px]"
+                            className="pointer-events-auto flex items-center justify-center gap-4 sm:gap-[18px]"
                             onClick={(event) => event.stopPropagation()}
                         >
                             <BigVideoActionButton
@@ -539,10 +549,10 @@ export default function VideoJsPlayer({
                         </div>
 
                         <div
-                            className="rounded-[18px] bg-black/42 px-3 pb-2 pt-3 backdrop-blur-[2px]"
+                            className="pointer-events-auto px-1 pb-1 pt-4"
                             onClick={(event) => event.stopPropagation()}
                         >
-                            <div className="mb-2 flex items-center">
+                            <div className="mb-1.5 flex items-center">
                                 <SmallControlButton
                                     icon={isPlaying ? Pause : Play}
                                     label={isPlaying ? 'Pause video' : 'Play video'}
