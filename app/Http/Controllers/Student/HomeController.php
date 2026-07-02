@@ -176,7 +176,7 @@ class HomeController extends Controller
                     ? "You last opened {$lesson->title} in {$module->title}. You can jump back in from where your learning momentum paused."
                     : "Return to {$lesson->title} in {$module->title} and keep your YogaFX learning flow moving.",
                 'progress_percentage' => $progressPercentage,
-                'cta_label' => $latestProgress->is_done ? 'Open Lesson Again' : 'Continue Lesson',
+                'cta_label' => $latestProgress->is_done ? 'Continue Lesson' : 'Continue Lesson',
                 'cta_url' => route('lessons.show', $lesson),
                 'module' => [
                     'title' => $module->title,
