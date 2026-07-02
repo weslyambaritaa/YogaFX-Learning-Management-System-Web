@@ -854,16 +854,16 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                                 {autoNextCountdown !== null &&
                                 nextLesson?.title ? (
-                                    <div className="absolute inset-x-4 bottom-4 rounded-[5px] border border-white/15 bg-black/60 px-4 py-3 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
-                                        <div className="flex items-center justify-between gap-4">
-                                            <div className="space-y-2">
-                                                <div className="font-['Montserrat'] text-sm font-semibold uppercase tracking-[0.18em] text-white/55">
+                                    <div className="absolute inset-x-4 bottom-4 rounded-[5px] border border-white/15 bg-black/60 px-3 py-2.5 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
+                                        <div className="flex items-center justify-between gap-3 sm:gap-4">
+                                            <div className="space-y-1 sm:space-y-2">
+                                                <div className="font-['Montserrat'] text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
                                                     Next Lesson
                                                 </div>
-                                                <div className="font-['Montserrat'] text-lg font-semibold text-white">
+                                                <div className="font-['Montserrat'] text-sm font-semibold text-white sm:text-lg">
                                                     {nextLesson.title}
                                                 </div>
-                                                <div className="font-['Montserrat'] text-sm text-white/70">
+                                                <div className="font-['Montserrat'] text-[11px] text-white/70 sm:text-sm">
                                                     Continue in{" "}
                                                     {autoNextCountdown} seconds
                                                 </div>
@@ -871,7 +871,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             {nextLesson.url ? (
                                                 <Button
                                                     asChild
-                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[9px] py-[7px] font-['Montserrat'] text-[11px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
                                                 >
                                                     <Link href={nextLesson.url}>
                                                         Next Lesson
@@ -879,7 +879,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 </Button>
                                             ) : null}
                                         </div>
-                                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
                                             <div
                                                 className="h-full rounded-full bg-[#DB202C]"
                                                 style={{

@@ -103,6 +103,10 @@ export default function VideoJsPlayer({
                     poster: latestPosterRef.current ?? undefined,
                     controlBar: {
                         playToggle: true,
+                        skipButtons: {
+                            backward: 10,
+                            forward: 10,
+                        },
                         muteToggle: true,
                         currentTimeDisplay: true,
                         timeDivider: true,
@@ -267,6 +271,8 @@ export default function VideoJsPlayer({
                     }
 
                     .yogafx-video-shell .video-js .vjs-play-control,
+                    .yogafx-video-shell .video-js .vjs-skip-backward-10,
+                    .yogafx-video-shell .video-js .vjs-skip-forward-10,
                     .yogafx-video-shell .video-js .vjs-mute-control,
                     .yogafx-video-shell .video-js .vjs-current-time,
                     .yogafx-video-shell .video-js .vjs-time-divider,
@@ -280,9 +286,36 @@ export default function VideoJsPlayer({
                     }
 
                     .yogafx-video-shell .video-js .vjs-play-control,
+                    .yogafx-video-shell .video-js .vjs-skip-backward-10,
+                    .yogafx-video-shell .video-js .vjs-skip-forward-10,
                     .yogafx-video-shell .video-js .vjs-mute-control,
                     .yogafx-video-shell .video-js .vjs-fullscreen-control {
                         width: 32px;
+                    }
+
+                    @media (max-width: 767px) {
+                        .yogafx-video-shell .video-js .vjs-control-bar {
+                            height: 82px;
+                            padding: 10px 10px 8px;
+                        }
+
+                        .yogafx-video-shell .video-js .vjs-play-control,
+                        .yogafx-video-shell .video-js .vjs-skip-backward-10,
+                        .yogafx-video-shell .video-js .vjs-skip-forward-10,
+                        .yogafx-video-shell .video-js .vjs-mute-control,
+                        .yogafx-video-shell .video-js .vjs-fullscreen-control {
+                            width: 28px;
+                        }
+
+                        .yogafx-video-shell .video-js .vjs-current-time,
+                        .yogafx-video-shell .video-js .vjs-duration,
+                        .yogafx-video-shell .video-js .vjs-time-divider {
+                            font-size: 11px;
+                        }
+
+                        .yogafx-video-shell .video-js .vjs-progress-control {
+                            margin-top: 8px;
+                        }
                     }
 
                     .yogafx-video-shell .video-js .vjs-current-time,
