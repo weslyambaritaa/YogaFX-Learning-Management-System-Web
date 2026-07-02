@@ -144,7 +144,7 @@ export default function StudentModuleShow({ module }) {
                                         className="flex items-center"
                                     >
                                         <Play className="mr-2.5 size-5 fill-black text-black" />
-                                        Continue Last Lesson
+                                        Continue Lesson
                                     </Link>
                                 </Button>
                             ) : null}
