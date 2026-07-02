@@ -171,6 +171,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/packages/{package}', [PackageController::class, 'destroy'])->name('packages.destroy');
 
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+        Route::post('/modules/reorder', [ModuleController::class, 'reorder'])->name('modules.reorder');
         Route::get('/modules/create', [ModuleController::class, 'create'])->name('modules.create');
         Route::post('/modules', [ModuleController::class, 'store'])->name('modules.store');
         Route::get('/modules/{module}/edit', [ModuleController::class, 'edit'])->name('modules.edit');
@@ -184,6 +185,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/modules/{module}/assignments/{assignment}', [AdminAssignmentController::class, 'destroy'])->name('modules.assignments.destroy');
 
         Route::get('/lessons', [LessonController::class, 'index'])->name('lessons.index');
+        Route::post('/lessons/reorder', [LessonController::class, 'reorder'])->name('lessons.reorder');
         Route::get('/lessons/create', [LessonController::class, 'create'])->name('lessons.create');
         Route::post('/lessons', [LessonController::class, 'store'])->name('lessons.store');
         Route::get('/lessons/{lesson}/edit', [LessonController::class, 'edit'])->name('lessons.edit');

@@ -60,19 +60,6 @@ export default function ModuleForm({
                 </div>
             </div>
 
-            <div className="max-w-xs">
-                <InputLabel htmlFor="sort_order" value="Order" />
-                <TextInput
-                    id="sort_order"
-                    type="number"
-                    min="1"
-                    className="mt-1 block w-full border-gray-300 focus:border-gray-900 focus:ring-gray-900"
-                    value={data.sort_order ?? ''}
-                    onChange={(event) => setData('sort_order', event.target.value)}
-                />
-                <InputError className="mt-2" message={errors.sort_order} />
-            </div>
-
             <label className="flex items-start gap-3 rounded-lg border border-gray-200 px-4 py-3">
                 <input
                     type="checkbox"

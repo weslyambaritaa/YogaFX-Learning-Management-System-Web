@@ -1,7 +1,8 @@
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import useAdminTableReorder from '@/lib/useAdminTableReorder';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { BookOpenCheck, Search, Plus, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpenCheck, Search, Plus, CheckCircle2, XCircle, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import { useState } from 'react';
 
 function FlashMessage({ status, errors }) {
@@ -36,10 +37,45 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
     const [search, setSearch] = useState('');
     const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+    const reorderEnabled = Boolean(selectedModuleId);
 
-    const filtered = lessons.filter(l =>
-        l.title.toLowerCase().includes(search.toLowerCase()) ||
-        (l.module ?? '').toLowerCase().includes(search.toLowerCase())
+    const {
+        items: orderedLessons,
+        draggedItemId,
+        dropTarget,
+        isSaving,
+        getRowProps,
+        getHandleProps,
+    } = useAdminTableReorder({
+        items: lessons,
+        enabled: reorderEnabled,
+        onCommit: async ({ sourceId, targetId, position }) => {
+            const response = await fetch(route('admin.lessons.reorder'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    module_id: selectedModuleId,
+                    source_id: sourceId,
+                    target_id: targetId,
+                    position,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to reorder lessons.');
+            }
+        },
+    });
+
+    const filtered = orderedLessons.filter((lesson) =>
+        lesson.title.toLowerCase().includes(search.toLowerCase()) ||
+        (lesson.module ?? '').toLowerCase().includes(search.toLowerCase()),
     );
 
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -82,10 +118,7 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
 
                     <FlashMessage status={status} errors={errors} />
 
-                    {/* Card */}
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-
-                        {/* Card header */}
                         <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-2.5">
                                 <BookOpenCheck className="size-4 text-slate-400" />
@@ -113,13 +146,13 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                                         type="text"
                                         placeholder="Search by title or module..."
                                         value={search}
-                                        onChange={e => handleSearch(e.target.value)}
+                                        onChange={(e) => handleSearch(e.target.value)}
                                         className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-3 text-sm text-slate-700 placeholder-slate-400 outline-none focus:border-slate-400 focus:bg-white sm:w-60"
                                     />
                                 </div>
                                 <Link
                                     href={route('admin.lessons.create')}
-                                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-700 transition whitespace-nowrap"
+                                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-700 whitespace-nowrap"
                                 >
                                     <Plus className="size-3.5" />
                                     Add Lesson
@@ -127,12 +160,11 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                             </div>
                         </div>
 
-                        {/* Table */}
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-slate-100 bg-slate-50">
-                                        {['Lesson', 'Module', 'Tiers', 'Order', 'Scoreboard', 'Assets', 'Action'].map(col => (
+                                        {['Move', 'Lesson', 'Module', 'Tiers', 'Order', 'Scoreboard', 'Assets', 'Action'].map((col) => (
                                             <th
                                                 key={col}
                                                 className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 whitespace-nowrap"
@@ -145,15 +177,34 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                                 <tbody className="divide-y divide-slate-100 bg-white">
                                     {paginated.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-12 text-center text-sm text-slate-400">
+                                            <td colSpan={8} className="px-4 py-12 text-center text-sm text-slate-400">
                                                 No lessons found.
                                             </td>
                                         </tr>
                                     ) : (
                                         paginated.map((lesson) => (
-                                            <tr key={lesson.id} className="hover:bg-slate-50/70 transition-colors align-top">
-
-                                                {/* Lesson — sama persis aslinya */}
+                                            <tr
+                                                key={lesson.id}
+                                                {...getRowProps(lesson.id)}
+                                                className={[
+                                                    'align-top transition-colors hover:bg-slate-50/70',
+                                                    draggedItemId === lesson.id ? 'bg-slate-100/80 opacity-70' : '',
+                                                    dropTarget?.id === lesson.id && dropTarget.position === 'before' ? 'border-t-2 border-slate-900' : '',
+                                                    dropTarget?.id === lesson.id && dropTarget.position === 'after' ? 'border-b-2 border-slate-900' : '',
+                                                ].join(' ')}
+                                            >
+                                                <td className="px-4 py-4 align-top">
+                                                    <button
+                                                        type="button"
+                                                        {...getHandleProps(lesson.id)}
+                                                        disabled={!reorderEnabled || isSaving}
+                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                                        aria-label={`Reorder ${lesson.title}`}
+                                                        title={reorderEnabled ? 'Drag to reorder inside this module' : 'Choose one module to reorder lessons'}
+                                                    >
+                                                        <GripVertical className="size-4" />
+                                                    </button>
+                                                </td>
                                                 <td className="px-4 py-4">
                                                     <div className="flex items-center gap-4">
                                                         {lesson.thumbnail_url ? (
@@ -172,7 +223,6 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                                                         </div>
                                                     </div>
                                                 </td>
-
                                                 <td className="px-4 py-4 text-gray-700 align-top whitespace-nowrap">{lesson.module}</td>
                                                 <td className="px-4 py-4 text-gray-700 align-top whitespace-nowrap">{lesson.access_tiers.join(', ')}</td>
                                                 <td className="px-4 py-4 text-gray-700 align-top">{lesson.sort_order}</td>
@@ -184,13 +234,11 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                                                         lesson.has_audio ? 'Audio' : null,
                                                     ].filter(Boolean).join(', ') || 'Basic'}
                                                 </td>
-
-                                                {/* Action — vertikal, rata kiri */}
                                                 <td className="px-4 py-4 align-top">
                                                     <div className="flex flex-col items-start gap-2">
                                                         <Link
                                                             href={route('admin.lessons.edit', lesson.id)}
-                                                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                                                            className="text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-800"
                                                         >
                                                             Edit
                                                         </Link>
@@ -198,7 +246,7 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                                                             href={route('admin.lessons.destroy', lesson.id)}
                                                             title="Delete lesson?"
                                                             description={`This will permanently delete "${lesson.title}". This action cannot be undone.`}
-                                                            triggerClassName="text-sm font-medium text-rose-600 hover:text-rose-800 transition-colors"
+                                                            triggerClassName="text-sm font-medium text-rose-600 transition-colors hover:text-rose-800"
                                                         />
                                                     </div>
                                                 </td>
@@ -209,12 +257,18 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                             </table>
                         </div>
 
-                        {/* Footer — pagination */}
                         <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-500">
+                                    {!reorderEnabled
+                                        ? 'Choose one module to enable lesson reordering'
+                                        : isSaving
+                                          ? 'Saving order...'
+                                          : 'Drag rows by the handle to reorder inside this module'}
+                                </span>
                                 <span>Rows per page</span>
                                 <div className="flex items-center gap-1">
-                                    {PAGE_SIZE_OPTIONS.map(size => (
+                                    {PAGE_SIZE_OPTIONS.map((size) => (
                                         <button
                                             key={size}
                                             onClick={() => handlePageSize(size)}
@@ -230,7 +284,7 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                                     ))}
                                 </div>
                                 <span className="ml-1 text-slate-400">
-                                    {filtered.length === 0 ? '0 results' : `${from}–${to} of ${filtered.length}`}
+                                    {filtered.length === 0 ? '0 results' : `${from}-${to} of ${filtered.length}`}
                                 </span>
                             </div>
 
@@ -238,11 +292,11 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                                 <button
                                     onClick={() => goTo(safePage - 1)}
                                     disabled={safePage === 1}
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 transition"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     <ChevronLeft className="size-3.5" />
                                 </button>
-                                {pageNumbers().map(p => (
+                                {pageNumbers().map((p) => (
                                     <button
                                         key={p}
                                         onClick={() => goTo(p)}
@@ -259,7 +313,7 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
                                 <button
                                     onClick={() => goTo(safePage + 1)}
                                     disabled={safePage === totalPages}
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 transition"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     <ChevronRight className="size-3.5" />
                                 </button>
