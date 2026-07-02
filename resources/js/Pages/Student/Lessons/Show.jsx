@@ -180,9 +180,7 @@ function ContentSection({ content }) {
         }
 
         const updateCollapsibleState = () => {
-            setIsCollapsible(
-                node.scrollHeight > CONTENT_COLLAPSED_HEIGHT + 24,
-            );
+            setIsCollapsible(node.scrollHeight > CONTENT_COLLAPSED_HEIGHT + 24);
         };
 
         updateCollapsibleState();
@@ -790,360 +788,358 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
-                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] lg:items-start">
-                    <div className="min-w-0 space-y-0 sm:space-y-6">
+                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)]">
+                    <div className="min-w-0 space-y-0 sm:space-y-6 h-full">
                         <div className="sticky top-0 z-40 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:top-24">
-                                {lessonVideoUrl ? (
-                                    <div className="aspect-video w-full">
-                                        <VideoJsPlayer
-                                            src={lessonVideoUrl}
-                                            poster={lesson.thumbnail_url}
-                                            className="h-full w-full overflow-hidden"
-                                            autoplay={Boolean(
-                                                lesson.autoplay,
-                                            )}
-                                            hideProgressHandle={
-                                                autoNextCountdown !== null
-                                            }
-                                            onPlaybackError={
-                                                setPlayerWarning
-                                            }
-                                            onProgressUpdate={
-                                                handleProgressUpdate
-                                            }
-                                            onTimeUpdate={
-                                                handlePlayerTimeUpdate
-                                            }
-                                        />
-                                    </div>
-                                ) : lesson.thumbnail_url ? (
-                                    <div className="aspect-video w-full overflow-hidden">
-                                        <img
-                                            src={lesson.thumbnail_url}
-                                            alt={lesson.title}
-                                            className="h-full w-full object-cover opacity-70"
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="aspect-video w-full bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
-                                )}
-
-                                <div className="absolute right-5 top-5">
-                                    <StudentStatusBadge
-                                        status={
-                                            currentNavigationItem
-                                                ? navigationBadgeStatus(
-                                                      currentNavigationItem,
-                                                  )
-                                                : isLessonDone
-                                                  ? "completed"
-                                                  : "current"
+                            {lessonVideoUrl ? (
+                                <div className="aspect-video w-full">
+                                    <VideoJsPlayer
+                                        src={lessonVideoUrl}
+                                        poster={lesson.thumbnail_url}
+                                        className="h-full w-full overflow-hidden"
+                                        autoplay={Boolean(lesson.autoplay)}
+                                        hideProgressHandle={
+                                            autoNextCountdown !== null
                                         }
-                                        label={currentStatusLabel}
+                                        onPlaybackError={setPlayerWarning}
+                                        onProgressUpdate={handleProgressUpdate}
+                                        onTimeUpdate={handlePlayerTimeUpdate}
                                     />
                                 </div>
-
-                                {autoNextCountdown !== null &&
-                                nextLesson?.title ? (
-                                    <div className="absolute inset-x-4 bottom-4 rounded-[5px] border border-white/15 bg-black/60 px-3 py-2.5 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
-                                        <div className="flex items-center justify-between gap-3 sm:gap-4">
-                                            <div className="space-y-1 sm:space-y-2">
-                                                <div className="font-['Montserrat'] text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
-                                                    Next Lesson
-                                                </div>
-                                                <div className="font-['Montserrat'] text-sm font-semibold text-white sm:text-lg">
-                                                    {nextLesson.title}
-                                                </div>
-                                                <div className="font-['Montserrat'] text-[11px] text-white/70 sm:text-sm">
-                                                    Continue in{" "}
-                                                    {autoNextCountdown} seconds
-                                                </div>
-                                            </div>
-                                            {nextLesson.url ? (
-                                                <Button
-                                                    asChild
-                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[9px] py-[7px] font-['Montserrat'] text-[11px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
-                                                >
-                                                    <Link href={nextLesson.url}>
-                                                        Next Lesson
-                                                    </Link>
-                                                </Button>
-                                            ) : null}
-                                        </div>
-                                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
-                                            <div
-                                                className="h-full rounded-full bg-[#DB202C]"
-                                                style={{
-                                                    width: `${autoNextProgress}%`,
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                ) : null}
-                        </div>
-                        <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
-                            <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:border-t-0 sm:p-6 lg:p-8">
-                                <div className="space-y-4 sm:space-y-5">
-                                <div className="space-y-3">
-                                    <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
-                                        {moduleLabel}
-                                    </p>
-                                    <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
-                                        {lesson.title}
-                                    </h1>
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <StudentStatusBadge
-                                            status={
-                                                currentNavigationItem
-                                                    ? navigationBadgeStatus(
-                                                          currentNavigationItem,
-                                                      )
-                                                    : isLessonDone
-                                                      ? "completed"
-                                                      : "current"
-                                            }
-                                            label={currentStatusLabel}
-                                        />
-                                        <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/65">
-                                            Watch progress {watchProgress}%
-                                        </div>
-                                    </div>
+                            ) : lesson.thumbnail_url ? (
+                                <div className="aspect-video w-full overflow-hidden">
+                                    <img
+                                        src={lesson.thumbnail_url}
+                                        alt={lesson.title}
+                                        className="h-full w-full object-cover opacity-70"
+                                    />
                                 </div>
+                            ) : (
+                                <div className="aspect-video w-full bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                            )}
 
-                                <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
-                                    <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
-                                        <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
-                                            {moduleState?.completed_lessons ?? 0}{" "}
-                                            of{" "}
-                                            {moduleState?.lesson_count ?? 0}{" "}
-                                            lessons completed
-                                        </h2>
-                                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                                            <div
-                                                className="h-full rounded-full bg-emerald-500"
-                                                style={{
-                                                    width: `${moduleState?.progress_percentage ?? 0}%`,
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
+                            <div className="absolute right-5 top-5">
+                                <StudentStatusBadge
+                                    status={
+                                        currentNavigationItem
+                                            ? navigationBadgeStatus(
+                                                  currentNavigationItem,
+                                              )
+                                            : isLessonDone
+                                              ? "completed"
+                                              : "current"
+                                    }
+                                    label={currentStatusLabel}
+                                />
+                            </div>
 
-                                    <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
-                                        <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
-                                            Total Access Time
-                                        </h2>
-                                        <div className="mt-3 font-['Montserrat'] text-3xl font-semibold tracking-[0.08em] text-white">
-                                            {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {playbackErrorMessage ? (
-                                    <div className="rounded-[5px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 font-['Montserrat'] text-sm leading-7 text-amber-100">
-                                        {playbackErrorMessage}
-                                    </div>
-                                ) : null}
-
-                                {downloadNotice ? (
-                                    <div
-                                        className={[
-                                            "flex items-start justify-between gap-4 rounded-[5px] border px-5 py-4 font-['Montserrat'] text-sm leading-7",
-                                            downloadNotice.tone === "warning"
-                                                ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
-                                                : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
-                                        ].join(" ")}
-                                    >
-                                        <div className="space-y-1">
-                                            <p className="font-['Montserrat'] text-sm font-semibold text-white">
-                                                {downloadNotice.title}
-                                            </p>
-                                            <p>{downloadNotice.message}</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                setDownloadNotice(null)
-                                            }
-                                            className="rounded-full border border-white/10 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
-                                            aria-label="Dismiss workbook notice"
-                                        >
-                                            <X className="size-4" />
-                                        </button>
-                                    </div>
-                                ) : null}
-
-                                {lesson.assessment ? (
-                                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-5 py-5 text-white">
-                                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                            <div>
-                                                <div className="font-['Montserrat'] text-[14px] font-semibold text-white">
-                                                    {assessmentState.title}
-                                                </div>
-                                                <p className="mt-1 font-['Montserrat'] text-[14px] font-medium text-white">
-                                                    {assessmentState.is_completed
-                                                        ? "This assessment has already been completed."
-                                                        : assessmentState.is_unlocked
-                                                          ? "This assessment is ready to start."
-                                                          : "Assessment unlocks after your lesson watch progress reaches 95%."}
-                                                </p>
+                            {autoNextCountdown !== null && nextLesson?.title ? (
+                                <div className="absolute inset-x-4 bottom-4 rounded-[5px] border border-white/15 bg-black/60 px-3 py-2.5 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
+                                    <div className="flex items-center justify-between gap-3 sm:gap-4">
+                                        <div className="space-y-1 sm:space-y-2">
+                                            <div className="font-['Montserrat'] text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
+                                                Next Lesson
                                             </div>
-
-                                            {assessmentState.is_unlocked ? (
-                                                <Button
-                                                    asChild
-                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
-                                                >
-                                                    <Link
-                                                        href={route(
-                                                            "assessments.intro",
-                                                            lesson.id,
-                                                        )}
-                                                    >
-                                                        {assessmentState.current_attempt_id
-                                                            ? "Resume Assessment"
-                                                            : assessmentState.is_completed
-                                                              ? "View Assessment Result"
-                                                              : "Open Assessment"}
-                                                    </Link>
-                                                </Button>
-                                            ) : (
-                                                <StudentStatusBadge
-                                                    status="locked"
-                                                    label="Locked"
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : null}
-
-                                <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
-                                    {lesson.workbook_download_url ? (
-                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
-                                            <div className="mb-4">
-                                                <h2 className="font-['Montserrat'] text-[16px] font-semibold text-white">
-                                                    Workbook
-                                                </h2>
-                                                <p className="mt-1 font-['Montserrat'] text-sm text-white/50">
-                                                    Download the practice
-                                                    workbook for this lesson.
-                                                </p>
+                                            <div className="font-['Montserrat'] text-sm font-semibold text-white sm:text-lg">
+                                                {nextLesson.title}
                                             </div>
-
-                                            <div className="flex flex-wrap gap-3">
-                                                <Button
-                                                    asChild
-                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
-                                                >
-                                                    <a
-                                                        href={lesson.workbook_download_url}
-                                                        onClick={() => {
-                                                            setWorkbookDownloaded(
-                                                                true,
-                                                            );
-                                                            setDownloadNotice({
-                                                                tone: "success",
-                                                                title: "Manual workbook download",
-                                                                message:
-                                                                    "If the automatic download did not start on your device, this manual download will open the workbook now.",
-                                                            });
-                                                        }}
-                                                    >
-                                                        {workbookDownloaded ? (
-                                                            <Check className="mr-2 size-4 rounded-full bg-emerald-500 p-0.5 text-white" />
-                                                        ) : (
-                                                            <FileText className="mr-2 size-4" />
-                                                        )}
-                                                        {workbookDownloaded
-                                                            ? "Workbook Downloaded"
-                                                            : "Download Workbook"}
-                                                    </a>
-                                                </Button>
-
-                                                {hasWorkbook &&
-                                                isTriggeringWorkbook ? (
-                                                    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/70">
-                                                        Starting workbook
-                                                        download...
-                                                    </div>
-                                                ) : null}
+                                            <div className="font-['Montserrat'] text-[11px] text-white/70 sm:text-sm">
+                                                Continue in {autoNextCountdown}{" "}
+                                                seconds
                                             </div>
                                         </div>
-                                    ) : null}
-
-                                    {lesson.audio_url ? (
-                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
-                                            <div className="mb-3 flex items-center gap-2 font-['Montserrat'] text-sm font-medium text-white">
-                                                <Volume2 className="size-4 text-[#f15b3a]" />
-                                                Audio Companion
-                                            </div>
-                                            <audio
-                                                controls
-                                                src={lesson.audio_url}
-                                                className="w-full"
-                                                onPlay={() => {
-                                                    window.dispatchEvent(
-                                                        new CustomEvent(
-                                                            "yogafx:audio-play",
-                                                        ),
-                                                    );
-                                                }}
-                                            >
-                                                Your browser does not support
-                                                the audio element.
-                                            </audio>
-                                        </div>
-                                    ) : null}
-                                </div>
-
-                                <ContentSection content={lesson.content} />
-
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <Button
-                                        asChild
-                                        variant="outline"
-                                        className="h-auto rounded-[5px] border-white/15 bg-white/5 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-white/10 hover:text-white"
-                                    >
-                                        <Link
-                                            href={route(
-                                                "modules.show",
-                                                lesson.module.url_slug,
-                                            )}
-                                        >
-                                            Back to module
-                                        </Link>
-                                    </Button>
-                                    {nextLesson ? (
-                                        canOpenNextLesson ? (
+                                        {nextLesson.url ? (
                                             <Button
                                                 asChild
-                                                className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                className="h-auto rounded-[5px] bg-[#DB202C] px-[9px] py-[7px] font-['Montserrat'] text-[11px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
                                             >
                                                 <Link href={nextLesson.url}>
                                                     Next Lesson
                                                 </Link>
                                             </Button>
-                                        ) : (
-                                            <Button
+                                        ) : null}
+                                    </div>
+                                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
+                                        <div
+                                            className="h-full rounded-full bg-[#DB202C]"
+                                            style={{
+                                                width: `${autoNextProgress}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                        <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
+                            <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:border-t-0 sm:p-6 lg:p-8">
+                                <div className="space-y-4 sm:space-y-5">
+                                    <div className="space-y-3">
+                                        <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
+                                            {moduleLabel}
+                                        </p>
+                                        <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
+                                            {lesson.title}
+                                        </h1>
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <StudentStatusBadge
+                                                status={
+                                                    currentNavigationItem
+                                                        ? navigationBadgeStatus(
+                                                              currentNavigationItem,
+                                                          )
+                                                        : isLessonDone
+                                                          ? "completed"
+                                                          : "current"
+                                                }
+                                                label={currentStatusLabel}
+                                            />
+                                            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/65">
+                                                Watch progress {watchProgress}%
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
+                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
+                                            <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
+                                                {moduleState?.completed_lessons ??
+                                                    0}{" "}
+                                                of{" "}
+                                                {moduleState?.lesson_count ?? 0}{" "}
+                                                lessons completed
+                                            </h2>
+                                            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+                                                <div
+                                                    className="h-full rounded-full bg-emerald-500"
+                                                    style={{
+                                                        width: `${moduleState?.progress_percentage ?? 0}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
+                                            <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
+                                                Total Access Time
+                                            </h2>
+                                            <div className="mt-3 font-['Montserrat'] text-3xl font-semibold tracking-[0.08em] text-white">
+                                                {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {playbackErrorMessage ? (
+                                        <div className="rounded-[5px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 font-['Montserrat'] text-sm leading-7 text-amber-100">
+                                            {playbackErrorMessage}
+                                        </div>
+                                    ) : null}
+
+                                    {downloadNotice ? (
+                                        <div
+                                            className={[
+                                                "flex items-start justify-between gap-4 rounded-[5px] border px-5 py-4 font-['Montserrat'] text-sm leading-7",
+                                                downloadNotice.tone ===
+                                                "warning"
+                                                    ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
+                                                    : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
+                                            ].join(" ")}
+                                        >
+                                            <div className="space-y-1">
+                                                <p className="font-['Montserrat'] text-sm font-semibold text-white">
+                                                    {downloadNotice.title}
+                                                </p>
+                                                <p>{downloadNotice.message}</p>
+                                            </div>
+                                            <button
                                                 type="button"
                                                 onClick={() =>
-                                                    openLockedDialog(
-                                                        nextLesson?.lock_reason,
-                                                    )
+                                                    setDownloadNotice(null)
                                                 }
-                                                className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                className="rounded-full border border-white/10 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                                                aria-label="Dismiss workbook notice"
                                             >
-                                                Next Lesson
-                                            </Button>
-                                        )
+                                                <X className="size-4" />
+                                            </button>
+                                        </div>
                                     ) : null}
-                                </div>
+
+                                    {lesson.assessment ? (
+                                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-5 py-5 text-white">
+                                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                                <div>
+                                                    <div className="font-['Montserrat'] text-[14px] font-semibold text-white">
+                                                        {assessmentState.title}
+                                                    </div>
+                                                    <p className="mt-1 font-['Montserrat'] text-[14px] font-medium text-white">
+                                                        {assessmentState.is_completed
+                                                            ? "This assessment has already been completed."
+                                                            : assessmentState.is_unlocked
+                                                              ? "This assessment is ready to start."
+                                                              : "Assessment unlocks after your lesson watch progress reaches 95%."}
+                                                    </p>
+                                                </div>
+
+                                                {assessmentState.is_unlocked ? (
+                                                    <Button
+                                                        asChild
+                                                        className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                    >
+                                                        <Link
+                                                            href={route(
+                                                                "assessments.intro",
+                                                                lesson.id,
+                                                            )}
+                                                        >
+                                                            {assessmentState.current_attempt_id
+                                                                ? "Resume Assessment"
+                                                                : assessmentState.is_completed
+                                                                  ? "View Assessment Result"
+                                                                  : "Open Assessment"}
+                                                        </Link>
+                                                    </Button>
+                                                ) : (
+                                                    <StudentStatusBadge
+                                                        status="locked"
+                                                        label="Locked"
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : null}
+
+                                    <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
+                                        {lesson.workbook_download_url ? (
+                                            <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
+                                                <div className="mb-4">
+                                                    <h2 className="font-['Montserrat'] text-[16px] font-semibold text-white">
+                                                        Workbook
+                                                    </h2>
+                                                    <p className="mt-1 font-['Montserrat'] text-sm text-white/50">
+                                                        Download the practice
+                                                        workbook for this
+                                                        lesson.
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-3">
+                                                    <Button
+                                                        asChild
+                                                        className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                    >
+                                                        <a
+                                                            href={
+                                                                lesson.workbook_download_url
+                                                            }
+                                                            onClick={() => {
+                                                                setWorkbookDownloaded(
+                                                                    true,
+                                                                );
+                                                                setDownloadNotice(
+                                                                    {
+                                                                        tone: "success",
+                                                                        title: "Manual workbook download",
+                                                                        message:
+                                                                            "If the automatic download did not start on your device, this manual download will open the workbook now.",
+                                                                    },
+                                                                );
+                                                            }}
+                                                        >
+                                                            {workbookDownloaded ? (
+                                                                <Check className="mr-2 size-4 rounded-full bg-emerald-500 p-0.5 text-white" />
+                                                            ) : (
+                                                                <FileText className="mr-2 size-4" />
+                                                            )}
+                                                            {workbookDownloaded
+                                                                ? "Workbook Downloaded"
+                                                                : "Download Workbook"}
+                                                        </a>
+                                                    </Button>
+
+                                                    {hasWorkbook &&
+                                                    isTriggeringWorkbook ? (
+                                                        <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/70">
+                                                            Starting workbook
+                                                            download...
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            </div>
+                                        ) : null}
+
+                                        {lesson.audio_url ? (
+                                            <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
+                                                <div className="mb-3 flex items-center gap-2 font-['Montserrat'] text-sm font-medium text-white">
+                                                    <Volume2 className="size-4 text-[#f15b3a]" />
+                                                    Audio Companion
+                                                </div>
+                                                <audio
+                                                    controls
+                                                    src={lesson.audio_url}
+                                                    className="w-full"
+                                                    onPlay={() => {
+                                                        window.dispatchEvent(
+                                                            new CustomEvent(
+                                                                "yogafx:audio-play",
+                                                            ),
+                                                        );
+                                                    }}
+                                                >
+                                                    Your browser does not
+                                                    support the audio element.
+                                                </audio>
+                                            </div>
+                                        ) : null}
+                                    </div>
+
+                                    <ContentSection content={lesson.content} />
+
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <Button
+                                            asChild
+                                            variant="outline"
+                                            className="h-auto rounded-[5px] border-white/15 bg-white/5 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-white/10 hover:text-white"
+                                        >
+                                            <Link
+                                                href={route(
+                                                    "modules.show",
+                                                    lesson.module.url_slug,
+                                                )}
+                                            >
+                                                Back to module
+                                            </Link>
+                                        </Button>
+                                        {nextLesson ? (
+                                            canOpenNextLesson ? (
+                                                <Button
+                                                    asChild
+                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                >
+                                                    <Link href={nextLesson.url}>
+                                                        Next Lesson
+                                                    </Link>
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        openLockedDialog(
+                                                            nextLesson?.lock_reason,
+                                                        )
+                                                    }
+                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                >
+                                                    Next Lesson
+                                                </Button>
+                                            )
+                                        ) : null}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        </div>
+                    </div>
 
-                        <aside className="min-w-0">
-                            <div className="lg:sticky lg:top-24">
+                    <aside className="min-w-0">
+                        <div className="lg:sticky lg:top-24">
                             <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.28)]">
                                 <div className="border-b border-white/10 px-5 py-5">
                                     <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/40">
@@ -1172,9 +1168,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             <LessonNavCard
                                                 key={item.id}
                                                 item={item}
-                                                onLockedClick={
-                                                    openLockedDialog
-                                                }
+                                                onLockedClick={openLockedDialog}
                                             />
                                         ))}
                                     </div>
