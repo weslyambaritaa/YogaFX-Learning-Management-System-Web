@@ -25,8 +25,8 @@ function ModuleCard({ module, onLockedClick }) {
                 </div>
             </div>
 
-            <div className="space-y-4 p-5">
-                <div className="space-y-2">
+            <div className="space-y-3 p-4 sm:space-y-4 sm:p-5">
+                <div className="space-y-1.5 sm:space-y-2">
                     <h3 className="text-[22px] font-medium tracking-tight text-white">
                         {module.title}
                     </h3>
@@ -103,11 +103,11 @@ export default function StudentModulesIndex({ modules }) {
                 kind="module"
             />
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-8 sm:gap-8 sm:px-6 lg:px-10">
                 <StudentBackButton fallbackHref={route('student.dashboard')} />
 
-                <section className="space-y-5">
-                    <div className="grid gap-5 xl:grid-cols-2">
+                <section className="space-y-4 sm:space-y-5">
+                    <div className="grid gap-4 sm:gap-5 xl:grid-cols-2">
                         {modules.map((module) => (
                             <ModuleCard
                                 key={module.id}

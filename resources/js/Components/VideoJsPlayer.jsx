@@ -103,15 +103,11 @@ export default function VideoJsPlayer({
                     poster: latestPosterRef.current ?? undefined,
                     controlBar: {
                         playToggle: true,
-                        volumePanel: true,
+                        muteToggle: true,
                         currentTimeDisplay: true,
                         timeDivider: true,
                         durationDisplay: true,
                         progressControl: true,
-                        skipButtons: {
-                            backward: 10,
-                            forward: 10,
-                        },
                         fullscreenToggle: true,
                     },
                     sources: latestSourceRef.current
@@ -248,6 +244,118 @@ export default function VideoJsPlayer({
                         width: 100%;
                         height: 100%;
                         object-fit: contain;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-control-bar {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: center;
+                        gap: 0;
+                        height: 76px;
+                        padding: 12px 12px 10px;
+                        background: linear-gradient(to top, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.52));
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-button > .vjs-icon-placeholder::before,
+                    .yogafx-video-shell .video-js .vjs-time-control,
+                    .yogafx-video-shell .video-js .vjs-time-divider {
+                        color: rgba(255, 255, 255, 0.95);
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-control {
+                        height: 28px;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-play-control,
+                    .yogafx-video-shell .video-js .vjs-mute-control,
+                    .yogafx-video-shell .video-js .vjs-current-time,
+                    .yogafx-video-shell .video-js .vjs-time-divider,
+                    .yogafx-video-shell .video-js .vjs-duration,
+                    .yogafx-video-shell .video-js .vjs-fullscreen-control {
+                        order: 1;
+                        display: flex !important;
+                        align-items: center;
+                        justify-content: center;
+                        flex: 0 0 auto;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-play-control,
+                    .yogafx-video-shell .video-js .vjs-mute-control,
+                    .yogafx-video-shell .video-js .vjs-fullscreen-control {
+                        width: 32px;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-current-time,
+                    .yogafx-video-shell .video-js .vjs-duration,
+                    .yogafx-video-shell .video-js .vjs-time-divider {
+                        font-size: 12px;
+                        line-height: 1;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-current-time {
+                        margin-left: 8px;
+                        padding-left: 0;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-duration {
+                        padding-left: 0;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-time-divider {
+                        min-width: auto;
+                        padding: 0 2px;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-fullscreen-control {
+                        margin-left: auto;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-progress-control {
+                        order: 2;
+                        flex: 0 0 100%;
+                        width: 100%;
+                        height: 14px;
+                        margin-top: 10px;
+                        min-width: 100%;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-progress-holder {
+                        margin: 0;
+                        height: 4px;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-load-progress,
+                    .yogafx-video-shell .video-js .vjs-load-progress div {
+                        background: rgba(255, 255, 255, 0.18);
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-play-progress {
+                        background: #db202c;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-slider {
+                        background: rgba(255, 255, 255, 0.22);
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-play-progress::before,
+                    .yogafx-video-shell .video-js .vjs-slider-handle {
+                        color: #ffffff;
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-big-play-button {
+                        top: 50%;
+                        left: 50%;
+                        width: 70px;
+                        height: 70px;
+                        border: 1px solid rgba(255, 255, 255, 0.24);
+                        border-radius: 9999px;
+                        background: rgba(0, 0, 0, 0.42);
+                        transform: translate(-50%, -50%);
+                    }
+
+                    .yogafx-video-shell .video-js .vjs-big-play-button .vjs-icon-placeholder::before {
+                        font-size: 32px;
+                        line-height: 68px;
                     }
 
                     .yogafx-video-shell.hide-progress-handle .video-js .vjs-play-progress::before,

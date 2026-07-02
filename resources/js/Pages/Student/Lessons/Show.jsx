@@ -69,13 +69,13 @@ function LessonNavCard({ item, onLockedClick }) {
     const body = (
         <div
             className={[
-                "group overflow-hidden rounded-[5px] border p-3 transition",
+                "group overflow-hidden rounded-[5px] border p-2.5 transition sm:p-3",
                 item.status === "current"
                     ? "border-[#DB202C]/60 bg-[#DB202C]/10 shadow-[0_10px_30px_rgba(219,32,44,0.16)]"
                     : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.06]",
             ].join(" ")}
         >
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
                 <div className="relative overflow-hidden rounded-[5px] bg-[#161211]">
                     {item.thumbnail_url ? (
                         <img
@@ -102,7 +102,7 @@ function LessonNavCard({ item, onLockedClick }) {
                     ) : null}
                 </div>
 
-                <div className="min-w-0 space-y-2.5">
+                <div className="min-w-0 space-y-2 sm:space-y-2.5">
                     <div className="space-y-1.5">
                         <p className="font-['Montserrat'] text-[11px] font-medium uppercase tracking-[0.22em] text-white/40">
                             Lesson {item.sort_order}
@@ -112,7 +112,7 @@ function LessonNavCard({ item, onLockedClick }) {
                         </p>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 sm:space-y-2">
                         <div className="flex items-center justify-between gap-3 font-['Montserrat'] text-[12px] font-medium text-white/45">
                             <span>Progress</span>
                             <span className="shrink-0">
@@ -790,7 +790,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 reason={lockedReason}
             />
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-4 sm:px-6 lg:px-10">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-5 px-4 pt-4 sm:gap-6 sm:px-6 lg:px-10">
                 <StudentBackButton
                     fallbackHref={route(
                         "modules.show",
@@ -798,49 +798,43 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                     )}
                 />
 
-                <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] lg:items-start">
-                    <div className="min-w-0 space-y-6">
+                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] lg:items-start">
+                    <div className="min-w-0 space-y-4 sm:space-y-6">
                         <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
-                            <div className="relative border-b border-white/10 bg-black">
+                            <div className="relative bg-black">
                                 {lessonVideoUrl ? (
-                                    <div className="p-4 sm:p-6 lg:p-8">
-                                        <div className="mx-auto aspect-video w-full max-w-5xl">
-                                            <VideoJsPlayer
-                                                src={lessonVideoUrl}
-                                                poster={lesson.thumbnail_url}
-                                                className="h-full w-full overflow-hidden rounded-[5px] shadow-2xl"
-                                                autoplay={Boolean(
-                                                    lesson.autoplay,
-                                                )}
-                                                hideProgressHandle={
-                                                    autoNextCountdown !== null
-                                                }
-                                                onPlaybackError={
-                                                    setPlayerWarning
-                                                }
-                                                onProgressUpdate={
-                                                    handleProgressUpdate
-                                                }
-                                                onTimeUpdate={
-                                                    handlePlayerTimeUpdate
-                                                }
-                                            />
-                                        </div>
+                                    <div className="aspect-video w-full">
+                                        <VideoJsPlayer
+                                            src={lessonVideoUrl}
+                                            poster={lesson.thumbnail_url}
+                                            className="h-full w-full overflow-hidden"
+                                            autoplay={Boolean(
+                                                lesson.autoplay,
+                                            )}
+                                            hideProgressHandle={
+                                                autoNextCountdown !== null
+                                            }
+                                            onPlaybackError={
+                                                setPlayerWarning
+                                            }
+                                            onProgressUpdate={
+                                                handleProgressUpdate
+                                            }
+                                            onTimeUpdate={
+                                                handlePlayerTimeUpdate
+                                            }
+                                        />
                                     </div>
                                 ) : lesson.thumbnail_url ? (
-                                    <div className="p-4 sm:p-6 lg:p-8">
-                                        <div className="mx-auto aspect-video w-full max-w-5xl overflow-hidden rounded-[5px]">
-                                            <img
-                                                src={lesson.thumbnail_url}
-                                                alt={lesson.title}
-                                                className="h-full w-full object-cover opacity-70"
-                                            />
-                                        </div>
+                                    <div className="aspect-video w-full overflow-hidden">
+                                        <img
+                                            src={lesson.thumbnail_url}
+                                            alt={lesson.title}
+                                            className="h-full w-full object-cover opacity-70"
+                                        />
                                     </div>
                                 ) : (
-                                    <div className="p-4 sm:p-6 lg:p-8">
-                                        <div className="mx-auto aspect-video w-full max-w-5xl rounded-[5px] bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
-                                    </div>
+                                    <div className="aspect-video w-full bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                                 )}
 
                                 <div className="absolute right-5 top-5">
@@ -860,7 +854,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
                                 {autoNextCountdown !== null &&
                                 nextLesson?.title ? (
-                                    <div className="absolute inset-x-5 bottom-5 mx-auto max-w-5xl rounded-[5px] border border-white/15 bg-black/60 px-5 py-4 backdrop-blur">
+                                    <div className="absolute inset-x-4 bottom-4 rounded-[5px] border border-white/15 bg-black/60 px-4 py-3 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="space-y-2">
                                                 <div className="font-['Montserrat'] text-sm font-semibold uppercase tracking-[0.18em] text-white/55">
@@ -896,10 +890,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     </div>
                                 ) : null}
                             </div>
-                        </div>
-
-                        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-                            <div className="space-y-5">
+                            <div className="border-t border-white/10 bg-white/[0.04] p-5 sm:p-6 lg:p-8">
+                                <div className="space-y-4 sm:space-y-5">
                                 <div className="space-y-3">
                                     <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
                                         {moduleLabel}
@@ -926,7 +918,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     </div>
                                 </div>
 
-                                <div className="grid gap-4 xl:grid-cols-2">
+                                <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
                                     <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
                                         <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
                                             {moduleState?.completed_lessons ?? 0}{" "}
@@ -1032,7 +1024,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     </div>
                                 ) : null}
 
-                                <div className="grid gap-4 xl:grid-cols-2">
+                                <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
                                     {lesson.workbook_download_url ? (
                                         <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
                                             <div className="mb-4">
@@ -1146,12 +1138,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         )
                                     ) : null}
                                 </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        </div>
 
-                    <aside className="min-w-0">
-                        <div className="lg:sticky lg:top-24">
+                        <aside className="min-w-0">
+                            <div className="lg:sticky lg:top-24">
                             <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.28)]">
                                 <div className="border-b border-white/10 px-5 py-5">
                                     <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/40">
@@ -1175,7 +1168,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         msOverflowStyle: "none",
                                     }}
                                 >
-                                    <div className="space-y-3 p-4">
+                                    <div className="space-y-2.5 p-3 sm:space-y-3 sm:p-4">
                                         {navigationItems?.map((item) => (
                                             <LessonNavCard
                                                 key={item.id}

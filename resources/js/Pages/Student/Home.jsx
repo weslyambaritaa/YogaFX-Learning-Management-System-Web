@@ -382,7 +382,7 @@ function ModuleCard({ module, onLockedClick }) {
 
     const mobileCard = (
         <div
-            className="space-y-2 p-3.5 md:hidden"
+            className="space-y-2 p-3 md:hidden"
             style={{ fontFamily: FONT_FAMILY }}
         >
             <div className="relative aspect-video overflow-hidden rounded-[5px]">
@@ -408,10 +408,10 @@ function ModuleCard({ module, onLockedClick }) {
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <div className="space-y-1">
-                    <div className="line-clamp-2 text-sm font-semibold leading-5 text-white sm:text-base">
-                        {module.title}
+                <div className="space-y-1.5">
+                    <div className="space-y-1">
+                        <div className="line-clamp-2 text-sm font-semibold leading-5 text-white sm:text-base">
+                            {module.title}
                     </div>
                     <div className="text-sm font-semibold text-white/82 sm:text-base">
                         Module {module.sort_order}
@@ -659,8 +659,8 @@ export default function StudentHome({
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%),linear-gradient(to_top,rgba(0,0,0,0.96)_0%,rgba(0,0,0,0.38)_32%,transparent_62%)]" />
                 </div>
 
-                <div className="relative mx-auto flex min-h-screen max-w-[1400px] flex-col justify-end gap-8 px-4 pb-20 pt-24 sm:px-6 lg:px-10 lg:pb-28">
-                    <div className="max-w-2xl space-y-5 text-white">
+                <div className="relative mx-auto flex min-h-screen max-w-[1400px] flex-col justify-end gap-6 px-4 pb-20 pt-24 sm:gap-8 sm:px-6 lg:px-10 lg:pb-28">
+                    <div className="max-w-2xl space-y-3 text-white sm:space-y-5">
                         {/* "Welcome back, Rahel" → medium 14px, tanpa uppercase */}
                         <div
                             style={{
@@ -682,7 +682,7 @@ export default function StudentHome({
                                 fontSize: "48px",
                                 fontWeight: 700,
                             }}
-                            className="tracking-[-0.03em] text-white"
+                            className="text-[36px] leading-[1.04] tracking-[-0.03em] text-white sm:text-[48px] sm:leading-[1.02]"
                         >
                             {continueLearning?.title ??
                                 homeExperience?.hero_title ??
@@ -696,7 +696,7 @@ export default function StudentHome({
                                 fontSize: "14px",
                                 fontWeight: 400,
                             }}
-                            className="leading-7 text-white"
+                            className="leading-6 text-white sm:leading-7"
                         >
                             {continueLearning?.description ??
                                 homeExperience?.hero_description}
@@ -738,9 +738,9 @@ export default function StudentHome({
                 </div>
             </section>
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-10 px-4 pt-10 sm:px-6 lg:px-10">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:gap-10 sm:px-6 sm:pt-10 lg:px-10">
                 <section className="space-y-4">
-                    <div>
+                    <div className="px-3.5 md:px-0">
                         <h1
                             className="mt-1 text-white"
                             style={{
@@ -752,8 +752,8 @@ export default function StudentHome({
                             All Modules
                         </h1>
                     </div>
-                    <div className="py-6">
-                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="py-4 sm:py-6">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                             {rawModules.map((module) => (
                                 <div key={module.id} className="w-full">
                                     <ModuleCard
@@ -768,7 +768,7 @@ export default function StudentHome({
                     </div>
                     {!rawModules.length ? (
                         <div
-                            className="rounded-[5px] border border-white/10 bg-white/[0.04] px-6 py-12 text-center text-white/60"
+                            className="rounded-[5px] border border-white/10 bg-white/[0.04] px-6 py-10 text-center text-white/60 sm:py-12"
                             style={{ fontFamily: FONT_FAMILY }}
                         >
                             No modules are available for your current access

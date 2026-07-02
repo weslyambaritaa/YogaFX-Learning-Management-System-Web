@@ -9,8 +9,8 @@ import { useState } from "react";
 
 function LessonCard({ lesson, onLockedClick }) {
     const body = (
-        <div className="group block h-full rounded-[14px] border border-white/10 bg-white/[0.04] p-3.5 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
-            <div className="space-y-3">
+        <div className="group block h-full rounded-[14px] border border-white/10 bg-white/[0.04] p-3 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06] sm:p-3.5">
+            <div className="space-y-2.5 sm:space-y-3">
                 <div className="relative overflow-hidden rounded-[12px] bg-[#161211]">
                     {lesson.thumbnail_url ? (
                         <img
@@ -26,8 +26,8 @@ function LessonCard({ lesson, onLockedClick }) {
                     </div>
                 </div>
 
-                <div className="space-y-3">
-                    <div className="space-y-1.5">
+                <div className="space-y-2.5 sm:space-y-3">
+                    <div className="space-y-1">
                         <p className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white/82">
                             Lesson {lesson.sort_order}
                         </p>
@@ -37,7 +37,7 @@ function LessonCard({ lesson, onLockedClick }) {
                     </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                     <div className="flex items-center justify-between font-['Montserrat'] text-[14px] font-medium text-white/40">
                         <span>Progress</span>
                         <span>{lesson.progress_percentage}%</span>
@@ -94,7 +94,7 @@ export default function StudentModuleShow({ module }) {
                 kind="lesson"
             />
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-8 sm:gap-8 sm:px-6 lg:px-10">
                 <StudentBackButton fallbackHref={route("modules.index")} />
 
                 <section className="relative overflow-hidden rounded-[5px] border border-white/10 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
@@ -158,14 +158,14 @@ export default function StudentModuleShow({ module }) {
                 </section>
 
                 {module.lessons.length ? (
-                    <section className="space-y-5">
+                    <section className="space-y-4 sm:space-y-5">
                         <div>
                             <h2 className="font-['Montserrat'] text-[22px] font-semibold tracking-tight text-white">
                                 Lessons
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                             {module.lessons.map((lesson) => (
                                 <LessonCard
                                     key={lesson.id}
@@ -181,14 +181,14 @@ export default function StudentModuleShow({ module }) {
 
                 {/* --- EBOOK SECTION --- */}
                 {module.ebooks?.length ? (
-                    <section className="space-y-5">
+                    <section className="space-y-4 sm:space-y-5">
                         <div>
                             <h2 className="font-['Montserrat'] text-2xl font-semibold tracking-tight text-white">
                                 Ebooks
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                             {module.ebooks.map((ebook) => {
                                 const cardContent = (
                                     <div className="flex items-center justify-between gap-4">
@@ -237,21 +237,21 @@ export default function StudentModuleShow({ module }) {
 
                 {/* --- VIDEO LECTURER SECTION --- */}
                 {module.video_lecturers?.length ? (
-                    <section className="space-y-5">
+                    <section className="space-y-4 sm:space-y-5">
                         <div>
                             <h2 className="font-['Montserrat'] text-2xl font-semibold tracking-tight text-white">
                                 Video Lecturer
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                             {module.video_lecturers.map((course) => {
                                 const isReady =
                                     course.video?.is_ready && course.url;
 
                                 const cardBody = (
-                                    <div className="group block h-full rounded-[14px] border border-white/10 bg-white/[0.04] p-3.5 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]">
-                                        <div className="space-y-3">
+                                    <div className="group block h-full rounded-[14px] border border-white/10 bg-white/[0.04] p-3 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06] sm:p-3.5">
+                                        <div className="space-y-2.5 sm:space-y-3">
                                             <div className="relative overflow-hidden rounded-[12px] bg-[#161211]">
                                                 {course.thumbnail_url ? (
                                                     <img
@@ -274,7 +274,7 @@ export default function StudentModuleShow({ module }) {
                                                 )}
                                             </div>
 
-                                            <div className="space-y-3">
+                                            <div className="space-y-2.5 sm:space-y-3">
                                                 <StudentStatusBadge
                                                     status={
                                                         isReady
@@ -330,7 +330,7 @@ export default function StudentModuleShow({ module }) {
                 ) : null}
 
                 {module.certificates?.length ? (
-                    <section className="space-y-5">
+                    <section className="space-y-4 sm:space-y-5">
                         <div>
                             <p className="font-['Montserrat'] text-xs font-medium uppercase tracking-[0.24em] text-white/40">
                                 Certificates
@@ -340,7 +340,7 @@ export default function StudentModuleShow({ module }) {
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                             {module.certificates.map((certificate) => (
                                 <a
                                     key={certificate.id}
@@ -363,7 +363,7 @@ export default function StudentModuleShow({ module }) {
                 ) : null}
 
                 {module.assignments?.length ? (
-                    <section className="space-y-5">
+                    <section className="space-y-4 sm:space-y-5">
                         <div>
                             <p className="font-['Montserrat'] text-xs font-medium uppercase tracking-[0.24em] text-white/40">
                                 Assignment Submission
@@ -373,7 +373,7 @@ export default function StudentModuleShow({ module }) {
                             </h2>
                         </div>
 
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                             {module.assignments.map((assignment) => (
                                 <Link
                                     key={assignment.id}
