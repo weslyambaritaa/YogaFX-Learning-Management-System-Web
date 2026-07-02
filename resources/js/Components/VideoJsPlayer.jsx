@@ -13,6 +13,7 @@ import "video.js/dist/video-js.css";
 const HLS_SOURCE_TYPE = "application/vnd.apple.mpegurl";
 const CONTROL_HIDE_DELAY_MS = 3000;
 const SEEK_STEP_SECONDS = 10;
+const AUDIO_PLAY_EVENT = "yogafx:audio-play";
 
 function formatDuration(secondsValue) {
     const safeSeconds = Math.max(0, Math.floor(Number(secondsValue) || 0));
@@ -93,6 +94,7 @@ export default function VideoJsPlayer({
     const [isMuted, setIsMuted] = useState(false);
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     const clearControlsTimer = () => {
         if (controlsTimerRef.current) {
@@ -158,6 +160,73 @@ export default function VideoJsPlayer({
         showControls();
         await action();
         syncPlayerState();
+    };
+
+    const pauseAudioCompanions = () => {
+        document.querySelectorAll("audio").forEach((audioElement) => {
+            if (audioElement.paused) {
+                return;
+            }
+
+            audioElement.pause();
+        });
+    };
+
+    const lockLandscapeIfSupported = async () => {
+        try {
+            if (
+                screen.orientation &&
+                typeof screen.orientation.lock === "function"
+            ) {
+                await screen.orientation.lock("landscape");
+            }
+        } catch (error) {
+            // Ignore unsupported orientation locking in browsers like iOS Safari.
+        }
+    };
+
+    const unlockOrientationIfSupported = () => {
+        try {
+            if (
+                screen.orientation &&
+                typeof screen.orientation.unlock === "function"
+            ) {
+                screen.orientation.unlock();
+            }
+        } catch (error) {
+            // Ignore unsupported orientation unlocking.
+        }
+    };
+
+    const requestPlayerFullscreen = async () => {
+        const playerShell = containerRef.current;
+
+        if (!playerShell) {
+            return;
+        }
+
+        const isAlreadyFullscreen =
+            document.fullscreenElement === playerShell ||
+            document.webkitFullscreenElement === playerShell;
+
+        if (isAlreadyFullscreen) {
+            if (document.fullscreenElement && document.exitFullscreen) {
+                await document.exitFullscreen();
+            } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+
+            unlockOrientationIfSupported();
+            return;
+        }
+
+        if (playerShell.requestFullscreen) {
+            await playerShell.requestFullscreen();
+        } else if (playerShell.webkitRequestFullscreen) {
+            playerShell.webkitRequestFullscreen();
+        }
+
+        await lockLandscapeIfSupported();
     };
 
     const seekTo = async (nextTime) => {
@@ -295,6 +364,7 @@ export default function VideoJsPlayer({
                 });
 
                 player.on("play", syncPlayerState);
+                player.on("play", pauseAudioCompanions);
                 player.on("pause", syncPlayerState);
                 player.on("volumechange", syncPlayerState);
                 player.on("fullscreenchange", syncPlayerState);
@@ -382,6 +452,52 @@ export default function VideoJsPlayer({
         return clearControlsTimer;
     }, [isPlaying]);
 
+    useEffect(() => {
+        const handleAudioPlay = () => {
+            const player = playerRef.current;
+
+            if (!player || player.paused()) {
+                return;
+            }
+
+            player.pause();
+            syncPlayerState();
+        };
+
+        const handleFullscreenChange = () => {
+            const playerShell = containerRef.current;
+            const nextIsFullscreen =
+                document.fullscreenElement === playerShell ||
+                document.webkitFullscreenElement === playerShell;
+
+            setIsFullscreen(nextIsFullscreen);
+            setControlsVisible(true);
+
+            if (!nextIsFullscreen) {
+                unlockOrientationIfSupported();
+            }
+        };
+
+        window.addEventListener(AUDIO_PLAY_EVENT, handleAudioPlay);
+        document.addEventListener("fullscreenchange", handleFullscreenChange);
+        document.addEventListener(
+            "webkitfullscreenchange",
+            handleFullscreenChange,
+        );
+
+        return () => {
+            window.removeEventListener(AUDIO_PLAY_EVENT, handleAudioPlay);
+            document.removeEventListener(
+                "fullscreenchange",
+                handleFullscreenChange,
+            );
+            document.removeEventListener(
+                "webkitfullscreenchange",
+                handleFullscreenChange,
+            );
+        };
+    }, []);
+
     if (loadFailed) {
         return (
             <div
@@ -412,12 +528,25 @@ export default function VideoJsPlayer({
                         background: #000;
                     }
 
+                    .yogafx-video-shell:fullscreen,
+                    .yogafx-video-shell:-webkit-full-screen {
+                        width: 100vw;
+                        height: 100vh;
+                        border-radius: 0;
+                        background: #000;
+                    }
+
                     .yogafx-video-shell .video-js {
                         width: 100% !important;
                         height: 100% !important;
                         border-radius: 5px;
                         overflow: hidden;
                         background: #000;
+                    }
+
+                    .yogafx-video-shell:fullscreen .video-js,
+                    .yogafx-video-shell:-webkit-full-screen .video-js {
+                        border-radius: 0;
                     }
 
                     .yogafx-video-shell .video-js .vjs-tech {
@@ -623,17 +752,14 @@ export default function VideoJsPlayer({
                             </div>
                             <SmallControlButton
                                 icon={Maximize}
-                                label="Open fullscreen"
+                                label={
+                                    isFullscreen
+                                        ? "Exit fullscreen"
+                                        : "Open fullscreen"
+                                }
                                 onClick={() =>
                                     runControlAction(async () => {
-                                        const player = playerRef.current;
-                                        if (!player) return;
-                                        if (
-                                            typeof player.requestFullscreen ===
-                                            "function"
-                                        ) {
-                                            player.requestFullscreen();
-                                        }
+                                        await requestPlayerFullscreen();
                                     })
                                 }
                             />

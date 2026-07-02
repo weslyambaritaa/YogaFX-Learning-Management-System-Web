@@ -790,17 +790,18 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 reason={lockedReason}
             />
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-5 px-4 pt-4 sm:gap-6 sm:px-6 lg:px-10">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
                 <StudentBackButton
                     fallbackHref={route(
                         "modules.show",
                         lesson.module?.url_slug,
                     )}
+                    className="hidden md:inline-flex"
                 />
 
                 <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] lg:items-start">
-                    <div className="min-w-0 space-y-4 sm:space-y-6">
-                        <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]">
+                    <div className="min-w-0 space-y-0 sm:space-y-6">
+                        <div className="overflow-hidden bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
                             <div className="relative bg-black">
                                 {lessonVideoUrl ? (
                                     <div className="aspect-video w-full">
@@ -890,7 +891,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                     </div>
                                 ) : null}
                             </div>
-                            <div className="border-t border-white/10 bg-white/[0.04] p-5 sm:p-6 lg:p-8">
+                            <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:p-6 lg:p-8">
                                 <div className="space-y-4 sm:space-y-5">
                                 <div className="space-y-3">
                                     <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
@@ -1088,6 +1089,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 controls
                                                 src={lesson.audio_url}
                                                 className="w-full"
+                                                onPlay={() => {
+                                                    window.dispatchEvent(
+                                                        new CustomEvent(
+                                                            "yogafx:audio-play",
+                                                        ),
+                                                    );
+                                                }}
                                             >
                                                 Your browser does not support
                                                 the audio element.

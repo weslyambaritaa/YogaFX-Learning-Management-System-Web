@@ -737,7 +737,7 @@ function StudentTopNavigation({
             <nav
                 className={[
                     isImmersive
-                        ? 'sticky top-0 z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl'
+                        ? 'z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl'
                         : 'border-b border-border bg-background',
                 ].join(' ')}
             >
