@@ -750,13 +750,6 @@ export default function StudentHome({
                         </div>
                     </div>
 
-                    {accessTimeSummary ? (
-                        <div className="mt-4 flex justify-start">
-                            <AccessTimeCard
-                                accessTimeSummary={accessTimeSummary}
-                            />
-                        </div>
-                    ) : null}
                 </div>
             </section>
 
