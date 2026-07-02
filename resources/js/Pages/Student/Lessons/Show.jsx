@@ -88,7 +88,7 @@ function LessonNavCard({ item, onLockedClick }) {
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
 
-                    <div className="absolute right-2.5 top-2.5">
+                    <div className="absolute right-2.5 top-2.5 hidden sm:block">
                         <StudentStatusBadge
                             status={navigationBadgeStatus(item)}
                             label={navigationBadgeLabel(item)}
@@ -873,7 +873,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 )}
                                 {autoNextCountdown !== null &&
                                 nextTarget?.title ? (
-                                    <div className="absolute inset-x-2 bottom-2 z-20 rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4 lg:inset-x-auto lg:bottom-5 lg:right-5 lg:w-[min(360px,calc(100%-2.5rem))]">
+                                    <div
+                                        className="absolute inset-x-2 bottom-2 z-[60] rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4 lg:inset-x-auto lg:bottom-5 lg:right-5 lg:w-[min(360px,calc(100%-2.5rem))]"
+                                        onClick={(event) =>
+                                            event.stopPropagation()
+                                        }
+                                    >
                                         <div className="flex min-w-0 items-end justify-between gap-2 sm:items-center sm:gap-4">
                                             <div className="min-w-0 space-y-1 sm:space-y-2">
                                                 <div className="font-['Montserrat'] text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
@@ -930,18 +935,20 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             {lesson.title}
                                         </h1>
                                         <div className="flex flex-wrap items-center gap-3">
-                                            <StudentStatusBadge
-                                                status={
-                                                    currentNavigationItem
-                                                        ? navigationBadgeStatus(
-                                                              currentNavigationItem,
-                                                          )
-                                                        : isLessonDone
-                                                          ? "completed"
-                                                          : "current"
-                                                }
-                                                label={currentStatusLabel}
-                                            />
+                                            <div className="hidden sm:block">
+                                                <StudentStatusBadge
+                                                    status={
+                                                        currentNavigationItem
+                                                            ? navigationBadgeStatus(
+                                                                  currentNavigationItem,
+                                                              )
+                                                            : isLessonDone
+                                                              ? "completed"
+                                                              : "current"
+                                                    }
+                                                    label={currentStatusLabel}
+                                                />
+                                            </div>
                                             <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/65">
                                                 Watch progress {watchProgress}%
                                             </div>
