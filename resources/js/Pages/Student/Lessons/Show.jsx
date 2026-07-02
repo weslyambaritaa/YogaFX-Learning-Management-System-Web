@@ -792,8 +792,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
                 <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] lg:items-start">
                     <div className="min-w-0 space-y-0 sm:space-y-6">
-                        <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
-                            <div className="sticky top-0 z-30 overflow-hidden bg-black sm:rounded-t-[5px] lg:static">
+                        <div className="sticky top-0 z-30 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static">
                                 {lessonVideoUrl ? (
                                     <div className="aspect-video w-full">
                                         <VideoJsPlayer
@@ -881,8 +880,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         </div>
                                     </div>
                                 ) : null}
-                            </div>
-                            <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:p-6 lg:p-8">
+                        </div>
+                        <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
+                            <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:border-t-0 sm:p-6 lg:p-8">
                                 <div className="space-y-4 sm:space-y-5">
                                 <div className="space-y-3">
                                     <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
