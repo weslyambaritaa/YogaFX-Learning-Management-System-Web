@@ -788,9 +788,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
-                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] pb-[50vh] lg:pb-0">
+                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)]">
                     <div className="min-w-0 space-y-0 sm:space-y-6 h-full">
-                        <div className="sticky top-0 z-40 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:top-auto">
+                        <div
+                            className="aspect-video w-full lg:hidden"
+                            aria-hidden="true"
+                        />
+                        <div className="fixed inset-x-0 top-0 z-50 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:inset-auto lg:z-auto">
                             {lessonVideoUrl ? (
                                 <div className="aspect-video w-full">
                                     <VideoJsPlayer
@@ -834,13 +838,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             </div>
 
                             {autoNextCountdown !== null && nextLesson?.title ? (
-                                <div className="absolute inset-x-4 bottom-4 rounded-[5px] border border-white/15 bg-black/60 px-3 py-2.5 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
-                                    <div className="flex items-center justify-between gap-3 sm:gap-4">
-                                        <div className="space-y-1 sm:space-y-2">
-                                            <div className="font-['Montserrat'] text-[11px] font-semibold uppercase tracking-[0.16em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
+                                <div className="absolute inset-x-3 bottom-3 rounded-[5px] border border-white/15 bg-black/70 px-3 py-3 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
+                                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                                        <div className="min-w-0 space-y-1 sm:space-y-2">
+                                            <div className="font-['Montserrat'] text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
                                                 Next Lesson
                                             </div>
-                                            <div className="font-['Montserrat'] text-sm font-semibold text-white sm:text-lg">
+                                            <div className="line-clamp-2 font-['Montserrat'] text-[13px] font-semibold leading-5 text-white sm:text-lg sm:leading-6">
                                                 {nextLesson.title}
                                             </div>
                                             <div className="font-['Montserrat'] text-[11px] text-white/70 sm:text-sm">
@@ -851,7 +855,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         {nextLesson.url ? (
                                             <Button
                                                 asChild
-                                                className="h-auto rounded-[5px] bg-[#DB202C] px-[9px] py-[7px] font-['Montserrat'] text-[11px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
+                                                className="h-auto w-full shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[9px] py-[7px] font-['Montserrat'] text-[11px] font-medium text-white hover:bg-[#c31c28] sm:w-auto sm:px-[10px] sm:py-[8px] sm:text-[14px]"
                                             >
                                                 <Link href={nextLesson.url}>
                                                     Next Lesson
