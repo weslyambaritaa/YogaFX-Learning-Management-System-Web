@@ -2,7 +2,7 @@ import LockedContentDialog from "@/Components/student/LockedContentDialog";
 import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, Link } from "@inertiajs/react";
+import { Head, Link, usePage } from "@inertiajs/react";
 import { ChevronRight, Play, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -609,6 +609,24 @@ export default function StudentHome({
     const bootedRef = useRef(false);
     const rawModules = availableModulesSection?.items ?? [];
     const studentName = studentContext?.display_name ?? "Student";
+    const authUser = usePage().props.auth.user;
+    const accessTierLabel =
+        studentContext?.access_tier?.name ??
+        authUser?.access_tier?.name ??
+        "Access Tier";
+    const mobileAccessTimeParts = formatDurationParts(
+        accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+    );
+    const mobileModuleLessonLabel = [
+        continueLearning?.module?.sort_order
+            ? `MODULE ${continueLearning.module.sort_order}`
+            : null,
+        continueLearning?.lesson?.sort_order
+            ? `LESSON ${continueLearning.lesson.sort_order}`
+            : null,
+    ]
+        .filter(Boolean)
+        .join(" - ");
 
     useEffect(() => {
         if (!bootedRef.current && !localStorage.getItem(ONBOARDING_KEY)) {
@@ -647,11 +665,29 @@ export default function StudentHome({
 
             <section className="sm:hidden">
                 <div className="mx-auto max-w-[1400px] px-4 pt-6">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="rounded-[4px] border border-[#a12626] bg-[#3d1414] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-[#ff6f61]">
+                            {accessTierLabel}
+                        </div>
+                        <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-white/70">
+                            <span>Running time</span>
+                            <span className="font-semibold tracking-[0.08em] text-white">
+                                {mobileAccessTimeParts.hours}:
+                                {mobileAccessTimeParts.minutes}:
+                                {mobileAccessTimeParts.seconds}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="mb-4 text-[26px] font-semibold leading-none text-white">
+                        Hi {studentName}, Welcome Back!
+                    </div>
+
                     <div
-                        className="overflow-hidden rounded-[14px] border border-white/12 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]"
+                        className="overflow-hidden rounded-[14px] border border-white/35 bg-[#120f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)]"
                         style={{ fontFamily: FONT_FAMILY }}
                     >
-                        <div className="relative aspect-[4/5]">
+                        <div className="relative aspect-[0.8]">
                             {continueLearning?.thumbnail_url ? (
                                 <img
                                     src={continueLearning.thumbnail_url}
@@ -668,25 +704,7 @@ export default function StudentHome({
 
                             <div className="absolute inset-x-0 bottom-0 p-4">
                                 <div className="space-y-3 text-white">
-                                    <div
-                                        className="text-white"
-                                        style={{
-                                            fontFamily: FONT_FAMILY,
-                                            fontSize: "14px",
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        {homeExperience?.state ===
-                                        "new_student"
-                                            ? `Hello, ${studentName}`
-                                            : `Welcome back, ${studentName}`}
-                                    </div>
-
                                     <div className="space-y-1.5">
-                                        <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-white/70">
-                                            {continueLearning?.module_label ??
-                                                "Continue Learning"}
-                                        </div>
                                         <h1
                                             className="text-[22px] leading-[1.04] tracking-[-0.03em] text-white"
                                             style={{
@@ -698,19 +716,12 @@ export default function StudentHome({
                                                 homeExperience?.hero_title ??
                                                 "Start your learning journey"}
                                         </h1>
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/78">
+                                            {mobileModuleLessonLabel ||
+                                                (continueLearning?.module_label ??
+                                                    "Continue Learning")}
+                                        </div>
                                     </div>
-
-                                    <p
-                                        className="line-clamp-3 leading-5 text-white/88"
-                                        style={{
-                                            fontFamily: FONT_FAMILY,
-                                            fontSize: "14px",
-                                            fontWeight: 400,
-                                        }}
-                                    >
-                                        {continueLearning?.description ??
-                                            homeExperience?.hero_description}
-                                    </p>
 
                                     <Button
                                         asChild
