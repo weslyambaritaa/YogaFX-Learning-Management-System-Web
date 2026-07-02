@@ -103,6 +103,12 @@ const adminNavigationItems = [
         icon: Mail,
         children: [
             {
+                label: 'Branding',
+                icon: Mail,
+                route: 'admin.email-branding.show',
+                match: ['admin.email-branding.show'],
+            },
+            {
                 label: 'Module Completion',
                 icon: Mail,
                 route: 'admin.email-notifications.show',
@@ -297,6 +303,7 @@ const adminPageTitles = {
     'admin.dialogs.edit': 'Dialog',
     'admin.email-notifications.index': 'Email Notification',
     'admin.email-notifications.show': 'Email Notification',
+    'admin.email-branding.show': 'Email Branding',
     'admin.packages.index': 'Packages',
     'admin.packages.create': 'Create Package',
     'admin.packages.edit': 'Edit Package',

@@ -20,6 +20,7 @@ class TemplatedNotificationMail extends Mailable
         public string $bodyHtml,
         public string $variantLabel,
         public array $attachmentPayloads = [],
+        public array $branding = [],
     ) {
     }
 
@@ -49,19 +50,52 @@ class TemplatedNotificationMail extends Mailable
         return $mail
             ->withSymfonyMessage(function (Email $message) use ($initialHtml): void {
                 $message->html(
-                    Str::contains($this->bodyHtml, '<img', true)
+                    $this->htmlContainsEmbeddableImage($initialHtml)
                         ? $this->buildEmailHtml($message)
                         : $initialHtml,
                 );
             });
     }
 
+    public function previewHtml(): string
+    {
+        return $this->buildEmailHtml();
+    }
+
     private function buildEmailHtml(?Email $message = null): string
     {
-        $renderedBody = $this->bodyHtml;
+        $logoHtml = $this->buildLogoHtml();
+        $headerHtml = $this->htmlFragment($this->branding['header_html'] ?? '');
+        $footerHtml = $this->htmlFragment($this->branding['footer_html'] ?? '');
+        $contentHtml = $this->htmlFragment($this->bodyHtml);
 
-        if ($message !== null && Str::contains($renderedBody, '<img', true)) {
-            $renderedBody = preg_replace_callback(
+        $html = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{$this->escapedSubjectLine()}</title>
+</head>
+<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+    <div style="margin: 0 auto; max-width: 680px; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 18px; background: #ffffff;">
+        <div style="padding: 32px 32px 20px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);">
+            {$logoHtml}
+            {$headerHtml}
+        </div>
+        <div style="padding: 32px;">
+            {$contentHtml}
+        </div>
+        <div style="padding: 20px 32px 28px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+            {$footerHtml}
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+
+        if ($message !== null && $this->htmlContainsEmbeddableImage($html)) {
+            $html = preg_replace_callback(
                 '/<img\b([^>]*)\bsrc=(["\'])(.*?)\2([^>]*)>/i',
                 function (array $matches) use ($message): string {
                     $src = $matches[3] ?? '';
@@ -88,26 +122,11 @@ class TemplatedNotificationMail extends Mailable
                         $matches[4] ?? '',
                     );
                 },
-                $renderedBody,
-            ) ?? $renderedBody;
+                $html,
+            ) ?? $html;
         }
 
-        $content = Str::contains($renderedBody, '<')
-            ? $renderedBody
-            : '<div style="white-space: pre-line;">'.e($renderedBody).'</div>';
-
-        return <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{$this->escapedSubjectLine()}</title>
-</head>
-<body style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-    {$content}
-</body>
-</html>
-HTML;
+        return $html;
     }
 
     private function escapedSubjectLine(): string
@@ -117,6 +136,18 @@ HTML;
 
     private function resolveEmbeddableImagePath(string $src): ?string
     {
+        if ($src === 'branding-logo://inline') {
+            $brandingLogoPath = $this->branding['logo_path'] ?? null;
+
+            if (! is_string($brandingLogoPath) || ! is_file($brandingLogoPath) || ! is_readable($brandingLogoPath)) {
+                return null;
+            }
+
+            $mimeType = mime_content_type($brandingLogoPath) ?: '';
+
+            return str_starts_with($mimeType, 'image/') ? $brandingLogoPath : null;
+        }
+
         $path = parse_url($src, PHP_URL_PATH);
 
         if (is_string($path) && str_starts_with($path, '/storage/email-notifications/media/')) {
@@ -181,5 +212,35 @@ HTML;
         });
 
         return $imagePath;
+    }
+
+    private function buildLogoHtml(): string
+    {
+        $hasLocalLogo = is_string($this->branding['logo_path'] ?? null) && $this->branding['logo_path'] !== '';
+        $logoUrl = is_string($this->branding['logo_url'] ?? null) && $this->branding['logo_url'] !== ''
+            ? $this->branding['logo_url']
+            : ($hasLocalLogo ? 'branding-logo://inline' : '');
+
+        if ($logoUrl === '') {
+            return '';
+        }
+
+        $alt = e((string) ($this->branding['app_name'] ?? config('app.name', 'YogaFX LMS')));
+
+        return '<div style="margin-bottom: 20px;"><img src="'.e($logoUrl).'" alt="'.$alt.'" style="display: block; max-width: 180px; width: auto; height: auto;"></div>';
+    }
+
+    private function htmlFragment(string $content): string
+    {
+        if (! Str::contains($content, '<')) {
+            return '<div style="white-space: pre-line;">'.e($content).'</div>';
+        }
+
+        return $content;
+    }
+
+    private function htmlContainsEmbeddableImage(string $html): bool
+    {
+        return Str::contains($html, '<img', true);
     }
 }

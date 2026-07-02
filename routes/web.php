@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AssessmentPreviewController;
 use App\Http\Controllers\Admin\AssessmentResultController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\DialogContentController as AdminDialogContentController;
+use App\Http\Controllers\Admin\EmailBrandingController;
 use App\Http\Controllers\Admin\EmailNotificationController;
 use App\Http\Controllers\Admin\EbookController;
 use App\Http\Controllers\Admin\LessonController;
@@ -236,6 +237,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/dialogs', [AdminDialogContentController::class, 'update'])->name('dialogs.update');
 
         Route::redirect('/email-notifications', '/admin/email-notifications/module_completion')->name('email-notifications.index');
+        Route::get('/email-branding', [EmailBrandingController::class, 'show'])->name('email-branding.show');
+        Route::patch('/email-branding', [EmailBrandingController::class, 'update'])->name('email-branding.update');
         Route::get('/email-notifications/{notificationType}', [EmailNotificationController::class, 'show'])->name('email-notifications.show');
         Route::patch('/email-notifications/{notificationType}', [EmailNotificationController::class, 'update'])->name('email-notifications.update');
         Route::post('/email-notifications/{notificationType}/media', [EmailNotificationController::class, 'uploadMedia'])->name('email-notifications.media');

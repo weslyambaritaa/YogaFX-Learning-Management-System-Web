@@ -7,6 +7,7 @@ use App\Models\AccessTier;
 use App\Models\Assessment;
 use App\Models\AssessmentDesign;
 use App\Models\Course;
+use App\Models\EmailBranding;
 use App\Models\Ebook;
 use App\Models\Lesson;
 use App\Models\QuestionOption;
@@ -105,6 +106,12 @@ class ContentFileController extends Controller
                     'logo' => ['download' => false],
                 ],
             ],
+            'email-branding' => [
+                'model' => EmailBranding::class,
+                'fields' => [
+                    'logo_path' => ['download' => false],
+                ],
+            ],
             'question-option' => [
                 'model' => QuestionOption::class,
                 'fields' => [
@@ -159,6 +166,12 @@ class ContentFileController extends Controller
             $assessment = $record->assessment;
             abort_unless($assessment, 403);
             $this->authorizeAccess($request, $assessment);
+
+            return;
+        }
+
+        if ($record instanceof EmailBranding) {
+            abort_unless($user->isAdmin(), 403);
 
             return;
         }
