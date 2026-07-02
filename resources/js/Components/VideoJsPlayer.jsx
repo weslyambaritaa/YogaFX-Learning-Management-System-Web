@@ -484,14 +484,14 @@ export default function VideoJsPlayer({
                     ) : null}
                 </div>
 
-                <button
-                    type="button"
-                    aria-label={
-                        controlsVisible ? 'Hide video controls' : 'Show video controls'
-                    }
-                    onClick={toggleControlsVisibility}
-                    className="absolute inset-0 z-[25] cursor-default bg-transparent"
-                />
+                {!controlsVisible ? (
+                    <button
+                        type="button"
+                        aria-label="Show video controls"
+                        onClick={toggleControlsVisibility}
+                        className="absolute inset-0 z-[35] cursor-default bg-transparent"
+                    />
+                ) : null}
 
                 <div
                     className={[
@@ -499,7 +499,14 @@ export default function VideoJsPlayer({
                         controlsVisible ? 'opacity-100' : 'pointer-events-none opacity-0',
                     ].join(' ')}
                 >
-                    <div className="flex h-full flex-col justify-between p-3 sm:p-4">
+                    <button
+                        type="button"
+                        aria-label="Hide video controls"
+                        onClick={toggleControlsVisibility}
+                        className="pointer-events-auto absolute inset-0 bg-transparent"
+                    />
+
+                    <div className="relative flex h-full flex-col justify-between p-3 sm:p-4">
                         <div />
 
                         <div
