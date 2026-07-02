@@ -185,6 +185,78 @@ class ProfileTest extends TestCase
         $this->assertNotNull($onboardingState->enrollment_completed_at);
     }
 
+    public function test_enrollment_accepts_10_plus_hours_per_week_without_failing(): void
+    {
+        $accessTier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => 'online',
+        ]);
+
+        $user = User::factory()->student()->create([
+            'access_tier_id' => $accessTier->id,
+            'first_name' => 'Hours',
+            'last_name' => 'Tester',
+            'email' => 'hours-tester@example.com',
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $accessTier->id,
+            'package_id' => null,
+            'first_name' => 'Hours',
+            'last_name' => 'Tester',
+            'email' => 'hours-tester@example.com',
+            'phone' => '+62 8111111111',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 100,
+            'currency_code' => 'USD',
+            'status' => PendingRegistration::STATUS_PAYMENT_SUCCESS,
+        ]);
+
+        $onboardingState = OnboardingState::query()->create([
+            'pending_registration_id' => $pendingRegistration->id,
+            'user_id' => $user->id,
+            'status' => OnboardingState::STATUS_AWAITING_ENROLLMENT,
+        ]);
+
+        $response = $this->post(
+            URL::temporarySignedRoute(
+                'onboarding.enrollment.store',
+                now()->addMinutes(5),
+                ['onboardingState' => $onboardingState->id],
+            ),
+            [
+                'first_name' => 'Hours',
+                'last_name' => 'Tester',
+                'email' => 'hours-tester@example.com',
+                'whatsapp_country_code' => '+62',
+                'whatsapp_number' => '81333333333',
+                'instagram' => '@hourstester',
+                'country' => 'Indonesia',
+                'birth_date' => '1994-04-21',
+                'gender' => 'male',
+                'practicing_yoga_for' => '4_to_6_years',
+                'yoga_sequence_experience' => ['bikram', 'yin'],
+                'hours_per_week' => '10_plus',
+                'current_fitness_level' => 'good',
+                'flexibility_rating' => 'average',
+                'motivation' => 'Complete my onboarding profile properly.',
+                'why_yogafx' => 'It matches my learning goals.',
+                'how_did_you_find_us' => ['google'],
+            ],
+        );
+
+        $response->assertSessionHasNoErrors();
+        $this->assertNotNull($response->headers->get('Location'));
+        $this->assertStringContainsString('/signup', (string) $response->headers->get('Location'));
+
+        $user->refresh();
+        $onboardingState->refresh();
+
+        $this->assertSame('10_plus', $user->hours_per_week);
+        $this->assertSame(OnboardingState::STATUS_AWAITING_SIGNUP, $onboardingState->status);
+        $this->assertNotNull($onboardingState->enrollment_completed_at);
+    }
+
     public function test_admin_can_view_student_list(): void
     {
         $admin = User::factory()->admin()->create();
