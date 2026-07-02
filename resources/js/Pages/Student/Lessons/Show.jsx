@@ -331,6 +331,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const moduleLabel = lesson.module?.sort_order
         ? `Module ${lesson.module.sort_order}`
         : "Lesson";
+    const withAutoplayQuery = (url) => {
+        if (!url) {
+            return null;
+        }
+
+        return url.includes("?") ? `${url}&autoplay=1` : `${url}?autoplay=1`;
+    };
     const nextTarget = useMemo(() => {
         if (assessmentState && !assessmentState.is_completed) {
             return {
@@ -778,7 +785,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
             if (!autoNextNavigatingRef.current && nextTarget?.url) {
                 autoNextNavigatingRef.current = true;
-                router.visit(nextTarget.url);
+                router.visit(
+                    nextTarget.type === "lesson"
+                        ? withAutoplayQuery(nextTarget.url)
+                        : nextTarget.url,
+                );
             }
 
             return;
