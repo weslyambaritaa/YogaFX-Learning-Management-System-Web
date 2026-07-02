@@ -841,77 +841,90 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             className="aspect-video w-full lg:hidden"
                             aria-hidden="true"
                         />
-                        <div className="fixed inset-x-0 top-20 z-50 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:inset-auto lg:z-auto lg:relative">
-                            {lessonVideoUrl ? (
-                                <div className="aspect-video w-full">
-                                    <VideoJsPlayer
-                                        src={lessonVideoUrl}
-                                        poster={lesson.thumbnail_url}
-                                        className="h-full w-full overflow-hidden"
-                                        autoplay={Boolean(lesson.autoplay)}
-                                        hideProgressHandle={
-                                            autoNextCountdown !== null
-                                        }
-                                        onPlaybackError={setPlayerWarning}
-                                        onProgressUpdate={handleProgressUpdate}
-                                        onTimeUpdate={handlePlayerTimeUpdate}
-                                        onPlaybackStateChange={
-                                            setIsPlayerPlaying
-                                        }
-                                    />
-                                </div>
-                            ) : lesson.thumbnail_url ? (
-                                <div className="aspect-video w-full overflow-hidden">
-                                    <img
-                                        src={lesson.thumbnail_url}
-                                        alt={lesson.title}
-                                        className="h-full w-full object-cover opacity-70"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="aspect-video w-full bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
-                            )}
-                            {autoNextCountdown !== null && nextTarget?.title ? (
-                                <div className="absolute inset-x-2 bottom-2 z-20 rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4 lg:inset-x-auto lg:bottom-5 lg:right-5 lg:w-[min(360px,calc(100%-2.5rem))]">
-                                    <div className="flex min-w-0 items-end justify-between gap-2 sm:items-center sm:gap-4">
-                                        <div className="min-w-0 space-y-1 sm:space-y-2">
-                                            <div className="font-['Montserrat'] text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
-                                                {nextTarget.kicker}
-                                            </div>
-                                            <div className="line-clamp-1 font-['Montserrat'] text-[11px] font-semibold leading-4 text-white sm:line-clamp-2 sm:text-lg sm:leading-6">
-                                                {nextTarget.title}
-                                            </div>
-                                            <div className="font-['Montserrat'] text-[10px] text-white/70 sm:text-sm">
-                                                Continue in {autoNextCountdown}{" "}
-                                                seconds
-                                            </div>
-                                        </div>
-                                        {nextTarget.url ? (
-                                            <Button
-                                                asChild
-                                                className="h-auto shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[7px] py-[5px] font-['Montserrat'] text-[10px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
-                                            >
-                                                <Link href={nextTarget.url}>
-                                                    <span className="sm:hidden">
-                                                        Next
-                                                    </span>
-                                                    <span className="hidden sm:inline">
-                                                        {nextTarget.button_label}
-                                                    </span>
-                                                </Link>
-                                            </Button>
-                                        ) : null}
-                                    </div>
-                                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
-                                        <div
-                                            className="h-full rounded-full bg-[#DB202C]"
-                                            style={{
-                                                width: `${autoNextProgress}%`,
-                                            }}
+                        <div className="fixed inset-x-0 top-20 z-50 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:inset-auto lg:z-auto">
+                            <div className="relative w-full overflow-hidden">
+                                {lessonVideoUrl ? (
+                                    <div className="aspect-video w-full">
+                                        <VideoJsPlayer
+                                            src={lessonVideoUrl}
+                                            poster={lesson.thumbnail_url}
+                                            className="h-full w-full overflow-hidden"
+                                            autoplay={Boolean(lesson.autoplay)}
+                                            hideProgressHandle={
+                                                autoNextCountdown !== null
+                                            }
+                                            onPlaybackError={
+                                                setPlayerWarning
+                                            }
+                                            onProgressUpdate={
+                                                handleProgressUpdate
+                                            }
+                                            onTimeUpdate={
+                                                handlePlayerTimeUpdate
+                                            }
+                                            onPlaybackStateChange={
+                                                setIsPlayerPlaying
+                                            }
                                         />
                                     </div>
-                                </div>
-                            ) : null}
+                                ) : lesson.thumbnail_url ? (
+                                    <div className="aspect-video w-full overflow-hidden">
+                                        <img
+                                            src={lesson.thumbnail_url}
+                                            alt={lesson.title}
+                                            className="h-full w-full object-cover opacity-70"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="aspect-video w-full bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
+                                )}
+                                {autoNextCountdown !== null &&
+                                nextTarget?.title ? (
+                                    <div className="absolute inset-x-2 bottom-2 z-20 rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4 lg:inset-x-auto lg:bottom-5 lg:right-5 lg:w-[min(360px,calc(100%-2.5rem))]">
+                                        <div className="flex min-w-0 items-end justify-between gap-2 sm:items-center sm:gap-4">
+                                            <div className="min-w-0 space-y-1 sm:space-y-2">
+                                                <div className="font-['Montserrat'] text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
+                                                    {nextTarget.kicker}
+                                                </div>
+                                                <div className="line-clamp-1 font-['Montserrat'] text-[11px] font-semibold leading-4 text-white sm:line-clamp-2 sm:text-lg sm:leading-6">
+                                                    {nextTarget.title}
+                                                </div>
+                                                <div className="font-['Montserrat'] text-[10px] text-white/70 sm:text-sm">
+                                                    Continue in{" "}
+                                                    {autoNextCountdown} seconds
+                                                </div>
+                                            </div>
+                                            {nextTarget.url ? (
+                                                <Button
+                                                    asChild
+                                                    className="h-auto shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[7px] py-[5px] font-['Montserrat'] text-[10px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
+                                                >
+                                                    <Link
+                                                        href={nextTarget.url}
+                                                    >
+                                                        <span className="sm:hidden">
+                                                            Next
+                                                        </span>
+                                                        <span className="hidden sm:inline">
+                                                            {
+                                                                nextTarget.button_label
+                                                            }
+                                                        </span>
+                                                    </Link>
+                                                </Button>
+                                            ) : null}
+                                        </div>
+                                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
+                                            <div
+                                                className="h-full rounded-full bg-[#DB202C]"
+                                                style={{
+                                                    width: `${autoNextProgress}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
                         <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
                             <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:border-t-0 sm:p-6 lg:p-8">
