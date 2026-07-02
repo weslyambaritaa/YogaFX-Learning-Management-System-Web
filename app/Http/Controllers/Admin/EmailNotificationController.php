@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\EmailTemplateMediaUploadRequest;
 use App\Http\Requests\Admin\EmailTemplateSendTestRequest;
 use App\Http\Requests\Admin\EmailTemplateUpdateRequest;
 use App\Models\Module;
+use App\Services\EmailBrandingService;
 use App\Services\EmailNotificationService;
 use App\Services\BunnyStorageService;
 use App\Support\EmailNotificationTypeRegistry;
@@ -23,6 +24,7 @@ class EmailNotificationController extends Controller
 
     public function __construct(
         private readonly EmailNotificationService $emailNotificationService,
+        private readonly EmailBrandingService $emailBrandingService,
         private readonly BunnyStorageService $bunnyStorageService,
     ) {}
 
@@ -57,6 +59,10 @@ class EmailNotificationController extends Controller
                 'title' => $module->title,
             ])->values(),
             'availableMergeTags' => EmailNotificationTypeRegistry::mergeTagsFor($notificationType),
+            'brandingSettingsUrl' => route('admin.email-branding.show'),
+            'brandingSummary' => [
+                'logo_url' => $this->emailBrandingService->logoPreviewUrl(),
+            ],
             'statusMessage' => session('status_message'),
             'statusTone' => session('status_tone'),
         ]);

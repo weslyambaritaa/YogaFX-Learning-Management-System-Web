@@ -16,6 +16,8 @@ export default function EmailNotificationShow({
     template,
     modules,
     availableMergeTags,
+    brandingSettingsUrl,
+    brandingSummary,
     statusMessage,
     statusTone,
 }) {
@@ -270,6 +272,34 @@ export default function EmailNotificationShow({
                                 onSubmit={submitTemplate}
                                 className="space-y-6 rounded-lg bg-white p-6 shadow-sm"
                             >
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-slate-900">
+                                                Global Branding
+                                            </h3>
+                                            <p className="mt-1 text-sm text-slate-500">
+                                                Logo, header, and footer are managed once globally and applied
+                                                automatically to this notification email.
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            {brandingSummary?.logo_url ? (
+                                                <img
+                                                    src={brandingSummary.logo_url}
+                                                    alt="Global email branding logo"
+                                                    className="max-h-10 w-auto object-contain"
+                                                />
+                                            ) : null}
+
+                                            <Button asChild type="button" variant="outline">
+                                                <a href={brandingSettingsUrl}>Manage Branding</a>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <h3 className="text-lg font-semibold text-slate-900">
@@ -345,7 +375,7 @@ export default function EmailNotificationShow({
                                             </h4>
                                             <p className="mt-1 text-xs text-slate-500">
                                                 Sent to admin recipients when admin
-                                                copy is configured.
+                                                copy is configured. Global branding is added automatically.
                                             </p>
                                         </div>
 
@@ -393,7 +423,7 @@ export default function EmailNotificationShow({
                                             </h4>
                                             <p className="mt-1 text-xs text-slate-500">
                                                 Sent to the user when user-facing
-                                                content is configured.
+                                                content is configured. Global branding is added automatically.
                                             </p>
                                         </div>
 

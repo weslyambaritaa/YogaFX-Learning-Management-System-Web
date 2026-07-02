@@ -28,6 +28,10 @@ class EmailNotificationService
     private const EMAIL_PLACEHOLDER_PATTERN = '/{{\s*([\w_]+)\s*}}|(?<!{){\s*([\w_]+)\s*}(?!})/';
     private const REMINDER_INACTIVITY_THRESHOLD_MINUTES = 10;
 
+    public function __construct(
+        private readonly EmailBrandingService $emailBrandingService,
+    ) {}
+
     public function findOrCreateTemplate(string $notificationType): EmailTemplate
     {
         return EmailTemplate::query()->firstOrCreate(
@@ -65,15 +69,21 @@ class EmailNotificationService
             $mailer = $this->activeSendTestMailer();
 
             if ($mailer['transport'] !== 'smtp') {
-                foreach ($deliveries as $delivery) {
-                    $this->storeLog(
-                        template: $template,
-                        notificationType: $notificationType,
-                        subject: $delivery['subject'],
-                        body: $delivery['body'],
-                        recipientEmail: $sendTo,
-                        recipientType: $delivery['recipient_type'],
-                        status: 'not_sent',
+            foreach ($deliveries as $delivery) {
+                $snapshotBody = $this->brandedBodySnapshot(
+                    $delivery['subject'],
+                    $delivery['body'],
+                    $delivery['variant_label'],
+                );
+
+                $this->storeLog(
+                    template: $template,
+                    notificationType: $notificationType,
+                    subject: $delivery['subject'],
+                    body: $snapshotBody,
+                    recipientEmail: $sendTo,
+                    recipientType: $delivery['recipient_type'],
+                    status: 'not_sent',
                         referenceType: 'test',
                         referenceId: null,
                         errorMessage: $mailer['message'],
@@ -92,6 +102,8 @@ class EmailNotificationService
                     $delivery['subject'],
                     $delivery['body'],
                     $delivery['variant_label'],
+                    [],
+                    $this->emailBrandingService->currentBrandingPayload(),
                 );
 
                 if (app()->environment('testing')) {
@@ -106,7 +118,7 @@ class EmailNotificationService
                     template: $template,
                     notificationType: $notificationType,
                     subject: $delivery['subject'],
-                    body: $delivery['body'],
+                    body: $mailable->previewHtml(),
                     recipientEmail: $sendTo,
                     recipientType: $delivery['recipient_type'],
                     status: 'sent',
@@ -131,11 +143,17 @@ class EmailNotificationService
                 'body' => '',
                 'variant_label' => 'Test Email',
             ]] : $deliveries as $delivery) {
+                $snapshotBody = $this->brandedBodySnapshot(
+                    $delivery['subject'],
+                    $delivery['body'],
+                    $delivery['variant_label'],
+                );
+
                 $this->storeLog(
                     template: $template,
                     notificationType: $notificationType,
                     subject: $delivery['subject'],
-                    body: $delivery['body'],
+                    body: $snapshotBody,
                     recipientEmail: $sendTo,
                     recipientType: $delivery['recipient_type'],
                     status: 'failed',
@@ -585,14 +603,22 @@ class EmailNotificationService
     ): void {
         try {
             Mail::to($recipientEmail)->send(
-                new TemplatedNotificationMail($subject, $body, $variantLabel, $attachments),
+                new TemplatedNotificationMail(
+                    $subject,
+                    $body,
+                    $variantLabel,
+                    $attachments,
+                    $this->emailBrandingService->currentBrandingPayload(),
+                ),
             );
+
+            $snapshotBody = $this->brandedBodySnapshot($subject, $body, $variantLabel, $attachments);
 
             $this->storeLog(
                 template: $template,
                 notificationType: $notificationType,
                 subject: $subject,
-                body: $body,
+                body: $snapshotBody,
                 recipientEmail: $recipientEmail,
                 recipientType: $recipientType,
                 status: 'sent',
@@ -600,11 +626,13 @@ class EmailNotificationService
                 referenceId: $referenceId,
             );
         } catch (Throwable $throwable) {
+            $snapshotBody = $this->brandedBodySnapshot($subject, $body, $variantLabel, $attachments);
+
             $this->storeLog(
                 template: $template,
                 notificationType: $notificationType,
                 subject: $subject,
-                body: $body,
+                body: $snapshotBody,
                 recipientEmail: $recipientEmail,
                 recipientType: $recipientType,
                 status: 'failed',
@@ -657,6 +685,21 @@ class EmailNotificationService
         throw new RuntimeException(
             'The active template is incomplete. Fill at least one full email variant before sending a test.',
         );
+    }
+
+    private function brandedBodySnapshot(
+        string $subject,
+        string $body,
+        string $variantLabel,
+        array $attachments = [],
+    ): string {
+        return (new TemplatedNotificationMail(
+            $subject,
+            $body,
+            $variantLabel,
+            $attachments,
+            $this->emailBrandingService->currentBrandingPayload(),
+        ))->previewHtml();
     }
 
     private function renderStrict(string $content, array $payload, string $context): string

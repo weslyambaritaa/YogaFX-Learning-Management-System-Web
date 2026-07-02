@@ -10,6 +10,7 @@ use App\Mail\TemplatedNotificationMail;
 use App\Models\AccessTier;
 use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
+use App\Models\EmailBranding;
 use App\Models\EmailTemplate;
 use App\Models\Invoice;
 use App\Models\Lesson;
@@ -31,6 +32,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -131,6 +133,32 @@ class EmailNotificationTest extends TestCase
             'recipient_type' => 'test_user',
             'status' => 'sent',
         ]);
+    }
+
+    public function test_admin_can_view_and_save_global_email_branding(): void
+    {
+        Storage::fake('local');
+
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->get(route('admin.email-branding.show'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/EmailNotifications/Branding'));
+
+        $this->actingAs($admin)->post(route('admin.email-branding.update'), [
+            '_method' => 'patch',
+            'logo' => UploadedFile::fake()->image('branding-logo.png'),
+            'header_html' => '<p>Global Header</p>',
+            'footer_html' => '<p>Global Footer</p>',
+        ])->assertRedirect(route('admin.email-branding.show'));
+
+        $branding = EmailBranding::query()->firstOrFail();
+
+        $this->assertSame(EmailBranding::GLOBAL_KEY, $branding->singleton_key);
+        $this->assertSame('<p>Global Header</p>', $branding->header_html);
+        $this->assertSame('<p>Global Footer</p>', $branding->footer_html);
+        Storage::disk('local')->assertExists((string) $branding->logo_path);
     }
 
     public function test_signup_notification_ui_exposes_only_current_merge_tags_and_new_defaults(): void
@@ -272,6 +300,93 @@ class EmailNotificationTest extends TestCase
             'recipient_email' => 'qa@yogafx.test',
             'status' => 'sent',
         ]);
+    }
+
+    public function test_global_email_branding_is_applied_to_multiple_notification_types_and_updates_once(): void
+    {
+        Mail::fake();
+
+        $admin = User::factory()->admin()->create();
+
+        EmailBranding::query()->create([
+            'singleton_key' => EmailBranding::GLOBAL_KEY,
+            'header_html' => '<p>Unified Header A</p>',
+            'footer_html' => '<p>Unified Footer A</p>',
+        ]);
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'notification_name' => 'Payment Success',
+            'is_enabled' => true,
+            'admin_recipients' => 'ops@yogafx.test',
+            'subject_user' => 'Payment success',
+            'body_user' => '<p>Payment Body A</p>',
+            'subject_admin' => 'Payment success admin',
+            'body_admin' => '<p>Payment Admin Body A</p>',
+        ]);
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            'notification_name' => 'Enrollment Success',
+            'is_enabled' => true,
+            'admin_recipients' => 'ops@yogafx.test',
+            'subject_user' => 'Enrollment success',
+            'body_user' => '<p>Enrollment Body A</p>',
+            'subject_admin' => 'Enrollment success admin',
+            'body_admin' => '<p>Enrollment Admin Body A</p>',
+        ]);
+
+        foreach ([
+            EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+        ] as $notificationType) {
+            $this->actingAs($admin)->post(
+                route('admin.email-notifications.send-test', ['notificationType' => $notificationType]),
+                [
+                    'notification_type' => $notificationType,
+                    'send_to' => 'qa@yogafx.test',
+                ],
+            )->assertRedirect();
+        }
+
+        $paymentLog = \App\Models\EmailLog::query()
+            ->where('notification_type', EmailNotificationTypeRegistry::PAYMENT_SUCCESS)
+            ->where('recipient_type', 'test_user')
+            ->firstOrFail();
+        $enrollmentLog = \App\Models\EmailLog::query()
+            ->where('notification_type', EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS)
+            ->where('recipient_type', 'test_user')
+            ->firstOrFail();
+
+        $this->assertStringContainsString('Unified Header A', $paymentLog->body_snapshot);
+        $this->assertStringContainsString('Unified Footer A', $paymentLog->body_snapshot);
+        $this->assertStringContainsString('Payment Body A', $paymentLog->body_snapshot);
+        $this->assertStringContainsString('Unified Header A', $enrollmentLog->body_snapshot);
+        $this->assertStringContainsString('Unified Footer A', $enrollmentLog->body_snapshot);
+        $this->assertStringContainsString('Enrollment Body A', $enrollmentLog->body_snapshot);
+
+        EmailBranding::query()->update([
+            'header_html' => '<p>Unified Header B</p>',
+            'footer_html' => '<p>Unified Footer B</p>',
+        ]);
+
+        $this->actingAs($admin)->post(
+            route('admin.email-notifications.send-test', ['notificationType' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS]),
+            [
+                'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+                'send_to' => 'qa-second@yogafx.test',
+            ],
+        )->assertRedirect();
+
+        $updatedLog = \App\Models\EmailLog::query()
+            ->where('notification_type', EmailNotificationTypeRegistry::PAYMENT_SUCCESS)
+            ->where('recipient_email', 'qa-second@yogafx.test')
+            ->where('recipient_type', 'test_user')
+            ->firstOrFail();
+
+        $this->assertStringContainsString('Unified Header B', $updatedLog->body_snapshot);
+        $this->assertStringContainsString('Unified Footer B', $updatedLog->body_snapshot);
+        $this->assertStringNotContainsString('Unified Header A', $updatedLog->body_snapshot);
     }
 
     public function test_signup_send_test_supports_legacy_continuation_url_templates_without_missing_variable_error(): void
