@@ -23,6 +23,7 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Services\PaymentFinalizerService;
 use App\Services\StudentLearningMilestoneEmailService;
+use App\Support\PublicUrl;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -483,11 +484,14 @@ class EmailNotificationTest extends TestCase
                 'password' => 'StrongPassword123!',
                 'password_confirmation' => 'StrongPassword123!',
             ],
-        )
-            ->assertRedirect(route('login'))
-            ->assertSessionHas('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+        )->assertRedirect(route('student.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
 
         Mail::assertSent(TemplatedNotificationMail::class, 2);
+        Mail::assertSent(TemplatedNotificationMail::class, function (TemplatedNotificationMail $mail): bool {
+            return str_contains($mail->render(), PublicUrl::studentLogin());
+        });
         $this->assertDatabaseHas('email_logs', [
             'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
             'reference_type' => 'user',
@@ -643,9 +647,9 @@ class EmailNotificationTest extends TestCase
         $this->post($signedUrl, [
             'password' => 'StrongPassword123!',
             'password_confirmation' => 'StrongPassword123!',
-        ])
-            ->assertRedirect(route('login'))
-            ->assertSessionHas('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+        ])->assertRedirect(route('student.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
 
         $this->post($signedUrl, [
             'password' => 'StrongPassword123!',
@@ -707,9 +711,9 @@ class EmailNotificationTest extends TestCase
                 'password' => 'StrongPassword123!',
                 'password_confirmation' => 'StrongPassword123!',
             ],
-        )
-            ->assertRedirect(route('login'))
-            ->assertSessionHas('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+        )->assertRedirect(route('student.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
 
         Mail::assertNothingSent();
         $this->assertDatabaseMissing('email_logs', [

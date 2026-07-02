@@ -67,6 +67,8 @@ return [
 
     'public_url' => env('APP_PUBLIC_URL', env('APP_URL', 'http://localhost')),
 
+    'student_login_url' => env('APP_STUDENT_LOGIN_URL', 'https://app-academy.26and2yoga.com/login'),
+
     /*
     |--------------------------------------------------------------------------
     | Force HTTPS URLs

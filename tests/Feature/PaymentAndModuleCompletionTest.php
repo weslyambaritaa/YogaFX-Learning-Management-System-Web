@@ -458,9 +458,9 @@ class PaymentAndModuleCompletionTest extends TestCase
             ],
         );
 
-        $response
-            ->assertRedirect(route('login'))
-            ->assertSessionHas('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+        $response->assertRedirect(route('student.dashboard'));
+
+        $this->assertAuthenticatedAs($user);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,

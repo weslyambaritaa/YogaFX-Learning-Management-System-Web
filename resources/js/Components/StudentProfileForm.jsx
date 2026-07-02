@@ -856,7 +856,13 @@ export default function StudentProfileForm({
                                 className={theme.labelClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
-                            <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]">
+                            <div
+                                className={`mt-2 grid items-start gap-4 ${
+                                    isEnrollment
+                                        ? "grid-cols-[104px_minmax(0,1fr)] sm:grid-cols-[118px_minmax(0,1fr)] md:grid-cols-[132px_minmax(0,1fr)]"
+                                        : "grid-cols-[128px_minmax(0,1fr)] sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]"
+                                }`}
+                            >
                                 <FlagOptionSelect
                                     id="whatsapp_country_code"
                                     value={data.whatsapp_country_code ?? "+62"}

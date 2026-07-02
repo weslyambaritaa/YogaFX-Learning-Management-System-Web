@@ -196,7 +196,7 @@ class CheckoutController extends Controller
             return response()->json([
                 'status' => 'onboarding_ready',
                 'onboarding_ready' => true,
-                'onboarding_url' => $this->resolveOnboardingUrl($pendingRegistration->onboardingState),
+                'onboarding_url' => $this->paymentFlow->paymentSuccessUrl($pendingRegistration->onboardingState),
                 'message' => 'Your first installment payment has been confirmed. Continue to enrollment.',
             ]);
         }
@@ -439,14 +439,5 @@ class CheckoutController extends Controller
             'intent' => 'capture',
             'environment' => $this->paypalService->environment(),
         ];
-    }
-
-    private function resolveOnboardingUrl(\App\Models\OnboardingState $onboardingState): string
-    {
-        return match ($onboardingState->status) {
-            \App\Models\OnboardingState::STATUS_AWAITING_SIGNUP => $this->paymentFlow->signupUrl($onboardingState),
-            \App\Models\OnboardingState::STATUS_COMPLETED => route('login'),
-            default => $this->paymentFlow->enrollmentUrl($onboardingState),
-        };
     }
 }

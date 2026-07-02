@@ -292,7 +292,7 @@ class InstallmentWebhookHandlerTest extends TestCase
             ->assertJsonPath('onboarding_ready', true);
 
         $this->assertIsString($response->json('onboarding_url'));
-        $this->assertStringContainsString('/onboarding/', $response->json('onboarding_url'));
+        $this->assertStringContainsString('/payment-success', $response->json('onboarding_url'));
     }
 
     public function test_recurring_payment_success_reactivates_inactive_user_and_can_complete_invoice(): void

@@ -11,6 +11,7 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
 use App\Support\EmailNotificationTypeRegistry;
+use App\Support\PublicUrl;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -65,7 +66,7 @@ class StudentLearningMilestoneEmailService
                 'course_progress' => $this->courseProgressPercentage($accessibleModules, $lessonProgressMap, $completedAssessmentIds).'%',
                 'study_time' => $this->studyTimeLabel($user),
                 'dashboard_url' => route('student.dashboard'),
-                'login_url' => route('login'),
+                'login_url' => PublicUrl::studentLogin(),
             ], 'module', $module->id));
         }
 
@@ -94,7 +95,7 @@ class StudentLearningMilestoneEmailService
                 'completion_date' => now()->format('Y-m-d H:i'),
                 'course_progress' => '100%',
                 'dashboard_url' => route('student.dashboard'),
-                'login_url' => route('login'),
+                'login_url' => PublicUrl::studentLogin(),
             ], 'learning_path', $user->id));
         }
     }

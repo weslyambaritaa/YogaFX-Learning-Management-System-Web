@@ -11,6 +11,17 @@ class PublicUrl
         return rtrim((string) config('app.public_url', config('app.url', 'http://localhost')), '/');
     }
 
+    public static function studentLogin(): string
+    {
+        $configuredUrl = trim((string) config('app.student_login_url', ''));
+
+        if ($configuredUrl !== '') {
+            return rtrim($configuredUrl, '/');
+        }
+
+        return self::fromRelativePath('/login');
+    }
+
     public static function fromRelativePath(string $path = ''): string
     {
         $normalizedPath = trim($path);

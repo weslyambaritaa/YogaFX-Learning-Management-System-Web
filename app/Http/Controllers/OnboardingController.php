@@ -11,6 +11,7 @@ use App\Services\EmailNotificationService;
 use App\Services\PaymentCheckoutService;
 use App\Support\StudentProfileValue;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -175,6 +176,9 @@ class OnboardingController extends Controller
             $onboardingState->fresh(['pendingRegistration', 'user.accessTier']),
         );
 
-        return redirect()->route('login')->with('status', 'Your YogaFX account is now active. Please sign in with your new password.');
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->route('student.dashboard');
     }
 }

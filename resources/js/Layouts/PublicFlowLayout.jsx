@@ -9,7 +9,7 @@ export default function PublicFlowLayout({
     aside,
     children,
     footer,
-    showBackButton = true,
+    showBackButton = false,
 }) {
     return (
         <>

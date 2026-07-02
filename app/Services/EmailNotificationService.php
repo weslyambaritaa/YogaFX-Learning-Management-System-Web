@@ -16,6 +16,7 @@ use App\Models\UserSession;
 use App\Models\Lesson;
 use App\Support\EmailNotificationTemplateDefaults;
 use App\Support\EmailNotificationTypeRegistry;
+use App\Support\PublicUrl;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
@@ -275,7 +276,7 @@ class EmailNotificationService
                     ?? $user->created_at,
                 )->toDateString() ?? now()->toDateString(),
                 'dashboard_url' => route('student.dashboard'),
-                'login_url' => route('login'),
+                'login_url' => $this->studentLoginUrl(),
             ],
             $referenceType,
             $referenceId,
@@ -385,7 +386,7 @@ class EmailNotificationService
                 'auth.passwords.'.config('auth.defaults.passwords').'.expire',
                 60,
             ),
-            'login_url' => route('login'),
+            'login_url' => $this->studentLoginUrl(),
         ], 'user', $user->id));
     }
 
@@ -459,7 +460,7 @@ class EmailNotificationService
                     'last_activity_date' => $lastAccessAt->toDateTimeString(),
                     'inactive_days' => (string) $inactiveMinutes,
                     'dashboard_url' => route('student.dashboard'),
-                    'login_url' => route('login'),
+                    'login_url' => $this->studentLoginUrl(),
                 ], 'user', $user->id));
 
                 $sentCount++;
@@ -838,7 +839,7 @@ class EmailNotificationService
             'otp' => $otpCode,
             'otp_code' => $otpCode,
             'reset_expiry_minutes' => (string) $expiresInMinutes,
-            'login_url' => route('login'),
+            'login_url' => $this->studentLoginUrl(),
         ];
 
         $deliveries = $this->buildDeliveries($template, $payload);
@@ -933,7 +934,7 @@ class EmailNotificationService
             'grace_deadline_at' => now()->addMonth()->addDays(3)->format('Y-m-d'),
             'payment_completed_at' => now()->format('Y-m-d H:i'),
             'dashboard_url' => route('student.dashboard'),
-            'login_url' => route('login'),
+            'login_url' => $this->studentLoginUrl(),
         ];
 
         $base['notification_type'] = $notificationType;
@@ -1005,6 +1006,11 @@ class EmailNotificationService
             ->where('reference_id', $referenceId)
             ->where('status', 'sent')
             ->exists();
+    }
+
+    private function studentLoginUrl(): string
+    {
+        return PublicUrl::studentLogin();
     }
 
     private function latestStudentAccessAt(User $user)

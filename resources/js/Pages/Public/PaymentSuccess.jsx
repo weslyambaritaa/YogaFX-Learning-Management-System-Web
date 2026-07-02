@@ -65,7 +65,7 @@ export default function PaymentSuccess({ onboarding, student }) {
                         className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
                     >
                         <Link href={onboarding.continue_url}>
-                            Go to Enrollment
+                            Continue to Enrollment
                         </Link>
                     </Button>
                 </div>
