@@ -788,7 +788,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
-                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)]">
+                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)] pb-[50vh]">
                     <div className="min-w-0 space-y-0 sm:space-y-6 h-full">
                         <div className="sticky top-0 z-40 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:top-24">
                             {lessonVideoUrl ? (
