@@ -11,13 +11,17 @@ use App\Models\AccessTier;
 use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
 use App\Models\EmailTemplate;
+use App\Models\Invoice;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\OnboardingState;
+use App\Models\Package;
+use App\Models\Payment;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Models\UserSession;
+use App\Services\PaymentFinalizerService;
 use App\Services\StudentLearningMilestoneEmailService;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Auth\Events\Registered;
@@ -43,6 +47,8 @@ class EmailNotificationTest extends TestCase
             EmailNotificationTypeRegistry::COURSE_COMPLETE => 'Course Complete',
             EmailNotificationTypeRegistry::REMINDER => 'Reminder',
             EmailNotificationTypeRegistry::WORKBOOK_SENT => 'Workbook Sent',
+            EmailNotificationTypeRegistry::PAYMENT_SUCCESS => 'Payment Success',
+            EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS => 'Enrollment Success',
             EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_SUCCESS => 'Installment Payment Success',
             EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_FAILED => 'Installment Payment Failed',
             EmailNotificationTypeRegistry::INSTALLMENT_OVERDUE_INACTIVE => 'Installment Overdue Inactive',
@@ -389,6 +395,17 @@ class EmailNotificationTest extends TestCase
         ]);
 
         EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            'notification_name' => 'Enrollment Success',
+            'is_enabled' => true,
+            'admin_recipients' => 'enrollment-admin@yogafx.test',
+            'subject_user' => 'Enrollment complete for {{ access_tier_label }}',
+            'body_user' => 'Finish here {{ signup_url }}',
+            'subject_admin' => 'Enrollment completed {{ user_email }}',
+            'body_admin' => 'Next step {{ signup_url }}',
+        ]);
+
+        EmailTemplate::factory()->create([
             'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
             'notification_name' => 'Signup',
             'is_enabled' => true,
@@ -443,10 +460,20 @@ class EmailNotificationTest extends TestCase
             ],
         )->assertSessionHasNoErrors();
 
-        Mail::assertNothingSent();
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            'reference_type' => 'onboarding_state',
+            'reference_id' => $onboardingState->id,
+            'recipient_type' => 'user',
+            'recipient_email' => $user->email,
+            'status' => 'sent',
+        ]);
         $this->assertDatabaseMissing('email_logs', [
             'notification_type' => EmailNotificationTypeRegistry::SIGNUP,
         ]);
+
+        Mail::fake();
 
         $this->post(
             URL::temporarySignedRoute('onboarding.signup.store', now()->addMinutes(5), [
@@ -469,6 +496,98 @@ class EmailNotificationTest extends TestCase
             'recipient_email' => $user->email,
             'status' => 'sent',
         ]);
+    }
+
+    public function test_payment_success_notification_is_sent_once_after_initial_payment_is_finalized(): void
+    {
+        Mail::fake();
+
+        [$pendingRegistration, , $paymentActivity] = $this->createInitialPaymentFixture();
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'notification_name' => 'Payment Success',
+            'is_enabled' => true,
+            'admin_recipients' => 'payments-admin@yogafx.test',
+            'subject_user' => 'Payment success {{ invoice_number }}',
+            'body_user' => 'Continue {{ enrollment_url }}',
+            'subject_admin' => 'Payment success {{ user_email }}',
+            'body_admin' => '{{ payment_reference }} {{ amount }}',
+        ]);
+
+        $result = app(PaymentFinalizerService::class)->finalizeSuccessfulPayment($paymentActivity, 'PAYPAL-ORDER-001');
+
+        $this->assertFalse($result['skipped']);
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'reference_type' => 'payment_activity',
+            'reference_id' => $paymentActivity->id,
+            'recipient_type' => 'user',
+            'recipient_email' => $pendingRegistration->email,
+            'status' => 'sent',
+        ]);
+        $this->assertDatabaseHas('email_logs', [
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'reference_type' => 'payment_activity',
+            'reference_id' => $paymentActivity->id,
+            'recipient_type' => 'admin',
+            'recipient_email' => 'payments-admin@yogafx.test',
+            'status' => 'sent',
+        ]);
+    }
+
+    public function test_payment_success_notification_is_not_double_sent_when_finalizer_runs_again(): void
+    {
+        Mail::fake();
+
+        [, , $paymentActivity] = $this->createInitialPaymentFixture();
+
+        EmailTemplate::factory()->create([
+            'notification_type' => EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'notification_name' => 'Payment Success',
+            'is_enabled' => true,
+            'admin_recipients' => 'payments-admin@yogafx.test',
+            'subject_user' => 'Payment success {{ invoice_number }}',
+            'body_user' => 'Continue {{ enrollment_url }}',
+            'subject_admin' => 'Payment success {{ user_email }}',
+            'body_admin' => '{{ payment_reference }} {{ amount }}',
+        ]);
+
+        $service = app(PaymentFinalizerService::class);
+
+        $first = $service->finalizeSuccessfulPayment($paymentActivity, 'PAYPAL-ORDER-001');
+        $second = $service->finalizeSuccessfulPayment($paymentActivity->fresh(), 'PAYPAL-ORDER-001');
+
+        $this->assertFalse($first['skipped']);
+        $this->assertTrue($second['skipped']);
+        Mail::assertSent(TemplatedNotificationMail::class, 2);
+        $this->assertSame(2, \App\Models\EmailLog::query()
+            ->where('notification_type', EmailNotificationTypeRegistry::PAYMENT_SUCCESS)
+            ->count());
+    }
+
+    public function test_payment_success_page_is_rendered_with_enrollment_cta(): void
+    {
+        [$pendingRegistration, , $paymentActivity] = $this->createInitialPaymentFixture();
+
+        app(PaymentFinalizerService::class)->finalizeSuccessfulPayment($paymentActivity, 'PAYPAL-ORDER-001');
+
+        $onboardingState = OnboardingState::query()
+            ->where('pending_registration_id', $pendingRegistration->id)
+            ->firstOrFail();
+
+        $response = $this->get(
+            URL::temporarySignedRoute('onboarding.payment-success.show', now()->addMinutes(5), [
+                'onboardingState' => $onboardingState->id,
+            ]),
+        );
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->component('Public/PaymentSuccess')
+            ->where('student.email', $pendingRegistration->email)
+            ->where('onboarding.access_tier.name', $pendingRegistration->accessTier->name)
+            ->where('onboarding.continue_url', fn (string $url) => str_contains($url, '/onboarding/'.$onboardingState->id.'/enrollment')));
     }
 
     public function test_signup_completion_does_not_double_send_signup_notification_on_repeat_submit(): void
@@ -1068,5 +1187,68 @@ class EmailNotificationTest extends TestCase
         ]);
 
         return [$admin, $student, $assignment];
+    }
+
+    /**
+     * @return array{0: PendingRegistration, 1: Invoice, 2: Payment}
+     */
+    private function createInitialPaymentFixture(): array
+    {
+        $tier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => AccessTier::SLUG_ONLINE,
+        ]);
+
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Online Premium',
+            'slug' => 'online-premium',
+            'price' => 499,
+            'currency_code' => 'USD',
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Payment',
+            'last_name' => 'Student',
+            'email' => 'payment-student@yogafx.test',
+            'phone' => '+6281234500001',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 499,
+            'currency_code' => 'USD',
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+        ]);
+
+        $invoice = Invoice::query()->create([
+            'invoice_number' => 'INV-PAYMENT-SUCCESS-001',
+            'pending_registration_id' => $pendingRegistration->id,
+            'package_id' => $package->id,
+            'access_tier_id' => $tier->id,
+            'type' => Invoice::TYPE_INITIAL,
+            'payment_type' => Invoice::PAYMENT_TYPE_FULL,
+            'total_amount' => 499,
+            'balance_due' => 499,
+            'currency_code' => 'USD',
+            'status' => Invoice::STATUS_UNPAID,
+            'issued_at' => now(),
+        ]);
+
+        $paymentActivity = Payment::query()->create([
+            'invoice_id' => $invoice->id,
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'payment_type' => Payment::TYPE_PAY_FULL,
+            'amount_paid' => 499,
+            'currency_code' => 'USD',
+            'status' => Payment::STATUS_PENDING,
+            'payment_reference' => 'PAYPAL-ORDER-001',
+            'notes' => 'Awaiting capture.',
+        ]);
+
+        return [
+            $pendingRegistration->fresh(['accessTier']),
+            $invoice->fresh(),
+            $paymentActivity->fresh(),
+        ];
     }
 }

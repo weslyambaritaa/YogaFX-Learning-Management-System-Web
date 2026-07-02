@@ -10,6 +10,7 @@ use App\Models\EmailTemplate;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\OnboardingState;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Models\Lesson;
@@ -278,6 +279,86 @@ class EmailNotificationService
             ],
             $referenceType,
             $referenceId,
+        );
+    }
+
+    public function sendPaymentSuccessNotification(
+        OnboardingState $onboardingState,
+        Payment $paymentActivity,
+    ): void {
+        if ($this->notificationAlreadySent(
+            EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            'payment_activity',
+            $paymentActivity->id,
+        )) {
+            return;
+        }
+
+        $onboardingState->loadMissing('user.accessTier', 'pendingRegistration.accessTier');
+        $paymentActivity->loadMissing('invoice.accessTier');
+
+        $user = $onboardingState->user;
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $invoice = $paymentActivity->invoice;
+        $accessTier = $user->accessTier ?? $onboardingState->pendingRegistration?->accessTier ?? $invoice?->accessTier;
+
+        $this->sendAutomated(
+            EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
+            [
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'access_tier' => $accessTier?->slug,
+                'access_tier_label' => $accessTier?->name,
+                'invoice_number' => (string) ($invoice?->invoice_number ?? ''),
+                'payment_reference' => (string) ($paymentActivity->payment_reference ?? ''),
+                'amount' => number_format((float) $paymentActivity->amount_paid, 2, '.', ''),
+                'currency_code' => (string) $paymentActivity->currency_code,
+                'enrollment_url' => $this->signedOnboardingRoute('onboarding.enrollment.show', [
+                    'onboardingState' => $onboardingState->id,
+                ]),
+            ],
+            'payment_activity',
+            $paymentActivity->id,
+        );
+    }
+
+    public function sendEnrollmentSuccessNotification(OnboardingState $onboardingState): void
+    {
+        if ($this->notificationAlreadySent(
+            EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            'onboarding_state',
+            $onboardingState->id,
+        )) {
+            return;
+        }
+
+        $onboardingState->loadMissing('user.accessTier', 'pendingRegistration.accessTier');
+
+        $user = $onboardingState->user;
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $accessTier = $user->accessTier ?? $onboardingState->pendingRegistration?->accessTier;
+
+        $this->sendAutomated(
+            EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS,
+            [
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'access_tier' => $accessTier?->slug,
+                'access_tier_label' => $accessTier?->name,
+                'signup_url' => $this->signedOnboardingRoute('onboarding.signup.show', [
+                    'onboardingState' => $onboardingState->id,
+                ]),
+            ],
+            'onboarding_state',
+            $onboardingState->id,
         );
     }
 
@@ -832,6 +913,14 @@ class EmailNotificationService
             'last_activity_date' => now()->subDays(8)->toDateString(),
             'inactive_days' => '8',
             'workbook_file_name' => 'sample-workbook.pdf',
+            'payment_reference' => 'PAY-SAMPLE-001',
+            'amount' => '499.00',
+            'enrollment_url' => $this->signedOnboardingRoute('onboarding.enrollment.show', [
+                'onboardingState' => 999001,
+            ]),
+            'signup_url' => $this->signedOnboardingRoute('onboarding.signup.show', [
+                'onboardingState' => 999001,
+            ]),
             'package_title' => 'Masterclass Standard',
             'tier_name' => 'Masterclass',
             'invoice_number' => 'INV-SAMPLE-001',
@@ -905,6 +994,16 @@ class EmailNotificationService
                     });
                 }
             })
+            ->exists();
+    }
+
+    private function notificationAlreadySent(string $notificationType, string $referenceType, int $referenceId): bool
+    {
+        return EmailLog::query()
+            ->where('notification_type', $notificationType)
+            ->where('reference_type', $referenceType)
+            ->where('reference_id', $referenceId)
+            ->where('status', 'sent')
             ->exists();
     }
 
@@ -987,5 +1086,14 @@ class EmailNotificationService
     private function publicAppUrl(): string
     {
         return rtrim((string) config('app.public_url', config('app.url')), '/');
+    }
+
+    private function signedOnboardingRoute(string $routeName, array $parameters): string
+    {
+        return URL::temporarySignedRoute(
+            $routeName,
+            now()->addDays(7),
+            $parameters,
+        );
     }
 }

@@ -8,11 +8,10 @@ export default function PaymentSuccess({ onboarding, student }) {
         <PublicFlowLayout
             title="Payment Success"
             eyebrow="Payment Completed"
-            heading="Your payment was successful. Continue when you're ready."
-            description="Your payment has been recorded, your YogaFX base account has been prepared, and your continuation path is ready for the next enrollment step."
+            heading="Congratulations. Your payment was successful."
+            description="Your YogaFX onboarding is ready to continue. Please head to enrollment first, then finish signup in the next step."
             aside={
                 <div className="space-y-6">
-                    {/* Payment result card */}
                     <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
                         <div className="flex justify-end">
                             <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
@@ -27,7 +26,6 @@ export default function PaymentSuccess({ onboarding, student }) {
                         </div>
                     </div>
 
-                    {/* Next step card */}
                     <div className="rounded-[10px] border border-white/10 bg-white/5 p-5">
                         <div className="flex justify-end">
                             <p className="inline-block rounded-full border border-white/30 bg-white/10 px-4 py-1 text-sm font-semibold text-white">
@@ -36,8 +34,9 @@ export default function PaymentSuccess({ onboarding, student }) {
                         </div>
                         <div className="mt-7 space-y-3 text-sm leading-6 text-white/70">
                             <p>
-                                Enrollment comes next, then final password
-                                creation, then LMS access.
+                                Enrollment comes next. After that, you will
+                                create your password and activate your YogaFX
+                                LMS access.
                             </p>
                         </div>
                     </div>
@@ -45,23 +44,20 @@ export default function PaymentSuccess({ onboarding, student }) {
             }
         >
             <div className="space-y-6">
-                {/* Success message */}
                 <div className="flex items-center gap-3">
                     <CheckCircle2
                         className="h-6 w-6 flex-shrink-0 text-green-400"
                         strokeWidth={2.5}
                     />
                     <p className="text-sm font-medium leading-7 text-green-400">
-                        Invoice and payment activity have been finalized, your
-                        anti-limbo continuation is active, and you can continue
-                        into enrollment from here.
+                        Congratulations. Your payment has been recorded
+                        successfully and your enrollment step is now ready.
                     </p>
                 </div>
 
-                {/* Footer + tombol */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <p className="text-sm text-gray-500">
-                        Continue when you're ready.
+                        Continue to enrollment when you are ready.
                     </p>
 
                     <Button
@@ -69,7 +65,7 @@ export default function PaymentSuccess({ onboarding, student }) {
                         className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
                     >
                         <Link href={onboarding.continue_url}>
-                            Continue Registration / Enrollment
+                            Go to Enrollment
                         </Link>
                     </Button>
                 </div>

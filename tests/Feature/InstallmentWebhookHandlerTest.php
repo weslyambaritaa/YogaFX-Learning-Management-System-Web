@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Jobs\SendOnboardingContinuationEmailJob;
 use App\Models\AccessTier;
 use App\Models\EmailTemplate;
 use App\Models\Invoice;
@@ -89,7 +88,7 @@ class InstallmentWebhookHandlerTest extends TestCase
         ]);
         $this->assertSame(OnboardingState::STATUS_AWAITING_ENROLLMENT, $onboardingState->status);
 
-        Queue::assertPushed(SendOnboardingContinuationEmailJob::class);
+        Queue::assertNothingPushed();
     }
 
     public function test_activation_event_without_last_payment_only_marks_subscription_active(): void
@@ -280,7 +279,7 @@ class InstallmentWebhookHandlerTest extends TestCase
             'status' => PaymentSubscriptionEvent::STATUS_PROCESSED,
         ]);
 
-        Queue::assertPushed(SendOnboardingContinuationEmailJob::class);
+        Queue::assertNothingPushed();
 
         $response = $this->getJson(URL::temporarySignedRoute('checkout.installments.status', now()->addDay(), [
             'pendingRegistration' => $pendingRegistration->id,

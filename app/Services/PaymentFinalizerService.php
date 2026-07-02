@@ -19,6 +19,7 @@ class PaymentFinalizerService
 {
     public function __construct(
         private readonly PayPalSubscriptionService $payPalSubscriptionService,
+        private readonly EmailNotificationService $emailNotifications,
     ) {}
 
     /**
@@ -110,6 +111,12 @@ class PaymentFinalizerService
                 [$user, $onboardingState] = $this->finalizeInitialInvoice($invoice);
             } else {
                 $user = $this->finalizeUpgradeInvoice($invoice, ! $hasPreviousSuccessfulActivity);
+            }
+
+            if ($invoice->type === Invoice::TYPE_INITIAL && $onboardingState instanceof OnboardingState) {
+                DB::afterCommit(function () use ($onboardingState, $paymentActivity): void {
+                    $this->emailNotifications->sendPaymentSuccessNotification($onboardingState, $paymentActivity);
+                });
             }
 
             return [

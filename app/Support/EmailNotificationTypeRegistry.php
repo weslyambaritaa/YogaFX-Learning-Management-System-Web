@@ -15,6 +15,8 @@ class EmailNotificationTypeRegistry
     public const COURSE_COMPLETE = 'course_complete';
     public const REMINDER = 'reminder';
     public const WORKBOOK_SENT = 'workbook_sent';
+    public const PAYMENT_SUCCESS = 'payment_success';
+    public const ENROLLMENT_SUCCESS = 'enrollment_success';
     public const INSTALLMENT_PAYMENT_SUCCESS = 'installment_payment_success';
     public const INSTALLMENT_PAYMENT_FAILED = 'installment_payment_failed';
     public const INSTALLMENT_OVERDUE_INACTIVE = 'installment_overdue_inactive';
@@ -179,6 +181,36 @@ class EmailNotificationTypeRegistry
                     '{{ module_title }}',
                     '{{ workbook_file_name }}',
                     '{{ dashboard_url }}',
+                ],
+            ],
+            [
+                'value' => self::PAYMENT_SUCCESS,
+                'label' => 'Payment Success',
+                'description' => 'Congratulate the buyer after the initial payment succeeds and direct them to enrollment.',
+                'trigger' => 'Triggered once when an initial onboarding payment is finalized successfully and the enrollment continuation becomes available.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ access_tier }}',
+                    '{{ access_tier_label }}',
+                    '{{ invoice_number }}',
+                    '{{ payment_reference }}',
+                    '{{ amount }}',
+                    '{{ currency_code }}',
+                    '{{ enrollment_url }}',
+                ],
+            ],
+            [
+                'value' => self::ENROLLMENT_SUCCESS,
+                'label' => 'Enrollment Success',
+                'description' => 'Confirm that enrollment details are complete and direct the student to the signup step.',
+                'trigger' => 'Triggered once after onboarding enrollment is saved successfully and the flow advances to signup.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ access_tier }}',
+                    '{{ access_tier_label }}',
+                    '{{ signup_url }}',
                 ],
             ],
             [

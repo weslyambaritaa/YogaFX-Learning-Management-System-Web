@@ -24,7 +24,7 @@ class OnboardingController extends Controller
         private readonly EmailNotificationService $emailNotifications,
     ) {}
 
-    public function showPaymentSuccess(OnboardingState $onboardingState): RedirectResponse
+    public function showPaymentSuccess(OnboardingState $onboardingState): Response|RedirectResponse
     {
         $onboardingState->loadMissing('user', 'pendingRegistration.accessTier');
 
@@ -36,7 +36,21 @@ class OnboardingController extends Controller
             return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
         }
 
-        return redirect()->away($this->paymentFlow->enrollmentUrl($onboardingState));
+        return Inertia::render('Public/PaymentSuccess', [
+            'onboarding' => [
+                'id' => $onboardingState->id,
+                'status' => $onboardingState->status,
+                'continue_url' => $this->paymentFlow->enrollmentUrl($onboardingState),
+                'access_tier' => [
+                    'name' => $onboardingState->pendingRegistration->accessTier->name,
+                    'slug' => $onboardingState->pendingRegistration->accessTier->slug,
+                ],
+            ],
+            'student' => [
+                'name' => $onboardingState->user->name,
+                'email' => $onboardingState->user->email,
+            ],
+        ]);
     }
 
     public function showEnrollment(OnboardingState $onboardingState): Response|RedirectResponse
@@ -113,6 +127,7 @@ class OnboardingController extends Controller
         );
 
         $onboardingState = $this->paymentFlow->completeEnrollment($onboardingState, $validated);
+        $this->emailNotifications->sendEnrollmentSuccessNotification($onboardingState);
 
         return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
     }
