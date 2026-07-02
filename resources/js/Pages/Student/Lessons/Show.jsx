@@ -787,8 +787,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 reason={lockedReason}
             />
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
-                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.42fr)]">
+            <div className="mx-auto flex max-w-[1240px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
+                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.45fr)] xl:grid-cols-[minmax(0,780px)_minmax(340px,400px)] lg:justify-center">
                     <div className="min-w-0 space-y-0 sm:space-y-6 h-full">
                         <div
                             className="aspect-video w-full lg:hidden"
@@ -838,16 +838,16 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             </div>
 
                             {autoNextCountdown !== null && nextLesson?.title ? (
-                                <div className="absolute inset-x-3 bottom-3 rounded-[5px] border border-white/15 bg-black/70 px-3 py-3 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
-                                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                                <div className="absolute inset-x-2 bottom-2 rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
+                                    <div className="flex min-w-0 items-end justify-between gap-2 sm:items-center sm:gap-4">
                                         <div className="min-w-0 space-y-1 sm:space-y-2">
-                                            <div className="font-['Montserrat'] text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
+                                            <div className="font-['Montserrat'] text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
                                                 Next Lesson
                                             </div>
-                                            <div className="line-clamp-2 font-['Montserrat'] text-[13px] font-semibold leading-5 text-white sm:text-lg sm:leading-6">
+                                            <div className="line-clamp-1 font-['Montserrat'] text-[11px] font-semibold leading-4 text-white sm:line-clamp-2 sm:text-lg sm:leading-6">
                                                 {nextLesson.title}
                                             </div>
-                                            <div className="font-['Montserrat'] text-[11px] text-white/70 sm:text-sm">
+                                            <div className="font-['Montserrat'] text-[10px] text-white/70 sm:text-sm">
                                                 Continue in {autoNextCountdown}{" "}
                                                 seconds
                                             </div>
@@ -855,15 +855,20 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         {nextLesson.url ? (
                                             <Button
                                                 asChild
-                                                className="h-auto w-full shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[9px] py-[7px] font-['Montserrat'] text-[11px] font-medium text-white hover:bg-[#c31c28] sm:w-auto sm:px-[10px] sm:py-[8px] sm:text-[14px]"
+                                                className="h-auto shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[7px] py-[5px] font-['Montserrat'] text-[10px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
                                             >
                                                 <Link href={nextLesson.url}>
-                                                    Next Lesson
+                                                    <span className="sm:hidden">
+                                                        Next
+                                                    </span>
+                                                    <span className="hidden sm:inline">
+                                                        Next Lesson
+                                                    </span>
                                                 </Link>
                                             </Button>
                                         ) : null}
                                     </div>
-                                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
+                                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
                                         <div
                                             className="h-full rounded-full bg-[#DB202C]"
                                             style={{
