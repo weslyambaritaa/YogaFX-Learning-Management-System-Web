@@ -33,6 +33,33 @@ export default function Enrollment({ onboarding, student }) {
         recaptcha_confirmed: false,
     });
 
+    const getFieldLabel = (field) => {
+    const labels = {
+        first_name: "First Name",
+        last_name: "Last Name",
+        email: "Email",
+        whatsapp_number: "WhatsApp Number",
+        birth_date: "Birth Date",
+        gender: "Gender",
+        whatsapp_country_code: "+62",
+        profile_photo: null,
+        instagram: student.instagram ?? "",
+        country: student.country ?? "",
+        birth_date: student.birth_date ?? "",
+        gender: student.gender ?? "",
+        practicing_yoga_for: student.practicing_yoga_for ?? "",
+        yoga_sequence_experience: student.yoga_sequence_experience ?? [],
+        hours_per_week: student.hours_per_week ?? "",
+        current_fitness_level: student.current_fitness_level ?? "",
+        flexibility_rating: student.flexibility_rating ?? "",
+        motivation: student.motivation ?? "",
+        why_yogafx: student.why_yogafx ?? "",
+        how_did_you_find_us: student.how_did_you_find_us ?? [],
+        // Tambahkan field lainnya sesuai kebutuhan Anda
+    };
+    return labels[field] || field.replace("_", " ");
+};
+
     // Effect untuk melakukan auto-scroll ketika ada error
     useEffect(() => {
         if (Object.keys(errors).length > 0 && errorBannerRef.current) {
@@ -69,9 +96,14 @@ export default function Enrollment({ onboarding, student }) {
             {Object.keys(errors).length > 0 && (
                 <div 
                     ref={errorBannerRef}
-                    className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium text-center scroll-mt-24"
+                    className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium scroll-mt-24"
                 >
-                    Terdapat isian yang masih kosong atau belum valid. Silakan periksa tanda merah pada form di bawah.
+                    <p className="font-bold mb-2">Please complete the highlighted fields before continuing:</p>
+                    <ul className="list-disc list-inside">
+                        {Object.values(errors).map((error, index) => (
+                            <li key={index} className="capitalize">{error}</li>
+                        ))}
+                    </ul>
                 </div>
             )}
 
