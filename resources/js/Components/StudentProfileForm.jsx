@@ -826,8 +826,7 @@ export default function StudentProfileForm({
             }
 
             if (isBlankString(data.hours_per_week)) {
-                nextLocalErrors.hours_per_week =
-                    "Hours per week is required.";
+                nextLocalErrors.hours_per_week = "Hours per week is required.";
             }
 
             if (isBlankString(data.current_fitness_level)) {
@@ -978,7 +977,8 @@ export default function StudentProfileForm({
                         className="rounded-[5px] border border-amber-300/35 bg-amber-500/10 px-[10px] py-[8px] text-sm text-white/90"
                         style={{ fontFamily: FONT_FAMILY }}
                     >
-                        All enrollment fields are required, including your profile photo and Instagram.
+                        All enrollment fields are required, including your
+                        profile photo and Instagram.
                     </div>
                 ) : null}
 
@@ -1009,7 +1009,7 @@ export default function StudentProfileForm({
                             />
                             <TextInput
                                 id="first_name"
-                                className={`mt-2 block w-full ${inputClassName}`}
+                                className={`mt-2 block w-full ${inputClassName} ${errors.first_name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.first_name}
                                 onChange={(event) =>
@@ -1018,7 +1018,7 @@ export default function StudentProfileForm({
                                 isFocused
                             />
                             <InputError
-                                message={firstError(formErrors, "first_name")}
+                                message={errors.email}
                                 className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
@@ -1421,7 +1421,10 @@ export default function StudentProfileForm({
                             label="Current Yoga Experience"
                             description="Practicing Yoga For (Years & Months)"
                             value={data.practicing_yoga_for}
-                            error={firstError(formErrors, "practicing_yoga_for")}
+                            error={firstError(
+                                formErrors,
+                                "practicing_yoga_for",
+                            )}
                             options={PRACTICING_OPTIONS}
                             onChange={(value) =>
                                 setData("practicing_yoga_for", value)
@@ -1461,7 +1464,10 @@ export default function StudentProfileForm({
                             id="current_fitness_level"
                             label="Your Current Fitness Level"
                             value={data.current_fitness_level}
-                            error={firstError(formErrors, "current_fitness_level")}
+                            error={firstError(
+                                formErrors,
+                                "current_fitness_level",
+                            )}
                             options={SIMPLE_LEVEL_OPTIONS}
                             onChange={(value) =>
                                 setData("current_fitness_level", value)
@@ -1524,7 +1530,10 @@ export default function StudentProfileForm({
                             id="how_did_you_find_us"
                             label="Please Share How Did You Find Us"
                             value={data.how_did_you_find_us ?? []}
-                            error={firstError(formErrors, "how_did_you_find_us")}
+                            error={firstError(
+                                formErrors,
+                                "how_did_you_find_us",
+                            )}
                             options={DISCOVERY_OPTIONS}
                             onChange={(value) =>
                                 setData("how_did_you_find_us", value)
