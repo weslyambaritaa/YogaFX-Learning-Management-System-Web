@@ -292,6 +292,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
     );
+    const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
     const progressRequestRef = useRef({
         inFlight: false,
         latestSent: Number(lesson.progress?.watch_progress ?? 0),
@@ -388,6 +389,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             Boolean(lesson.progress?.is_workbook_downloaded) ||
                 persistedWorkbookDownloaded,
         );
+        setIsPlayerPlaying(false);
         autoNextStartedRef.current = false;
         workbookTriggerAttemptedRef.current = false;
         progressRequestRef.current = {
@@ -413,7 +415,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     }, [lesson.id, workbookDownloaded]);
 
     useEffect(() => {
-        if (autoNextCountdown === null || !nextTarget?.url) {
+        if (
+            autoNextCountdown === null ||
+            !nextTarget?.url ||
+            !isPlayerPlaying
+        ) {
             return undefined;
         }
 
@@ -430,7 +436,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         }, 1000);
 
         return () => window.clearTimeout(timeout);
-    }, [autoNextCountdown, nextTarget]);
+    }, [autoNextCountdown, isPlayerPlaying, nextTarget]);
 
     useEffect(() => {
         if (
@@ -835,7 +841,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             className="aspect-video w-full lg:hidden"
                             aria-hidden="true"
                         />
-                        <div className="fixed inset-x-0 top-20 z-50 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:inset-auto lg:z-auto">
+                        <div className="fixed inset-x-0 top-20 z-50 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:inset-auto lg:z-auto lg:relative">
                             {lessonVideoUrl ? (
                                 <div className="aspect-video w-full">
                                     <VideoJsPlayer
@@ -849,6 +855,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         onPlaybackError={setPlayerWarning}
                                         onProgressUpdate={handleProgressUpdate}
                                         onTimeUpdate={handlePlayerTimeUpdate}
+                                        onPlaybackStateChange={
+                                            setIsPlayerPlaying
+                                        }
                                     />
                                 </div>
                             ) : lesson.thumbnail_url ? (

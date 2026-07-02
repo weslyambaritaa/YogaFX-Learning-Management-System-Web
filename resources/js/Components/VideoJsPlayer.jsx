@@ -76,6 +76,7 @@ export default function VideoJsPlayer({
     onPlaybackError = null,
     onProgressUpdate = null,
     onTimeUpdate = null,
+    onPlaybackStateChange = null,
 }) {
     const containerRef = useRef(null);
     const playerRef = useRef(null);
@@ -85,6 +86,7 @@ export default function VideoJsPlayer({
     const latestPlaybackErrorHandlerRef = useRef(onPlaybackError);
     const latestProgressHandlerRef = useRef(onProgressUpdate);
     const latestTimeUpdateHandlerRef = useRef(onTimeUpdate);
+    const latestPlaybackStateChangeHandlerRef = useRef(onPlaybackStateChange);
     const lastReportedProgressRef = useRef(0);
     const controlsTimerRef = useRef(null);
     const [loadFailed, setLoadFailed] = useState(false);
@@ -133,6 +135,7 @@ export default function VideoJsPlayer({
         setIsPlaying(nextIsPlaying);
         setIsMuted(nextIsMuted);
         setIsReady(true);
+        latestPlaybackStateChangeHandlerRef.current?.(nextIsPlaying);
 
         if (nextIsPlaying) {
             scheduleControlsHide();
@@ -280,8 +283,15 @@ export default function VideoJsPlayer({
         latestPlaybackErrorHandlerRef.current = onPlaybackError;
         latestProgressHandlerRef.current = onProgressUpdate;
         latestTimeUpdateHandlerRef.current = onTimeUpdate;
+        latestPlaybackStateChangeHandlerRef.current = onPlaybackStateChange;
         latestAutoplayRef.current = autoplay;
-    }, [autoplay, onPlaybackError, onProgressUpdate, onTimeUpdate]);
+    }, [
+        autoplay,
+        onPlaybackError,
+        onProgressUpdate,
+        onTimeUpdate,
+        onPlaybackStateChange,
+    ]);
 
     useEffect(() => {
         if (typeof window === "undefined" || !window.matchMedia) {
