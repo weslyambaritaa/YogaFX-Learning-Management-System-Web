@@ -53,6 +53,13 @@ class PublicPaymentLinkTest extends TestCase
             ->has('packages', 1)
             ->where('packages.0.slug', 'starter-kit-standard')
             ->where('packages.0.access_tier.slug', AccessTier::SLUG_STARTER_KIT));
+
+        $packages = $response->viewData('page')['props']['packages'] ?? null;
+
+        $this->assertIsArray($packages);
+        $this->assertTrue(array_is_list($packages));
+        $this->assertCount(1, $packages);
+        $this->assertSame('starter-kit-standard', $packages[0]['slug']);
     }
 
     public function test_starterkit_alias_route_locks_scoreboard_to_matching_tier(): void

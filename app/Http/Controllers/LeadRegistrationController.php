@@ -93,14 +93,15 @@ class LeadRegistrationController extends Controller
 
     private function renderScoreboardPage(?Package $selectedPackage = null, ?string $submitUrl = null): Response
     {
-        $query = $this->packageResolver->checkoutablePackages();
+        $packages = $this->packageResolver->checkoutablePackages();
 
         if ($selectedPackage instanceof Package) {
-            $query = $query->where('id', $selectedPackage->id);
+            $packages = $packages->where('id', $selectedPackage->id);
         }
 
         $response = Inertia::render('Public/Scoreboard', [
-            'packages' => $query
+            'packages' => $packages
+                ->values()
                 ->map(fn (Package $package) => [
                     'id' => $package->id,
                     'title' => $package->title,

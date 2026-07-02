@@ -70,6 +70,9 @@ export default function Scoreboard({
     is_package_locked = false,
 }) {
     const { directory = {} } = usePage().props;
+    const packageOptions = Array.isArray(packages)
+        ? packages
+        : Object.values(packages ?? {});
     const countryOptions = enrichCountryOptions(directory.countries ?? []);
     const phoneCountryCodeOptions = enrichCountryOptions(
         directory.phone_country_codes ?? [],
@@ -81,7 +84,7 @@ export default function Scoreboard({
         phone_country_code: "+62",
         phone_number: "",
         country: "",
-        package_id: selected_package_id ?? packages[0]?.id ?? "",
+        package_id: selected_package_id ?? packageOptions[0]?.id ?? "",
     });
     const [errors, setErrors] = useState({});
     const [processing, setProcessing] = useState(false);
@@ -90,7 +93,7 @@ export default function Scoreboard({
     const fieldContainersRef = useRef({});
 
     const selectedPackage =
-        packages.find(
+        packageOptions.find(
             (pkg) => String(pkg.id) === String(data.package_id),
         ) ?? null;
     const selectedCountryOption =
@@ -624,7 +627,7 @@ export default function Scoreboard({
                                     style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
                                     required
                                 >
-                                    {packages.map((pkg) => (
+                                    {packageOptions.map((pkg) => (
                                         <option
                                             key={pkg.id}
                                             value={pkg.id}
