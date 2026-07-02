@@ -316,6 +316,27 @@ export default function VideoJsPlayer({
                         : [],
                 });
 
+                player.ready(() => {
+                    const htmlVideoElement = player.el()?.querySelector("video");
+
+                    if (!htmlVideoElement) {
+                        return;
+                    }
+
+                    htmlVideoElement.setAttribute("playsinline", "true");
+                    htmlVideoElement.setAttribute("webkit-playsinline", "true");
+                    htmlVideoElement.setAttribute(
+                        "disablePictureInPicture",
+                        "true",
+                    );
+                    htmlVideoElement.setAttribute(
+                        "controlsList",
+                        "noremoteplayback",
+                    );
+                    htmlVideoElement.disablePictureInPicture = true;
+                    htmlVideoElement.autoPictureInPicture = false;
+                });
+
                 player.on("error", () => {
                     const playerError = player.error();
                     const debugPayload = {
