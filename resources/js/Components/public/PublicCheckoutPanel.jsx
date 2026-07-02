@@ -12,6 +12,8 @@ const INITIAL_ERRORS = {
 };
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
+const PAYPAL_FULL_NAMESPACE = "paypalPayFullCheckout";
+const PAYPAL_INSTALLMENT_NAMESPACE = "paypalInstallmentCheckout";
 
 function firstErrorMessage(nextErrors) {
     return (
@@ -82,6 +84,20 @@ function formatIntervalLabel(unit, count = 1) {
     return normalizedCount === 1 ? "monthly" : `every ${normalizedCount} months`;
 }
 
+function clearPayPalContainer(containerRef) {
+    if (containerRef?.current) {
+        containerRef.current.innerHTML = "";
+    }
+}
+
+function getPayPalNamespace(namespace) {
+    if (typeof window === "undefined") {
+        return null;
+    }
+
+    return window[namespace] ?? null;
+}
+
 export default function PublicCheckoutPanel({ checkout }) {
     const paymentOptions = Array.isArray(checkout.payment_options)
         ? checkout.payment_options
@@ -121,8 +137,10 @@ export default function PublicCheckoutPanel({ checkout }) {
     const formDataRef = useRef(formData);
     const [fieldErrors, setFieldErrors] = useState(INITIAL_ERRORS);
     const [generalError, setGeneralError] = useState("");
-    const [sdkReady, setSdkReady] = useState(false);
-    const [sdkError, setSdkError] = useState("");
+    const [payFullSdkReady, setPayFullSdkReady] = useState(false);
+    const [installmentSdkReady, setInstallmentSdkReady] = useState(false);
+    const [payFullSdkError, setPayFullSdkError] = useState("");
+    const [installmentSdkError, setInstallmentSdkError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [debugInfo, setDebugInfo] = useState(null);
     const [installmentSession, setInstallmentSession] = useState(null);
@@ -130,7 +148,8 @@ export default function PublicCheckoutPanel({ checkout }) {
     const [installmentApprovalMessage, setInstallmentApprovalMessage] =
         useState("");
 
-    const paypalButtonsRef = useRef(null);
+    const payFullButtonsRef = useRef(null);
+    const installmentButtonsRef = useRef(null);
     const activeOrderRef = useRef(null);
     const installmentSessionRef = useRef(installmentSession);
 
@@ -191,32 +210,42 @@ export default function PublicCheckoutPanel({ checkout }) {
     const usesMonthlyInstallmentSchedule = installmentIntervalUnit === "MONTH";
     const canUseMock = mockAvailable && !isInstallmentSelected;
 
-    const paypalScriptUrl = useMemo(() => {
-        const params = new URLSearchParams(
-            isInstallmentSelected
-                ? {
-                      "client-id": paypalConfig.client_id ?? "",
-                      components: "buttons",
-                      vault: "true",
-                      intent: "subscription",
-                  }
-                : {
-                      "client-id": paypalConfig.client_id ?? "",
-                      components: "buttons",
-                      currency:
-                          paypalConfig.currency_code ?? checkout.currency_code,
-                      intent: paypalConfig.intent ?? "capture",
-                  },
-        );
+    const payFullScriptUrl = useMemo(() => {
+        const params = new URLSearchParams({
+            "client-id": paypalConfig.client_id ?? "",
+            components: "buttons",
+            currency: paypalConfig.currency_code ?? checkout.currency_code,
+            intent: paypalConfig.intent ?? "capture",
+        });
 
         return `https://www.paypal.com/sdk/js?${params.toString()}`;
     }, [
         checkout.currency_code,
-        isInstallmentSelected,
         paypalConfig.client_id,
         paypalConfig.currency_code,
         paypalConfig.intent,
     ]);
+
+    const installmentScriptUrl = useMemo(() => {
+        const params = new URLSearchParams({
+            "client-id": paypalConfig.client_id ?? "",
+            components: "buttons",
+            vault: "true",
+            intent: "subscription",
+        });
+
+        return `https://www.paypal.com/sdk/js?${params.toString()}`;
+    }, [paypalConfig.client_id]);
+
+    const shouldRenderInstallmentButtons =
+        isInstallmentSelected &&
+        installmentSession &&
+        !installmentSession.provider_subscription_id;
+    const visibleSdkError = isInstallmentSelected
+        ? shouldRenderInstallmentButtons
+            ? installmentSdkError
+            : ""
+        : payFullSdkError;
 
     useEffect(() => {
         installmentSessionRef.current = installmentSession;
@@ -244,43 +273,47 @@ export default function PublicCheckoutPanel({ checkout }) {
 
     useEffect(() => {
         if (!paypalConfig.client_id) {
-            setSdkError("PayPal client configuration is missing.");
+            setPayFullSdkError("PayPal client configuration is missing.");
             return undefined;
         }
 
         let cancelled = false;
         let existingScript = document.querySelector(
-            'script[data-paypal-checkout-sdk="true"]',
+            'script[data-paypal-checkout-sdk="pay_full"]',
         );
         const existingSrc = existingScript?.getAttribute("src") ?? "";
 
-        if (existingScript && existingSrc !== paypalScriptUrl) {
-            existingScript.remove();
-            existingScript = null;
-            delete window.paypal;
-            setSdkReady(false);
-        }
-
-        if (window.paypal && existingScript) {
-            setSdkReady(true);
-            setSdkError("");
+        if (
+            existingScript &&
+            existingSrc === payFullScriptUrl &&
+            getPayPalNamespace(PAYPAL_FULL_NAMESPACE)
+        ) {
+            setPayFullSdkReady(true);
+            setPayFullSdkError("");
             return undefined;
         }
 
         const handleReady = () => {
             if (!cancelled) {
-                setSdkReady(true);
-                setSdkError("");
+                setPayFullSdkReady(true);
+                setPayFullSdkError("");
             }
         };
 
         const handleError = () => {
             if (!cancelled) {
-                setSdkError(
+                setPayFullSdkError(
                     "PayPal checkout could not be loaded right now. Please refresh and try again.",
                 );
             }
         };
+
+        if (existingScript && existingSrc !== payFullScriptUrl) {
+            existingScript.remove();
+            existingScript = null;
+            delete window[PAYPAL_FULL_NAMESPACE];
+            setPayFullSdkReady(false);
+        }
 
         if (existingScript) {
             existingScript.addEventListener("load", handleReady);
@@ -294,9 +327,11 @@ export default function PublicCheckoutPanel({ checkout }) {
         }
 
         const script = document.createElement("script");
-        script.src = paypalScriptUrl;
+        script.src = payFullScriptUrl;
         script.async = true;
-        script.dataset.paypalCheckoutSdk = "true";
+        script.dataset.paypalCheckoutSdk = "pay_full";
+        script.dataset.namespace = PAYPAL_FULL_NAMESPACE;
+        script.setAttribute("data-namespace", PAYPAL_FULL_NAMESPACE);
         script.addEventListener("load", handleReady);
         script.addEventListener("error", handleError);
         document.body.appendChild(script);
@@ -306,22 +341,95 @@ export default function PublicCheckoutPanel({ checkout }) {
             script.removeEventListener("load", handleReady);
             script.removeEventListener("error", handleError);
         };
-    }, [paypalConfig.client_id, paypalScriptUrl]);
+    }, [payFullScriptUrl, paypalConfig.client_id]);
 
     useEffect(() => {
-        if (!sdkReady || !window.paypal) {
+        if (!paypalConfig.client_id || !shouldRenderInstallmentButtons) {
             return undefined;
         }
 
-        if (isInstallmentSelected) {
+        let cancelled = false;
+        let existingScript = document.querySelector(
+            'script[data-paypal-checkout-sdk="installment"]',
+        );
+        const existingSrc = existingScript?.getAttribute("src") ?? "";
+
+        if (
+            existingScript &&
+            existingSrc === installmentScriptUrl &&
+            getPayPalNamespace(PAYPAL_INSTALLMENT_NAMESPACE)
+        ) {
+            setInstallmentSdkReady(true);
+            setInstallmentSdkError("");
             return undefined;
         }
 
-        const { paypal } = window;
+        const handleReady = () => {
+            if (!cancelled) {
+                setInstallmentSdkReady(true);
+                setInstallmentSdkError("");
+            }
+        };
 
-        if (paypalButtonsRef.current) {
-            paypalButtonsRef.current.innerHTML = "";
+        const handleError = () => {
+            if (!cancelled) {
+                setInstallmentSdkError(
+                    "PayPal installment approval could not be loaded right now. Please refresh and try again.",
+                );
+            }
+        };
+
+        if (existingScript && existingSrc !== installmentScriptUrl) {
+            existingScript.remove();
+            existingScript = null;
+            delete window[PAYPAL_INSTALLMENT_NAMESPACE];
+            setInstallmentSdkReady(false);
         }
+
+        if (existingScript) {
+            existingScript.addEventListener("load", handleReady);
+            existingScript.addEventListener("error", handleError);
+
+            return () => {
+                cancelled = true;
+                existingScript.removeEventListener("load", handleReady);
+                existingScript.removeEventListener("error", handleError);
+            };
+        }
+
+        const script = document.createElement("script");
+        script.src = installmentScriptUrl;
+        script.async = true;
+        script.dataset.paypalCheckoutSdk = "installment";
+        script.dataset.namespace = PAYPAL_INSTALLMENT_NAMESPACE;
+        script.setAttribute("data-namespace", PAYPAL_INSTALLMENT_NAMESPACE);
+        script.addEventListener("load", handleReady);
+        script.addEventListener("error", handleError);
+        document.body.appendChild(script);
+
+        return () => {
+            cancelled = true;
+            script.removeEventListener("load", handleReady);
+            script.removeEventListener("error", handleError);
+        };
+    }, [
+        installmentScriptUrl,
+        paypalConfig.client_id,
+        shouldRenderInstallmentButtons,
+    ]);
+
+    useEffect(() => {
+        if (!payFullSdkReady || isInstallmentSelected) {
+            return undefined;
+        }
+
+        const paypal = getPayPalNamespace(PAYPAL_FULL_NAMESPACE);
+
+        if (!paypal) {
+            return undefined;
+        }
+
+        clearPayPalContainer(payFullButtonsRef);
 
         if (typeof paypal.Buttons !== "function") {
             setGeneralError(
@@ -366,9 +474,9 @@ export default function PublicCheckoutPanel({ checkout }) {
             },
         });
 
-        if (buttons.isEligible() && paypalButtonsRef.current) {
-            paypalButtonsRef.current.innerHTML = "";
-            buttons.render(paypalButtonsRef.current).catch(() => {
+        if (buttons.isEligible() && payFullButtonsRef.current) {
+            clearPayPalContainer(payFullButtonsRef);
+            buttons.render(payFullButtonsRef.current).catch(() => {
                 setGeneralError(
                     "The official PayPal button could not be rendered. Please refresh and try again.",
                 );
@@ -380,36 +488,27 @@ export default function PublicCheckoutPanel({ checkout }) {
         }
 
         return () => {
-            if (paypalButtonsRef.current) {
-                paypalButtonsRef.current.innerHTML = "";
-            }
+            clearPayPalContainer(payFullButtonsRef);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         isInstallmentSelected,
-        sdkReady,
-        paymentType,
+        payFullSdkReady,
         checkout.create_order_url,
     ]);
 
     useEffect(() => {
-        if (!isInstallmentSelected) {
+        if (!shouldRenderInstallmentButtons || !installmentSdkReady) {
             return undefined;
         }
 
-        if (!sdkReady || !window.paypal || !installmentSession) {
+        const paypal = getPayPalNamespace(PAYPAL_INSTALLMENT_NAMESPACE);
+
+        if (!paypal) {
             return undefined;
         }
 
-        if (installmentSession.provider_subscription_id) {
-            return undefined;
-        }
-
-        const { paypal } = window;
-
-        if (paypalButtonsRef.current) {
-            paypalButtonsRef.current.innerHTML = "";
-        }
+        clearPayPalContainer(installmentButtonsRef);
 
         if (typeof paypal.Buttons !== "function") {
             setGeneralError(
@@ -471,9 +570,9 @@ export default function PublicCheckoutPanel({ checkout }) {
             },
         });
 
-        if (buttons.isEligible() && paypalButtonsRef.current) {
-            paypalButtonsRef.current.innerHTML = "";
-            buttons.render(paypalButtonsRef.current).catch(() => {
+        if (buttons.isEligible() && installmentButtonsRef.current) {
+            clearPayPalContainer(installmentButtonsRef);
+            buttons.render(installmentButtonsRef.current).catch(() => {
                 setGeneralError(
                     "The PayPal installment button could not be rendered. Please refresh and try again.",
                 );
@@ -485,17 +584,23 @@ export default function PublicCheckoutPanel({ checkout }) {
         }
 
         return () => {
-            if (paypalButtonsRef.current) {
-                paypalButtonsRef.current.innerHTML = "";
-            }
+            clearPayPalContainer(installmentButtonsRef);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
-        installmentSession,
-        isInstallmentSelected,
-        sdkReady,
+        installmentSdkReady,
+        shouldRenderInstallmentButtons,
         checkout.create_order_url,
     ]);
+
+    useEffect(() => {
+        if (isInstallmentSelected) {
+            clearPayPalContainer(payFullButtonsRef);
+            return;
+        }
+
+        clearPayPalContainer(installmentButtonsRef);
+    }, [isInstallmentSelected]);
 
     useEffect(() => {
         if (
@@ -817,14 +922,14 @@ export default function PublicCheckoutPanel({ checkout }) {
 
     return (
         <div className="w-full space-y-8" style={{ fontFamily: FONT_FAMILY }}>
-            {(generalError || sdkError) && (
+            {(generalError || visibleSdkError) && (
                 <div
                     className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100"
                     style={{ fontFamily: FONT_FAMILY }}
                 >
                     <div className="flex items-start gap-3">
                         <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
-                        <p>{generalError || sdkError}</p>
+                        <p>{generalError || visibleSdkError}</p>
                     </div>
                 </div>
             )}
@@ -1289,9 +1394,9 @@ export default function PublicCheckoutPanel({ checkout }) {
                                     className="rounded-[5px] border border-white/10 p-5 shadow-inner"
                                     style={{ backgroundColor: "rgba(255, 255, 255, 0.97)" }}
                                 >
-                                    <div ref={paypalButtonsRef} className="min-h-[48px]" />
+                                    <div ref={installmentButtonsRef} className="min-h-[48px]" />
                                 </div>
-                                {!sdkReady && (
+                                {!installmentSdkReady && (
                                     <div
                                         className="flex items-center gap-3 text-sm font-medium text-white/60"
                                         style={{ fontFamily: FONT_FAMILY }}
@@ -1315,12 +1420,12 @@ export default function PublicCheckoutPanel({ checkout }) {
                             className="rounded-[5px] border border-white/10 p-5 shadow-inner"
                             style={{ backgroundColor: "rgba(255, 255, 255, 0.97)" }}
                         >
-                            <div ref={paypalButtonsRef} className="min-h-[48px]" />
+                            <div ref={payFullButtonsRef} className="min-h-[48px]" />
                         </div>
                     </div>
                 )}
 
-                {!isInstallmentSelected && !sdkReady && (
+                {!isInstallmentSelected && !payFullSdkReady && (
                     <div
                         className="mt-5 flex items-center gap-3 text-sm font-medium text-white/60"
                         style={{ fontFamily: FONT_FAMILY }}
