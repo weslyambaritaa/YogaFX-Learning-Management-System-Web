@@ -27,12 +27,12 @@ function ModuleCard({ module, onLockedClick }) {
 
             <div className="space-y-3 p-4 sm:space-y-4 sm:p-5">
                 <div className="space-y-1.5 sm:space-y-2">
-                    <h3 className="text-[22px] font-medium tracking-tight text-white">
-                        {module.title}
-                    </h3>
                     <p className="text-xl font-semibold tracking-tight text-white">
                         Module {module.sort_order}
                     </p>
+                    <h3 className="text-[22px] font-medium tracking-tight text-white">
+                        {module.title}
+                    </h3>
                 </div>
 
                 <div className="flex items-center justify-between gap-4 text-sm text-white/62">

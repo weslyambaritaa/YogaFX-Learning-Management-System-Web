@@ -304,13 +304,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         typeof playerWarning === "string"
             ? playerWarning
             : (playerWarning?.message ?? null);
-    const canAutoAdvance = Boolean(
-        lesson.lesson_video_id && !assessmentState && nextLesson?.id,
-    );
     const totalAccessParts = formatDurationParts(totalAccessSeconds);
-    const canOpenNextLesson = Boolean(
-        nextLesson?.is_unlocked && nextLesson?.url,
-    );
     const autoNextProgress = useMemo(() => {
         if (autoNextCountdown === null) {
             return 0;
@@ -335,6 +329,45 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const moduleLabel = lesson.module?.sort_order
         ? `Module ${lesson.module.sort_order}`
         : "Lesson";
+    const nextTarget = useMemo(() => {
+        if (assessmentState && !assessmentState.is_completed) {
+            return {
+                id: assessmentState.id,
+                type: "assessment",
+                title: assessmentState.title,
+                is_unlocked: Boolean(assessmentState.is_unlocked),
+                lock_reason: assessmentState.is_unlocked
+                    ? null
+                    : "Assessment unlocks after your lesson watch progress reaches 95%.",
+                url: assessmentState.is_unlocked
+                    ? route("assessments.intro", lesson.id)
+                    : null,
+                button_label: assessmentState.current_attempt_id
+                    ? "Resume Assessment"
+                    : "Open Assessment",
+                kicker: "Upcoming Assessment",
+            };
+        }
+
+        if (!nextLesson) {
+            return null;
+        }
+
+        return {
+            id: nextLesson.id,
+            type: "lesson",
+            title: nextLesson.title,
+            is_unlocked: Boolean(nextLesson.is_unlocked),
+            lock_reason: nextLesson.lock_reason ?? null,
+            url: nextLesson.url,
+            button_label: "Next Lesson",
+            kicker: "Next Lesson",
+        };
+    }, [assessmentState, lesson.id, nextLesson]);
+    const canAutoAdvance = Boolean(
+        lesson.lesson_video_id && nextTarget?.is_unlocked && nextTarget?.url,
+    );
+    const canOpenNextTarget = Boolean(nextTarget?.is_unlocked && nextTarget?.url);
 
     useEffect(() => {
         const persistedWorkbookDownloaded =
@@ -380,14 +413,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     }, [lesson.id, workbookDownloaded]);
 
     useEffect(() => {
-        if (autoNextCountdown === null || !nextLesson?.url) {
+        if (autoNextCountdown === null || !nextTarget?.url) {
             return undefined;
         }
 
         if (autoNextCountdown <= 0) {
-            router.visit(
-                route("lessons.show", { lesson: nextLesson.id, autoplay: 1 }),
-            );
+            router.visit(nextTarget.url);
 
             return undefined;
         }
@@ -399,7 +430,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         }, 1000);
 
         return () => window.clearTimeout(timeout);
-    }, [autoNextCountdown, nextLesson]);
+    }, [autoNextCountdown, nextTarget]);
 
     useEffect(() => {
         if (
@@ -734,6 +765,16 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         }
 
         setWatchProgress(normalizedProgress);
+        if (normalizedProgress >= 95) {
+            setAssessmentState((current) =>
+                current
+                    ? {
+                          ...current,
+                          is_unlocked: true,
+                      }
+                    : current,
+            );
+        }
         progressRequestRef.current.pending = Math.max(
             normalizedProgress,
             progressRequestRef.current.pending ?? 0,
@@ -787,14 +828,14 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                 reason={lockedReason}
             />
 
-            <div className="mx-auto flex max-w-[1240px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
-                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(300px,0.45fr)] xl:grid-cols-[minmax(0,780px)_minmax(340px,400px)] lg:justify-center">
-                    <div className="min-w-0 space-y-0 sm:space-y-6 h-full">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
+                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(320px,1fr)] lg:items-start">
+                    <div className="min-w-0 space-y-0 sm:space-y-6">
                         <div
                             className="aspect-video w-full lg:hidden"
                             aria-hidden="true"
                         />
-                        <div className="fixed inset-x-0 top-0 z-50 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:inset-auto lg:z-auto">
+                        <div className="fixed inset-x-0 top-20 z-50 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:inset-auto lg:z-auto">
                             {lessonVideoUrl ? (
                                 <div className="aspect-video w-full">
                                     <VideoJsPlayer
@@ -837,32 +878,32 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 />
                             </div>
 
-                            {autoNextCountdown !== null && nextLesson?.title ? (
-                                <div className="absolute inset-x-2 bottom-2 rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4">
+                            {autoNextCountdown !== null && nextTarget?.title ? (
+                                <div className="absolute inset-x-2 bottom-2 rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:max-w-[520px] sm:px-5 sm:py-4 lg:left-5 lg:right-auto">
                                     <div className="flex min-w-0 items-end justify-between gap-2 sm:items-center sm:gap-4">
                                         <div className="min-w-0 space-y-1 sm:space-y-2">
                                             <div className="font-['Montserrat'] text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
-                                                Next Lesson
+                                                {nextTarget.kicker}
                                             </div>
                                             <div className="line-clamp-1 font-['Montserrat'] text-[11px] font-semibold leading-4 text-white sm:line-clamp-2 sm:text-lg sm:leading-6">
-                                                {nextLesson.title}
+                                                {nextTarget.title}
                                             </div>
                                             <div className="font-['Montserrat'] text-[10px] text-white/70 sm:text-sm">
                                                 Continue in {autoNextCountdown}{" "}
                                                 seconds
                                             </div>
                                         </div>
-                                        {nextLesson.url ? (
+                                        {nextTarget.url ? (
                                             <Button
                                                 asChild
                                                 className="h-auto shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[7px] py-[5px] font-['Montserrat'] text-[10px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
                                             >
-                                                <Link href={nextLesson.url}>
+                                                <Link href={nextTarget.url}>
                                                     <span className="sm:hidden">
                                                         Next
                                                     </span>
                                                     <span className="hidden sm:inline">
-                                                        Next Lesson
+                                                        {nextTarget.button_label}
                                                     </span>
                                                 </Link>
                                             </Button>
@@ -1117,14 +1158,14 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 Back to module
                                             </Link>
                                         </Button>
-                                        {nextLesson ? (
-                                            canOpenNextLesson ? (
+                                        {nextTarget ? (
+                                            canOpenNextTarget ? (
                                                 <Button
                                                     asChild
                                                     className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                                 >
-                                                    <Link href={nextLesson.url}>
-                                                        Next Lesson
+                                                    <Link href={nextTarget.url}>
+                                                        {nextTarget.button_label}
                                                     </Link>
                                                 </Button>
                                             ) : (
@@ -1132,12 +1173,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                     type="button"
                                                     onClick={() =>
                                                         openLockedDialog(
-                                                            nextLesson?.lock_reason,
+                                                            nextTarget?.lock_reason,
                                                         )
                                                     }
                                                     className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                                 >
-                                                    Next Lesson
+                                                    {nextTarget.button_label}
                                                 </Button>
                                             )
                                         ) : null}
@@ -1148,7 +1189,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                     </div>
 
                     <aside className="min-w-0">
-                        <div className="lg:sticky lg:top-24">
+                        <div className="lg:sticky lg:top-6">
                             <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.28)]">
                                 <div className="border-b border-white/10 px-5 py-5">
                                     <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/40">
@@ -1166,7 +1207,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 </div>
 
                                 <div
-                                    className="lg:h-[calc(100vh-7rem)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                                    className="lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden"
                                     style={{
                                         scrollbarWidth: "none",
                                         msOverflowStyle: "none",
