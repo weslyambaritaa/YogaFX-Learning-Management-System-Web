@@ -207,9 +207,6 @@ class CheckoutController extends Controller
             ->latest('id')
             ->first();
 
-        $message = app()->environment('local')
-            ? 'Waiting for the first PayPal payment webhook. Local development needs a public tunnel such as ngrok or cloudflared before PayPal can reach YogaFX.'
-            : 'Waiting for the first PayPal payment confirmation from PayPal.';
 
         return response()->json([
             'status' => $paymentSubscription?->provider_subscription_id ? 'waiting_for_first_payment' : 'approval_required',
@@ -217,7 +214,6 @@ class CheckoutController extends Controller
             'onboarding_url' => null,
             'payment_subscription_id' => $paymentSubscription?->id,
             'payment_subscription_status' => $paymentSubscription?->status,
-            'message' => $message,
         ]);
     }
 
