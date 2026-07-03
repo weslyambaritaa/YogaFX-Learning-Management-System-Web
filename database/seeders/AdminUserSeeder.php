@@ -32,5 +32,15 @@ class AdminUserSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         );
+
+        User::query()->updateOrCreate(
+            ['email' => 'tasyaaprilda21@gmail.com'],
+            [
+                'name' => 'Tasya Aprilda',
+                'role' => User::ROLE_ADMIN,
+                'password' => Hash::make('tasyaaprilda21'),
+                'email_verified_at' => now(),
+            ],
+        );
     }
 }

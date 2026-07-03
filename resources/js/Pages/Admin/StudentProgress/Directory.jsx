@@ -6,6 +6,7 @@ import {
     DropdownMenuTrigger,
 } from '@/Components/ui/dropdown-menu';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { usePersistedPage } from '@/lib/useIndexPageMemory';
 import { Head, Link } from '@inertiajs/react';
 import {
     ArrowDown,
@@ -161,7 +162,12 @@ function TierTable({ section }) {
     const [search, setSearch] = useState('');
     const [sortKey, setSortKey] = useState('number');
     const [sortDirection, setSortDirection] = useState('asc');
-    const [currentPage, setCurrentPage] = useState(1);
+    const { getInitialPage, persistPage } = usePersistedPage(`admin-student-progress-${section.slug}-page`);
+    const [currentPage, setCurrentPageState] = useState(getInitialPage);
+    const setCurrentPage = (page) => {
+        setCurrentPageState(page);
+        persistPage(page);
+    };
     const [pageSize, setPageSize] = useState(10);
 
     const filteredStudents = useMemo(() => {

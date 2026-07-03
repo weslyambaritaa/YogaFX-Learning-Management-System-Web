@@ -2,6 +2,7 @@ import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useRestoreIndexFilters } from '@/lib/useIndexPageMemory';
 import { Head, Link, router } from '@inertiajs/react';
 import { Search, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -92,6 +93,14 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
         setTierFilter(filters.access_tier_id ?? '');
         setPerPage(String(filters.per_page ?? 10));
     }, [filters]);
+
+    useRestoreIndexFilters('admin-students-index', {
+        search,
+        status_filter: statusFilter,
+        access_tier_id: tierFilter,
+        per_page: perPage,
+        page: students.current_page,
+    });
 
     const applyFilters = (overrides = {}) => {
         const query = {

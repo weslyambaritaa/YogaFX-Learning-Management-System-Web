@@ -1,6 +1,7 @@
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import useAdminTableReorder from '@/lib/useAdminTableReorder';
+import { usePersistedPage } from '@/lib/useIndexPageMemory';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { BookOpen, Search, Plus, CheckCircle2, XCircle, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import { useState } from 'react';
@@ -36,7 +37,12 @@ export default function ModulesIndex({ modules, status }) {
     const errors = usePage().props.errors;
     const [search, setSearch] = useState('');
     const [pageSize, setPageSize] = useState(10);
-    const [currentPage, setCurrentPage] = useState(1);
+    const { getInitialPage, persistPage } = usePersistedPage('admin-modules-page');
+    const [currentPage, setCurrentPageState] = useState(getInitialPage);
+    const setCurrentPage = (page) => {
+        setCurrentPageState(page);
+        persistPage(page);
+    };
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
     const {

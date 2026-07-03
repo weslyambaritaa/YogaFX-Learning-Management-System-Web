@@ -2,6 +2,7 @@ import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useRestoreIndexFilters } from '@/lib/useIndexPageMemory';
 import { Head, Link, router } from '@inertiajs/react';
 import { Search, ShieldPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -77,6 +78,13 @@ export default function AdminsIndex({ admins, filters, status, capabilities }) {
         setScope(filters.scope ?? 'all');
         setPerPage(String(filters.per_page ?? 10));
     }, [filters]);
+
+    useRestoreIndexFilters('admin-admins-index', {
+        search,
+        scope,
+        per_page: perPage,
+        page: admins.current_page,
+    });
 
     const applyFilters = (overrides = {}) => {
         const query = {
