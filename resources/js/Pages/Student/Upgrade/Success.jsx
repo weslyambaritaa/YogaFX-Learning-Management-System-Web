@@ -1,9 +1,15 @@
 import { Button } from '@/Components/ui/button';
 import PublicFlowLayout from '@/Layouts/PublicFlowLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { CheckCircle2 } from 'lucide-react';
 
 export default function UpgradePaymentSuccess({ upgrade }) {
+    const { auth } = usePage().props;
+    const continueHref = auth?.user ? upgrade.continue_url : route('login');
+    const continueLabel = auth?.user
+        ? (upgrade.cta_label ?? 'Return to Dashboard')
+        : 'Login to Continue';
+
     return (
         <PublicFlowLayout
             title="Upgrade Success"
@@ -24,8 +30,8 @@ export default function UpgradePaymentSuccess({ upgrade }) {
                         asChild
                         className="mt-6 w-full rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
                     >
-                        <Link href={upgrade.continue_url}>
-                            {upgrade.cta_label ?? 'Return to Dashboard'}
+                        <Link href={continueHref}>
+                            {continueLabel}
                         </Link>
                     </Button>
                 </div>
