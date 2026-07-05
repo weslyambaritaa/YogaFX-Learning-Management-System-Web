@@ -109,6 +109,12 @@ export default function Edit({ status, upgradeOptions = [] }) {
                     </div>
                 </div>
 
+                <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
+                    <p className="font-['Montserrat'] text-sm font-medium text-white">
+                        {user.access_tier?.name ?? "No Access Tier"}
+                    </p>
+                </div>
+
                 {upgradeOptions.length > 0 ? (
                     <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
                         <div className="flex flex-col gap-4">
