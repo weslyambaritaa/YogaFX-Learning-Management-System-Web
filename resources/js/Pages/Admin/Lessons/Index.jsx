@@ -1,7 +1,7 @@
 import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import useAdminTableReorder from '@/lib/useAdminTableReorder';
-import { usePersistedPage } from '@/lib/useIndexPageMemory';
+import { usePersistedPage, useRestoreIndexFilters } from '@/lib/useIndexPageMemory';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { BookOpenCheck, Search, Plus, CheckCircle2, XCircle, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import { useState } from 'react';
@@ -103,6 +103,10 @@ export default function LessonsIndex({ lessons, modules, selectedModuleId, statu
             },
         );
     };
+
+    useRestoreIndexFilters('admin-lessons-module-filter', {
+        module_id: selectedModuleId ?? '',
+    });
 
     const pageNumbers = () => {
         const pages = [];
