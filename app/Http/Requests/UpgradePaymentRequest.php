@@ -54,6 +54,14 @@ class UpgradePaymentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ((string) $this->input('payment_type') !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            $this->merge([
+                'billing_day' => null,
+            ]);
+
+            return;
+        }
+
         $package = $this->targetPackage();
 
         if (

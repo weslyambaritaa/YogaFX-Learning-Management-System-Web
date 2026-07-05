@@ -2,7 +2,7 @@ import InputError from "@/Components/InputError";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { formatCurrency } from "@/lib/currency";
-import { Head, useForm } from "@inertiajs/react";
+import { Head, router, useForm } from "@inertiajs/react";
 import { LoaderCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -69,7 +69,7 @@ export default function UpgradeCheckout({ upgrade }) {
         installmentBillingDayOptions[0] ??
         15;
 
-    const { data, setData, post, processing, errors, clearErrors, setError } =
+    const { data, setData, processing, errors, clearErrors, setError } =
         useForm({
             payment_type: defaultPaymentType,
             payment_method: defaultPaymentMethod,
@@ -372,11 +372,26 @@ export default function UpgradeCheckout({ upgrade }) {
 
     const submitFullPayment = (event) => {
         event.preventDefault();
+        clearErrors();
         setGeneralError("");
 
-        post(upgrade.submit_url, {
-            preserveScroll: true,
-        });
+        if (!data.terms_accepted) {
+            setError("terms_accepted", "Please confirm before continuing.");
+            return;
+        }
+
+        router.post(
+            upgrade.submit_url,
+            {
+                payment_type: data.payment_type,
+                payment_method: data.payment_method,
+                billing_day: null,
+                terms_accepted: data.terms_accepted,
+            },
+            {
+                preserveScroll: true,
+            },
+        );
     };
 
     const prepareInstallmentCheckout = async () => {
