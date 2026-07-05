@@ -1015,7 +1015,6 @@ export default function StudentProfileForm({
                                 onChange={(event) =>
                                     setData("first_name", event.target.value)
                                 }
-                                isFocused
                             />
                             <InputError
                                 message={errors.email}
