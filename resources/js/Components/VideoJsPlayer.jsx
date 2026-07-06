@@ -83,6 +83,7 @@ export default function VideoJsPlayer({
 }) {
     const containerRef = useRef(null);
     const playerRef = useRef(null);
+    const htmlVideoElementRef = useRef(null);
     const latestSourceRef = useRef(src);
     const latestPosterRef = useRef(poster);
     const latestAutoplayRef = useRef(autoplay);
@@ -102,6 +103,18 @@ export default function VideoJsPlayer({
     const [currentTime, setCurrentTime] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [supportsHoverControls, setSupportsHoverControls] = useState(false);
+
+    const hasPendingFullscreenRestore = () =>
+        typeof window !== "undefined" &&
+        window.sessionStorage.getItem(FULLSCREEN_RESTORE_STORAGE_KEY) === "1";
+
+    const clearPendingFullscreenRestore = () => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        window.sessionStorage.removeItem(FULLSCREEN_RESTORE_STORAGE_KEY);
+    };
 
     const clearControlsTimer = () => {
         if (controlsTimerRef.current) {
@@ -212,14 +225,16 @@ export default function VideoJsPlayer({
 
     const requestPlayerFullscreen = async () => {
         const playerShell = containerRef.current;
+        const htmlVideoElement = htmlVideoElementRef.current;
 
-        if (!playerShell) {
+        if (!playerShell && !htmlVideoElement) {
             return;
         }
 
         const isAlreadyFullscreen =
             document.fullscreenElement === playerShell ||
-            document.webkitFullscreenElement === playerShell;
+            document.webkitFullscreenElement === playerShell ||
+            Boolean(htmlVideoElement?.webkitDisplayingFullscreen);
 
         if (isAlreadyFullscreen) {
             if (document.fullscreenElement && document.exitFullscreen) {
@@ -232,13 +247,44 @@ export default function VideoJsPlayer({
             return;
         }
 
-        if (playerShell.requestFullscreen) {
+        if (playerShell?.requestFullscreen) {
             await playerShell.requestFullscreen();
-        } else if (playerShell.webkitRequestFullscreen) {
+        } else if (playerShell?.webkitRequestFullscreen) {
             playerShell.webkitRequestFullscreen();
+        } else if (
+            htmlVideoElement &&
+            typeof htmlVideoElement.webkitEnterFullscreen === "function"
+        ) {
+            htmlVideoElement.webkitEnterFullscreen();
         }
 
         await lockLandscapeIfSupported();
+    };
+
+    const attemptRestoreFullscreen = async () => {
+        if (
+            !latestRestoreFullscreenRef.current ||
+            !hasPendingFullscreenRestore()
+        ) {
+            return;
+        }
+
+        try {
+            await requestPlayerFullscreen();
+
+            const htmlVideoElement = htmlVideoElementRef.current;
+            const playerShell = containerRef.current;
+            const restored =
+                document.fullscreenElement === playerShell ||
+                document.webkitFullscreenElement === playerShell ||
+                Boolean(htmlVideoElement?.webkitDisplayingFullscreen);
+
+            if (restored) {
+                clearPendingFullscreenRestore();
+            }
+        } catch (error) {
+            // Ignore fullscreen restore failures caused by browser policy.
+        }
     };
 
     const seekTo = async (nextTime) => {
@@ -401,6 +447,7 @@ export default function VideoJsPlayer({
                         return;
                     }
 
+                    htmlVideoElementRef.current = htmlVideoElement;
                     htmlVideoElement.setAttribute("playsinline", "true");
                     htmlVideoElement.setAttribute("webkit-playsinline", "true");
                     htmlVideoElement.setAttribute(
@@ -450,19 +497,9 @@ export default function VideoJsPlayer({
                     latestPlaybackErrorHandlerRef.current?.(null);
                     syncPlayerState();
 
-                    if (
-                        latestRestoreFullscreenRef.current &&
-                        typeof window !== "undefined" &&
-                        window.sessionStorage.getItem(
-                            FULLSCREEN_RESTORE_STORAGE_KEY,
-                        ) === "1"
-                    ) {
-                        window.sessionStorage.removeItem(
-                            FULLSCREEN_RESTORE_STORAGE_KEY,
-                        );
-
+                    if (hasPendingFullscreenRestore()) {
                         window.setTimeout(() => {
-                            void requestPlayerFullscreen().catch(() => {});
+                            void attemptRestoreFullscreen();
                         }, 150);
                     }
 
@@ -480,9 +517,21 @@ export default function VideoJsPlayer({
 
                 player.on("play", syncPlayerState);
                 player.on("play", pauseAudioCompanions);
+                player.on("play", () => {
+                    if (hasPendingFullscreenRestore()) {
+                        window.setTimeout(() => {
+                            void attemptRestoreFullscreen();
+                        }, 50);
+                    }
+                });
                 player.on("pause", syncPlayerState);
                 player.on("volumechange", syncPlayerState);
                 player.on("fullscreenchange", syncPlayerState);
+                player.on("canplay", () => {
+                    if (hasPendingFullscreenRestore()) {
+                        void attemptRestoreFullscreen();
+                    }
+                });
 
                 player.on("timeupdate", () => {
                     const nextDuration = Number(player.duration()) || 0;
@@ -559,6 +608,8 @@ export default function VideoJsPlayer({
                 playerRef.current.dispose();
                 playerRef.current = null;
             }
+
+            htmlVideoElementRef.current = null;
         };
     }, []);
 
