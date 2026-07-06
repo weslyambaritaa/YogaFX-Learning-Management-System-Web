@@ -73,6 +73,7 @@ export default function VideoJsPlayer({
     className = "",
     autoplay = false,
     hideProgressHandle = false,
+    overlay = null,
     onPlaybackError = null,
     onProgressUpdate = null,
     onTimeUpdate = null,
@@ -882,6 +883,12 @@ export default function VideoJsPlayer({
                         />
                     </div>
                 </div>
+
+                {overlay ? (
+                    <div className="pointer-events-none absolute inset-0 z-40">
+                        {overlay}
+                    </div>
+                ) : null}
             </div>
         </div>
     );

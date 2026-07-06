@@ -377,6 +377,50 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         lesson.lesson_video_id && nextTarget?.is_unlocked && nextTarget?.url,
     );
     const canOpenNextTarget = Boolean(nextTarget?.is_unlocked && nextTarget?.url);
+    const autoNextOverlay =
+        autoNextCountdown !== null && nextTarget?.title ? (
+            <div
+                className="pointer-events-none absolute inset-x-2 bottom-2 sm:inset-x-5 sm:bottom-5 lg:inset-x-auto lg:right-5 lg:w-[min(360px,calc(100%-2.5rem))]"
+                onClick={(event) => event.stopPropagation()}
+            >
+                <div className="pointer-events-auto rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:px-5 sm:py-4">
+                    <div className="flex min-w-0 items-end justify-between gap-2 sm:items-center sm:gap-4">
+                        <div className="min-w-0 space-y-1 sm:space-y-2">
+                            <div className="font-['Montserrat'] text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
+                                {nextTarget.kicker}
+                            </div>
+                            <div className="line-clamp-1 font-['Montserrat'] text-[11px] font-semibold leading-4 text-white sm:line-clamp-2 sm:text-lg sm:leading-6">
+                                {nextTarget.title}
+                            </div>
+                            <div className="font-['Montserrat'] text-[10px] text-white/70 sm:text-sm">
+                                Continue in {autoNextCountdown} seconds
+                            </div>
+                        </div>
+                        {nextTarget.url ? (
+                            <Button
+                                asChild
+                                className="h-auto shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[7px] py-[5px] font-['Montserrat'] text-[10px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
+                            >
+                                <Link href={nextTarget.url}>
+                                    <span className="sm:hidden">Next</span>
+                                    <span className="hidden sm:inline">
+                                        {nextTarget.button_label}
+                                    </span>
+                                </Link>
+                            </Button>
+                        ) : null}
+                    </div>
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
+                        <div
+                            className="h-full rounded-full bg-[#DB202C]"
+                            style={{
+                                width: `${autoNextProgress}%`,
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
+        ) : null;
 
     useEffect(() => {
         const persistedWorkbookDownloaded =
@@ -846,6 +890,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             hideProgressHandle={
                                                 autoNextCountdown !== null
                                             }
+                                            overlay={autoNextOverlay}
                                             onPlaybackError={
                                                 setPlayerWarning
                                             }
@@ -871,57 +916,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 ) : (
                                     <div className="aspect-video w-full bg-[radial-gradient(circle_at_30%_20%,_rgba(227,120,61,0.4),_transparent_28%),linear-gradient(140deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.02)),linear-gradient(180deg,_#3a2318_0%,_#17110f_100%)]" />
                                 )}
-                                {autoNextCountdown !== null &&
-                                nextTarget?.title ? (
-                                    <div
-                                        className="absolute inset-x-2 bottom-2 z-[60] rounded-[5px] border border-white/15 bg-black/70 px-2.5 py-2 backdrop-blur sm:inset-x-5 sm:bottom-5 sm:px-5 sm:py-4 lg:inset-x-auto lg:bottom-5 lg:right-5 lg:w-[min(360px,calc(100%-2.5rem))]"
-                                        onClick={(event) =>
-                                            event.stopPropagation()
-                                        }
-                                    >
-                                        <div className="flex min-w-0 items-end justify-between gap-2 sm:items-center sm:gap-4">
-                                            <div className="min-w-0 space-y-1 sm:space-y-2">
-                                                <div className="font-['Montserrat'] text-[9px] font-semibold uppercase tracking-[0.12em] text-white/55 sm:text-sm sm:tracking-[0.18em]">
-                                                    {nextTarget.kicker}
-                                                </div>
-                                                <div className="line-clamp-1 font-['Montserrat'] text-[11px] font-semibold leading-4 text-white sm:line-clamp-2 sm:text-lg sm:leading-6">
-                                                    {nextTarget.title}
-                                                </div>
-                                                <div className="font-['Montserrat'] text-[10px] text-white/70 sm:text-sm">
-                                                    Continue in{" "}
-                                                    {autoNextCountdown} seconds
-                                                </div>
-                                            </div>
-                                            {nextTarget.url ? (
-                                                <Button
-                                                    asChild
-                                                    className="h-auto shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[7px] py-[5px] font-['Montserrat'] text-[10px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
-                                                >
-                                                    <Link
-                                                        href={nextTarget.url}
-                                                    >
-                                                        <span className="sm:hidden">
-                                                            Next
-                                                        </span>
-                                                        <span className="hidden sm:inline">
-                                                            {
-                                                                nextTarget.button_label
-                                                            }
-                                                        </span>
-                                                    </Link>
-                                                </Button>
-                                            ) : null}
-                                        </div>
-                                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10 sm:mt-4 sm:h-2">
-                                            <div
-                                                className="h-full rounded-full bg-[#DB202C]"
-                                                style={{
-                                                    width: `${autoNextProgress}%`,
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                ) : null}
                             </div>
                         </div>
                         <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
