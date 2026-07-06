@@ -193,7 +193,7 @@ class HomeController extends Controller
                 'thumbnail_url' => $this->lessonThumbnailUrl($lesson, $module),
                 'status' => $latestProgress->is_done
                     ? 'Last lesson completed'
-                    : ($progressPercentage > 0 ? "{$progressPercentage}% complete" : 'In progress'),
+                    : ($progressPercentage > 0 ? "{$progressPercentage}% complete" : 'Last opened'),
             ];
         }
 

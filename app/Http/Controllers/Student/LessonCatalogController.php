@@ -37,6 +37,7 @@ class LessonCatalogController extends Controller
     {
         $user = $request->user();
         $this->authorizeLessonAccess($request, $lesson);
+        $this->markLessonAsViewed($user?->id, $lesson);
 
         $accessibleModules = $this->accessibleModulesWithLessons($user?->access_tier_id);
         $lessonNavigation = optional($accessibleModules->firstWhere('id', $lesson->module_id))->lessons
@@ -284,6 +285,29 @@ class LessonCatalogController extends Controller
             'is_done' => (bool) $lessonProgress->is_done,
             'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
         ]);
+    }
+
+    private function markLessonAsViewed(?int $userId, Lesson $lesson): void
+    {
+        if (! $userId) {
+            return;
+        }
+
+        $lessonProgress = LessonProgress::query()->firstOrNew([
+            'user_id' => $userId,
+            'lesson_id' => $lesson->id,
+        ]);
+
+        if (! $lessonProgress->exists) {
+            $lessonProgress->watch_progress = 0;
+            $lessonProgress->is_workbook_downloaded = false;
+            $lessonProgress->is_done = false;
+            $lessonProgress->save();
+
+            return;
+        }
+
+        $lessonProgress->touch();
     }
 
     /**
