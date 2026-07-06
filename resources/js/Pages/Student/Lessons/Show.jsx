@@ -8,6 +8,7 @@ import { Check, ChevronRight, FileText, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const CONTENT_COLLAPSED_HEIGHT = 320;
+const FULLSCREEN_RESTORE_STORAGE_KEY = "yogafx:lesson-fullscreen-restore";
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
@@ -334,6 +335,20 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         }
 
         return url.includes("?") ? `${url}&autoplay=1` : `${url}?autoplay=1`;
+    };
+    const persistFullscreenRestoreIntent = () => {
+        if (typeof window === "undefined") {
+            return;
+        }
+
+        const fullscreenElement =
+            document.fullscreenElement || document.webkitFullscreenElement;
+
+        if (!fullscreenElement) {
+            return;
+        }
+
+        window.sessionStorage.setItem(FULLSCREEN_RESTORE_STORAGE_KEY, "1");
     };
     const nextTarget = useMemo(() => {
         if (assessmentState && !assessmentState.is_completed) {
@@ -831,6 +846,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
             if (!autoNextNavigatingRef.current && nextTarget?.url) {
                 autoNextNavigatingRef.current = true;
+                persistFullscreenRestoreIntent();
                 router.visit(
                     nextTarget.type === "lesson"
                         ? withAutoplayQuery(nextTarget.url)
@@ -889,6 +905,9 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                             poster={lesson.thumbnail_url}
                                             className="h-full w-full overflow-hidden"
                                             autoplay={Boolean(lesson.autoplay)}
+                                            restoreFullscreenOnAutoplay={
+                                                Boolean(lesson.autoplay)
+                                            }
                                             hideProgressHandle={
                                                 autoNextCountdown !== null
                                             }

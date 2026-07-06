@@ -14,6 +14,7 @@ const HLS_SOURCE_TYPE = "application/vnd.apple.mpegurl";
 const CONTROL_HIDE_DELAY_MS = 3000;
 const SEEK_STEP_SECONDS = 10;
 const AUDIO_PLAY_EVENT = "yogafx:audio-play";
+const FULLSCREEN_RESTORE_STORAGE_KEY = "yogafx:lesson-fullscreen-restore";
 
 function formatDuration(secondsValue) {
     const safeSeconds = Math.max(0, Math.floor(Number(secondsValue) || 0));
@@ -72,6 +73,7 @@ export default function VideoJsPlayer({
     poster = null,
     className = "",
     autoplay = false,
+    restoreFullscreenOnAutoplay = false,
     hideProgressHandle = false,
     overlay = null,
     onPlaybackError = null,
@@ -84,6 +86,7 @@ export default function VideoJsPlayer({
     const latestSourceRef = useRef(src);
     const latestPosterRef = useRef(poster);
     const latestAutoplayRef = useRef(autoplay);
+    const latestRestoreFullscreenRef = useRef(restoreFullscreenOnAutoplay);
     const latestPlaybackErrorHandlerRef = useRef(onPlaybackError);
     const latestProgressHandlerRef = useRef(onProgressUpdate);
     const latestTimeUpdateHandlerRef = useRef(onTimeUpdate);
@@ -286,8 +289,10 @@ export default function VideoJsPlayer({
         latestTimeUpdateHandlerRef.current = onTimeUpdate;
         latestPlaybackStateChangeHandlerRef.current = onPlaybackStateChange;
         latestAutoplayRef.current = autoplay;
+        latestRestoreFullscreenRef.current = restoreFullscreenOnAutoplay;
     }, [
         autoplay,
+        restoreFullscreenOnAutoplay,
         onPlaybackError,
         onProgressUpdate,
         onTimeUpdate,
@@ -444,6 +449,22 @@ export default function VideoJsPlayer({
                     lastReportedProgressRef.current = 0;
                     latestPlaybackErrorHandlerRef.current?.(null);
                     syncPlayerState();
+
+                    if (
+                        latestRestoreFullscreenRef.current &&
+                        typeof window !== "undefined" &&
+                        window.sessionStorage.getItem(
+                            FULLSCREEN_RESTORE_STORAGE_KEY,
+                        ) === "1"
+                    ) {
+                        window.sessionStorage.removeItem(
+                            FULLSCREEN_RESTORE_STORAGE_KEY,
+                        );
+
+                        window.setTimeout(() => {
+                            void requestPlayerFullscreen().catch(() => {});
+                        }, 150);
+                    }
 
                     if (latestAutoplayRef.current) {
                         const playbackResult = player.play();
