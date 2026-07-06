@@ -8,7 +8,6 @@ import { Check, ChevronRight, FileText, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const CONTENT_COLLAPSED_HEIGHT = 320;
-const FULLSCREEN_RESTORE_STORAGE_KEY = "yogafx:lesson-fullscreen-restore";
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
@@ -351,20 +350,6 @@ export default function StudentLessonShow({
 
         return url.includes("?") ? `${url}&payload=1` : `${url}?payload=1`;
     };
-    const persistFullscreenRestoreIntent = () => {
-        if (typeof window === "undefined") {
-            return;
-        }
-
-        const fullscreenElement =
-            document.fullscreenElement || document.webkitFullscreenElement;
-
-        if (!fullscreenElement) {
-            return;
-        }
-
-        window.sessionStorage.setItem(FULLSCREEN_RESTORE_STORAGE_KEY, "1");
-    };
     const loadLessonInPlace = async (url) => {
         if (!url || typeof window === "undefined") {
             return false;
@@ -456,6 +441,26 @@ export default function StudentLessonShow({
             ? withAutoplayQuery(nextTarget.url)
             : nextTarget.url
         : null;
+    const openNextTarget = async () => {
+        if (!nextTarget?.url || autoNextNavigatingRef.current) {
+            return;
+        }
+
+        autoNextNavigatingRef.current = true;
+
+        if (nextTarget.type === "lesson") {
+            const autoplayUrl = withAutoplayQuery(nextTarget.url);
+            const loaded = await loadLessonInPlace(autoplayUrl);
+
+            if (!loaded && autoplayUrl) {
+                router.visit(autoplayUrl);
+            }
+
+            return;
+        }
+
+        router.visit(nextTarget.url);
+    };
     const autoNextOverlay =
         autoNextCountdown !== null && nextTarget?.title ? (
             <div
@@ -477,15 +482,18 @@ export default function StudentLessonShow({
                         </div>
                         {nextTargetHref ? (
                             <Button
-                                asChild
+                                type="button"
+                                onClick={() => {
+                                    void openNextTarget();
+                                }}
                                 className="h-auto shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[7px] py-[5px] font-['Montserrat'] text-[10px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
                             >
-                                <Link href={nextTargetHref}>
+                                <>
                                     <span className="sm:hidden">Next</span>
                                     <span className="hidden sm:inline">
                                         {nextTarget.button_label}
                                     </span>
-                                </Link>
+                                </>
                             </Button>
                         ) : null}
                     </div>
@@ -915,19 +923,7 @@ export default function StudentLessonShow({
             setAutoNextCountdown(0);
 
             if (!autoNextNavigatingRef.current && nextTarget?.url) {
-                autoNextNavigatingRef.current = true;
-                persistFullscreenRestoreIntent();
-                if (nextTarget.type === "lesson") {
-                    void loadLessonInPlace(withAutoplayQuery(nextTarget.url)).then(
-                        (loaded) => {
-                            if (!loaded) {
-                                router.visit(withAutoplayQuery(nextTarget.url));
-                            }
-                        },
-                    );
-                } else {
-                    router.visit(nextTarget.url);
-                }
+                void openNextTarget();
             }
 
             return;
@@ -1239,12 +1235,13 @@ export default function StudentLessonShow({
                                         {nextTarget ? (
                                             canOpenNextTarget ? (
                                                 <Button
-                                                    asChild
+                                                    type="button"
+                                                    onClick={() => {
+                                                        void openNextTarget();
+                                                    }}
                                                     className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                                 >
-                                                    <Link href={nextTargetHref}>
-                                                        {nextTarget.button_label}
-                                                    </Link>
+                                                    {nextTarget.button_label}
                                                 </Button>
                                             ) : (
                                                 <Button
