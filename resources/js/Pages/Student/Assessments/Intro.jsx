@@ -13,16 +13,6 @@ export default function AssessmentIntro({
         <AuthenticatedLayout
             studentVariant="immersive"
             studentContentClassName="bg-[#070707]"
-            header={
-                <div>
-                    <div className="text-sm text-white/60">
-                        {lesson.module?.title ?? "Assessment"}
-                    </div>
-                    <h2 className="text-2xl font-semibold text-white">
-                        {assessment.title}
-                    </h2>
-                </div>
-            }
         >
             <Head title={assessment.title} />
 

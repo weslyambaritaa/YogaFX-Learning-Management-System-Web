@@ -328,9 +328,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             ? "In Progress"
             : "Current";
 
-    const moduleLabel = lesson.module?.sort_order
-        ? `Module ${lesson.module.sort_order}`
-        : "Lesson";
     const withAutoplayQuery = (url) => {
         if (!url) {
             return null;
@@ -922,9 +919,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                             <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:border-t-0 sm:p-6 lg:p-8">
                                 <div className="space-y-4 sm:space-y-5">
                                     <div className="space-y-3">
-                                        <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/45">
-                                            {moduleLabel}
-                                        </p>
                                         <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
                                             {lesson.title}
                                         </h1>
@@ -949,25 +943,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         </div>
                                     </div>
 
-                                    <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
-                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
-                                            <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
-                                                {moduleState?.completed_lessons ??
-                                                    0}{" "}
-                                                of{" "}
-                                                {moduleState?.lesson_count ?? 0}{" "}
-                                                lessons completed
-                                            </h2>
-                                            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
-                                                <div
-                                                    className="h-full rounded-full bg-emerald-500"
-                                                    style={{
-                                                        width: `${moduleState?.progress_percentage ?? 0}%`,
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-
+                                    <div className="grid gap-3 sm:gap-4">
                                         <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
                                             <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
                                                 Total Access Time
@@ -1199,11 +1175,6 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                         {moduleState?.title ??
                                             "More lessons in this module"}
                                     </h2>
-                                    <p className="mt-2 font-['Montserrat'] text-sm leading-6 text-white/55">
-                                        {moduleState?.completed_lessons ?? 0} of{" "}
-                                        {moduleState?.lesson_count ?? 0} lessons
-                                        completed
-                                    </p>
                                 </div>
 
                                 <div

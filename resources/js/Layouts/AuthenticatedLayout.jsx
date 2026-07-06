@@ -367,16 +367,16 @@ function UserMenu({ user, isImmersive = false }) {
                     className={[
                         "gap-2 rounded-lg",
                         isImmersive
-                            ? "border-white/15 bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white"
+                            ? "border-transparent bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white"
                             : "",
                         isImmersive
-                            ? "max-md:h-11 max-md:w-11 max-md:rounded-[10px] max-md:border-[#db202c]/55 max-md:bg-[#db202c] max-md:px-0 max-md:hover:bg-[#c31c28]"
+                            ? "max-md:h-11 max-md:w-11 max-md:rounded-[10px] max-md:border-transparent max-md:bg-[#db202c] max-md:px-0 max-md:hover:bg-[#c31c28]"
                             : "",
                     ].join(" ")}
                 >
                     <span
                         className={[
-                            "flex size-8 items-center justify-center overflow-hidden border border-white/10 bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current",
+                            "flex size-8 items-center justify-center overflow-hidden bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current",
                             isImmersive
                                 ? "rounded-[8px] max-md:size-9 max-md:border-0 max-md:bg-transparent"
                                 : "rounded-full",
