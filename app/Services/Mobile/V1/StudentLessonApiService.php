@@ -518,6 +518,10 @@ class StudentLessonApiService
         ?LessonProgress $lessonProgress,
         Collection $completedAssessmentIds,
     ): bool {
+        if (filled($lesson->workbook) && ! (bool) ($lessonProgress?->is_workbook_downloaded ?? false)) {
+            return false;
+        }
+
         if ($lesson->lesson_video_id !== null && (float) ($lessonProgress?->watch_progress ?? 0) < 95) {
             return false;
         }

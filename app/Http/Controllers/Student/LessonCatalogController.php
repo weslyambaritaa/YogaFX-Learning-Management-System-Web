@@ -143,14 +143,7 @@ class LessonCatalogController extends Controller
                     versionSeed: $lesson->updated_at,
                 ),
                 'workbook_download_url' => $lesson->workbook
-                    ? $this->protectedMediaUrl(
-                        'lesson',
-                        $lesson->id,
-                        'workbook',
-                        $lesson->workbook,
-                        download: true,
-                        versionSeed: $lesson->updated_at,
-                    )
+                    ? route('lessons.workbook.download', $lesson)
                     : null,
                 'workbook_trigger_url' => $lesson->workbook
                     ? route('lessons.workbook.trigger', $lesson)
@@ -550,6 +543,10 @@ class LessonCatalogController extends Controller
         ?LessonProgress $lessonProgress,
         Collection $completedAssessmentIds,
     ): bool {
+        if (filled($lesson->workbook) && ! (bool) ($lessonProgress?->is_workbook_downloaded ?? false)) {
+            return false;
+        }
+
         if ($lesson->lesson_video_id !== null && (float) ($lessonProgress?->watch_progress ?? 0) < 95) {
             return false;
         }
