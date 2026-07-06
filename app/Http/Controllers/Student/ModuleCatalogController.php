@@ -185,29 +185,6 @@ class ModuleCatalogController extends Controller
 
         abort_unless((bool) ($currentModuleAccess['is_visible'] ?? false), 403);
 
-        if ($this->shouldAutoCompleteOnFirstOpen($currentModule) && ! $resourceModuleVisitMap->has($currentModule->id)) {
-            StudentModuleVisit::query()->firstOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'module_id' => $currentModule->id,
-                ],
-                [
-                    'opened_at' => now(),
-                ],
-            );
-
-            $resourceModuleVisitMap = $resourceModuleVisitMap->put($currentModule->id, true);
-            $moduleAccessMap = $this->moduleAccessMap(
-                $user,
-                $modules,
-                $lessonProgressMap,
-                $completedAssessmentIds,
-                $assignmentSubmissionMap,
-                $resourceModuleVisitMap,
-            );
-            $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
-        }
-
         if ($this->isCertificateDownloadModule($currentModule)) {
             return Inertia::render('Student/Certificates/Show', [
                 'module' => [
@@ -472,6 +449,7 @@ class ModuleCatalogController extends Controller
                 $resourceModuleVisitMap,
             );
             $isResourceModule = $this->isOpenOnceResourceModule($module);
+            $isResourceModuleUnlocked = $allPreviousModulesComplete && $isResourceModule;
 
             $accessMap->put($module->id, [
                 'is_visible' => $allPreviousModulesComplete,
@@ -481,10 +459,11 @@ class ModuleCatalogController extends Controller
                         ? 'available'
                         : ($isComplete ? 'completed' : 'available')),
                 'description' => $module->description,
-                'is_complete' => $isComplete,
+                'is_complete' => $isResourceModule ? $isResourceModuleUnlocked : $isComplete,
             ]);
 
-            $allPreviousModulesComplete = $allPreviousModulesComplete && $isComplete;
+            $allPreviousModulesComplete = $allPreviousModulesComplete
+                && ($isResourceModule ? $isResourceModuleUnlocked : $isComplete);
         }
 
         return $accessMap;
@@ -697,7 +676,7 @@ class ModuleCatalogController extends Controller
         }
 
         if ($this->isOpenOnceResourceModule($module)) {
-            return $resourceModuleVisitMap->has($module->id);
+            return false;
         }
 
         return false;
