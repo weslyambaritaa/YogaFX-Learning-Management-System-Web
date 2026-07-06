@@ -102,6 +102,7 @@ export default function VideoJsPlayer({
     const [duration, setDuration] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isImmersiveFullscreen, setIsImmersiveFullscreen] = useState(false);
     const [supportsHoverControls, setSupportsHoverControls] = useState(false);
 
     const hasPendingFullscreenRestore = () =>
@@ -259,6 +260,19 @@ export default function VideoJsPlayer({
         }
 
         await lockLandscapeIfSupported();
+    };
+
+    const toggleImmersiveFullscreen = async () => {
+        const nextIsImmersive = !isImmersiveFullscreen;
+
+        setIsImmersiveFullscreen(nextIsImmersive);
+
+        if (nextIsImmersive) {
+            await lockLandscapeIfSupported();
+            return;
+        }
+
+        unlockOrientationIfSupported();
     };
 
     const attemptRestoreFullscreen = async () => {
@@ -634,12 +648,17 @@ export default function VideoJsPlayer({
             const playerShell = containerRef.current;
             const nextIsFullscreen =
                 document.fullscreenElement === playerShell ||
-                document.webkitFullscreenElement === playerShell;
+                document.webkitFullscreenElement === playerShell ||
+                isImmersiveFullscreen;
 
             setIsFullscreen(nextIsFullscreen);
             setControlsVisible(true);
 
-            if (!nextIsFullscreen) {
+            if (
+                document.fullscreenElement !== playerShell &&
+                document.webkitFullscreenElement !== playerShell &&
+                !isImmersiveFullscreen
+            ) {
                 unlockOrientationIfSupported();
             }
         };
@@ -662,7 +681,51 @@ export default function VideoJsPlayer({
                 handleFullscreenChange,
             );
         };
-    }, []);
+    }, [isImmersiveFullscreen]);
+
+    useEffect(() => {
+        setIsFullscreen((current) => {
+            if (isImmersiveFullscreen) {
+                return true;
+            }
+
+            return current &&
+                document.fullscreenElement !== containerRef.current &&
+                document.webkitFullscreenElement !== containerRef.current
+                ? false
+                : current;
+        });
+
+        if (typeof document === "undefined") {
+            return undefined;
+        }
+
+        const previousOverflow = document.body.style.overflow;
+        const previousTouchAction = document.body.style.touchAction;
+
+        if (isImmersiveFullscreen) {
+            document.body.style.overflow = "hidden";
+            document.body.style.touchAction = "none";
+        } else {
+            document.body.style.overflow = previousOverflow;
+            document.body.style.touchAction = previousTouchAction;
+        }
+
+        const handleEscape = (event) => {
+            if (event.key === "Escape") {
+                setIsImmersiveFullscreen(false);
+                unlockOrientationIfSupported();
+            }
+        };
+
+        document.addEventListener("keydown", handleEscape);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.body.style.touchAction = previousTouchAction;
+            document.removeEventListener("keydown", handleEscape);
+        };
+    }, [isImmersiveFullscreen]);
 
     if (loadFailed) {
         return (
@@ -694,6 +757,16 @@ export default function VideoJsPlayer({
                         background: #000;
                     }
 
+                    .yogafx-video-shell.is-immersive-fullscreen {
+                        position: fixed;
+                        inset: 0;
+                        z-index: 9999;
+                        width: 100vw;
+                        height: 100vh;
+                        border-radius: 0;
+                        background: #000;
+                    }
+
                     .yogafx-video-shell:fullscreen,
                     .yogafx-video-shell:-webkit-full-screen {
                         width: 100vw;
@@ -713,6 +786,7 @@ export default function VideoJsPlayer({
                     }
 
                     .yogafx-video-shell:fullscreen .video-js,
+                    .yogafx-video-shell.is-immersive-fullscreen .video-js,
                     .yogafx-video-shell:-webkit-full-screen .video-js {
                         border-radius: 0;
                     }
@@ -771,6 +845,7 @@ export default function VideoJsPlayer({
                 ref={containerRef}
                 className={[
                     "yogafx-video-shell",
+                    isImmersiveFullscreen ? "is-immersive-fullscreen" : "",
                     hideProgressHandle ? "hide-progress-handle" : "",
                 ].join(" ")}
                 onMouseEnter={handlePointerEnter}
@@ -932,7 +1007,7 @@ export default function VideoJsPlayer({
                                 }
                                 onClick={() =>
                                     runControlAction(async () => {
-                                        await requestPlayerFullscreen();
+                                        await toggleImmersiveFullscreen();
                                     })
                                 }
                             />
