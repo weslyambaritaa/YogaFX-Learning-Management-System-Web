@@ -79,6 +79,23 @@ class AssignmentSubmission extends Model
         return str($this->assignment_type)->replace('_', ' ')->title()->value();
     }
 
+    public function emailTypeLabel(): string
+    {
+        if ($this->relationLoaded('assignment') && $this->assignment) {
+            return self::emailTypeLabelFor($this->assignment);
+        }
+
+        if ($this->assignment()->exists()) {
+            $assignment = $this->assignment()->first(['id', 'title']);
+
+            if ($assignment instanceof Assignment) {
+                return self::emailTypeLabelFor($assignment);
+            }
+        }
+
+        return str($this->assignment_type)->replace('_', ' ')->title()->value();
+    }
+
     public function scopeMatchingAssignment(Builder $query, Assignment $assignment): Builder
     {
         $assignmentType = self::assignmentTypeFor($assignment);
@@ -151,5 +168,21 @@ class AssignmentSubmission extends Model
     public static function assignmentTypeFor(Assignment $assignment): string
     {
         return Str::snake((string) $assignment->title);
+    }
+
+    public static function emailTypeLabelFor(Assignment $assignment): string
+    {
+        $title = trim((string) $assignment->title);
+
+        if ($title === '') {
+            return 'Assignment';
+        }
+
+        $normalized = preg_replace('/^please\s+upload\s+your\s+/i', '', $title);
+        $normalized = preg_replace('/\s+video\s+here$/i', '', (string) $normalized);
+        $normalized = preg_replace('/\s+here$/i', '', (string) $normalized);
+        $normalized = trim((string) $normalized, " \t\n\r\0\x0B-");
+
+        return $normalized !== '' ? $normalized : $title;
     }
 }

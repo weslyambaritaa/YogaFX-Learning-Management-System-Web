@@ -124,7 +124,7 @@ class AssignmentController extends Controller
         event(new AssignmentReviewRequested([
             'user_name' => $user->name,
             'user_email' => $user->email,
-            'assignment_type' => $assignment->title,
+            'assignment_type' => AssignmentSubmission::emailTypeLabelFor($assignment),
             'admin_email' => config('mail.from.address'),
         ], 'assignment_submission', $submission->id));
 

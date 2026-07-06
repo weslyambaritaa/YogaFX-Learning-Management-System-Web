@@ -209,7 +209,7 @@ class StudentProgressController extends Controller
         $emailPayload = [
             'user_name' => $student->name,
             'user_email' => $student->email,
-            'assignment_type' => $assignmentSubmission->title(),
+            'assignment_type' => $assignmentSubmission->emailTypeLabel(),
             'feedback' => $assignmentSubmission->assignment_feedback,
             'admin_email' => config('mail.from.address'),
             'dashboard_url' => route('student.dashboard'),
