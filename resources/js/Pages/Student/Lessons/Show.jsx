@@ -374,6 +374,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         lesson.lesson_video_id && nextTarget?.is_unlocked && nextTarget?.url,
     );
     const canOpenNextTarget = Boolean(nextTarget?.is_unlocked && nextTarget?.url);
+    const nextTargetHref = nextTarget?.url
+        ? nextTarget.type === "lesson"
+            ? withAutoplayQuery(nextTarget.url)
+            : nextTarget.url
+        : null;
     const autoNextOverlay =
         autoNextCountdown !== null && nextTarget?.title ? (
             <div
@@ -393,12 +398,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                 Continue in {autoNextCountdown} seconds
                             </div>
                         </div>
-                        {nextTarget.url ? (
+                        {nextTargetHref ? (
                             <Button
                                 asChild
                                 className="h-auto shrink-0 justify-center rounded-[5px] bg-[#DB202C] px-[7px] py-[5px] font-['Montserrat'] text-[10px] font-medium text-white hover:bg-[#c31c28] sm:px-[10px] sm:py-[8px] sm:text-[14px]"
                             >
-                                <Link href={nextTarget.url}>
+                                <Link href={nextTargetHref}>
                                     <span className="sm:hidden">Next</span>
                                     <span className="hidden sm:inline">
                                         {nextTarget.button_label}
@@ -1140,7 +1145,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                     asChild
                                                     className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
                                                 >
-                                                    <Link href={nextTarget.url}>
+                                                    <Link href={nextTargetHref}>
                                                         {nextTarget.button_label}
                                                     </Link>
                                                 </Button>
