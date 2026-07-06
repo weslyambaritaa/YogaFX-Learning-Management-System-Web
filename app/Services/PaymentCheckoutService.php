@@ -35,7 +35,9 @@ class PaymentCheckoutService
         $package = Package::query()
             ->with('accessTier')
             ->findOrFail($attributes['package_id']);
+
         $accessTier = $package->accessTier;
+
         abort_unless($accessTier instanceof AccessTier, 422, 'This package is currently unavailable for checkout.');
 
         $pendingRegistration = PendingRegistration::query()->create([
@@ -70,32 +72,55 @@ class PaymentCheckoutService
     }
 
     /**
-     * @param  array{payment_type: string, payment_method: string, billing_day?: int|null}  $attributes
+     * @param  array{
+     *     payment_type: string,
+     *     payment_method: string,
+     *     billing_day?: int|null,
+     *     installment_count?: int|null
+     * }  $attributes
+     *
      * @return array<string, mixed>
      */
     public function startInitialCheckout(PendingRegistration $pendingRegistration, array $attributes): array
     {
         $this->assertSupportedPaymentMethod($attributes['payment_method']);
+
         $pendingRegistration->loadMissing('package', 'accessTier');
-        $normalizedBillingDay = $this->normalizeCheckoutBillingDay(
-            $pendingRegistration->package,
-            isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null,
-        );
+
+        $normalizedBillingDay = null;
+        $installmentCount = isset($attributes['installment_count']) && $attributes['installment_count'] !== null
+            ? (int) $attributes['installment_count']
+            : null;
+
+        if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            try {
+                $normalizedBillingDay = $this->normalizeCheckoutBillingDay(
+                    $pendingRegistration->package,
+                    isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null,
+                );
+            } catch (\InvalidArgumentException) {
+                abort(422, 'The selected billing day is not available for this package.');
+            }
+        }
+
         $this->assertInitialCheckoutPaymentTypeSupported(
             $pendingRegistration,
             $attributes['payment_type'],
             $attributes['payment_method'],
             $normalizedBillingDay,
+            $installmentCount,
         );
 
         if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
-            /** @var Package $package */
-            $package = $pendingRegistration->package;
-
-            return $this->paymentSubscriptionService->startInitialCheckout($pendingRegistration, [
-                'return_url' => $this->checkoutSubscriptionReturnUrl($pendingRegistration),
-                'cancel_url' => $this->checkoutSubscriptionCancelUrl($pendingRegistration),
-            ], $normalizedBillingDay);
+            return $this->paymentSubscriptionService->startInitialCheckout(
+                $pendingRegistration,
+                [
+                    'return_url' => $this->checkoutSubscriptionReturnUrl($pendingRegistration),
+                    'cancel_url' => $this->checkoutSubscriptionCancelUrl($pendingRegistration),
+                ],
+                $normalizedBillingDay,
+                $installmentCount,
+            );
         }
 
         $pendingRegistration->loadMissing('onboardingState');
@@ -114,6 +139,7 @@ class PaymentCheckoutService
         /** @var array{invoice: Invoice, payment_activity: Payment} $created */
         $created = DB::transaction(function () use ($pendingRegistration, $attributes): array {
             $pendingRegistration->loadMissing('accessTier', 'package', 'onboardingState.user');
+
             $accessTier = $pendingRegistration->accessTier()->firstOrFail();
             $package = $pendingRegistration->package;
             $amount = (float) ($package?->price ?? $accessTier->price);
@@ -166,6 +192,7 @@ class PaymentCheckoutService
 
             /** @var OnboardingState $onboardingState */
             $onboardingState = $finalized['onboarding_state'];
+
             abort_unless($onboardingState !== null, 409, 'Onboarding continuation is not available for this payment.');
 
             return [
@@ -195,26 +222,48 @@ class PaymentCheckoutService
     }
 
     /**
-     * @param  array{payment_type: string, payment_method: string}  $attributes
+     * @param  array{
+     *     payment_type: string,
+     *     payment_method: string,
+     *     billing_day?: int|null,
+     *     installment_count?: int|null
+     * }  $attributes
+     *
      * @return array{invoice: Invoice, payment_activity: Payment, redirect_url: string, amount_due: float}
      */
     public function startUpgradeCheckout(User $user, AccessTier $targetTier, array $attributes): array
     {
         $this->assertSupportedPaymentMethod($attributes['payment_method']);
+
         $amountDue = $this->relevantUpgradeAmountDue($user, $targetTier);
+
         abort_if($amountDue <= 0, 422, 'No additional upgrade payment is required for this tier.');
 
         $targetPackage = $this->activeUpgradePackage($targetTier);
-        $normalizedBillingDay = $this->normalizeCheckoutBillingDay(
-            $targetPackage,
-            isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null,
-        );
+
+        $normalizedBillingDay = null;
+        $installmentCount = isset($attributes['installment_count']) && $attributes['installment_count'] !== null
+            ? (int) $attributes['installment_count']
+            : null;
+
+        if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            try {
+                $normalizedBillingDay = $this->normalizeCheckoutBillingDay(
+                    $targetPackage,
+                    isset($attributes['billing_day']) ? (int) $attributes['billing_day'] : null,
+                );
+            } catch (\InvalidArgumentException) {
+                abort(422, 'The selected billing day is not available for this package.');
+            }
+        }
+
         $this->assertUpgradePaymentTypeSupported(
             $targetPackage,
             $attributes['payment_type'],
             $attributes['payment_method'],
             $normalizedBillingDay,
             $amountDue,
+            $installmentCount,
         );
 
         if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
@@ -230,6 +279,7 @@ class PaymentCheckoutService
                     'cancel_url' => $this->upgradeSubscriptionCancelUrl($targetTier),
                 ],
                 $normalizedBillingDay,
+                $installmentCount,
             );
         }
 
@@ -428,6 +478,7 @@ class PaymentCheckoutService
     public function checkoutPayload(PendingRegistration $pendingRegistration): array
     {
         $pendingRegistration->loadMissing('accessTier', 'package', 'onboardingState');
+
         $package = $pendingRegistration->package;
         $amount = (float) ($package?->price ?? $pendingRegistration->accessTier->price);
         $currencyCode = (string) ($package?->currency_code ?? $pendingRegistration->accessTier->currency_code);
@@ -456,6 +507,8 @@ class PaymentCheckoutService
                 'price' => (float) $package->price,
                 'currency_code' => $package->currency_code,
                 'installment_enabled' => (bool) $package->installment_enabled,
+                'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
+                'allowed_billing_days' => $package->checkoutBillingDayOptions(),
             ] : null,
             'installment_summary' => $installmentSummary,
             'installment_summaries' => $installmentData['summaries'],
@@ -464,8 +517,11 @@ class PaymentCheckoutService
             'installment_accepts_billing_day' => $checkoutAcceptsBillingDay,
             'installment_requires_billing_day_choice' => $checkoutRequiresBillingDayChoice,
             'installment_billing_day_options' => $checkoutBillingDayOptions,
-            'installment_billing_interval_unit' => $package?->normalizedBillingIntervalUnit(),
-            'installment_billing_interval_count' => $package?->billing_interval_count,
+            'installment_billing_interval_unit' => 'MONTH',
+            'installment_billing_interval_count' => 1,
+            'installment_maximum_count' => $installmentSummary['maximum_installment_count'] ?? null,
+            'installment_available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
+            'installment_deadline_date' => $installmentSummary['deadline_date'] ?? $package?->installment_deadline_date?->toDateString(),
             'access_tier' => [
                 'id' => $pendingRegistration->accessTier->id,
                 'name' => $pendingRegistration->accessTier->name,
@@ -543,6 +599,7 @@ class PaymentCheckoutService
             abort_if($onboardingState->status !== OnboardingState::STATUS_AWAITING_ENROLLMENT, 409, 'Enrollment is no longer available for this onboarding flow.');
 
             $user = $onboardingState->user;
+
             abort_unless($user instanceof User, 404);
 
             $user->fill($attributes);
@@ -570,6 +627,7 @@ class PaymentCheckoutService
             abort_if($lockedOnboardingState->status !== OnboardingState::STATUS_AWAITING_SIGNUP, 409, 'Password creation is not available for this onboarding flow.');
 
             $user = $lockedOnboardingState->user;
+
             abort_unless($user instanceof User, 404);
 
             $user->forceFill([
@@ -684,8 +742,11 @@ class PaymentCheckoutService
             'installment_accepts_billing_day' => $installmentData['accepts_billing_day'],
             'installment_requires_billing_day_choice' => $installmentData['requires_billing_day_choice'],
             'installment_billing_day_options' => $installmentData['visible_billing_day_options'],
-            'installment_billing_interval_unit' => $installmentData['billing_interval_unit'],
-            'installment_billing_interval_count' => $installmentData['billing_interval_count'],
+            'installment_billing_interval_unit' => 'MONTH',
+            'installment_billing_interval_count' => 1,
+            'installment_maximum_count' => $installmentSummary['maximum_installment_count'] ?? null,
+            'installment_available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
+            'installment_deadline_date' => $installmentSummary['deadline_date'] ?? null,
             'installment_approve_url' => $this->upgradeSubscriptionApproveUrl($targetTier),
             'installment_status_url' => $this->upgradeSubscriptionStatusUrl($targetTier),
             'package' => $installmentData['package'],
@@ -749,6 +810,7 @@ class PaymentCheckoutService
         string $paymentType,
         string $paymentMethod,
         ?int $billingDay = null,
+        ?int $installmentCount = null,
     ): void {
         if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
             return;
@@ -768,18 +830,16 @@ class PaymentCheckoutService
             abort(422, 'This package is not eligible for installment checkout.');
         }
 
-        $requestedBillingDay = (int) ($billingDay ?? 0);
+        if ($billingDay === null) {
+            abort(422, 'Billing day is required for this package checkout.');
+        }
 
-        if ($billingDay !== null && ! in_array($requestedBillingDay, Package::CUSTOMER_BILLING_DAY_OPTIONS, true)) {
+        if (! in_array((int) $billingDay, Package::CUSTOMER_BILLING_DAY_OPTIONS, true)) {
             abort(422, 'Billing day must be either the 1st or the 15th.');
         }
 
-        if ($billingDay !== null && ! $package->checkoutAcceptsBillingDay()) {
+        if (! $package->checkoutAcceptsBillingDay()) {
             abort(422, 'Billing day is not available for this package.');
-        }
-
-        if ($billingDay === null && $package->checkoutRequiresBillingDayChoice()) {
-            abort(422, 'Billing day is required for this package checkout.');
         }
 
         try {
@@ -788,14 +848,19 @@ class PaymentCheckoutService
             abort(422, 'The selected billing day is not available for this package.');
         }
 
+        if ($installmentCount === null) {
+            abort(422, 'Installment count is required for installment checkout.');
+        }
+
         try {
             $this->installmentPlanCalculator->calculate(
                 $package,
                 $pendingRegistration->checkout_opened_at ?? now(),
                 $resolvedBillingDay,
+                $installmentCount,
             );
-        } catch (\DomainException|\InvalidArgumentException) {
-            abort(422, 'This package is not eligible for installment checkout.');
+        } catch (\DomainException|\InvalidArgumentException $exception) {
+            abort(422, $exception->getMessage() ?: 'This package is not eligible for installment checkout.');
         }
     }
 
@@ -818,8 +883,8 @@ class PaymentCheckoutService
         string $paymentMethod,
         ?int $billingDay,
         float $amountDue,
-    ): void
-    {
+        ?int $installmentCount = null,
+    ): void {
         if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
             return;
         }
@@ -840,16 +905,16 @@ class PaymentCheckoutService
             abort(422, 'This package is not eligible for installment checkout.');
         }
 
-        if ($billingDay !== null && ! in_array((int) $billingDay, Package::CUSTOMER_BILLING_DAY_OPTIONS, true)) {
+        if ($billingDay === null) {
+            abort(422, 'Billing day is required for this package checkout.');
+        }
+
+        if (! in_array((int) $billingDay, Package::CUSTOMER_BILLING_DAY_OPTIONS, true)) {
             abort(422, 'Billing day must be either the 1st or the 15th.');
         }
 
-        if ($billingDay !== null && ! $package->checkoutAcceptsBillingDay()) {
+        if (! $package->checkoutAcceptsBillingDay()) {
             abort(422, 'Billing day is not available for this package.');
-        }
-
-        if ($billingDay === null && $package->checkoutRequiresBillingDayChoice()) {
-            abort(422, 'Billing day is required for this package checkout.');
         }
 
         try {
@@ -858,15 +923,20 @@ class PaymentCheckoutService
             abort(422, 'The selected billing day is not available for this package.');
         }
 
+        if ($installmentCount === null) {
+            abort(422, 'Installment count is required for installment checkout.');
+        }
+
         try {
             $this->installmentPlanCalculator->calculateForAmount(
                 $package,
                 $amountDue,
                 now(),
                 $resolvedBillingDay,
+                $installmentCount,
             );
-        } catch (\DomainException|\InvalidArgumentException) {
-            abort(422, 'This package is not eligible for installment checkout.');
+        } catch (\DomainException|\InvalidArgumentException $exception) {
+            abort(422, $exception->getMessage() ?: 'This package is not eligible for installment checkout.');
         }
     }
 
@@ -892,28 +962,11 @@ class PaymentCheckoutService
         }
 
         if (! $package->checkoutAcceptsBillingDay()) {
-            try {
-                $summary = $this->installmentPlanCalculator->calculate(
-                    $package,
-                    $pendingRegistration->checkout_opened_at ?? now(),
-                    null,
-                );
-            } catch (\DomainException|\InvalidArgumentException) {
-                return [
-                    'selected_summary' => null,
-                    'selected_billing_day' => null,
-                    'allowed_billing_days' => [],
-                    'summaries' => [],
-                ];
-            }
-
             return [
-                'selected_summary' => $summary,
+                'selected_summary' => null,
                 'selected_billing_day' => null,
                 'allowed_billing_days' => [],
-                'summaries' => [
-                    'default' => $summary,
-                ],
+                'summaries' => [],
             ];
         }
 
@@ -921,15 +974,19 @@ class PaymentCheckoutService
         $calculationBillingDays = $visibleBillingDayOptions !== []
             ? $visibleBillingDayOptions
             : [$package->defaultInstallmentBillingDay()];
+
         $summaries = [];
 
         foreach ($calculationBillingDays as $billingDay) {
             try {
-                $summaries[(string) $billingDay] = $this->installmentPlanCalculator->calculate(
+                $summary = $this->installmentPlanCalculator->calculate(
                     $package,
                     $pendingRegistration->checkout_opened_at ?? now(),
                     $billingDay,
+                    null,
                 );
+
+                $summaries[(string) $billingDay] = $summary;
             } catch (\DomainException|\InvalidArgumentException) {
                 continue;
             }
@@ -997,11 +1054,33 @@ class PaymentCheckoutService
 
         $acceptsBillingDay = $package->checkoutAcceptsBillingDay();
         $visibleBillingDayOptions = $package->checkoutBillingDayOptions();
-        $calculationBillingDays = $acceptsBillingDay
-            ? ($visibleBillingDayOptions !== []
-                ? $visibleBillingDayOptions
-                : [$package->defaultInstallmentBillingDay()])
-            : [null];
+
+        if (! $acceptsBillingDay) {
+            return [
+                'package' => [
+                    'id' => $package->id,
+                    'title' => $package->title,
+                    'slug' => $package->slug,
+                    'installment_enabled' => (bool) $package->installment_enabled,
+                    'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
+                    'allowed_billing_days' => [],
+                ],
+                'selected_summary' => null,
+                'selected_billing_day' => null,
+                'allowed_billing_days' => [],
+                'visible_billing_day_options' => [],
+                'accepts_billing_day' => false,
+                'requires_billing_day_choice' => false,
+                'billing_interval_unit' => 'MONTH',
+                'billing_interval_count' => 1,
+                'summaries' => [],
+            ];
+        }
+
+        $calculationBillingDays = $visibleBillingDayOptions !== []
+            ? $visibleBillingDayOptions
+            : [$package->defaultInstallmentBillingDay()];
+
         $summaries = [];
 
         foreach ($calculationBillingDays as $billingDay) {
@@ -1011,8 +1090,10 @@ class PaymentCheckoutService
                     $amountDue,
                     now(),
                     $billingDay,
+                    null,
                 );
-                $summaries[(string) ($billingDay ?? 'default')] = $summary;
+
+                $summaries[(string) $billingDay] = $summary;
             } catch (\DomainException|\InvalidArgumentException) {
                 continue;
             }
@@ -1025,6 +1106,8 @@ class PaymentCheckoutService
                     'title' => $package->title,
                     'slug' => $package->slug,
                     'installment_enabled' => (bool) $package->installment_enabled,
+                    'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
+                    'allowed_billing_days' => $visibleBillingDayOptions,
                 ],
                 'selected_summary' => null,
                 'selected_billing_day' => null,
@@ -1032,24 +1115,21 @@ class PaymentCheckoutService
                 'visible_billing_day_options' => $visibleBillingDayOptions,
                 'accepts_billing_day' => $acceptsBillingDay,
                 'requires_billing_day_choice' => $package->checkoutRequiresBillingDayChoice(),
-                'billing_interval_unit' => $package->normalizedBillingIntervalUnit(),
-                'billing_interval_count' => $package->billing_interval_count,
+                'billing_interval_unit' => 'MONTH',
+                'billing_interval_count' => 1,
                 'summaries' => [],
             ];
         }
 
-        $selectedBillingDay = $acceptsBillingDay
-            ? (in_array(15, $visibleBillingDayOptions, true)
-                ? 15
-                : $package->defaultInstallmentBillingDay())
-            : null;
-        $selectedSummaryKey = (string) ($selectedBillingDay ?? 'default');
+        $selectedBillingDay = in_array(15, $visibleBillingDayOptions, true)
+            ? 15
+            : $package->defaultInstallmentBillingDay();
+
+        $selectedSummaryKey = (string) $selectedBillingDay;
 
         if (! array_key_exists($selectedSummaryKey, $summaries)) {
             $selectedSummaryKey = (string) array_key_first($summaries);
-            $selectedBillingDay = $selectedSummaryKey === 'default'
-                ? null
-                : (int) $selectedSummaryKey;
+            $selectedBillingDay = (int) $selectedSummaryKey;
         }
 
         return [
@@ -1058,6 +1138,8 @@ class PaymentCheckoutService
                 'title' => $package->title,
                 'slug' => $package->slug,
                 'installment_enabled' => (bool) $package->installment_enabled,
+                'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
+                'allowed_billing_days' => $visibleBillingDayOptions,
             ],
             'selected_summary' => $summaries[$selectedSummaryKey] ?? null,
             'selected_billing_day' => $selectedBillingDay,
@@ -1065,8 +1147,8 @@ class PaymentCheckoutService
             'visible_billing_day_options' => $visibleBillingDayOptions,
             'accepts_billing_day' => $acceptsBillingDay,
             'requires_billing_day_choice' => $package->checkoutRequiresBillingDayChoice(),
-            'billing_interval_unit' => $package->normalizedBillingIntervalUnit(),
-            'billing_interval_count' => $package->billing_interval_count,
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
             'summaries' => $summaries,
         ];
     }
@@ -1096,10 +1178,13 @@ class PaymentCheckoutService
                 'amount_due_today' => $installmentSummary['first_payment_amount'],
                 'currency_code' => $installmentSummary['currency_code'],
                 'installment_count' => $installmentSummary['installment_count'],
+                'maximum_installment_count' => $installmentSummary['maximum_installment_count'] ?? $installmentSummary['installment_count'],
                 'recurring_amount' => $installmentSummary['recurring_payment_amount'],
                 'billing_day' => $installmentSummary['billing_day'],
                 'allowed_billing_days' => $allowedBillingDays,
+                'deadline_date' => $installmentSummary['deadline_date'] ?? null,
                 'final_due_at' => $installmentSummary['final_due_at'],
+                'available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
                 'summary' => $installmentSummary,
             ];
         }

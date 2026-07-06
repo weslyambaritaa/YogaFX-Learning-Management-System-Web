@@ -6,9 +6,11 @@ use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
 use App\Models\PendingRegistration;
+use App\Services\Installments\InstallmentPlanCalculator;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class CheckoutPaymentRequest extends FormRequest
 {
@@ -54,7 +56,32 @@ class CheckoutPaymentRequest extends FormRequest
             'billing_country' => ['nullable', 'string', 'max:120'],
             'billing_address_line_1' => ['nullable', 'string', 'max:255'],
             'billing_address_line_2' => ['nullable', 'string', 'max:255'],
-            'billing_day' => ['nullable', 'integer', Rule::in(Package::CUSTOMER_BILLING_DAY_OPTIONS)],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Installment fields
+            |--------------------------------------------------------------------------
+            |
+            | billing_day:
+            | Calon student memilih salah satu tanggal billing yang diaktifkan admin.
+            | Nilainya hanya boleh 1 atau 15.
+            |
+            | installment_count:
+            | Calon student memilih jumlah cicilan. Jumlah ini akan divalidasi agar
+            | tidak melebihi maksimum berdasarkan payment date sampai deadline date.
+            |
+            */
+            'billing_day' => [
+                'nullable',
+                'integer',
+                Rule::in(Package::CUSTOMER_BILLING_DAY_OPTIONS),
+            ],
+            'installment_count' => [
+                'nullable',
+                'integer',
+                'min:2',
+            ],
+
             'terms_accepted' => ['required', 'accepted'],
         ];
     }
@@ -65,9 +92,54 @@ class CheckoutPaymentRequest extends FormRequest
         $pendingRegistration = $this->route('pendingRegistration');
         $package = $pendingRegistration?->package;
 
+        $paymentType = (string) $this->input('payment_type');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize installment_count
+        |--------------------------------------------------------------------------
+        */
+        if ($this->has('installment_count')) {
+            $installmentCount = $this->input('installment_count');
+
+            $this->merge([
+                'installment_count' => $installmentCount === null || $installmentCount === ''
+                    ? null
+                    : (int) $installmentCount,
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize billing_day
+        |--------------------------------------------------------------------------
+        */
+        if ($this->has('billing_day')) {
+            $billingDay = $this->input('billing_day');
+
+            $this->merge([
+                'billing_day' => $billingDay === null || $billingDay === ''
+                    ? null
+                    : (int) $billingDay,
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Non-installment checkout should not carry installment-only fields
+        |--------------------------------------------------------------------------
+        */
+        if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | If package does not expose billing day, force billing_day to null
+        |--------------------------------------------------------------------------
+        */
         if (
             $package instanceof Package
-            && (string) $this->input('payment_type') === Invoice::PAYMENT_TYPE_INSTALLMENT
             && ! $package->checkoutAcceptsBillingDay()
         ) {
             $this->merge([
@@ -89,32 +161,149 @@ class CheckoutPaymentRequest extends FormRequest
                 }
 
                 $paymentType = (string) $this->input('payment_type');
-                $billingDay = $this->input('billing_day');
-                $hasBillingDay = $billingDay !== null && $billingDay !== '';
 
+                $billingDay = $this->input('billing_day');
+                $installmentCount = $this->input('installment_count');
+
+                $hasBillingDay = $billingDay !== null && $billingDay !== '';
+                $hasInstallmentCount = $installmentCount !== null && $installmentCount !== '';
+
+                /*
+                |--------------------------------------------------------------------------
+                | Full payment must not send installment fields
+                |--------------------------------------------------------------------------
+                */
                 if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
                     if ($hasBillingDay) {
-                        $validator->errors()->add('billing_day', 'Billing day is only available for installment checkout packages that expose it.');
+                        $validator->errors()->add(
+                            'billing_day',
+                            'Billing day is only available for installment checkout.'
+                        );
                     }
+
+                    if ($hasInstallmentCount) {
+                        $validator->errors()->add(
+                            'installment_count',
+                            'Installment count is only available for installment checkout.'
+                        );
+                    }
+
+                    return;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Installment package eligibility
+                |--------------------------------------------------------------------------
+                */
+                if (! $package->installment_enabled) {
+                    $validator->errors()->add(
+                        'payment_type',
+                        'Installment checkout is not available for this package.'
+                    );
 
                     return;
                 }
 
                 if (! $package->checkoutAcceptsBillingDay()) {
-                    if ($hasBillingDay) {
-                        $validator->errors()->add('billing_day', 'Billing day is not available for this package.');
+                    $validator->errors()->add(
+                        'billing_day',
+                        'Billing day is not available for this package.'
+                    );
+
+                    return;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | billing_day is required for new installment flow
+                |--------------------------------------------------------------------------
+                */
+                if (! $hasBillingDay) {
+                    $validator->errors()->add(
+                        'billing_day',
+                        'Billing day is required for installment checkout.'
+                    );
+
+                    return;
+                }
+
+                if (! in_array((int) $billingDay, $package->checkoutBillingDayOptions(), true)) {
+                    $validator->errors()->add(
+                        'billing_day',
+                        'The selected billing day is not available for this package.'
+                    );
+
+                    return;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | installment_count is required for new installment flow
+                |--------------------------------------------------------------------------
+                */
+                if (! $hasInstallmentCount) {
+                    $validator->errors()->add(
+                        'installment_count',
+                        'Installment count is required for installment checkout.'
+                    );
+
+                    return;
+                }
+
+                $installmentCount = (int) $installmentCount;
+
+                if ($installmentCount < 2) {
+                    $validator->errors()->add(
+                        'installment_count',
+                        'Installment count must be at least 2.'
+                    );
+
+                    return;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Validate maximum installment count using calculator
+                |--------------------------------------------------------------------------
+                |
+                | Maksimum dihitung dari tanggal checkout hari ini sampai
+                | installment_deadline_date berdasarkan billing_day pilihan student.
+                |
+                */
+                try {
+                    /** @var InstallmentPlanCalculator $calculator */
+                    $calculator = app(InstallmentPlanCalculator::class);
+
+                    $summary = $calculator->calculate(
+                        package: $package,
+                        checkoutAt: now(),
+                        billingDay: (int) $billingDay,
+                        installmentCount: null,
+                    );
+
+                    $maximumInstallmentCount = (int) ($summary['maximum_installment_count'] ?? 0);
+
+                    if ($maximumInstallmentCount < 2) {
+                        $validator->errors()->add(
+                            'installment_count',
+                            'This package does not have enough available billing dates for installment checkout.'
+                        );
+
+                        return;
                     }
 
-                    return;
-                }
-
-                if ($package->checkoutRequiresBillingDayChoice() && ! $hasBillingDay) {
-                    $validator->errors()->add('billing_day', 'Billing day is required for this package checkout.');
-                    return;
-                }
-
-                if ($hasBillingDay && ! in_array((int) $billingDay, $package->checkoutBillingDayOptions(), true)) {
-                    $validator->errors()->add('billing_day', 'The selected billing day is not available for this package.');
+                    if ($installmentCount > $maximumInstallmentCount) {
+                        $validator->errors()->add(
+                            'installment_count',
+                            "Installment count cannot be greater than {$maximumInstallmentCount} for the selected billing day."
+                        );
+                    }
+                } catch (Throwable $exception) {
+                    $validator->errors()->add(
+                        'installment_count',
+                        $exception->getMessage() ?: 'Unable to validate installment count for this checkout.'
+                    );
                 }
             },
         ];

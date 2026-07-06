@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CheckoutPaymentRequest;
 use App\Models\AccessTier;
 use App\Models\Invoice;
+use App\Models\OnboardingState;
 use App\Models\Payment;
 use App\Models\PendingRegistration;
 use App\Models\PaymentSubscription;
@@ -13,9 +14,9 @@ use App\Services\PaymentCheckoutService;
 use App\Services\PaymentFinalizerService;
 use App\Services\Payments\PaymentSubscriptionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
-use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -43,7 +44,9 @@ class CheckoutController extends Controller
         }
 
         if ($pendingRegistration->status === PendingRegistration::STATUS_COMPLETED) {
-            return redirect()->route('login')->with('status', 'Your YogaFX account is already ready. Please sign in.');
+            return redirect()
+                ->route('login')
+                ->with('status', 'Your YogaFX account is already ready. Please sign in.');
         }
 
         $pendingRegistration = $this->paymentFlow->markCheckoutOpened($pendingRegistration);
@@ -76,8 +79,11 @@ class CheckoutController extends Controller
                 return Inertia::location($checkoutUrl);
             }
 
-            return redirect()->away($checkoutUrl)
-                ->withErrors(['payment_method' => 'Please use the onsite checkout form on this page.']);
+            return redirect()
+                ->away($checkoutUrl)
+                ->withErrors([
+                    'payment_method' => 'Please use the onsite checkout form on this page.',
+                ]);
         }
 
         $result = $this->paymentFlow->startInitialCheckout($pendingRegistration, $validated);
@@ -100,7 +106,18 @@ class CheckoutController extends Controller
 
         abort_unless($pendingRegistration->access_tier_id === $accessTier->id, 404);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Important
+        |--------------------------------------------------------------------------
+        |
+        | $validated now includes installment_count from CheckoutPaymentRequest.
+        | We pass the whole validated payload to PaymentCheckoutService so the
+        | selected installment count can reach the calculator and subscription flow.
+        |
+        */
         $validated = $request->validated();
+
         $result = $this->paymentFlow->startInitialCheckout($pendingRegistration, $validated);
 
         if (($validated['payment_method'] ?? null) === Payment::METHOD_MOCK) {
@@ -113,7 +130,20 @@ class CheckoutController extends Controller
         if (($validated['payment_type'] ?? null) === Invoice::PAYMENT_TYPE_INSTALLMENT) {
             /** @var PaymentSubscription|null $paymentSubscription */
             $paymentSubscription = $result['payment_subscription'] ?? null;
-            abort_unless($paymentSubscription instanceof PaymentSubscription, 409, 'Subscription checkout data is unavailable.');
+
+            abort_unless(
+                $paymentSubscription instanceof PaymentSubscription,
+                409,
+                'Subscription checkout data is unavailable.'
+            );
+
+            $metadata = is_array($paymentSubscription->metadata)
+                ? $paymentSubscription->metadata
+                : [];
+
+            $installmentPlan = is_array($metadata['installment_plan'] ?? null)
+                ? $metadata['installment_plan']
+                : [];
 
             return response()->json([
                 'status' => 'prepared',
@@ -122,7 +152,27 @@ class CheckoutController extends Controller
                 'payment_subscription_id' => $paymentSubscription->id,
                 'provider_plan_id' => $paymentSubscription->provider_plan_id,
                 'provider_subscription_id' => $paymentSubscription->provider_subscription_id,
+
+                /*
+                |--------------------------------------------------------------------------
+                | New installment response fields
+                |--------------------------------------------------------------------------
+                |
+                | These fields help the frontend confirm that the prepared PayPal
+                | subscription matches the student-selected billing day and count.
+                |
+                */
                 'billing_day' => $paymentSubscription->billing_day,
+                'installment_count' => $paymentSubscription->installment_count,
+                'first_payment_amount' => (float) $paymentSubscription->first_payment_amount,
+                'recurring_payment_amount' => (float) $paymentSubscription->next_billing_amount,
+                'total_amount' => (float) $paymentSubscription->total_amount,
+                'currency_code' => $paymentSubscription->currency_code,
+                'next_due_at' => $paymentSubscription->next_due_at?->toDateString(),
+                'final_due_at' => $paymentSubscription->final_due_at?->toDateString(),
+                'grace_deadline_at' => $paymentSubscription->grace_deadline_at?->toDateString(),
+                'installment_plan' => $installmentPlan,
+
                 'paypal_client_id' => $this->paypalService->clientId(),
                 'environment' => $this->paypalService->environment(),
                 'status_url' => $this->paymentFlow->checkoutSubscriptionStatusUrl($pendingRegistration),
@@ -174,6 +224,8 @@ class CheckoutController extends Controller
             'invoice_id' => $paymentSubscription->invoice_id,
             'payment_subscription_id' => $paymentSubscription->id,
             'provider_subscription_id' => $paymentSubscription->provider_subscription_id,
+            'billing_day' => $paymentSubscription->billing_day,
+            'installment_count' => $paymentSubscription->installment_count,
             'awaiting_webhook' => true,
             'onboarding_ready' => false,
             'status_url' => $this->paymentFlow->checkoutSubscriptionStatusUrl($pendingRegistration),
@@ -192,7 +244,7 @@ class CheckoutController extends Controller
 
         $pendingRegistration->loadMissing('onboardingState', 'package', 'accessTier');
 
-        if ($pendingRegistration->onboardingState instanceof \App\Models\OnboardingState) {
+        if ($pendingRegistration->onboardingState instanceof OnboardingState) {
             return response()->json([
                 'status' => 'onboarding_ready',
                 'onboarding_ready' => true,
@@ -207,13 +259,18 @@ class CheckoutController extends Controller
             ->latest('id')
             ->first();
 
-
         return response()->json([
-            'status' => $paymentSubscription?->provider_subscription_id ? 'waiting_for_first_payment' : 'approval_required',
+            'status' => $paymentSubscription?->provider_subscription_id
+                ? 'waiting_for_first_payment'
+                : 'approval_required',
             'onboarding_ready' => false,
             'onboarding_url' => null,
             'payment_subscription_id' => $paymentSubscription?->id,
             'payment_subscription_status' => $paymentSubscription?->status,
+            'billing_day' => $paymentSubscription?->billing_day,
+            'installment_count' => $paymentSubscription?->installment_count,
+            'next_due_at' => $paymentSubscription?->next_due_at?->toDateString(),
+            'final_due_at' => $paymentSubscription?->final_due_at?->toDateString(),
         ]);
     }
 
@@ -266,7 +323,11 @@ class CheckoutController extends Controller
                 $validated['order_id'],
             );
 
-            abort_unless($result['onboarding_state'] !== null, 409, 'Onboarding continuation is not available for this invoice.');
+            abort_unless(
+                $result['onboarding_state'] !== null,
+                409,
+                'Onboarding continuation is not available for this invoice.'
+            );
 
             return response()->json([
                 'status' => 'success',
@@ -337,6 +398,7 @@ class CheckoutController extends Controller
         $invoice->loadMissing('pendingRegistration.accessTier', 'pendingRegistration.onboardingState');
 
         $pendingRegistration = $invoice->pendingRegistration;
+
         abort_unless($pendingRegistration instanceof PendingRegistration, 404);
 
         if (
@@ -419,20 +481,52 @@ class CheckoutController extends Controller
 
         return redirect()
             ->away($this->paymentFlow->checkoutUrl($pendingRegistration))
-            ->withErrors(['payment_method' => 'The PayPal installment checkout was cancelled.']);
+            ->withErrors([
+                'payment_method' => 'The PayPal installment checkout was cancelled.',
+            ]);
     }
 
     /**
-     * @return array<string, string|null>
+     * @return array<string, mixed>
      */
     private function paypalFrontendConfig(PendingRegistration $pendingRegistration): array
     {
+        $currencyCode = $pendingRegistration->currency_code
+            ?? $pendingRegistration->package?->currency_code
+            ?? $pendingRegistration->accessTier->currency_code;
+
         return [
             'client_id' => $this->paypalService->clientId(),
             'client_token' => null,
-            'currency_code' => $pendingRegistration->currency_code ?? $pendingRegistration->package?->currency_code ?? $pendingRegistration->accessTier->currency_code,
+            'currency_code' => $currencyCode,
             'components' => 'buttons',
+
+            /*
+            |--------------------------------------------------------------------------
+            | Full payment config
+            |--------------------------------------------------------------------------
+            |
+            | Full payment still uses PayPal Orders API, so its SDK intent remains
+            | capture.
+            |
+            */
             'intent' => 'capture',
+
+            /*
+            |--------------------------------------------------------------------------
+            | Subscription config
+            |--------------------------------------------------------------------------
+            |
+            | Installment checkout uses PayPal Subscriptions. The frontend can use
+            | this block when loading/rendering the subscription button.
+            |
+            */
+            'subscription' => [
+                'components' => 'buttons',
+                'vault' => 'true',
+                'intent' => 'subscription',
+            ],
+
             'environment' => $this->paypalService->environment(),
         ];
     }

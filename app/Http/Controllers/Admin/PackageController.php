@@ -44,14 +44,36 @@ class PackageController extends Controller
                         $package->image,
                         versionSeed: $package->updated_at,
                     ),
-                'price' => (float) $package->price,
-                'currency_code' => $package->currency_code,
-                'is_active' => $package->is_active,
+                    'price' => (float) $package->price,
+                    'currency_code' => $package->currency_code,
+                    'is_active' => $package->is_active,
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | New Installment Fields
+                    |--------------------------------------------------------------------------
+                    */
                     'installment_enabled' => $package->installment_enabled,
+                    'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
+                    'allowed_billing_days' => $package->resolvedAllowedBillingDays(),
+                    'checkout_billing_day_options' => $package->checkoutBillingDayOptions(),
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Legacy Installment Fields
+                    |--------------------------------------------------------------------------
+                    |
+                    | Masih dikirim sementara untuk menjaga kompatibilitas dengan halaman
+                    | lain yang mungkin masih membaca field lama.
+                    |
+                    */
                     'billing_interval_unit' => $package->billing_interval_unit,
                     'billing_interval_count' => $package->billing_interval_count,
-                    'checkout_billing_day_options' => $package->checkoutBillingDayOptions(),
-                'access_tier' => $package->accessTier ? [
+                    'fixed_billing_day' => $package->fixed_billing_day,
+                    'installment_deadline_month' => $package->installment_deadline_month,
+                    'installment_deadline_day' => $package->installment_deadline_day,
+
+                    'access_tier' => $package->accessTier ? [
                         'id' => $package->accessTier->id,
                         'name' => $package->accessTier->name,
                         'slug' => $package->accessTier->slug,
@@ -74,20 +96,45 @@ class PackageController extends Controller
     public function store(PackageRequest $request): RedirectResponse
     {
         $data = $request->validated();
+
         $targetTier = isset($data['access_tier_id']) && $data['access_tier_id']
             ? AccessTier::query()->findOrFail($data['access_tier_id'])
             : null;
-        ['allowed_billing_days' => $allowedBillingDays, 'fixed_billing_day' => $fixedBillingDay] = $this->resolveBillingDayConfig($data);
+
+        [
+            'allowed_billing_days' => $allowedBillingDays,
+            'fixed_billing_day' => $fixedBillingDay,
+        ] = $this->resolveBillingDayConfig($data);
+
         $data['allowed_billing_days'] = $allowedBillingDays;
         $data['fixed_billing_day'] = $fixedBillingDay;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Legacy defaults
+        |--------------------------------------------------------------------------
+        |
+        | billing_interval_count sudah tidak dipakai di flow baru.
+        | billing_interval_unit juga tidak perlu diatur dari form baru.
+        | Namun kita tidak memaksa unset semua legacy field agar data/request lama
+        | tetap aman selama proses transisi.
+        |
+        */
+        if (! ($data['installment_enabled'] ?? false)) {
+            $data['installment_deadline_date'] = null;
+            $data['allowed_billing_days'] = null;
+            $data['fixed_billing_day'] = null;
+        }
 
         $data['image'] = $this->storeUploadedFileToBunny(
             $request->file('image'),
             'packages/images',
         );
+
         unset($data['access_tier_id']);
 
         $package = Package::query()->create($data);
+
         $this->assignmentService->assignToTier($package, $targetTier);
 
         return redirect()
@@ -116,12 +163,32 @@ class PackageController extends Controller
                 'price' => (float) $package->price,
                 'currency_code' => $package->currency_code,
                 'is_active' => $package->is_active,
+
+                /*
+                |--------------------------------------------------------------------------
+                | New Installment Fields
+                |--------------------------------------------------------------------------
+                */
                 'installment_enabled' => $package->installment_enabled,
+                'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
+                'allowed_billing_days' => $package->resolvedAllowedBillingDays(),
+                'checkout_billing_day_options' => $package->checkoutBillingDayOptions(),
+
+                /*
+                |--------------------------------------------------------------------------
+                | Legacy Installment Fields
+                |--------------------------------------------------------------------------
+                |
+                | Masih dikirim sementara selama service/checkout lama belum sepenuhnya
+                | dipindahkan ke installment_deadline_date + allowed_billing_days.
+                |
+                */
                 'billing_interval_unit' => $package->billing_interval_unit,
                 'billing_interval_count' => $package->billing_interval_count,
-                'checkout_billing_day_options' => $package->checkoutBillingDayOptions(),
+                'fixed_billing_day' => $package->fixed_billing_day,
                 'installment_deadline_month' => $package->installment_deadline_month,
                 'installment_deadline_day' => $package->installment_deadline_day,
+
                 'access_tier_id' => $package->access_tier_id,
                 'pending_registrations_count' => $package->pending_registrations_count,
                 'invoices_count' => $package->invoices_count,
@@ -135,21 +202,35 @@ class PackageController extends Controller
     public function update(PackageRequest $request, Package $package): RedirectResponse
     {
         $data = $request->validated();
+
         $targetTier = isset($data['access_tier_id']) && $data['access_tier_id']
             ? AccessTier::query()->findOrFail($data['access_tier_id'])
             : null;
-        ['allowed_billing_days' => $allowedBillingDays, 'fixed_billing_day' => $fixedBillingDay] = $this->resolveBillingDayConfig($data, $package);
+
+        [
+            'allowed_billing_days' => $allowedBillingDays,
+            'fixed_billing_day' => $fixedBillingDay,
+        ] = $this->resolveBillingDayConfig($data, $package);
+
         $data['allowed_billing_days'] = $allowedBillingDays;
         $data['fixed_billing_day'] = $fixedBillingDay;
+
+        if (! ($data['installment_enabled'] ?? false)) {
+            $data['installment_deadline_date'] = null;
+            $data['allowed_billing_days'] = null;
+            $data['fixed_billing_day'] = null;
+        }
 
         $data['image'] = $this->storeUploadedFileToBunny(
             $request->file('image'),
             'packages/images',
             $package->image,
         );
+
         unset($data['access_tier_id']);
 
         $package->update($data);
+
         $this->assignmentService->assignToTier($package, $targetTier);
 
         return redirect()
@@ -168,6 +249,7 @@ class PackageController extends Controller
         }
 
         $this->deleteUploadedFileFromAnyStorage($package->image);
+
         $package->delete();
 
         return redirect()
@@ -211,31 +293,36 @@ class PackageController extends Controller
      */
     private function resolveBillingDayConfig(array $data, ?Package $existingPackage = null): array
     {
-        $submittedBillingDays = array_key_exists('allowed_billing_days', $data)
-            ? $this->normalizeAllowedBillingDays((array) ($data['allowed_billing_days'] ?? []))
-            : null;
-        $billingIntervalUnit = strtoupper(trim((string) ($data['billing_interval_unit'] ?? $existingPackage?->billing_interval_unit ?? '')));
         $installmentEnabled = (bool) ($data['installment_enabled'] ?? $existingPackage?->installment_enabled ?? false);
 
         if (! $installmentEnabled) {
             return [
-                'allowed_billing_days' => $submittedBillingDays ?? $existingPackage?->allowed_billing_days,
-                'fixed_billing_day' => $existingPackage?->fixed_billing_day,
+                'allowed_billing_days' => null,
+                'fixed_billing_day' => null,
             ];
         }
 
-        if ($billingIntervalUnit !== 'MONTH') {
-            return [
-                'allowed_billing_days' => $submittedBillingDays ?? $existingPackage?->allowed_billing_days,
-                'fixed_billing_day' => $existingPackage?->fixed_billing_day,
-            ];
-        }
+        $submittedBillingDays = array_key_exists('allowed_billing_days', $data)
+            ? $this->normalizeAllowedBillingDays((array) ($data['allowed_billing_days'] ?? []))
+            : null;
 
         $resolvedBillingDays = $submittedBillingDays
             ?? $this->normalizeAllowedBillingDays((array) ($existingPackage?->allowed_billing_days ?? []));
 
+        /*
+        |--------------------------------------------------------------------------
+        | Safety fallback
+        |--------------------------------------------------------------------------
+        |
+        | PackageRequest seharusnya sudah memastikan allowed_billing_days wajib
+        | saat installment_enabled = true. Fallback ini hanya menjaga agar update
+        | terhadap data lama tidak langsung gagal total jika ada data lama yang belum
+        | punya allowed_billing_days.
+        |
+        */
         if ($resolvedBillingDays === []) {
             $legacyBillingDay = (int) ($existingPackage?->fixed_billing_day ?? 15);
+
             $resolvedBillingDays = in_array($legacyBillingDay, Package::CUSTOMER_BILLING_DAY_OPTIONS, true)
                 ? [$legacyBillingDay]
                 : [15];

@@ -3,8 +3,8 @@
 namespace App\Services\Payments;
 
 use App\Models\Package;
-use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -13,6 +13,8 @@ class PayPalSubscriptionService
 {
     private const PRODUCT_NAME_MAX_LENGTH = 127;
     private const PRODUCT_DESCRIPTION_MAX_LENGTH = 256;
+    private const PLAN_NAME_MAX_LENGTH = 127;
+    private const PLAN_DESCRIPTION_MAX_LENGTH = 127;
     private const PRODUCT_TYPE = 'SERVICE';
     private const PRODUCT_CATEGORY = 'SOFTWARE';
 
@@ -77,19 +79,30 @@ class PayPalSubscriptionService
         array $installmentPlan,
         string $productId,
     ): array {
-        $intervalUnit = (string) ($installmentPlan['billing_interval_unit']
-            ?? ($package->billing_interval_unit ?: 'MONTH'));
-        $intervalCount = (int) ($installmentPlan['billing_interval_count']
-            ?? ($package->billing_interval_count ?: 1));
+        $installmentCount = max(2, (int) ($installmentPlan['installment_count'] ?? 2));
+        $regularCycles = max(1, $installmentCount - 1);
+
+        /*
+        |--------------------------------------------------------------------------
+        | New installment flow
+        |--------------------------------------------------------------------------
+        |
+        | Pembayaran pertama diperlakukan sebagai setup_fee.
+        | Sisa cicilan diperlakukan sebagai REGULAR billing cycle.
+        |
+        | Contoh:
+        | installment_count = 4
+        | - 1 pembayaran pertama saat approval/activation
+        | - 3 recurring billing bulanan setelahnya
+        |
+        */
+        $intervalUnit = strtoupper((string) ($installmentPlan['billing_interval_unit'] ?? 'MONTH'));
+        $intervalCount = max(1, (int) ($installmentPlan['billing_interval_count'] ?? 1));
 
         $payload = [
             'product_id' => $productId,
-            'name' => sprintf('%s Installment Plan', $this->productName($package)),
-            'description' => sprintf(
-                '%s installments until %s.',
-                $installmentPlan['installment_count'],
-                $installmentPlan['final_due_at'],
-            ),
+            'name' => $this->planName($package, $installmentPlan),
+            'description' => $this->planDescription($installmentPlan),
             'status' => 'ACTIVE',
             'billing_cycles' => [[
                 'frequency' => [
@@ -98,19 +111,19 @@ class PayPalSubscriptionService
                 ],
                 'tenure_type' => 'REGULAR',
                 'sequence' => 1,
-                'total_cycles' => max(0, (int) $installmentPlan['installment_count'] - 1),
+                'total_cycles' => $regularCycles,
                 'pricing_scheme' => [
                     'fixed_price' => [
-                        'currency_code' => $installmentPlan['currency_code'],
-                        'value' => $installmentPlan['recurring_payment_amount'],
+                        'currency_code' => (string) $installmentPlan['currency_code'],
+                        'value' => $this->paypalAmount($installmentPlan['recurring_payment_amount']),
                     ],
                 ],
             ]],
             'payment_preferences' => [
                 'auto_bill_outstanding' => true,
                 'setup_fee' => [
-                    'currency_code' => $installmentPlan['currency_code'],
-                    'value' => $installmentPlan['first_payment_amount'],
+                    'currency_code' => (string) $installmentPlan['currency_code'],
+                    'value' => $this->paypalAmount($installmentPlan['first_payment_amount']),
                 ],
                 'setup_fee_failure_action' => 'CANCEL',
                 'payment_failure_threshold' => 1,
@@ -418,12 +431,55 @@ class PayPalSubscriptionService
             $description = sprintf(
                 'YogaFX %s package billed in installments for %s %s.',
                 $this->productName($package),
-                $installmentPlan['currency_code'],
-                $installmentPlan['total_amount'],
+                (string) ($installmentPlan['currency_code'] ?? $package->currency_code),
+                $this->paypalAmount($installmentPlan['total_amount'] ?? $package->price),
             );
         }
 
         return mb_substr($description, 0, self::PRODUCT_DESCRIPTION_MAX_LENGTH);
+    }
+
+    /**
+     * @param  array<string, mixed>  $installmentPlan
+     */
+    private function planName(Package $package, array $installmentPlan): string
+    {
+        $billingDay = $installmentPlan['billing_day'] ?? null;
+        $installmentCount = (int) ($installmentPlan['installment_count'] ?? 0);
+
+        $suffix = $billingDay !== null
+            ? sprintf('%dx - Day %s', $installmentCount, $billingDay)
+            : sprintf('%dx', $installmentCount);
+
+        $name = sprintf('%s Installment %s', $this->productName($package), $suffix);
+
+        return mb_substr($name, 0, self::PLAN_NAME_MAX_LENGTH);
+    }
+
+    /**
+     * @param  array<string, mixed>  $installmentPlan
+     */
+    private function planDescription(array $installmentPlan): string
+    {
+        $installmentCount = (int) ($installmentPlan['installment_count'] ?? 0);
+        $billingDay = $installmentPlan['billing_day'] ?? null;
+        $finalDueAt = (string) ($installmentPlan['final_due_at'] ?? '');
+        $deadlineDate = (string) ($installmentPlan['deadline_date'] ?? '');
+
+        $description = sprintf(
+            '%d installments%s%s%s.',
+            $installmentCount,
+            $billingDay !== null ? sprintf(' on day %s', $billingDay) : '',
+            $finalDueAt !== '' ? sprintf(' until %s', $finalDueAt) : '',
+            $deadlineDate !== '' ? sprintf(' deadline %s', $deadlineDate) : '',
+        );
+
+        return mb_substr($description, 0, self::PLAN_DESCRIPTION_MAX_LENGTH);
+    }
+
+    private function paypalAmount(float|int|string|null $amount): string
+    {
+        return number_format(round((float) ($amount ?? 0), 2), 2, '.', '');
     }
 
     private function providerFailureMessage(string $resource, RequestException $exception): string
