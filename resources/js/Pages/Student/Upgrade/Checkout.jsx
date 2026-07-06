@@ -48,32 +48,155 @@ function formatBillingDayLabel(value) {
     return Number(value) === 1 ? "1st" : "15th";
 }
 
+function toCents(value) {
+    return Math.round(Number(value ?? 0) * 100);
+}
+
+function centsToAmount(value) {
+    return Number((Number(value ?? 0) / 100).toFixed(2));
+}
+
+function formatAmount(value) {
+    return Number(value ?? 0).toFixed(2);
+}
+
+function buildInstallmentCountOptions(summary) {
+    const maximumInstallmentCount = Number(
+        summary?.maximum_installment_count ??
+            summary?.installment_count ??
+            0,
+    );
+
+    if (!Number.isFinite(maximumInstallmentCount) || maximumInstallmentCount < 2) {
+        return [];
+    }
+
+    return Array.from(
+        { length: maximumInstallmentCount - 1 },
+        (_, index) => index + 2,
+    );
+}
+
+function buildSelectedInstallmentSummary(summary, selectedInstallmentCount, totalAmount) {
+    if (!summary || !selectedInstallmentCount) {
+        return summary ?? null;
+    }
+
+    const installmentCount = Number(selectedInstallmentCount);
+    const maximumInstallmentCount = Number(
+        summary.maximum_installment_count ??
+            summary.installment_count ??
+            installmentCount,
+    );
+
+    if (
+        !Number.isFinite(installmentCount) ||
+        installmentCount < 2 ||
+        installmentCount > maximumInstallmentCount
+    ) {
+        return summary;
+    }
+
+    const totalAmountCents = toCents(summary.total_amount ?? totalAmount ?? 0);
+    const recurringAmountCents = Math.floor(totalAmountCents / installmentCount);
+    const firstPaymentAmountCents =
+        totalAmountCents - recurringAmountCents * (installmentCount - 1);
+
+    const recurringAmount = centsToAmount(recurringAmountCents);
+    const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
+
+    const availableRecurringDueDates = Array.isArray(
+        summary.available_recurring_due_dates,
+    )
+        ? summary.available_recurring_due_dates
+        : Array.isArray(summary.recurring_due_dates)
+          ? summary.recurring_due_dates
+          : [];
+
+    const selectedRecurringDueDates = availableRecurringDueDates.slice(
+        0,
+        installmentCount - 1,
+    );
+
+    const finalDueAt =
+        selectedRecurringDueDates[selectedRecurringDueDates.length - 1] ??
+        summary.final_due_at ??
+        null;
+
+    const scheduleBreakdown = [
+        {
+            cycle_number: 1,
+            type: "first_payment",
+            amount: formatAmount(firstPaymentAmount),
+            due_at: summary.first_payment_date ?? null,
+            grace_deadline: null,
+        },
+        ...selectedRecurringDueDates.map((dueDate, index) => ({
+            cycle_number: index + 2,
+            type: "recurring",
+            amount: formatAmount(recurringAmount),
+            due_at: dueDate,
+            grace_deadline: null,
+        })),
+    ];
+
+    return {
+        ...summary,
+        installment_count: installmentCount,
+        maximum_installment_count: maximumInstallmentCount,
+        first_payment_amount: formatAmount(firstPaymentAmount),
+        monthly_base_amount: formatAmount(recurringAmount),
+        recurring_payment_amount: formatAmount(recurringAmount),
+        recurring_due_dates: selectedRecurringDueDates,
+        final_due_at: finalDueAt,
+        schedule_breakdown: scheduleBreakdown,
+    };
+}
+
 export default function UpgradeCheckout({ upgrade }) {
     const paymentOptions = Array.isArray(upgrade.payment_options)
         ? upgrade.payment_options
         : [];
+
     const installmentSummaries = upgrade.installment_summaries ?? {};
+
     const installmentBillingDayOptions = Array.isArray(
         upgrade.installment_billing_day_options,
     )
         ? upgrade.installment_billing_day_options
         : [];
+
     const paymentMethodOptions = Array.isArray(upgrade.payment_method_options)
         ? upgrade.payment_method_options
         : [];
+
     const defaultPaymentType = paymentOptions[0]?.type ?? "pay_full";
-    const defaultPaymentMethod =
-        paymentMethodOptions[0]?.value ?? "paypal";
+    const defaultPaymentMethod = paymentMethodOptions[0]?.value ?? "paypal";
+
     const defaultBillingDay =
         upgrade.installment_selected_billing_day ??
         installmentBillingDayOptions[0] ??
         15;
+
+    const defaultInstallmentSummary =
+        installmentSummaries[String(defaultBillingDay)] ??
+        upgrade.installment_summary ??
+        null;
+
+    const defaultInstallmentCount =
+        Number(
+            defaultInstallmentSummary?.installment_count ??
+                defaultInstallmentSummary?.maximum_installment_count ??
+                upgrade.installment_maximum_count ??
+                2,
+        ) || 2;
 
     const { data, setData, processing, errors, clearErrors, setError } =
         useForm({
             payment_type: defaultPaymentType,
             payment_method: defaultPaymentMethod,
             billing_day: defaultBillingDay,
+            installment_count: defaultInstallmentCount,
             terms_accepted: false,
         });
 
@@ -84,6 +207,7 @@ export default function UpgradeCheckout({ upgrade }) {
     const [installmentSession, setInstallmentSession] = useState(null);
     const [installmentMessage, setInstallmentMessage] = useState("");
     const [installmentStatus, setInstallmentStatus] = useState(null);
+
     const paypalButtonsRef = useRef(null);
     const installmentSessionRef = useRef(null);
 
@@ -91,25 +215,49 @@ export default function UpgradeCheckout({ upgrade }) {
         paymentOptions.find((option) => option.type === data.payment_type) ??
         paymentOptions[0] ??
         null;
+
     const isInstallmentSelected = data.payment_type === "installment";
-    const activeInstallmentSummary =
+
+    const baseInstallmentSummary =
         installmentSummaries[String(data.billing_day)] ??
         selectedPaymentOption?.summary ??
         upgrade.installment_summary ??
         null;
+
+    const installmentCountOptions = buildInstallmentCountOptions(
+        baseInstallmentSummary,
+    );
+
+    const activeInstallmentSummary = buildSelectedInstallmentSummary(
+        baseInstallmentSummary,
+        data.installment_count,
+        upgrade.amount_due,
+    );
+
     const showBillingDaySelector =
         isInstallmentSelected &&
         upgrade.installment_accepts_billing_day === true &&
         upgrade.installment_requires_billing_day_choice === true &&
         installmentBillingDayOptions.length > 1;
+
+    const showInstallmentCountSelector =
+        isInstallmentSelected && installmentCountOptions.length > 0;
+
     const amountDueToday = Number(
-        selectedPaymentOption?.amount_due_today ?? upgrade.amount_due ?? 0,
+        isInstallmentSelected
+            ? activeInstallmentSummary?.first_payment_amount
+            : selectedPaymentOption?.amount_due_today ?? upgrade.amount_due ?? 0,
     );
+
     const recurringAmount = Number(
         activeInstallmentSummary?.recurring_payment_amount ?? 0,
     );
+
     const finalDueAt = activeInstallmentSummary?.final_due_at ?? null;
-    const nextInstallment = Array.isArray(activeInstallmentSummary?.schedule_breakdown)
+
+    const nextInstallment = Array.isArray(
+        activeInstallmentSummary?.schedule_breakdown,
+    )
         ? activeInstallmentSummary.schedule_breakdown.find(
               (item) => item.type === "recurring",
           ) ?? null
@@ -137,6 +285,29 @@ export default function UpgradeCheckout({ upgrade }) {
     }, [installmentSession]);
 
     useEffect(() => {
+        if (!isInstallmentSelected || !baseInstallmentSummary) {
+            return;
+        }
+
+        const options = buildInstallmentCountOptions(baseInstallmentSummary);
+
+        if (options.length === 0) {
+            return;
+        }
+
+        const currentInstallmentCount = Number(data.installment_count);
+
+        if (!options.includes(currentInstallmentCount)) {
+            setData("installment_count", options[options.length - 1]);
+        }
+    }, [
+        baseInstallmentSummary,
+        data.installment_count,
+        isInstallmentSelected,
+        setData,
+    ]);
+
+    useEffect(() => {
         if (!isInstallmentSelected) {
             return;
         }
@@ -145,7 +316,7 @@ export default function UpgradeCheckout({ upgrade }) {
         installmentSessionRef.current = null;
         setInstallmentStatus(null);
         setInstallmentMessage("");
-    }, [data.billing_day, isInstallmentSelected]);
+    }, [data.billing_day, data.installment_count, isInstallmentSelected]);
 
     useEffect(() => {
         if (!isInstallmentSelected) {
@@ -312,7 +483,13 @@ export default function UpgradeCheckout({ upgrade }) {
                 paypalButtonsRef.current.innerHTML = "";
             }
         };
-    }, [data.terms_accepted, installmentSession, isInstallmentSelected, sdkReady, setError]);
+    }, [
+        data.terms_accepted,
+        installmentSession,
+        isInstallmentSelected,
+        sdkReady,
+        setError,
+    ]);
 
     useEffect(() => {
         if (
@@ -368,7 +545,11 @@ export default function UpgradeCheckout({ upgrade }) {
             cancelled = true;
             window.clearInterval(intervalId);
         };
-    }, [installmentSession, isInstallmentSelected, upgrade.installment_status_url]);
+    }, [
+        installmentSession,
+        isInstallmentSelected,
+        upgrade.installment_status_url,
+    ]);
 
     const submitFullPayment = (event) => {
         event.preventDefault();
@@ -386,6 +567,7 @@ export default function UpgradeCheckout({ upgrade }) {
                 payment_type: data.payment_type,
                 payment_method: data.payment_method,
                 billing_day: null,
+                installment_count: null,
                 terms_accepted: data.terms_accepted,
             },
             {
@@ -400,6 +582,14 @@ export default function UpgradeCheckout({ upgrade }) {
 
         if (!data.terms_accepted) {
             setError("terms_accepted", "Please confirm before continuing.");
+            return;
+        }
+
+        if (!data.installment_count) {
+            setError(
+                "installment_count",
+                "Please select the number of installments.",
+            );
             return;
         }
 
@@ -422,6 +612,7 @@ export default function UpgradeCheckout({ upgrade }) {
                     upgrade.installment_accepts_billing_day === true
                         ? data.billing_day
                         : null,
+                installment_count: Number(data.installment_count),
                 terms_accepted: data.terms_accepted,
             }),
         });
@@ -504,7 +695,10 @@ export default function UpgradeCheckout({ upgrade }) {
     };
 
     return (
-        <AuthenticatedLayout studentVariant="immersive" studentContentClassName="pb-16">
+        <AuthenticatedLayout
+            studentVariant="immersive"
+            studentContentClassName="pb-16"
+        >
             <Head title="Upgrade Program" />
 
             <div className="mx-auto flex max-w-[960px] flex-col gap-5 px-4 pt-6 sm:px-6 lg:px-8">
@@ -539,15 +733,24 @@ export default function UpgradeCheckout({ upgrade }) {
                                         <select
                                             value={data.payment_type}
                                             onChange={(event) =>
-                                                setData("payment_type", event.target.value)
+                                                setData(
+                                                    "payment_type",
+                                                    event.target.value,
+                                                )
                                             }
                                             className="mt-2 block w-full rounded-[5px] border border-white/12 bg-[#171311] px-4 py-3 text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
                                         >
                                             {paymentOptions.map((option) => (
-                                                <option key={option.type} value={option.type}>
+                                                <option
+                                                    key={option.type}
+                                                    value={option.type}
+                                                >
                                                     {option.label} -{" "}
                                                     {formatCurrency(
-                                                        Number(option.amount_due_today ?? 0),
+                                                        Number(
+                                                            option.amount_due_today ??
+                                                                0,
+                                                        ),
                                                         option.currency_code,
                                                     )}
                                                 </option>
@@ -567,15 +770,23 @@ export default function UpgradeCheckout({ upgrade }) {
                                             <select
                                                 value={data.payment_method}
                                                 onChange={(event) =>
-                                                    setData("payment_method", event.target.value)
+                                                    setData(
+                                                        "payment_method",
+                                                        event.target.value,
+                                                    )
                                                 }
                                                 className="mt-2 block w-full rounded-[5px] border border-white/12 bg-[#171311] px-4 py-3 text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
                                             >
-                                                {paymentMethodOptions.map((option) => (
-                                                    <option key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </option>
-                                                ))}
+                                                {paymentMethodOptions.map(
+                                                    (option) => (
+                                                        <option
+                                                            key={option.value}
+                                                            value={option.value}
+                                                        >
+                                                            {option.label}
+                                                        </option>
+                                                    ),
+                                                )}
                                             </select>
                                             <InputError
                                                 message={errors.payment_method}
@@ -590,18 +801,86 @@ export default function UpgradeCheckout({ upgrade }) {
                                             <select
                                                 value={data.billing_day}
                                                 onChange={(event) =>
-                                                    setData("billing_day", Number(event.target.value))
+                                                    setData(
+                                                        "billing_day",
+                                                        Number(event.target.value),
+                                                    )
                                                 }
                                                 className="mt-2 block w-full rounded-[5px] border border-white/12 bg-[#171311] px-4 py-3 text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
                                             >
-                                                {installmentBillingDayOptions.map((day) => (
-                                                    <option key={day} value={day}>
-                                                        {formatBillingDayLabel(day)}
-                                                    </option>
-                                                ))}
+                                                {installmentBillingDayOptions.map(
+                                                    (day) => (
+                                                        <option
+                                                            key={day}
+                                                            value={day}
+                                                        >
+                                                            {formatBillingDayLabel(
+                                                                day,
+                                                            )}
+                                                        </option>
+                                                    ),
+                                                )}
                                             </select>
                                             <InputError
                                                 message={errors.billing_day}
+                                                className="mt-2 text-sm text-[#ffb4a8]"
+                                            />
+                                        </div>
+                                    ) : isInstallmentSelected ? (
+                                        <div>
+                                            <label className="text-xs uppercase tracking-[0.16em] text-white/58">
+                                                Billing Day
+                                            </label>
+                                            <div className="mt-2 rounded-[5px] border border-white/12 bg-[#171311] px-4 py-3 text-sm text-white/70">
+                                                {formatBillingDayLabel(
+                                                    data.billing_day,
+                                                )}
+                                            </div>
+                                            <InputError
+                                                message={errors.billing_day}
+                                                className="mt-2 text-sm text-[#ffb4a8]"
+                                            />
+                                        </div>
+                                    ) : null}
+
+                                    {showInstallmentCountSelector ? (
+                                        <div>
+                                            <label className="text-xs uppercase tracking-[0.16em] text-white/58">
+                                                Number of Installments
+                                            </label>
+                                            <select
+                                                value={data.installment_count}
+                                                onChange={(event) =>
+                                                    setData(
+                                                        "installment_count",
+                                                        Number(event.target.value),
+                                                    )
+                                                }
+                                                className="mt-2 block w-full rounded-[5px] border border-white/12 bg-[#171311] px-4 py-3 text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                            >
+                                                {installmentCountOptions.map(
+                                                    (count) => (
+                                                        <option
+                                                            key={count}
+                                                            value={count}
+                                                        >
+                                                            {count} installments
+                                                        </option>
+                                                    ),
+                                                )}
+                                            </select>
+                                            <p className="mt-2 text-xs text-white/45">
+                                                Maximum available:{" "}
+                                                {
+                                                    installmentCountOptions[
+                                                        installmentCountOptions.length -
+                                                            1
+                                                    ]
+                                                }{" "}
+                                                installments.
+                                            </p>
+                                            <InputError
+                                                message={errors.installment_count}
                                                 className="mt-2 text-sm text-[#ffb4a8]"
                                             />
                                         </div>
@@ -613,7 +892,10 @@ export default function UpgradeCheckout({ upgrade }) {
                                         type="checkbox"
                                         checked={data.terms_accepted}
                                         onChange={(event) =>
-                                            setData("terms_accepted", event.target.checked)
+                                            setData(
+                                                "terms_accepted",
+                                                event.target.checked,
+                                            )
                                         }
                                         className="mt-1 size-4 rounded border-white/20 bg-transparent accent-[#DB202C]"
                                     />
@@ -635,13 +917,22 @@ export default function UpgradeCheckout({ upgrade }) {
                                         {!installmentSession ? (
                                             <Button
                                                 type="button"
-                                                onClick={prepareInstallmentCheckout}
-                                                disabled={isPreparingInstallment}
+                                                onClick={
+                                                    prepareInstallmentCheckout
+                                                }
+                                                disabled={
+                                                    isPreparingInstallment ||
+                                                    !data.installment_count
+                                                }
                                                 className="rounded-[5px] bg-[#DB202C] px-6 text-white hover:bg-[#c31c28]"
                                             >
                                                 {isPreparingInstallment
                                                     ? "Preparing..."
-                                                    : `Continue with PayPal - ${formatCurrency(amountDueToday, upgrade.target_tier.currency_code)}`}
+                                                    : `Continue with PayPal - ${formatCurrency(
+                                                          amountDueToday,
+                                                          upgrade.target_tier
+                                                              .currency_code,
+                                                      )}`}
                                             </Button>
                                         ) : installmentSession.provider_subscription_id ? (
                                             <div className="rounded-[5px] border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
@@ -651,13 +942,18 @@ export default function UpgradeCheckout({ upgrade }) {
                                         ) : (
                                             <div className="space-y-3">
                                                 <div className="rounded-[5px] border border-white/10 bg-white p-4">
-                                                    <div ref={paypalButtonsRef} className="min-h-[46px]" />
+                                                    <div
+                                                        ref={paypalButtonsRef}
+                                                        className="min-h-[46px]"
+                                                    />
                                                 </div>
 
                                                 {!sdkReady && !sdkError ? (
                                                     <div className="flex items-center gap-2 text-sm text-white/60">
                                                         <LoaderCircle className="size-4 animate-spin text-[#DB202C]" />
-                                                        <span>Loading PayPal...</span>
+                                                        <span>
+                                                            Loading PayPal...
+                                                        </span>
                                                     </div>
                                                 ) : null}
 
@@ -675,7 +971,9 @@ export default function UpgradeCheckout({ upgrade }) {
                                         disabled={processing}
                                         className="rounded-[5px] bg-[#DB202C] px-6 text-white hover:bg-[#c31c28]"
                                     >
-                                        {processing ? "Processing..." : "Pay Upgrade Now"}
+                                        {processing
+                                            ? "Processing..."
+                                            : "Pay Upgrade Now"}
                                     </Button>
                                 )}
                             </form>
@@ -687,8 +985,14 @@ export default function UpgradeCheckout({ upgrade }) {
                                     Upgrade Path
                                 </p>
                                 <div className="mt-3 space-y-2 text-sm text-white/70">
-                                    <p>Current: {upgrade.current_tier?.name ?? "-"}</p>
-                                    <p>Target: {upgrade.target_tier?.name ?? "-"}</p>
+                                    <p>
+                                        Current:{" "}
+                                        {upgrade.current_tier?.name ?? "-"}
+                                    </p>
+                                    <p>
+                                        Target:{" "}
+                                        {upgrade.target_tier?.name ?? "-"}
+                                    </p>
                                     <p>
                                         Paid:{" "}
                                         {formatCurrency(
@@ -706,27 +1010,45 @@ export default function UpgradeCheckout({ upgrade }) {
                                 </div>
                             </div>
 
-                            {isInstallmentSelected && activeInstallmentSummary ? (
+                            {isInstallmentSelected &&
+                            activeInstallmentSummary ? (
                                 <div className="rounded-[16px] border border-white/10 bg-black/25 p-4">
                                     <p className="text-xs uppercase tracking-[0.18em] text-white/45">
                                         Installment
                                     </p>
                                     <div className="mt-3 space-y-2 text-sm text-white/70">
                                         <p>
+                                            Total Installments:{" "}
+                                            {
+                                                activeInstallmentSummary.installment_count
+                                            }
+                                        </p>
+                                        <p>
                                             Today:{" "}
                                             {formatCurrency(
                                                 amountDueToday,
-                                                upgrade.target_tier.currency_code,
+                                                upgrade.target_tier
+                                                    .currency_code,
                                             )}
                                         </p>
                                         <p>
                                             Next:{" "}
                                             {nextInstallment
-                                                ? `${formatCurrency(Number(nextInstallment.amount ?? recurringAmount), upgrade.target_tier.currency_code)} on ${formatScheduleDate(nextInstallment.due_at)}`
+                                                ? `${formatCurrency(
+                                                      Number(
+                                                          nextInstallment.amount ??
+                                                              recurringAmount,
+                                                      ),
+                                                      upgrade.target_tier
+                                                          .currency_code,
+                                                  )} on ${formatScheduleDate(
+                                                      nextInstallment.due_at,
+                                                  )}`
                                                 : "-"}
                                         </p>
                                         <p>
-                                            Final Due: {formatScheduleDate(finalDueAt)}
+                                            Final Due:{" "}
+                                            {formatScheduleDate(finalDueAt)}
                                         </p>
                                         {activeInstallmentSummary.billing_day ? (
                                             <p>
@@ -740,7 +1062,8 @@ export default function UpgradeCheckout({ upgrade }) {
                                 </div>
                             ) : null}
 
-                            {installmentStatus?.message && isInstallmentSelected ? (
+                            {installmentStatus?.message &&
+                            isInstallmentSelected ? (
                                 <div className="rounded-[16px] border border-white/10 bg-black/25 p-4 text-sm text-white/65">
                                     {installmentStatus.message}
                                 </div>

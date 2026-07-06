@@ -1,28 +1,26 @@
-import PackageForm from '@/Components/PackageForm';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import PackageForm from "@/Components/PackageForm";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link, useForm } from "@inertiajs/react";
 
-export default function CreatePackage({ accessTiers, packagePublicBaseUrl }) {
+export default function CreatePackage({ accessTiers = [], packagePublicBaseUrl = "" }) {
     const { data, setData, post, processing, errors } = useForm({
-        title: '',
-        slug: '',
-        description: '',
+        title: "",
+        slug: "",
+        description: "",
         image: null,
-        price: '',
-        currency_code: 'IDR',
+        price: "",
+        currency_code: "IDR",
         is_active: true,
         installment_enabled: false,
-        billing_interval_unit: '',
-        billing_interval_count: '',
-        installment_deadline_month: '',
-        installment_deadline_day: '',
-        access_tier_id: '',
+        installment_deadline_date: "",
+        allowed_billing_days: [],
+        access_tier_id: "",
     });
 
     const submit = (event) => {
         event.preventDefault();
 
-        post(route('admin.packages.store'), {
+        post(route("admin.packages.store"), {
             forceFormData: true,
         });
     };
@@ -36,12 +34,13 @@ export default function CreatePackage({ accessTiers, packagePublicBaseUrl }) {
                             Create Package
                         </h2>
                         <p className="mt-1 text-sm text-gray-500">
-                            Add a new public commercial offer without changing learning entitlements directly.
+                            Add a new public commercial offer without changing
+                            learning entitlements directly.
                         </p>
                     </div>
 
                     <Link
-                        href={route('admin.packages.index')}
+                        href={route("admin.packages.index")}
                         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                     >
                         Back to Packages

@@ -24,6 +24,65 @@ class PackageRequest extends FormRequest
                 'slug' => Str::slug((string) $this->input('slug')),
             ]);
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize boolean inputs
+        |--------------------------------------------------------------------------
+        |
+        | Inertia/React biasanya mengirim boolean dengan benar, tetapi normalisasi
+        | ini membuat request tetap aman jika suatu saat nilainya dikirim sebagai
+        | "1", "0", "true", atau "false".
+        |
+        */
+        if ($this->has('is_active')) {
+            $this->merge([
+                'is_active' => filter_var($this->input('is_active'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
+            ]);
+        }
+
+        if ($this->has('installment_enabled')) {
+            $this->merge([
+                'installment_enabled' => filter_var($this->input('installment_enabled'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize allowed billing days
+        |--------------------------------------------------------------------------
+        |
+        | Field baru ini berasal dari checkbox admin:
+        | - [1]
+        | - [15]
+        | - [1, 15]
+        |
+        | Jika tidak ada yang dicentang, frontend bisa mengirim null/empty string.
+        | Kita normalisasi menjadi array agar validasi konsisten.
+        |
+        */
+        if ($this->has('allowed_billing_days')) {
+            $allowedBillingDays = $this->input('allowed_billing_days');
+
+            if (is_string($allowedBillingDays)) {
+                $decoded = json_decode($allowedBillingDays, true);
+                $allowedBillingDays = is_array($decoded) ? $decoded : [$allowedBillingDays];
+            }
+
+            if (! is_array($allowedBillingDays)) {
+                $allowedBillingDays = [];
+            }
+
+            $this->merge([
+                'allowed_billing_days' => collect($allowedBillingDays)
+                    ->map(fn ($day) => (int) $day)
+                    ->filter(fn (int $day) => in_array($day, Package::CUSTOMER_BILLING_DAY_OPTIONS, true))
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->all(),
+            ]);
+        }
     }
 
     /**
@@ -32,6 +91,7 @@ class PackageRequest extends FormRequest
     public function rules(): array
     {
         $package = $this->route('package');
+        $installmentEnabled = $this->boolean('installment_enabled');
 
         return [
             'title' => ['required', 'string', 'max:255'],
@@ -48,13 +108,50 @@ class PackageRequest extends FormRequest
             'currency_code' => ['required', 'string', Rule::in(AccessTier::CURRENCY_OPTIONS)],
             'is_active' => ['required', 'boolean'],
             'installment_enabled' => ['required', 'boolean'],
+
+            /*
+            |--------------------------------------------------------------------------
+            | New installment rules
+            |--------------------------------------------------------------------------
+            |
+            | Flow baru:
+            | - Admin menentukan deadline akhir installment melalui date.
+            | - Admin mengaktifkan tanggal billing 1 dan/atau 15.
+            | - Calon student nanti hanya memilih salah satu tanggal yang tersedia.
+            |
+            */
+            'installment_deadline_date' => [
+                $installmentEnabled ? 'required' : 'nullable',
+                'date',
+                'after_or_equal:today',
+            ],
+            'allowed_billing_days' => [
+                $installmentEnabled ? 'required' : 'nullable',
+                'array',
+                'min:1',
+            ],
+            'allowed_billing_days.*' => [
+                'integer',
+                Rule::in(Package::CUSTOMER_BILLING_DAY_OPTIONS),
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Legacy installment fields
+            |--------------------------------------------------------------------------
+            |
+            | Field lama tidak lagi dipakai oleh form admin baru, tetapi tetap dibuat
+            | nullable agar request lama atau data lama tidak langsung menyebabkan error.
+            | Nanti field ini bisa dihapus setelah seluruh service checkout/installment
+            | sudah pindah ke installment_deadline_date + allowed_billing_days.
+            |
+            */
             'billing_interval_unit' => ['nullable', 'string', 'max:50'],
             'billing_interval_count' => ['nullable', 'integer', 'min:1'],
             'fixed_billing_day' => ['nullable', 'integer', 'min:1', 'max:31'],
-            'allowed_billing_days' => ['nullable', 'array'],
-            'allowed_billing_days.*' => ['integer', Rule::in([1, 15])],
             'installment_deadline_month' => ['nullable', 'integer', 'min:1', 'max:12'],
             'installment_deadline_day' => ['nullable', 'integer', 'min:1', 'max:31'],
+
             'access_tier_id' => ['nullable', Rule::exists(AccessTier::class, 'id')],
         ];
     }
@@ -63,6 +160,15 @@ class PackageRequest extends FormRequest
     {
         return [
             'image.max' => 'The image must not be larger than '.UploadConstraints::labelFromMb(UploadConstraints::MAX_FILE_SIZE_MB).'.',
+
+            'installment_deadline_date.required' => 'The installment deadline date is required when installment is enabled.',
+            'installment_deadline_date.date' => 'The installment deadline date must be a valid date.',
+            'installment_deadline_date.after_or_equal' => 'The installment deadline date must be today or a future date.',
+
+            'allowed_billing_days.required' => 'Please enable at least one billing day for installment.',
+            'allowed_billing_days.array' => 'The allowed billing days must be a valid list.',
+            'allowed_billing_days.min' => 'Please enable at least one billing day for installment.',
+            'allowed_billing_days.*.in' => 'Allowed billing days can only be day 1 or day 15.',
         ];
     }
 }

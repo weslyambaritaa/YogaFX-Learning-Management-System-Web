@@ -6,9 +6,11 @@ use App\Models\AccessTier;
 use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
+use App\Services\Installments\InstallmentPlanCalculator;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class UpgradePaymentRequest extends FormRequest
 {
@@ -47,26 +49,88 @@ class UpgradePaymentRequest extends FormRequest
                     'mock',
                 ]),
             ],
-            'billing_day' => ['nullable', 'integer', Rule::in(Package::CUSTOMER_BILLING_DAY_OPTIONS)],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Installment fields
+            |--------------------------------------------------------------------------
+            |
+            | billing_day:
+            | Student memilih satu tanggal billing yang tersedia dari package.
+            | Nilainya hanya boleh 1 atau 15.
+            |
+            | installment_count:
+            | Student memilih jumlah cicilan. Jumlah ini divalidasi supaya tidak
+            | melebihi maksimum berdasarkan deadline date package.
+            |
+            */
+            'billing_day' => [
+                'nullable',
+                'integer',
+                Rule::in(Package::CUSTOMER_BILLING_DAY_OPTIONS),
+            ],
+            'installment_count' => [
+                'nullable',
+                'integer',
+                'min:2',
+            ],
+
             'terms_accepted' => ['required', 'accepted'],
         ];
     }
 
     protected function prepareForValidation(): void
     {
-        if ((string) $this->input('payment_type') !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
-            $this->merge([
-                'billing_day' => null,
-            ]);
+        $paymentType = (string) $this->input('payment_type');
 
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize billing_day
+        |--------------------------------------------------------------------------
+        */
+        if ($this->has('billing_day')) {
+            $billingDay = $this->input('billing_day');
+
+            $this->merge([
+                'billing_day' => $billingDay === null || $billingDay === ''
+                    ? null
+                    : (int) $billingDay,
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Normalize installment_count
+        |--------------------------------------------------------------------------
+        */
+        if ($this->has('installment_count')) {
+            $installmentCount = $this->input('installment_count');
+
+            $this->merge([
+                'installment_count' => $installmentCount === null || $installmentCount === ''
+                    ? null
+                    : (int) $installmentCount,
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Non-installment upgrade should not carry installment-only fields
+        |--------------------------------------------------------------------------
+        */
+        if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
             return;
         }
 
         $package = $this->targetPackage();
 
+        /*
+        |--------------------------------------------------------------------------
+        | If package does not expose billing day, force billing_day to null
+        |--------------------------------------------------------------------------
+        */
         if (
             $package instanceof Package
-            && (string) $this->input('payment_type') === Invoice::PAYMENT_TYPE_INSTALLMENT
             && ! $package->checkoutAcceptsBillingDay()
         ) {
             $this->merge([
@@ -86,33 +150,152 @@ class UpgradePaymentRequest extends FormRequest
                 }
 
                 $paymentType = (string) $this->input('payment_type');
-                $billingDay = $this->input('billing_day');
-                $hasBillingDay = $billingDay !== null && $billingDay !== '';
 
+                $billingDay = $this->input('billing_day');
+                $installmentCount = $this->input('installment_count');
+
+                $hasBillingDay = $billingDay !== null && $billingDay !== '';
+                $hasInstallmentCount = $installmentCount !== null && $installmentCount !== '';
+
+                /*
+                |--------------------------------------------------------------------------
+                | Full payment must not send installment fields
+                |--------------------------------------------------------------------------
+                */
                 if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
                     if ($hasBillingDay) {
-                        $validator->errors()->add('billing_day', 'Billing day is only available for installment upgrade checkout.');
+                        $validator->errors()->add(
+                            'billing_day',
+                            'Billing day is only available for installment upgrade checkout.'
+                        );
                     }
+
+                    if ($hasInstallmentCount) {
+                        $validator->errors()->add(
+                            'installment_count',
+                            'Installment count is only available for installment upgrade checkout.'
+                        );
+                    }
+
+                    return;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Installment package eligibility
+                |--------------------------------------------------------------------------
+                */
+                if (! $package->installment_enabled) {
+                    $validator->errors()->add(
+                        'payment_type',
+                        'Installment upgrade checkout is not available for this package.'
+                    );
 
                     return;
                 }
 
                 if (! $package->checkoutAcceptsBillingDay()) {
-                    if ($hasBillingDay) {
-                        $validator->errors()->add('billing_day', 'Billing day is not available for this package.');
+                    $validator->errors()->add(
+                        'billing_day',
+                        'Billing day is not available for this package.'
+                    );
+
+                    return;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | billing_day is required for new installment flow
+                |--------------------------------------------------------------------------
+                */
+                if (! $hasBillingDay) {
+                    $validator->errors()->add(
+                        'billing_day',
+                        'Billing day is required for installment upgrade checkout.'
+                    );
+
+                    return;
+                }
+
+                if (! in_array((int) $billingDay, $package->checkoutBillingDayOptions(), true)) {
+                    $validator->errors()->add(
+                        'billing_day',
+                        'The selected billing day is not available for this package.'
+                    );
+
+                    return;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | installment_count is required for new installment flow
+                |--------------------------------------------------------------------------
+                */
+                if (! $hasInstallmentCount) {
+                    $validator->errors()->add(
+                        'installment_count',
+                        'Installment count is required for installment upgrade checkout.'
+                    );
+
+                    return;
+                }
+
+                $installmentCount = (int) $installmentCount;
+
+                if ($installmentCount < 2) {
+                    $validator->errors()->add(
+                        'installment_count',
+                        'Installment count must be at least 2.'
+                    );
+
+                    return;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Validate maximum installment count using calculator
+                |--------------------------------------------------------------------------
+                |
+                | Untuk validasi request, amount tidak memengaruhi jumlah maksimum
+                | installment. Karena itu kita cukup memakai nominal dummy 1.
+                | Perhitungan nominal upgrade yang sebenarnya tetap dilakukan ulang
+                | di PaymentCheckoutService.
+                |
+                */
+                try {
+                    /** @var InstallmentPlanCalculator $calculator */
+                    $calculator = app(InstallmentPlanCalculator::class);
+
+                    $summary = $calculator->calculateForAmount(
+                        package: $package,
+                        totalAmountOverride: 1,
+                        checkoutAt: now(),
+                        billingDay: (int) $billingDay,
+                        installmentCount: null,
+                    );
+
+                    $maximumInstallmentCount = (int) ($summary['maximum_installment_count'] ?? 0);
+
+                    if ($maximumInstallmentCount < 2) {
+                        $validator->errors()->add(
+                            'installment_count',
+                            'This package does not have enough available billing dates for installment upgrade checkout.'
+                        );
+
+                        return;
                     }
 
-                    return;
-                }
-
-                if ($package->checkoutRequiresBillingDayChoice() && ! $hasBillingDay) {
-                    $validator->errors()->add('billing_day', 'Billing day is required for this package checkout.');
-
-                    return;
-                }
-
-                if ($hasBillingDay && ! in_array((int) $billingDay, $package->checkoutBillingDayOptions(), true)) {
-                    $validator->errors()->add('billing_day', 'The selected billing day is not available for this package.');
+                    if ($installmentCount > $maximumInstallmentCount) {
+                        $validator->errors()->add(
+                            'installment_count',
+                            "Installment count cannot be greater than {$maximumInstallmentCount} for the selected billing day."
+                        );
+                    }
+                } catch (Throwable $exception) {
+                    $validator->errors()->add(
+                        'installment_count',
+                        $exception->getMessage() ?: 'Unable to validate installment count for this upgrade checkout.'
+                    );
                 }
             },
         ];

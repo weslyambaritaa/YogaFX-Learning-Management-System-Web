@@ -5,20 +5,36 @@ import TextInput from '@/Components/TextInput';
 import { formatCurrency } from '@/lib/currency';
 
 export default function PackageForm({
-    data,
+    data = {
+        title: "",
+        slug: "",
+        description: "",
+        image: null,
+        price: "",
+        currency_code: "IDR",
+        is_active: true,
+        installment_enabled: false,
+        installment_deadline_date: "",
+        allowed_billing_days: [],
+        access_tier_id: "",
+    },
     setData,
-    accessTiers,
-    errors,
-    processing,
+    accessTiers = [],
+    errors = {},
+    processing = false,
     onSubmit,
-    submitLabel = 'Save Package',
+    submitLabel = "Save Package",
     currentImageUrl = null,
-    packagePublicBaseUrl = '',
+    packagePublicBaseUrl = "",
 }) {
     const normalizedSlug = String(data.slug ?? '').trim();
     const packagePublicLink = normalizedSlug !== ''
         ? `${String(packagePublicBaseUrl).replace(/\/$/, '')}/${normalizedSlug}`
         : '';
+
+    const allowedBillingDays = Array.isArray(data.allowed_billing_days)
+        ? data.allowed_billing_days.map((day) => Number(day))
+        : [];
 
     const copyPackageLink = async () => {
         if (packagePublicLink === '') {
@@ -26,6 +42,39 @@ export default function PackageForm({
         }
 
         await navigator.clipboard.writeText(packagePublicLink);
+    };
+
+    const toggleAllowedBillingDay = (day) => {
+        const numericDay = Number(day);
+        const currentDays = Array.isArray(data.allowed_billing_days)
+            ? data.allowed_billing_days.map((value) => Number(value))
+            : [];
+
+        const nextDays = currentDays.includes(numericDay)
+            ? currentDays.filter((value) => value !== numericDay)
+            : [...currentDays, numericDay];
+
+        setData(
+            'allowed_billing_days',
+            [...new Set(nextDays)]
+                .filter((value) => [1, 15].includes(value))
+                .sort((a, b) => a - b),
+        );
+    };
+
+    const handleInstallmentEnabledChange = (event) => {
+        const enabled = event.target.value === '1';
+
+        setData((currentData) => ({
+            ...currentData,
+            installment_enabled: enabled,
+            installment_deadline_date: enabled
+                ? currentData.installment_deadline_date ?? ''
+                : '',
+            allowed_billing_days: enabled
+                ? currentData.allowed_billing_days ?? []
+                : [],
+        }));
     };
 
     return (
@@ -136,31 +185,6 @@ export default function PackageForm({
                 <InputError className="mt-2" message={errors.description} />
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <div className="text-sm font-medium text-slate-900">Direct Package Public Link</div>
-                <div className="mt-2 break-all text-sm text-slate-700">
-                    {packagePublicLink || 'Add a package slug to generate the direct package link.'}
-                </div>
-                <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <a
-                        href={packagePublicLink || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`inline-flex rounded-md border px-3 py-2 text-sm font-medium transition ${packagePublicLink ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'pointer-events-none border-slate-200 bg-white text-slate-400'}`}
-                    >
-                        Open Package Link
-                    </a>
-                    <button
-                        type="button"
-                        onClick={copyPackageLink}
-                        disabled={packagePublicLink === ''}
-                        className={`inline-flex rounded-md border px-3 py-2 text-sm font-medium transition ${packagePublicLink ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100' : 'cursor-not-allowed border-slate-200 bg-white text-slate-400'}`}
-                    >
-                        Copy Package Link
-                    </button>
-                </div>
-            </div>
-
             <div>
                 <InputLabel htmlFor="image" value="Package Image" />
                 <input
@@ -188,13 +212,13 @@ export default function PackageForm({
                     <div>
                         <InputLabel htmlFor="installment_enabled" value="Installment Ready" />
                         <p className="mt-1 text-xs text-gray-500">
-                            Enable this when the package should expose installment checkout using the package billing configuration.
+                            Enable this when the package should expose installment checkout.
                         </p>
                     </div>
                     <select
                         id="installment_enabled"
                         value={data.installment_enabled ? '1' : '0'}
-                        onChange={(event) => setData('installment_enabled', event.target.value === '1')}
+                        onChange={handleInstallmentEnabledChange}
                         className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     >
                         <option value="0">Disabled</option>
@@ -204,66 +228,85 @@ export default function PackageForm({
 
                 <div className="grid gap-6 md:grid-cols-2">
                     <div>
-                        <InputLabel htmlFor="billing_interval_unit" value="Billing Interval Unit" />
-                        <TextInput
-                            id="billing_interval_unit"
-                            className="mt-1 block w-full"
-                            value={data.billing_interval_unit}
-                            onChange={(event) => setData('billing_interval_unit', event.target.value)}
-                            placeholder="MONTH"
+                        <InputLabel
+                            htmlFor="installment_deadline_date"
+                            value="Installment Deadline Date"
                         />
-                        <InputError className="mt-2" message={errors.billing_interval_unit} />
+                        <TextInput
+                            id="installment_deadline_date"
+                            type="date"
+                            className="mt-1 block w-full"
+                            value={data.installment_deadline_date ?? ''}
+                            onChange={(event) => setData('installment_deadline_date', event.target.value)}
+                            disabled={!data.installment_enabled}
+                        />
+                        <p className="mt-2 text-xs text-gray-500">
+                            The final date used to calculate the maximum installment count.
+                        </p>
+                        <InputError
+                            className="mt-2"
+                            message={errors.installment_deadline_date}
+                        />
                     </div>
 
                     <div>
-                        <InputLabel htmlFor="billing_interval_count" value="Billing Interval Count" />
-                        <TextInput
-                            id="billing_interval_count"
-                            type="number"
-                            min="1"
-                            step="1"
-                            className="mt-1 block w-full"
-                            value={data.billing_interval_count}
-                            onChange={(event) => setData('billing_interval_count', event.target.value)}
-                        />
-                        <InputError className="mt-2" message={errors.billing_interval_count} />
-                    </div>
+                        <InputLabel value="Allowed Billing Days" />
+                        <div className="mt-2 space-y-3 rounded-md border border-gray-200 bg-white p-4">
+                            <label className="flex items-start gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={allowedBillingDays.includes(1)}
+                                    onChange={() => toggleAllowedBillingDay(1)}
+                                    disabled={!data.installment_enabled}
+                                    className="mt-1 rounded border-gray-300 text-black shadow-sm focus:ring-black disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                                <span>
+                                    <span className="block text-sm font-medium text-gray-900">
+                                        Enable billing on day 1
+                                    </span>
+                                    <span className="block text-xs text-gray-500">
+                                        Student can choose the 1st day of the month.
+                                    </span>
+                                </span>
+                            </label>
 
-                    <div>
-                        <InputLabel htmlFor="installment_deadline_month" value="Installment Deadline Month" />
-                        <TextInput
-                            id="installment_deadline_month"
-                            type="number"
-                            min="1"
-                            max="12"
-                            step="1"
-                            className="mt-1 block w-full"
-                            value={data.installment_deadline_month}
-                            onChange={(event) => setData('installment_deadline_month', event.target.value)}
-                        />
-                        <InputError className="mt-2" message={errors.installment_deadline_month} />
-                    </div>
+                            <label className="flex items-start gap-3">
+                                <input
+                                    type="checkbox"
+                                    checked={allowedBillingDays.includes(15)}
+                                    onChange={() => toggleAllowedBillingDay(15)}
+                                    disabled={!data.installment_enabled}
+                                    className="mt-1 rounded border-gray-300 text-black shadow-sm focus:ring-black disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                                <span>
+                                    <span className="block text-sm font-medium text-gray-900">
+                                        Enable billing on day 15
+                                    </span>
+                                    <span className="block text-xs text-gray-500">
+                                        Student can choose the 15th day of the month.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
 
-                    <div>
-                        <InputLabel htmlFor="installment_deadline_day" value="Installment Deadline Day" />
-                        <TextInput
-                            id="installment_deadline_day"
-                            type="number"
-                            min="1"
-                            max="31"
-                            step="1"
-                            className="mt-1 block w-full"
-                            value={data.installment_deadline_day}
-                            onChange={(event) => setData('installment_deadline_day', event.target.value)}
-                        />
-                        <InputError className="mt-2" message={errors.installment_deadline_day} />
-                    </div>
-                </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                            Admin may enable day 1, day 15, or both. During checkout,
+                            the student can select only one billing day.
+                        </p>
 
-                <div className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                    Billing day options are now part of the public checkout experience.
-                    Monthly installment packages keep using their stored checkout rules, while
-                    pay-full and non-monthly package flows do not expose a billing-day picker here.
+                        <InputError
+                            className="mt-2"
+                            message={errors.allowed_billing_days}
+                        />
+                        <InputError
+                            className="mt-2"
+                            message={errors['allowed_billing_days.0']}
+                        />
+                        <InputError
+                            className="mt-2"
+                            message={errors['allowed_billing_days.1']}
+                        />
+                    </div>
                 </div>
             </div>
 

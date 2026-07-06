@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const INITIAL_ERRORS = {
     billing_day: "",
+    installment_count: "",
     terms_accepted: "",
     payment_method: "",
 };
@@ -70,18 +71,145 @@ function formatIntervalLabel(unit, count = 1) {
     const normalizedCount = Number(count) > 0 ? Number(count) : 1;
 
     if (normalizedUnit === "DAY") {
-        return normalizedCount === 1 ? "daily" : `every ${normalizedCount} days`;
+        return normalizedCount === 1
+            ? "daily"
+            : `every ${normalizedCount} days`;
     }
 
     if (normalizedUnit === "WEEK") {
-        return normalizedCount === 1 ? "weekly" : `every ${normalizedCount} weeks`;
+        return normalizedCount === 1
+            ? "weekly"
+            : `every ${normalizedCount} weeks`;
     }
 
     if (normalizedUnit === "YEAR") {
-        return normalizedCount === 1 ? "yearly" : `every ${normalizedCount} years`;
+        return normalizedCount === 1
+            ? "yearly"
+            : `every ${normalizedCount} years`;
     }
 
-    return normalizedCount === 1 ? "monthly" : `every ${normalizedCount} months`;
+    return normalizedCount === 1
+        ? "monthly"
+        : `every ${normalizedCount} months`;
+}
+
+function amountToCents(value) {
+    return Math.round(Number(value ?? 0) * 100);
+}
+
+function centsToAmount(value) {
+    return Number((Number(value ?? 0) / 100).toFixed(2));
+}
+
+function normalizeInstallmentCount(value) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue)) {
+        return null;
+    }
+
+    return Math.trunc(numericValue);
+}
+
+function buildInstallmentCountOptions(summary) {
+    const maximumInstallmentCount = Number(
+        summary?.maximum_installment_count ?? summary?.installment_count ?? 0,
+    );
+
+    if (
+        !Number.isFinite(maximumInstallmentCount) ||
+        maximumInstallmentCount < 2
+    ) {
+        return [];
+    }
+
+    return Array.from(
+        { length: maximumInstallmentCount - 1 },
+        (_, index) => index + 2,
+    );
+}
+
+function buildInstallmentSummaryForCount(summary, selectedInstallmentCount) {
+    if (!summary) {
+        return null;
+    }
+
+    const maximumInstallmentCount = Number(
+        summary.maximum_installment_count ?? summary.installment_count ?? 0,
+    );
+
+    const normalizedInstallmentCount = normalizeInstallmentCount(
+        selectedInstallmentCount,
+    );
+
+    if (
+        !normalizedInstallmentCount ||
+        normalizedInstallmentCount < 2 ||
+        normalizedInstallmentCount > maximumInstallmentCount
+    ) {
+        return {
+            ...summary,
+            maximum_installment_count: maximumInstallmentCount,
+        };
+    }
+
+    const totalAmountCents = amountToCents(summary.total_amount ?? 0);
+    const recurringAmountCents = Math.floor(
+        totalAmountCents / normalizedInstallmentCount,
+    );
+    const firstPaymentAmountCents =
+        totalAmountCents -
+        recurringAmountCents * (normalizedInstallmentCount - 1);
+
+    const recurringAmount = centsToAmount(recurringAmountCents);
+    const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
+
+    const availableRecurringDueDates = Array.isArray(
+        summary.available_recurring_due_dates,
+    )
+        ? summary.available_recurring_due_dates
+        : Array.isArray(summary.recurring_due_dates)
+          ? summary.recurring_due_dates
+          : [];
+
+    const selectedRecurringDueDates = availableRecurringDueDates.slice(
+        0,
+        normalizedInstallmentCount - 1,
+    );
+
+    const finalDueAt =
+        selectedRecurringDueDates[selectedRecurringDueDates.length - 1] ??
+        summary.final_due_at ??
+        null;
+
+    const scheduleBreakdown = [
+        {
+            cycle_number: 1,
+            type: "first_payment",
+            amount: firstPaymentAmount.toFixed(2),
+            due_at: summary.first_payment_date ?? null,
+            grace_deadline: null,
+        },
+        ...selectedRecurringDueDates.map((dueDate, index) => ({
+            cycle_number: index + 2,
+            type: "recurring",
+            amount: recurringAmount.toFixed(2),
+            due_at: dueDate,
+            grace_deadline: null,
+        })),
+    ];
+
+    return {
+        ...summary,
+        installment_count: normalizedInstallmentCount,
+        maximum_installment_count: maximumInstallmentCount,
+        first_payment_amount: firstPaymentAmount.toFixed(2),
+        monthly_base_amount: recurringAmount.toFixed(2),
+        recurring_payment_amount: recurringAmount.toFixed(2),
+        recurring_due_dates: selectedRecurringDueDates,
+        final_due_at: finalDueAt,
+        schedule_breakdown: scheduleBreakdown,
+    };
 }
 
 function clearPayPalContainer(containerRef) {
@@ -102,38 +230,72 @@ export default function PublicCheckoutPanel({ checkout }) {
     const paymentOptions = Array.isArray(checkout.payment_options)
         ? checkout.payment_options
         : [];
+
     const mockAvailable = (checkout.payment_method_options ?? []).some(
         (option) => option.value === "mock",
     );
+
     const paypalConfig = checkout.paypal ?? {};
     const installmentSummaries = checkout.installment_summaries ?? {};
+
     const installmentAllowedBillingDays = Array.isArray(
         checkout.installment_billing_day_options,
     )
         ? checkout.installment_billing_day_options
         : [];
+
     const installmentAcceptsBillingDay =
         checkout.installment_accepts_billing_day === true;
+
     const installmentRequiresBillingDayChoice =
         checkout.installment_requires_billing_day_choice === true;
+
     const installmentIntervalUnit = String(
-        checkout.installment_billing_interval_unit ?? "",
+        checkout.installment_billing_interval_unit ?? "MONTH",
     ).toUpperCase();
+
     const installmentIntervalCount = Number(
         checkout.installment_billing_interval_count ?? 1,
+    );
+
+    const initialBillingDay =
+        checkout.installment_selected_billing_day ??
+        installmentAllowedBillingDays[0] ??
+        15;
+
+    const initialInstallmentSummary =
+        installmentSummaries[String(initialBillingDay)] ??
+        checkout.installment_summary ??
+        null;
+
+    const initialInstallmentOptions = buildInstallmentCountOptions(
+        initialInstallmentSummary,
     );
 
     const [paymentType, setPaymentType] = useState(
         paymentOptions[0]?.type ?? "pay_full",
     );
-    const [billingDay, setBillingDay] = useState(
-        checkout.installment_selected_billing_day ??
-            installmentAllowedBillingDays[0] ??
-            15,
+
+    const [billingDay, setBillingDay] = useState(initialBillingDay);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Important change
+    |--------------------------------------------------------------------------
+    |
+    | Jangan langsung kunci ke maximum installment.
+    | Student boleh memilih dari 2 sampai maximum.
+    | Default dibuat 2 supaya jelas bahwa pilihan memang bisa diganti.
+    |
+    */
+    const [selectedInstallmentCount, setSelectedInstallmentCount] = useState(
+        initialInstallmentOptions[0] ?? 2,
     );
+
     const [formData, setFormData] = useState({
         terms_accepted: false,
     });
+
     const formDataRef = useRef(formData);
     const [fieldErrors, setFieldErrors] = useState(INITIAL_ERRORS);
     const [generalError, setGeneralError] = useState("");
@@ -157,40 +319,73 @@ export default function PublicCheckoutPanel({ checkout }) {
         paymentOptions.find((option) => option.type === paymentType) ??
         paymentOptions[0] ??
         null;
+
     const isInstallmentSelected = paymentType === "installment";
-    const activeInstallmentSummary =
+
+    const baseInstallmentSummary =
         installmentSummaries[String(billingDay)] ??
         selectedPaymentOption?.summary ??
         checkout.installment_summary ??
         null;
-    const amountDueToday = Number(
-        selectedPaymentOption?.amount_due_today ?? checkout.amount ?? 0,
+
+    const availableInstallmentCounts = buildInstallmentCountOptions(
+        baseInstallmentSummary,
     );
+
+    const maximumInstallmentCount =
+        availableInstallmentCounts[availableInstallmentCounts.length - 1] ?? 0;
+
+    const activeInstallmentSummary = isInstallmentSelected
+        ? buildInstallmentSummaryForCount(
+              baseInstallmentSummary,
+              selectedInstallmentCount,
+          )
+        : baseInstallmentSummary;
+
+    const amountDueToday = Number(
+        isInstallmentSelected
+            ? (activeInstallmentSummary?.first_payment_amount ??
+                  selectedPaymentOption?.amount_due_today ??
+                  checkout.amount ??
+                  0)
+            : (selectedPaymentOption?.amount_due_today ?? checkout.amount ?? 0),
+    );
+
     const activeCurrencyCode =
         selectedPaymentOption?.currency_code ?? checkout.currency_code;
+
     const recurringAmount = Number(
-        selectedPaymentOption?.recurring_amount ??
-            activeInstallmentSummary?.recurring_payment_amount ??
+        activeInstallmentSummary?.recurring_payment_amount ??
+            selectedPaymentOption?.recurring_amount ??
             0,
     );
+
     const installmentCount = Number(
-        selectedPaymentOption?.installment_count ??
-            activeInstallmentSummary?.installment_count ??
-            0,
+        isInstallmentSelected
+            ? selectedInstallmentCount
+            : (selectedPaymentOption?.installment_count ??
+                  activeInstallmentSummary?.installment_count ??
+                  0),
     );
+
     const activeBillingDay =
         activeInstallmentSummary?.billing_day ?? billingDay;
+
     const finalDueAt =
         activeInstallmentSummary?.final_due_at ??
         selectedPaymentOption?.final_due_at ??
         null;
+
     const installmentScheduleBreakdown = Array.isArray(
         activeInstallmentSummary?.schedule_breakdown,
     )
         ? activeInstallmentSummary.schedule_breakdown
         : [];
+
     const nextInstallment =
-        installmentScheduleBreakdown[0] ??
+        installmentScheduleBreakdown.find(
+            (item) => item.type === "recurring",
+        ) ??
         (activeInstallmentSummary?.recurring_due_dates?.[0]
             ? {
                   amount:
@@ -199,14 +394,17 @@ export default function PublicCheckoutPanel({ checkout }) {
                   due_at: activeInstallmentSummary.recurring_due_dates[0],
               }
             : null);
+
     const lastInstallment =
         installmentScheduleBreakdown[installmentScheduleBreakdown.length - 1] ??
         null;
+
     const showBillingDaySelector =
         isInstallmentSelected &&
         installmentAcceptsBillingDay &&
         installmentRequiresBillingDayChoice &&
         installmentAllowedBillingDays.length > 1;
+
     const usesMonthlyInstallmentSchedule = installmentIntervalUnit === "MONTH";
     const canUseMock = mockAvailable && !isInstallmentSelected;
 
@@ -241,6 +439,7 @@ export default function PublicCheckoutPanel({ checkout }) {
         isInstallmentSelected &&
         installmentSession &&
         !installmentSession.provider_subscription_id;
+
     const visibleSdkError = isInstallmentSelected
         ? shouldRenderInstallmentButtons
             ? installmentSdkError
@@ -258,18 +457,62 @@ export default function PublicCheckoutPanel({ checkout }) {
         }
     }, [isInstallmentSelected]);
 
+    /*
+    |--------------------------------------------------------------------------
+    | Keep installment count inside the valid range
+    |--------------------------------------------------------------------------
+    |
+    | Jika billing day berubah, maximum bisa berubah juga.
+    | Di sini nilai pilihan student dipertahankan jika masih valid.
+    | Jika tidak valid, fallback ke pilihan paling kecil yang tersedia.
+    |
+    */
     useEffect(() => {
-        if (
-            isInstallmentSelected &&
-            installmentSession &&
-            !installmentSession.provider_subscription_id
-        ) {
+        if (!isInstallmentSelected) {
+            return;
+        }
+
+        if (availableInstallmentCounts.length === 0) {
+            return;
+        }
+
+        setSelectedInstallmentCount((current) => {
+            const normalizedCurrent = normalizeInstallmentCount(current);
+
+            if (
+                normalizedCurrent &&
+                availableInstallmentCounts.includes(normalizedCurrent)
+            ) {
+                return normalizedCurrent;
+            }
+
+            return availableInstallmentCounts[0];
+        });
+    }, [
+        isInstallmentSelected,
+        billingDay,
+        baseInstallmentSummary,
+        availableInstallmentCounts.join(","),
+    ]);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reset prepared PayPal subscription when student changes the plan
+    |--------------------------------------------------------------------------
+    */
+    useEffect(() => {
+        if (!isInstallmentSelected) {
+            return;
+        }
+
+        if (installmentSession) {
             setInstallmentSession(null);
             installmentSessionRef.current = null;
             setInstallmentStatus(null);
+            setInstallmentApprovalMessage("");
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [billingDay]);
+    }, [billingDay, selectedInstallmentCount]);
 
     useEffect(() => {
         if (!paypalConfig.client_id) {
@@ -491,11 +734,7 @@ export default function PublicCheckoutPanel({ checkout }) {
             clearPayPalContainer(payFullButtonsRef);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        isInstallmentSelected,
-        payFullSdkReady,
-        checkout.create_order_url,
-    ]);
+    }, [isInstallmentSelected, payFullSdkReady, checkout.create_order_url]);
 
     useEffect(() => {
         if (!shouldRenderInstallmentButtons || !installmentSdkReady) {
@@ -668,10 +907,12 @@ export default function PublicCheckoutPanel({ checkout }) {
             formDataRef.current = updated;
             return updated;
         });
+
         setFieldErrors((current) => ({
             ...current,
             [field]: "",
         }));
+
         setGeneralError("");
     };
 
@@ -683,6 +924,30 @@ export default function PublicCheckoutPanel({ checkout }) {
     const validateCheckoutFields = () => {
         const nextErrors = { ...INITIAL_ERRORS };
         const currentData = formDataRef.current;
+
+        if (isInstallmentSelected) {
+            if (installmentAcceptsBillingDay && !billingDay) {
+                nextErrors.billing_day =
+                    "Please select your preferred billing day.";
+            }
+
+            const normalizedInstallmentCount = normalizeInstallmentCount(
+                selectedInstallmentCount,
+            );
+
+            if (!normalizedInstallmentCount) {
+                nextErrors.installment_count =
+                    "Please select your installment count.";
+            } else if (normalizedInstallmentCount < 2) {
+                nextErrors.installment_count =
+                    "Installment count must be at least 2.";
+            } else if (
+                maximumInstallmentCount > 0 &&
+                normalizedInstallmentCount > maximumInstallmentCount
+            ) {
+                nextErrors.installment_count = `Installment count cannot be greater than ${maximumInstallmentCount}.`;
+            }
+        }
 
         if (!currentData.terms_accepted) {
             nextErrors.terms_accepted = "You must agree before continuing.";
@@ -727,8 +992,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                 checkout_mode: "paypal",
                 billing_day:
                     isInstallmentSelected && installmentAcceptsBillingDay
-                        ? billingDay
+                        ? Number(billingDay)
                         : null,
+                installment_count: isInstallmentSelected
+                    ? Number(selectedInstallmentCount)
+                    : null,
                 terms_accepted: currentData.terms_accepted,
             }),
         });
@@ -895,9 +1163,6 @@ export default function PublicCheckoutPanel({ checkout }) {
     };
 
     const handleDismissedOrder = () => {
-        // Closing the PayPal card sheet should keep buyers on the current
-        // YogaFX package page so they can switch funding choices without
-        // losing the prepared checkout form or being pushed to invoice status.
         activeOrderRef.current = null;
         setDebugInfo(null);
         setGeneralError("");
@@ -938,115 +1203,51 @@ export default function PublicCheckoutPanel({ checkout }) {
                 <div className="space-y-4">
                     <div>
                         <InputLabel
-                            value="Payment Type"
+                            value="Payment"
                             className="text-sm font-medium text-white/90"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                         />
                         <p
                             className="mt-2 text-sm leading-6 text-white/60"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                            }}
                         >
-                            Choose the payment path prepared by the backend checkout contract for this YogaFX package.
+                            Choose how you want to pay for this YogaFX package.
                         </p>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                         {paymentOptions.map((option) => {
                             const optionIsActive = paymentType === option.type;
                             const optionIsInstallment =
                                 option.type === "installment";
-                            const optionBillingDay =
-                                optionIsInstallment && optionIsActive
-                                    ? billingDay
-                                    : option.billing_day;
-                            const optionFinalDueAt =
-                                optionIsInstallment && optionIsActive
-                                    ? activeInstallmentSummary?.final_due_at ??
-                                      option.final_due_at
-                                    : option.final_due_at;
 
                             return (
                                 <button
                                     key={option.type}
                                     type="button"
                                     onClick={() => setPaymentType(option.type)}
-                                    className={`rounded-[5px] border px-5 py-5 text-left transition-all duration-200 ${
+                                    className={`rounded-[5px] border px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
                                         optionIsActive
-                                            ? "border-[#DB202C] bg-[#DB202C]/10 shadow-[0_0_0_1px_rgba(219,32,44,0.25)]"
-                                            : "border-white/10 bg-black/15 hover:border-white/25"
+                                            ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_1px_rgba(219,32,44,0.25)]"
+                                            : "border-white/10 bg-black/20 text-white/75 hover:border-white/25 hover:bg-white/10"
                                     }`}
-                                    style={{ fontFamily: FONT_FAMILY }}
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                        fontSize: "14px",
+                                        fontWeight: 600,
+                                    }}
                                 >
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="space-y-1">
-                                            <p
-                                                className="text-base text-white"
-                                                style={{ fontFamily: FONT_FAMILY, fontSize: "16px", fontWeight: 600 }}
-                                            >
-                                                {option.label}
-                                            </p>
-                                            <p
-                                                className="text-sm text-white/70"
-                                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                            >
-                                                Due today:{" "}
-                                                {formatCurrency(
-                                                    option.amount_due_today,
-                                                    option.currency_code,
-                                                )}
-                                            </p>
-                                        </div>
-                                        <span
-                                            className={`rounded-full px-3 py-1 text-xs uppercase tracking-[0.18em] ${
-                                                optionIsActive
-                                                    ? "bg-[#DB202C] text-white"
-                                                    : "bg-white/10 text-white/70"
-                                            }`}
-                                            style={{ fontFamily: FONT_FAMILY, fontWeight: 600 }}
-                                        >
-                                            {optionIsInstallment
-                                                ? "Installment"
-                                                : "Full"}
-                                        </span>
-                                    </div>
-
-                                    {optionIsInstallment ? (
-                                        <div className="mt-4 grid gap-2 text-sm text-white/65 sm:grid-cols-2">
-                                            <p>
-                                                Recurring amount:{" "}
-                                                {formatCurrency(
-                                                    option.recurring_amount,
-                                                    option.currency_code,
-                                                )}
-                                            </p>
-                                            <p>
-                                                Total cycles:{" "}
-                                                {option.installment_count}
-                                            </p>
-                                            <p>
-                                                Recurring schedule:{" "}
-                                                {usesMonthlyInstallmentSchedule
-                                                    ? `every ${formatBillingDayLabel(optionBillingDay)}`
-                                                    : formatIntervalLabel(
-                                                          installmentIntervalUnit,
-                                                          installmentIntervalCount,
-                                                      )}
-                                            </p>
-                                            <p>
-                                                Final due:{" "}
-                                                {formatScheduleDate(
-                                                    optionFinalDueAt,
-                                                )}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <p
-                                            className="mt-4 text-sm leading-6 text-white/60"
-                                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                                        >
-                                            Pay the full package amount now and continue to onboarding after payment succeeds.
-                                        </p>
-                                    )}
+                                    {optionIsInstallment
+                                        ? "Pay in installment"
+                                        : "Pay in full"}
                                 </button>
                             );
                         })}
@@ -1061,28 +1262,48 @@ export default function PublicCheckoutPanel({ checkout }) {
                             <p className="text-xs uppercase tracking-[0.16em] text-white/45">
                                 Monthly billing date
                             </p>
+
                             <div className="mt-3 grid gap-3 md:grid-cols-2">
-                                {installmentAllowedBillingDays.map((allowedDay) => (
-                                    <label
-                                        key={allowedDay}
-                                        className={`flex cursor-pointer items-center gap-3 rounded-[5px] border px-4 py-3 text-sm transition ${
-                                            billingDay === allowedDay
-                                                ? "border-[#DB202C] bg-[#DB202C]/12 text-white"
-                                                : "border-white/10 bg-white/5 text-white/75"
-                                        }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="installment_billing_day"
-                                            value={allowedDay}
-                                            checked={billingDay === allowedDay}
-                                            onChange={() => setBillingDay(allowedDay)}
-                                            className="h-4 w-4 border-white/20 bg-black/30 text-[#DB202C] focus:ring-[#DB202C]"
-                                        />
-                                        <span>Every {formatBillingDayLabel(allowedDay)} of the month</span>
-                                    </label>
-                                ))}
+                                {installmentAllowedBillingDays.map(
+                                    (allowedDay) => (
+                                        <label
+                                            key={allowedDay}
+                                            className={`flex cursor-pointer items-center gap-3 rounded-[5px] border px-4 py-3 text-sm transition ${
+                                                billingDay === allowedDay
+                                                    ? "border-[#DB202C] bg-[#DB202C]/12 text-white"
+                                                    : "border-white/10 bg-white/5 text-white/75"
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="installment_billing_day"
+                                                value={allowedDay}
+                                                checked={
+                                                    billingDay === allowedDay
+                                                }
+                                                onChange={() => {
+                                                    setBillingDay(allowedDay);
+                                                    setFieldErrors(
+                                                        (current) => ({
+                                                            ...current,
+                                                            billing_day: "",
+                                                        }),
+                                                    );
+                                                }}
+                                                className="h-4 w-4 border-white/20 bg-black/30 text-[#DB202C] focus:ring-[#DB202C]"
+                                            />
+                                            <span>
+                                                Every{" "}
+                                                {formatBillingDayLabel(
+                                                    allowedDay,
+                                                )}{" "}
+                                                of the month
+                                            </span>
+                                        </label>
+                                    ),
+                                )}
                             </div>
+
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
                                 style={{ fontFamily: FONT_FAMILY }}
@@ -1091,148 +1312,167 @@ export default function PublicCheckoutPanel({ checkout }) {
                         </div>
                     )}
 
+                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                    Number of installments
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-white/60">
+                                    Choose how many total payments you want.
+                                    This includes the first payment due today.
+                                </p>
+                            </div>
+
+                            {maximumInstallmentCount > 0 && (
+                                <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
+                                    Max {maximumInstallmentCount}x
+                                </span>
+                            )}
+                        </div>
+
+                        <select
+                            value={selectedInstallmentCount || ""}
+                            onChange={(event) => {
+                                setSelectedInstallmentCount(
+                                    Number(event.target.value),
+                                );
+                                setFieldErrors((current) => ({
+                                    ...current,
+                                    installment_count: "",
+                                }));
+                            }}
+                            className="mt-4 block w-full rounded-[5px] border border-white/10 bg-black/40 px-4 py-3 text-sm text-white shadow-sm focus:border-[#DB202C] focus:ring-[#DB202C]"
+                        >
+                            {availableInstallmentCounts.length === 0 ? (
+                                <option value="">
+                                    No installment option available
+                                </option>
+                            ) : (
+                                availableInstallmentCounts.map((count) => (
+                                    <option key={count} value={count}>
+                                        {count} total payments
+                                    </option>
+                                ))
+                            )}
+                        </select>
+
+                        <p className="mt-2 text-xs text-white/50">
+                            You can choose any value from 2 to{" "}
+                            {maximumInstallmentCount || "-"} payments. The
+                            backend will reject values above the maximum.
+                        </p>
+
+                        <InputError
+                            className="mt-2 text-sm font-medium text-rose-400"
+                            style={{ fontFamily: FONT_FAMILY }}
+                            message={fieldErrors.installment_count}
+                        />
+                    </div>
+
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                             <p
                                 className="text-sm uppercase tracking-[0.18em] text-[#ffb8bf]"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "12px", fontWeight: 600 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "12px",
+                                    fontWeight: 600,
+                                }}
                             >
                                 Installment Plan
                             </p>
                             <h3
                                 className="mt-2 text-white"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "22px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "22px",
+                                    fontWeight: 500,
+                                }}
                             >
-                                Pay{" "}
-                                {formatCurrency(
-                                    amountDueToday,
-                                    activeCurrencyCode,
-                                )}{" "}
-                                {usesMonthlyInstallmentSchedule
-                                    ? showBillingDaySelector
-                                        ? `today, then continue monthly on the ${formatBillingDayLabel(activeBillingDay)}`
-                                        : "today, then continue on this monthly installment schedule"
-                                    : `today, then continue on the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} recurring schedule`}
+                                {installmentCount} payments selected
                             </h3>
                             <p
                                 className="mt-3 text-sm leading-6 text-white/65"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                             >
-                                Clear breakdown of your YogaFX installment schedule before you continue to PayPal approval.
+                                Review your first payment, next payment, and
+                                billing schedule before continuing.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                Today
+                            </p>
+                            <p className="mt-2 text-xl font-semibold text-white">
+                                {formatCurrency(
+                                    amountDueToday,
+                                    activeCurrencyCode,
+                                )}
+                            </p>
+                            <p className="mt-1 text-sm text-white/55">
+                                First payment due now.
                             </p>
                         </div>
 
-
-                    </div>
-
-                    <div
-                        className="overflow-hidden rounded-[5px] border border-white/10 bg-black/20"
-                        style={{ fontFamily: FONT_FAMILY }}
-                    >
-                        <div className="hidden grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)] border-b border-white/10 bg-white/[0.03] px-5 py-3 text-xs uppercase tracking-[0.16em] text-white/45 md:grid">
-                            <span>Detail</span>
-                            <span>Value</span>
+                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                Next Payment
+                            </p>
+                            <p className="mt-2 text-xl font-semibold text-white">
+                                {nextInstallment
+                                    ? `${formatCurrency(
+                                          Number(
+                                              nextInstallment.amount ??
+                                                  recurringAmount,
+                                          ),
+                                          activeCurrencyCode,
+                                      )}`
+                                    : "-"}
+                            </p>
+                            <p className="mt-1 text-sm text-white/55">
+                                {nextInstallment?.due_at
+                                    ? `On ${formatScheduleDate(nextInstallment.due_at)}`
+                                    : "Scheduled after checkout."}
+                            </p>
                         </div>
 
-                        <div className="divide-y divide-white/10">
-                            {[
-                                {
-                                    label: "Course Price",
-                                    value: formatCurrency(
-                                        Number(
-                                            activeInstallmentSummary?.total_amount ??
-                                                checkout.amount ??
-                                                0,
-                                        ),
-                                        activeCurrencyCode,
-                                    ),
-                                    helper: "Total package price for this checkout.",
-                                },
-                                {
-                                    label: "Number of Installments",
-                                    value: `${installmentCount} total payments`,
-                                    helper: "Includes the first payment due at checkout.",
-                                },
-                                {
-                                    label: "Monthly Installment",
-                                    value: formatCurrency(
-                                        recurringAmount,
-                                        activeCurrencyCode,
-                                    ),
-                                    helper: usesMonthlyInstallmentSchedule
-                                        ? showBillingDaySelector
-                                            ? `Auto-billed every month on the ${formatBillingDayLabel(activeBillingDay)}.`
-                                            : "Auto-billed on the package's monthly recurring schedule."
-                                        : `Auto-billed on the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} recurring schedule.`,
-                                },
-                                {
-                                    label: "Last Installment",
-                                    value: formatCurrency(
-                                        Number(
-                                            lastInstallment?.amount ??
-                                                recurringAmount,
-                                        ),
-                                        activeCurrencyCode,
-                                    ),
-                                    helper: lastInstallment?.due_at
-                                        ? `Final scheduled charge on ${formatScheduleDate(lastInstallment.due_at)}.`
-                                        : "Final scheduled charge in this installment plan.",
-                                },
-                                {
-                                    label: "First Installment Due Today",
-                                    value: formatCurrency(
-                                        amountDueToday,
-                                        activeCurrencyCode,
-                                    ),
-                                    helper: "Charged immediately when PayPal approval succeeds.",
-                                },
-                                {
-                                    label: "Next Installment",
-                                    value: nextInstallment
-                                        ? `${formatCurrency(Number(nextInstallment.amount ?? recurringAmount), activeCurrencyCode)} on ${formatScheduleDate(nextInstallment.due_at)}`
-                                        : "Will be scheduled after the first payment.",
-                                    helper: "Your next recurring installment after checkout.",
-                                },
-                                {
-                                    label: "Last Installment Date",
-                                    value: formatScheduleDate(finalDueAt),
-                                    helper: "End date of this current installment schedule.",
-                                },
-                                installmentAcceptsBillingDay
-                                    ? {
-                                          label: "Preferred Monthly Billing Day",
-                                          value: `Every ${formatBillingDayLabel(activeBillingDay)} of the month`,
-                                          helper: showBillingDaySelector
-                                              ? "You can change this before continuing to PayPal."
-                                              : "Set by the package's installment billing configuration.",
-                                      }
-                                    : null,
-                            ]
-                                .filter(Boolean)
-                                .map((row) => (
-                                    <div
-                                        key={row.label}
-                                        className="grid gap-2 px-5 py-4 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)] md:gap-6"
-                                    >
-                                        <div className="min-w-0">
-                                            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45 md:hidden">
-                                                {row.label}
-                                            </p>
-                                            <p className="hidden text-sm font-medium text-white/72 md:block">
-                                                {row.label}
-                                            </p>
-                                        </div>
+                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                Total Payments
+                            </p>
+                            <p className="mt-2 text-xl font-semibold text-white">
+                                {installmentCount} payments
+                            </p>
+                            <p className="mt-1 text-sm text-white/55">
+                                Maximum available: {maximumInstallmentCount}.
+                            </p>
+                        </div>
 
-                                        <div className="min-w-0">
-                                            <p className="text-base font-semibold text-white md:text-[15px]">
-                                                {row.value}
-                                            </p>
-                                            <p className="mt-1 text-sm leading-6 text-white/55">
-                                                {row.helper}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
+                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                Billing Day
+                            </p>
+                            <p className="mt-2 text-xl font-semibold text-white">
+                                {usesMonthlyInstallmentSchedule
+                                    ? formatBillingDayLabel(activeBillingDay)
+                                    : formatIntervalLabel(
+                                          installmentIntervalUnit,
+                                          installmentIntervalCount,
+                                      )}
+                            </p>
+                            <p className="mt-1 text-sm text-white/55">
+                                {usesMonthlyInstallmentSchedule
+                                    ? "Every month"
+                                    : "Recurring schedule"}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -1240,18 +1480,25 @@ export default function PublicCheckoutPanel({ checkout }) {
 
             <div>
                 <label
-                    className={`flex items-start gap-4 rounded-[5px] border px-5 py-5 text-sm font-normal text-white/80 transition-all duration-200 cursor-pointer ${
+                    className={`flex cursor-pointer items-start gap-4 rounded-[5px] border px-5 py-5 text-sm font-normal text-white/80 transition-all duration-200 ${
                         fieldErrors.terms_accepted
                             ? "border-rose-500 bg-rose-500/10 ring-1 ring-rose-500/20"
                             : "border-white/10 bg-white/5 shadow-lg backdrop-blur-sm hover:border-white/30"
                     }`}
-                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "14px",
+                        fontWeight: 400,
+                    }}
                 >
                     <input
                         type="checkbox"
                         checked={formData.terms_accepted}
                         onChange={(event) =>
-                            setFieldValue("terms_accepted", event.target.checked)
+                            setFieldValue(
+                                "terms_accepted",
+                                event.target.checked,
+                            )
                         }
                         className="mt-1 h-5 w-5 flex-shrink-0 rounded border-white/20 bg-black/20 text-[#DB202C] transition-colors focus:ring-[#DB202C] focus:ring-offset-gray-900"
                     />
@@ -1301,24 +1548,37 @@ export default function PublicCheckoutPanel({ checkout }) {
             <div className="rounded-[5px] border border-[#DB202C]/30 bg-white/5 p-6 shadow-xl backdrop-blur-sm">
                 <h2
                     className="text-white"
-                    style={{ fontFamily: FONT_FAMILY, fontSize: "22px", fontWeight: 500 }}
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "22px",
+                        fontWeight: 500,
+                    }}
                 >
                     {isInstallmentSelected
                         ? "PayPal Installment Approval"
                         : "Payment Method"}
                 </h2>
+
                 <p
                     className="mt-2 text-sm font-normal leading-6 text-white/70"
-                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                        fontSize: "14px",
+                        fontWeight: 400,
+                    }}
                 >
                     {isInstallmentSelected
-                        ? ""
+                        ? "Prepare your selected installment plan before continuing to PayPal approval."
                         : "Pay with PayPal or your debit or credit card safely below."}
                 </p>
+
                 {paypalConfig.environment && (
                     <p
                         className="mt-3 text-xs uppercase tracking-[0.18em] text-white/45"
-                        style={{ fontFamily: FONT_FAMILY, fontWeight: 600 }}
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontWeight: 600,
+                        }}
                     >
                         PayPal Environment: {paypalConfig.environment}
                     </p>
@@ -1327,25 +1587,33 @@ export default function PublicCheckoutPanel({ checkout }) {
                 {isInstallmentSelected ? (
                     <div
                         className={`mt-6 rounded-[5px] border border-white/10 bg-black/20 p-5 transition-opacity duration-300 ${
-                            !formData.terms_accepted ? "opacity-60" : "opacity-100"
+                            !formData.terms_accepted
+                                ? "opacity-60"
+                                : "opacity-100"
                         }`}
                     >
                         <p
                             className="text-sm leading-6 text-white/65"
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                            }}
                         >
-                            You are approving the first payment of{" "}
+                            You are approving{" "}
+                            <span className="font-semibold text-white">
+                                {installmentCount} total payments
+                            </span>
+                            . The first payment is{" "}
                             <span className="font-semibold text-white">
                                 {formatCurrency(
                                     amountDueToday,
                                     activeCurrencyCode,
                                 )}
                             </span>
-                            . The remaining recurring payments follow{" "}
+                            , and the remaining payments follow{" "}
                             {usesMonthlyInstallmentSchedule
-                                ? showBillingDaySelector
-                                    ? `the ${formatBillingDayLabel(activeBillingDay)} monthly schedule`
-                                    : "the package's monthly schedule"
+                                ? `the ${formatBillingDayLabel(activeBillingDay)} monthly schedule`
                                 : `the ${formatIntervalLabel(installmentIntervalUnit, installmentIntervalCount)} schedule`}{" "}
                             until{" "}
                             <span className="font-semibold text-white">
@@ -1353,6 +1621,7 @@ export default function PublicCheckoutPanel({ checkout }) {
                             </span>
                             .
                         </p>
+
                         {installmentApprovalMessage && (
                             <div
                                 className="mt-5 rounded-[5px] border border-emerald-400/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100"
@@ -1367,7 +1636,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                                 type="button"
                                 onClick={runInstallmentCheckout}
                                 disabled={isSubmitting}
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                                 className="mt-5 min-h-[52px] w-full rounded-[5px] bg-[#DB202C] px-4 py-3 text-sm font-medium text-white hover:bg-[#c01a25] disabled:pointer-events-none disabled:opacity-60"
                             >
                                 {isSubmitting
@@ -1386,23 +1659,41 @@ export default function PublicCheckoutPanel({ checkout }) {
                             <div className="mt-5 space-y-4">
                                 <p
                                     className="text-sm text-white/65"
-                                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                        fontSize: "14px",
+                                        fontWeight: 400,
+                                    }}
                                 >
-                                    Continue in the PayPal sandbox popup. You should stay on the YogaFX checkout page while PayPal opens a separate approval window.
+                                    Continue in the PayPal sandbox popup. You
+                                    should stay on the YogaFX checkout page
+                                    while PayPal opens a separate approval
+                                    window.
                                 </p>
+
                                 <div
                                     className="rounded-[5px] border border-white/10 p-5 shadow-inner"
-                                    style={{ backgroundColor: "rgba(255, 255, 255, 0.97)" }}
+                                    style={{
+                                        backgroundColor:
+                                            "rgba(255, 255, 255, 0.97)",
+                                    }}
                                 >
-                                    <div ref={installmentButtonsRef} className="min-h-[48px]" />
+                                    <div
+                                        ref={installmentButtonsRef}
+                                        className="min-h-[48px]"
+                                    />
                                 </div>
+
                                 {!installmentSdkReady && (
                                     <div
                                         className="flex items-center gap-3 text-sm font-medium text-white/60"
                                         style={{ fontFamily: FONT_FAMILY }}
                                     >
                                         <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
-                                        <span>Loading PayPal sandbox approval popup...</span>
+                                        <span>
+                                            Loading PayPal sandbox approval
+                                            popup...
+                                        </span>
                                     </div>
                                 )}
                             </div>
@@ -1418,9 +1709,14 @@ export default function PublicCheckoutPanel({ checkout }) {
                     >
                         <div
                             className="rounded-[5px] border border-white/10 p-5 shadow-inner"
-                            style={{ backgroundColor: "rgba(255, 255, 255, 0.97)" }}
+                            style={{
+                                backgroundColor: "rgba(255, 255, 255, 0.97)",
+                            }}
                         >
-                            <div ref={payFullButtonsRef} className="min-h-[48px]" />
+                            <div
+                                ref={payFullButtonsRef}
+                                className="min-h-[48px]"
+                            />
                         </div>
                     </div>
                 )}
@@ -1434,7 +1730,6 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <span>Loading secure payment methods...</span>
                     </div>
                 )}
-
             </div>
 
             {canUseMock && (
@@ -1443,15 +1738,24 @@ export default function PublicCheckoutPanel({ checkout }) {
                         <div>
                             <p
                                 className="text-sm font-semibold text-white"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 600 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 600,
+                                }}
                             >
                                 Local testing
                             </p>
                             <p
                                 className="mt-1 text-sm font-normal text-white/60"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                             >
-                                Mock checkout stays available only outside production.
+                                Mock checkout stays available only outside
+                                production.
                             </p>
                         </div>
 
@@ -1460,7 +1764,11 @@ export default function PublicCheckoutPanel({ checkout }) {
                             variant="outline"
                             onClick={runMockCheckout}
                             disabled={isSubmitting}
-                            style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 500,
+                            }}
                             className="rounded-[5px] border-white/20 bg-transparent px-2.5 py-2 text-sm font-medium text-white hover:bg-white/10"
                         >
                             Run Mock Payment

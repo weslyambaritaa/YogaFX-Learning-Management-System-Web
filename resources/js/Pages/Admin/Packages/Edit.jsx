@@ -1,28 +1,31 @@
-import PackageForm from '@/Components/PackageForm';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import PackageForm from "@/Components/PackageForm";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { Head, Link, useForm } from "@inertiajs/react";
 
-export default function EditPackage({ package: pkg, accessTiers, status, packagePublicBaseUrl }) {
+export default function EditPackage({
+    package: pkg,
+    accessTiers,
+    status,
+    packagePublicBaseUrl,
+}) {
     const { data, setData, patch, processing, errors } = useForm({
-        title: pkg.title ?? '',
-        slug: pkg.slug ?? '',
-        description: pkg.description ?? '',
+        title: pkg.title ?? "",
+        slug: pkg.slug ?? "",
+        description: pkg.description ?? "",
         image: null,
-        price: pkg.price ?? '',
-        currency_code: pkg.currency_code ?? 'IDR',
+        price: pkg.price ?? "",
+        currency_code: pkg.currency_code ?? "IDR",
         is_active: pkg.is_active ?? true,
         installment_enabled: pkg.installment_enabled ?? false,
-        billing_interval_unit: pkg.billing_interval_unit ?? '',
-        billing_interval_count: pkg.billing_interval_count ?? '',
-        installment_deadline_month: pkg.installment_deadline_month ?? '',
-        installment_deadline_day: pkg.installment_deadline_day ?? '',
-        access_tier_id: pkg.access_tier_id ?? '',
+        installment_deadline_date: pkg.installment_deadline_date ?? "",
+        allowed_billing_days: pkg.allowed_billing_days ?? [],
+        access_tier_id: pkg.access_tier_id ?? "",
     });
 
     const submit = (event) => {
         event.preventDefault();
 
-        patch(route('admin.packages.update', pkg.id), {
+        patch(route("admin.packages.update", pkg.id), {
             forceFormData: true,
         });
     };
@@ -40,12 +43,13 @@ export default function EditPackage({ package: pkg, accessTiers, status, package
                             Edit Package
                         </h2>
                         <p className="mt-1 text-sm text-gray-500">
-                            Update package pricing, assignment, and public offer details safely.
+                            Update package pricing, assignment, and public offer
+                            details safely.
                         </p>
                     </div>
 
                     <Link
-                        href={route('admin.packages.index')}
+                        href={route("admin.packages.index")}
                         className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
                     >
                         Back to Packages
@@ -59,21 +63,27 @@ export default function EditPackage({ package: pkg, accessTiers, status, package
                 <div className="mx-auto max-w-4xl space-y-6 sm:px-6 lg:px-8">
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="rounded-lg bg-white p-6 shadow-sm">
-                            <div className="text-sm text-gray-500">Pending Registrations</div>
+                            <div className="text-sm text-gray-500">
+                                Pending Registrations
+                            </div>
                             <div className="mt-1 text-2xl font-semibold text-gray-900">
                                 {pkg.pending_registrations_count}
                             </div>
                         </div>
 
                         <div className="rounded-lg bg-white p-6 shadow-sm">
-                            <div className="text-sm text-gray-500">Invoices</div>
+                            <div className="text-sm text-gray-500">
+                                Invoices
+                            </div>
                             <div className="mt-1 text-2xl font-semibold text-gray-900">
                                 {pkg.invoices_count}
                             </div>
                         </div>
 
                         <div className="rounded-lg bg-white p-6 shadow-sm md:col-span-2">
-                            <div className="text-sm text-gray-500">Direct Package Public Link</div>
+                            <div className="text-sm text-gray-500">
+                                Direct Package Public Link
+                            </div>
                             <div className="mt-2 break-all text-sm font-medium text-gray-900">
                                 {pkg.public_link}
                             </div>
@@ -97,12 +107,12 @@ export default function EditPackage({ package: pkg, accessTiers, status, package
                         </div>
                     </div>
 
-                    {status === 'package-created' && (
+                    {status === "package-created" && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Package has been created.
                         </div>
                     )}
-                    {status === 'package-updated' && (
+                    {status === "package-updated" && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Package has been updated.
                         </div>
