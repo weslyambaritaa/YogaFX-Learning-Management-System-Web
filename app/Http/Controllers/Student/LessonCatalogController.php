@@ -33,7 +33,18 @@ class LessonCatalogController extends Controller
         private readonly StudentWorkbookDeliveryService $studentWorkbookDeliveryService,
     ) {}
 
-    public function show(Request $request, Lesson $lesson): Response
+    public function show(Request $request, Lesson $lesson): Response|JsonResponse
+    {
+        $payload = $this->buildLessonShowPayload($request, $lesson);
+
+        if ($request->expectsJson() || $request->boolean('payload')) {
+            return response()->json($payload);
+        }
+
+        return Inertia::render('Student/Lessons/Show', $payload);
+    }
+
+    private function buildLessonShowPayload(Request $request, Lesson $lesson): array
     {
         $user = $request->user();
         $this->authorizeLessonAccess($request, $lesson);
@@ -69,7 +80,7 @@ class LessonCatalogController extends Controller
             ? $orderedLessons->get($currentLessonIndex + 1)
             : null;
 
-        return Inertia::render('Student/Lessons/Show', [
+        return [
             'lesson' => [
                 'id' => $lesson->id,
                 'title' => $lesson->title,
@@ -181,7 +192,7 @@ class LessonCatalogController extends Controller
                 ] : null,
             ],
             'accessTimeSummary' => $this->sessionTrackingService->summaryForUser($user),
-        ]);
+        ];
     }
 
     public function downloadWorkbook(Request $request, Lesson $lesson): RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse

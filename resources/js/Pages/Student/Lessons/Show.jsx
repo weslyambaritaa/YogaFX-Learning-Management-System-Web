@@ -263,7 +263,14 @@ function ContentSection({ content }) {
     );
 }
 
-export default function StudentLessonShow({ lesson, accessTimeSummary }) {
+export default function StudentLessonShow({
+    lesson: initialLesson,
+    accessTimeSummary: initialAccessTimeSummary,
+}) {
+    const [lesson, setLesson] = useState(initialLesson);
+    const [accessTimeSummaryState, setAccessTimeSummaryState] = useState(
+        initialAccessTimeSummary,
+    );
     const hasWorkbook = Boolean(lesson.workbook_download_url);
     const initialWorkbookDownloaded =
         Boolean(lesson.progress?.is_workbook_downloaded) ||
@@ -291,9 +298,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
     const [showLockedDialog, setShowLockedDialog] = useState(false);
     const [lockedReason, setLockedReason] = useState(null);
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
-        accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+        accessTimeSummaryState?.running_total_access_duration_seconds ?? 0,
     );
     const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
+    const [isLoadingNextLesson, setIsLoadingNextLesson] = useState(false);
     const progressRequestRef = useRef({
         inFlight: false,
         latestSent: Number(lesson.progress?.watch_progress ?? 0),
@@ -336,6 +344,13 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
         return url.includes("?") ? `${url}&autoplay=1` : `${url}?autoplay=1`;
     };
+    const withLessonPayloadQuery = (url) => {
+        if (!url) {
+            return null;
+        }
+
+        return url.includes("?") ? `${url}&payload=1` : `${url}?payload=1`;
+    };
     const persistFullscreenRestoreIntent = () => {
         if (typeof window === "undefined") {
             return;
@@ -349,6 +364,53 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         }
 
         window.sessionStorage.setItem(FULLSCREEN_RESTORE_STORAGE_KEY, "1");
+    };
+    const loadLessonInPlace = async (url) => {
+        if (!url || typeof window === "undefined") {
+            return false;
+        }
+
+        const payloadUrl = withLessonPayloadQuery(url);
+
+        if (!payloadUrl) {
+            return false;
+        }
+
+        setIsLoadingNextLesson(true);
+
+        try {
+            const response = await fetch(payloadUrl, {
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                credentials: "same-origin",
+            });
+
+            if (!response.ok) {
+                throw new Error(
+                    `Failed to load next lesson payload (${response.status}).`,
+                );
+            }
+
+            const payload = await response.json();
+
+            if (!payload?.lesson) {
+                throw new Error("Next lesson payload is incomplete.");
+            }
+
+            window.history.pushState({}, "", url);
+            setLesson(payload.lesson);
+            setAccessTimeSummaryState(payload.accessTimeSummary ?? null);
+            window.scrollTo(0, 0);
+
+            return true;
+        } catch (error) {
+            console.error("Failed to load next lesson in place.", error);
+            return false;
+        } finally {
+            setIsLoadingNextLesson(false);
+        }
     };
     const nextTarget = useMemo(() => {
         if (assessmentState && !assessmentState.is_completed) {
@@ -440,6 +502,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
         ) : null;
 
     useEffect(() => {
+        setLesson(initialLesson);
+        setAccessTimeSummaryState(initialAccessTimeSummary);
+    }, [initialLesson, initialAccessTimeSummary]);
+
+    useEffect(() => {
         const persistedWorkbookDownloaded =
             typeof window !== "undefined" &&
             window.localStorage.getItem(workbookStorageKey(lesson.id)) === "1";
@@ -467,6 +534,8 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             latestSent: Number(lesson.progress?.watch_progress ?? 0),
             pending: null,
         };
+        setPlayerWarning(null);
+        setIsLoadingNextLesson(false);
     }, [lesson]);
 
     useEffect(() => {
@@ -486,11 +555,12 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
     useEffect(() => {
         if (
-            !accessTimeSummary?.currently_active ||
-            !accessTimeSummary?.active_session_login_at
+            !accessTimeSummaryState?.currently_active ||
+            !accessTimeSummaryState?.active_session_login_at
         ) {
             setTotalAccessSeconds(
-                accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+                accessTimeSummaryState?.running_total_access_duration_seconds ??
+                    0,
             );
 
             return undefined;
@@ -498,7 +568,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
         const updateTimer = () => {
             const loginAt = new Date(
-                accessTimeSummary.active_session_login_at,
+                accessTimeSummaryState.active_session_login_at,
             ).getTime();
             const elapsed = Math.max(
                 0,
@@ -506,7 +576,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             );
 
             setTotalAccessSeconds(
-                (accessTimeSummary.total_access_duration_seconds ?? 0) +
+                (accessTimeSummaryState.total_access_duration_seconds ?? 0) +
                     elapsed,
             );
         };
@@ -516,10 +586,10 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
 
         return () => window.clearInterval(interval);
     }, [
-        accessTimeSummary?.active_session_login_at,
-        accessTimeSummary?.currently_active,
-        accessTimeSummary?.running_total_access_duration_seconds,
-        accessTimeSummary?.total_access_duration_seconds,
+        accessTimeSummaryState?.active_session_login_at,
+        accessTimeSummaryState?.currently_active,
+        accessTimeSummaryState?.running_total_access_duration_seconds,
+        accessTimeSummaryState?.total_access_duration_seconds,
     ]);
 
     useEffect(() => {
@@ -847,11 +917,17 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
             if (!autoNextNavigatingRef.current && nextTarget?.url) {
                 autoNextNavigatingRef.current = true;
                 persistFullscreenRestoreIntent();
-                router.visit(
-                    nextTarget.type === "lesson"
-                        ? withAutoplayQuery(nextTarget.url)
-                        : nextTarget.url,
-                );
+                if (nextTarget.type === "lesson") {
+                    void loadLessonInPlace(withAutoplayQuery(nextTarget.url)).then(
+                        (loaded) => {
+                            if (!loaded) {
+                                router.visit(withAutoplayQuery(nextTarget.url));
+                            }
+                        },
+                    );
+                } else {
+                    router.visit(nextTarget.url);
+                }
             }
 
             return;
@@ -899,7 +975,7 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                         <div className="fixed inset-x-0 top-20 z-50 overflow-hidden bg-black shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10 lg:static lg:inset-auto lg:z-auto">
                             <div className="relative w-full overflow-hidden">
                                 {lessonVideoUrl ? (
-                                    <div className="aspect-video w-full">
+                                    <div className="relative aspect-video w-full">
                                         <VideoJsPlayer
                                             src={lessonVideoUrl}
                                             poster={lesson.thumbnail_url}
@@ -925,6 +1001,11 @@ export default function StudentLessonShow({ lesson, accessTimeSummary }) {
                                                 setIsPlayerPlaying
                                             }
                                         />
+                                        {isLoadingNextLesson ? (
+                                            <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-black/45">
+                                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/25 border-t-[#db202c]" />
+                                            </div>
+                                        ) : null}
                                     </div>
                                 ) : lesson.thumbnail_url ? (
                                     <div className="aspect-video w-full overflow-hidden">
