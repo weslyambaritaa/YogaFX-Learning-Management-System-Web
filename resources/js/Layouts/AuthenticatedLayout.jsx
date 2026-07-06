@@ -367,10 +367,10 @@ function UserMenu({ user, isImmersive = false }) {
                     className={[
                         "gap-2 rounded-lg",
                         isImmersive
-                            ? "border-transparent bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white"
+                            ? "border-transparent bg-transparent px-3 text-white hover:bg-transparent hover:text-white"
                             : "",
                         isImmersive
-                            ? "max-md:h-11 max-md:w-11 max-md:rounded-[10px] max-md:border-transparent max-md:bg-[#db202c] max-md:px-0 max-md:hover:bg-[#c31c28]"
+                            ? "max-md:h-11 max-md:w-11 max-md:rounded-[10px] max-md:border-transparent max-md:bg-transparent max-md:px-0 max-md:hover:bg-transparent"
                             : "",
                     ].join(" ")}
                 >
