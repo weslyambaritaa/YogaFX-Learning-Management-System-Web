@@ -53,7 +53,9 @@ function ModuleCard({ module, onLockedClick }) {
                 </div>
 
                 <div className="inline-flex items-center gap-2 text-[14px] font-medium text-white">
-                    {module.status === 'locked' ? 'Complete previous module' : 'Open Module'}
+                    {module.status === 'locked'
+                        ? 'Complete previous module'
+                        : 'Click this to open the module'}
                     <ArrowRight className="size-4 transition group-hover:translate-x-1" />
                 </div>
             </div>

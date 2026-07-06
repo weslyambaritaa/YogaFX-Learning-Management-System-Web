@@ -410,12 +410,12 @@ function ModuleCard({ module, onLockedClick }) {
 
                 <div className="space-y-1.5">
                     <div className="space-y-1">
+                        <div className="text-sm font-semibold text-white/82 sm:text-base">
+                            Module {module.sort_order}
+                        </div>
                         <div className="line-clamp-2 text-sm font-semibold leading-5 text-white sm:text-base">
                             {module.title}
-                    </div>
-                    <div className="text-sm font-semibold text-white/82 sm:text-base">
-                        Module {module.sort_order}
-                    </div>
+                        </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-white/62 sm:text-xs">
@@ -437,10 +437,10 @@ function ModuleCard({ module, onLockedClick }) {
                     />
                 </div>
 
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-white/80">
+                <div className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white/80">
                     {module.status === "locked"
                         ? "Complete Previous Module"
-                        : null}
+                        : "Click this to open the module"}
                     <ChevronRight className="size-3.5" />
                 </div>
             </div>
@@ -551,7 +551,7 @@ function ModuleCard({ module, onLockedClick }) {
                     </div>
 
                     <div
-                        className="inline-flex items-center gap-2 uppercase tracking-[0.16em] text-white/78"
+                        className="inline-flex items-center gap-2 text-white/78"
                         style={{
                             fontFamily: FONT_FAMILY,
                             fontSize: "14px",
@@ -560,7 +560,7 @@ function ModuleCard({ module, onLockedClick }) {
                     >
                         {module.status === "locked"
                             ? "Complete Previous Module"
-                            : "Open Module"}
+                            : "Click this to open the module"}
                         <ChevronRight className="size-4" />
                     </div>
                 </div>
