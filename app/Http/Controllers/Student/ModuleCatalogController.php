@@ -471,12 +471,15 @@ class ModuleCatalogController extends Controller
                 $assignmentSubmissionMap,
                 $resourceModuleVisitMap,
             );
+            $isResourceModule = $this->isOpenOnceResourceModule($module);
 
             $accessMap->put($module->id, [
                 'is_visible' => $allPreviousModulesComplete,
-                'status' => $isComplete
-                    ? 'completed'
-                    : ($allPreviousModulesComplete ? 'available' : 'locked'),
+                'status' => ! $allPreviousModulesComplete
+                    ? 'locked'
+                    : ($isResourceModule
+                        ? 'available'
+                        : ($isComplete ? 'completed' : 'available')),
                 'description' => $module->description,
                 'is_complete' => $isComplete,
             ]);
@@ -757,44 +760,57 @@ class ModuleCatalogController extends Controller
                 ->values()
             : collect();
         $latestCertificate = $generatedCertificates->first();
+        $requiredCertificateCount = collect($summary['available_types'] ?? [])->count();
         $eligibleTier = $user && $user->access_tier_id !== null && collect($summary['available_types'] ?? [])->isNotEmpty();
         $learningEligible = $eligibleTier && (bool) ($summary['learning_eligible'] ?? false);
-        $hasCertificate = $generatedCertificates->isNotEmpty();
-        $isVisible = $eligibleTier && ($learningEligible || $hasCertificate);
+        $hasAnyCertificate = $generatedCertificates->isNotEmpty();
+        $hasAllCertificates = $requiredCertificateCount > 0
+            && $generatedCertificates->count() >= $requiredCertificateCount;
+        $isVisible = $eligibleTier && ($learningEligible || $hasAnyCertificate);
         $state = ! $eligibleTier
             ? 'not_available'
-            : ($hasCertificate
+            : ($hasAllCertificates
                 ? 'generated'
-                : ($learningEligible ? 'ready' : 'locked'));
+                : ($hasAnyCertificate
+                    ? 'partial_generation'
+                    : ($learningEligible ? 'ready' : 'locked')));
 
         return [
             'state' => $state,
             'is_visible' => $isVisible,
-            'is_complete' => $hasCertificate,
-            'module_status' => $hasCertificate
+            'is_complete' => $hasAllCertificates,
+            'module_status' => $hasAllCertificates
                 ? 'completed'
                 : ($learningEligible ? 'available' : 'locked'),
-            'module_description' => $hasCertificate
-                ? 'Your certificate library has been generated. This module is now complete and every module after it is unlocked.'
-                : ($learningEligible
+            'module_description' => $hasAllCertificates
+                ? 'All certificates for your current path have been generated. This module is now complete and every module after it is unlocked.'
+                : ($hasAnyCertificate
+                    ? 'Some certificates have been generated already, but the next resource modules stay locked until every certificate for this path is ready.'
+                    : ($learningEligible
                     ? 'All required submitted assignment videos have been approved. This certificate module is now ready for admin generation.'
-                    : 'Certificate access unlocks after all required submitted assignment videos in this certificate path are approved by admin.'),
-            'title' => $hasCertificate
+                    : 'Certificate access unlocks after all required submitted assignment videos in this certificate path are approved by admin.')),
+            'title' => $hasAllCertificates
                 ? 'Your certificate library is ready.'
-                : ($learningEligible
+                : ($hasAnyCertificate
+                    ? 'Certificate generation is still in progress.'
+                    : ($learningEligible
                     ? 'Your certificate area is unlocked from approved assignment videos.'
-                    : 'Certificate access is not unlocked yet.'),
-            'description' => $hasCertificate
+                    : 'Certificate access is not unlocked yet.')),
+            'description' => $hasAllCertificates
                 ? 'This module now acts as your student certificate library. Review and download every generated certificate available for your account.'
-                : ($learningEligible
+                : ($hasAnyCertificate
+                    ? 'At least one certificate is already generated, but this path is only marked complete after every certificate mapped to your tier is ready.'
+                    : ($learningEligible
                     ? 'All required submitted assignment videos have been approved. If certificate files are not listed yet, please wait for the YogaFX team to finish generation.'
-                    : 'Certificate access opens after all required submitted assignment videos for your current certificate path have been approved by admin.'),
+                    : 'Certificate access opens after all required submitted assignment videos for your current certificate path have been approved by admin.')),
             'eligibility_label' => $eligibleTier
                 ? 'Certificate included in '.($tier?->name ?? 'your current tier')
                 : 'Certificate not available in this tier',
-            'support_note' => $hasCertificate
+            'support_note' => $hasAllCertificates
                 ? 'Every generated certificate available for your account is listed inside this module, and later modules stay unlocked after generation.'
-                : 'This page unlocks after the required submitted videos are approved, even if certificate files are still waiting to be generated.',
+                : ($hasAnyCertificate
+                    ? 'Later resource modules unlock only after every certificate required for this path has been generated.'
+                    : 'This page unlocks after the required submitted videos are approved, even if certificate files are still waiting to be generated.'),
             'requirements' => $summary['requirements'] ?? [],
             'learning_eligible' => $learningEligible,
             'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
@@ -815,11 +831,11 @@ class ModuleCatalogController extends Controller
                     'download_url' => route('student.certificates.download', $certificate),
                 ])
                 ->all(),
-            'cta_label' => $hasCertificate ? 'Download Latest Certificate' : 'Browse Modules',
-            'cta_url' => $hasCertificate
+            'cta_label' => $hasAnyCertificate ? 'Download Latest Certificate' : 'Browse Modules',
+            'cta_url' => $hasAnyCertificate
                 ? route('student.certificates.download', $latestCertificate)
                 : route('modules.index'),
-            'cta_kind' => $hasCertificate ? 'download' : 'link',
+            'cta_kind' => $hasAnyCertificate ? 'download' : 'link',
         ];
     }
 
