@@ -415,6 +415,29 @@ export default function VideoJsPlayer({
     }, [poster, src]);
 
     useEffect(() => {
+        const player = playerRef.current;
+
+        if (!player) {
+            return;
+        }
+
+        player.autoplay(autoplay);
+
+        if (!autoplay || !isReady || !player.paused()) {
+            return;
+        }
+
+        const playbackResult = player.play();
+
+        if (
+            playbackResult &&
+            typeof playbackResult.catch === "function"
+        ) {
+            playbackResult.catch(() => {});
+        }
+    }, [autoplay, isReady]);
+
+    useEffect(() => {
         if (!containerRef.current) {
             return undefined;
         }

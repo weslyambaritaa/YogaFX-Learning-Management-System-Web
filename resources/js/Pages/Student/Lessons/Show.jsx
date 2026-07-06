@@ -310,6 +310,9 @@ export default function StudentLessonShow({
     const autoNextNavigatingRef = useRef(false);
     const workbookTriggerAttemptedRef = useRef(false);
     const lessonVideoUrl = lesson.video?.hls_url ?? null;
+    const isWorkbookReadyForPlayback = !hasWorkbook || workbookDownloaded;
+    const shouldAutoplayLesson =
+        Boolean(lesson.autoplay) && isWorkbookReadyForPlayback;
     const playbackErrorMessage =
         typeof playerWarning === "string"
             ? playerWarning
@@ -976,9 +979,9 @@ export default function StudentLessonShow({
                                             src={lessonVideoUrl}
                                             poster={lesson.thumbnail_url}
                                             className="h-full w-full overflow-hidden"
-                                            autoplay={Boolean(lesson.autoplay)}
+                                            autoplay={shouldAutoplayLesson}
                                             restoreFullscreenOnAutoplay={
-                                                Boolean(lesson.autoplay)
+                                                shouldAutoplayLesson
                                             }
                                             hideProgressHandle={
                                                 autoNextCountdown !== null
@@ -997,6 +1000,21 @@ export default function StudentLessonShow({
                                                 setIsPlayerPlaying
                                             }
                                         />
+                                        {!isWorkbookReadyForPlayback ? (
+                                            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/72 px-6 text-center">
+                                                <div className="max-w-md space-y-3">
+                                                    <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/25 border-t-[#db202c]" />
+                                                    <div className="font-['Montserrat'] text-base font-semibold text-white">
+                                                        Preparing workbook download
+                                                    </div>
+                                                    <p className="font-['Montserrat'] text-sm leading-6 text-white/72">
+                                                        {isTriggeringWorkbook
+                                                            ? "Your workbook is being prepared before this lesson can begin."
+                                                            : "Please wait while we finish the workbook download setup for this lesson."}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : null}
                                         {isLoadingNextLesson ? (
                                             <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-black/45">
                                                 <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/25 border-t-[#db202c]" />
