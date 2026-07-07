@@ -81,7 +81,7 @@ export default function Scoreboard({
     selected_package_id,
     is_package_locked = false,
 }) {
-    const { directory = {} } = usePage().props;
+    const { directory = {}, paypal = {} } = usePage().props;
 
     const packageOptions = Array.isArray(packages)
         ? packages
@@ -136,6 +136,29 @@ export default function Scoreboard({
 
     const normalizedEmail = (data.email ?? "").trim().toLowerCase();
 
+    const identityIsComplete = useMemo(() => {
+        return (
+            data.first_name.trim() !== "" &&
+            data.last_name.trim() !== "" &&
+            normalizedEmail !== "" &&
+            isValidEmail(normalizedEmail) &&
+            data.phone_country_code.trim() !== "" &&
+            data.phone_number.trim() !== "" &&
+            data.country.trim() !== "" &&
+            String(data.package_id ?? "") !== "" &&
+            selectedPackageHasPrice
+        );
+    }, [
+        data.first_name,
+        data.last_name,
+        normalizedEmail,
+        data.phone_country_code,
+        data.phone_number,
+        data.country,
+        data.package_id,
+        selectedPackageHasPrice,
+    ]);
+
     const selectedPackageAllowedBillingDays = useMemo(() => {
         return normalizeBillingDays(
             selectedPackage?.checkout_billing_day_options ??
@@ -152,7 +175,8 @@ export default function Scoreboard({
 
     const previewCheckout = useMemo(() => {
         const amount = Number(selectedPackage?.price ?? 0);
-        const currencyCode = selectedPackage?.currency_code ?? "USD";
+        const currencyCode =
+            selectedPackage?.currency_code ?? paypal?.currency_code ?? "USD";
         const billingDay = selectedPackageAllowedBillingDays[0] ?? 15;
 
         const paymentOptions = [
@@ -167,7 +191,7 @@ export default function Scoreboard({
         if (selectedPackageInstallmentEnabled) {
             paymentOptions.push({
                 type: "installment",
-                label: "Installment",
+                label: "Pay in installment",
                 amount_due_today: amount > 0 ? (amount / 2).toFixed(2) : "0.00",
                 currency_code: currencyCode,
                 billing_day: billingDay,
@@ -219,17 +243,17 @@ export default function Scoreboard({
             installment_approve_url: null,
             installment_status_url: null,
             paypal: {
-                client_id: null,
-                client_token: null,
-                currency_code: currencyCode,
-                components: "buttons",
-                intent: "capture",
-                subscription: {
+                client_id: paypal?.client_id ?? null,
+                client_token: paypal?.client_token ?? null,
+                currency_code: paypal?.currency_code ?? currencyCode,
+                components: paypal?.components ?? "buttons",
+                intent: paypal?.intent ?? "capture",
+                environment: paypal?.environment ?? null,
+                subscription: paypal?.subscription ?? {
                     components: "buttons",
                     vault: "true",
                     intent: "subscription",
                 },
-                environment: null,
             },
             is_preview: true,
         };
@@ -237,6 +261,7 @@ export default function Scoreboard({
         selectedPackage,
         selectedPackageAllowedBillingDays,
         selectedPackageInstallmentEnabled,
+        paypal,
     ]);
 
     const activeCheckout = checkout ?? previewCheckout;
@@ -873,6 +898,7 @@ export default function Scoreboard({
                         checkout={activeCheckout}
                         isPreview={!checkout}
                         isPreparingCheckout={processing}
+                        canInteractWithPayment={identityIsComplete}
                         onBeforePayment={prepareCheckout}
                     />
                 </section>
