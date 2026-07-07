@@ -2,6 +2,7 @@ import { Badge } from "@/Components/ui/badge";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { formatCurrency } from "@/lib/currency";
 import { Head, router } from "@inertiajs/react";
+import { useState } from "react";
 
 function MetricCard({ label, value, helper }) {
     return (
@@ -73,97 +74,323 @@ function DashboardTable({ title, description, columns, rows, emptyMessage }) {
 }
 
 function ActivityChart({ series, peak }) {
-    const width = 720;
-    const height = 260;
+    const [activeIndex, setActiveIndex] = useState(series.length - 1);
+    const width = 760;
+    const height = 320;
+    const padding = {
+        top: 24,
+        right: 24,
+        bottom: 42,
+        left: 52,
+    };
+    const innerWidth = width - padding.left - padding.right;
+    const innerHeight = height - padding.top - padding.bottom;
     const safePeak = Math.max(peak || 0, 1);
-    const pointGap = series.length > 1 ? width / (series.length - 1) : width;
-    const points = series
-        .map((point, index) => {
-            const x = series.length === 1 ? width / 2 : index * pointGap;
-            const y = height - (point.count / safePeak) * (height - 32) - 16;
+    const latestPoint = series[series.length - 1] ?? null;
+    const highestPoint =
+        series.reduce(
+            (best, point) => (point.count > best.count ? point : best),
+            series[0] ?? { label: "-", count: 0 },
+        ) ?? null;
+    const averageCount = series.length
+        ? Math.round(
+              series.reduce((total, point) => total + point.count, 0) /
+                  series.length,
+          )
+        : 0;
+    const activePoint =
+        series[activeIndex] ?? latestPoint ?? { label: "-", count: 0 };
+    const xStep = series.length > 1 ? innerWidth / (series.length - 1) : 0;
+    const yTicks = Array.from({ length: 5 }, (_, index) =>
+        Math.round((safePeak / 4) * (4 - index)),
+    );
 
-            return `${x},${Number.isFinite(y) ? y : height - 16}`;
-        })
-        .join(" ");
+    const points = series.map((point, index) => {
+        const x =
+            series.length === 1
+                ? padding.left + innerWidth / 2
+                : padding.left + index * xStep;
+        const y =
+            padding.top +
+            innerHeight -
+            (point.count / safePeak) * innerHeight;
 
-    const areaPoints = series.length
-        ? `0,${height} ${points} ${width},${height}`
+        return {
+            ...point,
+            x,
+            y: Number.isFinite(y) ? y : padding.top + innerHeight,
+        };
+    });
+
+    const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+    const areaPoints = points.length
+        ? `${padding.left},${padding.top + innerHeight} ${linePoints} ${
+              padding.left + innerWidth
+          },${padding.top + innerHeight}`
         : "";
+
+    const visibleXAxisLabels = points.map((point, index) => {
+        if (points.length <= 8) {
+            return true;
+        }
+
+        if (points.length <= 12) {
+            return index % 2 === 0 || index === points.length - 1;
+        }
+
+        if (points.length <= 31) {
+            return index % 5 === 0 || index === points.length - 1;
+        }
+
+        return index % 2 === 0 || index === points.length - 1;
+    });
+
+    const tooltipAlignmentClass =
+        activeIndex >= Math.max(points.length - 2, 1)
+            ? "right-0"
+            : activeIndex <= 1
+              ? "left-0"
+              : "-translate-x-1/2";
+
+    const tooltipStyle = points[activeIndex]
+        ? {
+              left: `${(points[activeIndex].x / width) * 100}%`,
+          }
+        : undefined;
 
     return (
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-5">
-                <h3 className="text-lg font-semibold text-slate-900">
-                    Daily Active Students
-                </h3>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <h3 className="text-lg font-semibold text-slate-900">
+                            Daily Active Students
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-500">
+                            Unique student login activity across the selected
+                            period.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                                Latest
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold text-slate-900">
+                                {latestPoint?.count ?? 0}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                                {latestPoint?.label ?? "-"}
+                            </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                                Peak
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold text-slate-900">
+                                {highestPoint?.count ?? 0}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                                {highestPoint?.label ?? "-"}
+                            </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                                Average
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold text-slate-900">
+                                {averageCount}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                                Active students
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="space-y-6 px-6 py-6">
-                <div className="overflow-x-auto">
-                    <div className="min-w-[720px]">
+            <div className="px-6 py-6">
+                <div className="rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-4 sm:p-5">
+                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-slate-500">
+                                Highlighted period
+                            </p>
+                            <div className="mt-2 flex items-end gap-3">
+                                <span className="text-4xl font-semibold tracking-tight text-slate-950">
+                                    {activePoint.count}
+                                </span>
+                                <div className="pb-1">
+                                    <p className="text-sm font-medium text-slate-700">
+                                        active students
+                                    </p>
+                                    <p className="text-sm text-slate-500">
+                                        {activePoint.label}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p className="max-w-md text-sm leading-6 text-slate-500">
+                            Hover each point to inspect the period in a cleaner,
+                            more dashboard-style presentation.
+                        </p>
+                    </div>
+
+                    <div className="relative w-full">
+                        <div
+                            className={[
+                                "pointer-events-none absolute top-0 z-10 hidden rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:block",
+                                tooltipAlignmentClass === "left-0"
+                                    ? "left-0"
+                                    : tooltipAlignmentClass === "right-0"
+                                      ? "right-0 left-auto"
+                                      : "left-1/2 -translate-x-1/2",
+                            ].join(" ")}
+                            style={tooltipStyle}
+                        >
+                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                                {activePoint.label}
+                            </p>
+                            <p className="mt-2 text-2xl font-semibold text-slate-950">
+                                {activePoint.count}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                                Daily active students
+                            </p>
+                        </div>
+
                         <svg
                             viewBox={`0 0 ${width} ${height}`}
-                            className="h-[260px] w-full"
+                            className="h-[320px] w-full"
                             role="img"
                             aria-label="Daily active students chart"
                         >
-                            {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                                const y = height - ratio * (height - 32) - 16;
-
-                                return (
-                                    <line
-                                        key={ratio}
-                                        x1="0"
-                                        x2={width}
-                                        y1={y}
-                                        y2={y}
-                                        stroke="#e2e8f0"
-                                        strokeDasharray="4 8"
+                            <defs>
+                                <linearGradient
+                                    id="activity-area-fill"
+                                    x1="0"
+                                    y1="0"
+                                    x2="0"
+                                    y2="1"
+                                >
+                                    <stop
+                                        offset="0%"
+                                        stopColor="#0f172a"
+                                        stopOpacity="0.16"
                                     />
+                                    <stop
+                                        offset="100%"
+                                        stopColor="#0f172a"
+                                        stopOpacity="0.02"
+                                    />
+                                </linearGradient>
+                            </defs>
+
+                            {yTicks.map((tick) => {
+                                const y =
+                                    padding.top +
+                                    innerHeight -
+                                    (tick / safePeak) * innerHeight;
+                                return (
+                                    <g key={tick}>
+                                        <line
+                                            x1={padding.left}
+                                            x2={padding.left + innerWidth}
+                                            y1={y}
+                                            y2={y}
+                                            stroke="#e2e8f0"
+                                            strokeDasharray="4 8"
+                                        />
+                                        <text
+                                            x={padding.left - 12}
+                                            y={y + 4}
+                                            textAnchor="end"
+                                            className="fill-slate-400 text-[11px]"
+                                        >
+                                            {tick}
+                                        </text>
+                                    </g>
                                 );
                             })}
 
-                            {series.length ? (
+                            <line
+                                x1={padding.left}
+                                x2={padding.left + innerWidth}
+                                y1={padding.top + innerHeight}
+                                y2={padding.top + innerHeight}
+                                stroke="#cbd5e1"
+                            />
+
+                            {points.length ? (
                                 <>
                                     <polygon
                                         points={areaPoints}
-                                        fill="rgba(15, 23, 42, 0.08)"
+                                        fill="url(#activity-area-fill)"
                                     />
                                     <polyline
-                                        points={points}
+                                        points={linePoints}
                                         fill="none"
                                         stroke="#0f172a"
                                         strokeWidth="3"
                                         strokeLinejoin="round"
                                         strokeLinecap="round"
                                     />
-                                    {series.map((point, index) => {
-                                        const x =
-                                            series.length === 1
-                                                ? width / 2
-                                                : index * pointGap;
-                                        const y =
-                                            height -
-                                            (point.count / safePeak) *
-                                                (height - 32) -
-                                            16;
 
+                                    {points[activeIndex] ? (
+                                        <line
+                                            x1={points[activeIndex].x}
+                                            x2={points[activeIndex].x}
+                                            y1={padding.top}
+                                            y2={padding.top + innerHeight}
+                                            stroke="#94a3b8"
+                                            strokeDasharray="5 7"
+                                        />
+                                    ) : null}
+
+                                    {points.map((point, index) => {
                                         return (
                                             <g key={point.label}>
                                                 <circle
-                                                    cx={x}
-                                                    cy={y}
-                                                    r="5"
-                                                    fill="#0f172a"
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={activeIndex === index ? "7" : "5"}
+                                                    fill="#ffffff"
+                                                    stroke="#0f172a"
+                                                    strokeWidth={
+                                                        activeIndex === index ? "3" : "2.5"
+                                                    }
+                                                    className="cursor-pointer transition-all"
+                                                    onMouseEnter={() =>
+                                                        setActiveIndex(index)
+                                                    }
+                                                    onFocus={() =>
+                                                        setActiveIndex(index)
+                                                    }
                                                 />
-                                                <text
-                                                    x={x}
-                                                    y={Math.max(y - 12, 12)}
-                                                    textAnchor="middle"
-                                                    className="fill-slate-500 text-[11px]"
-                                                >
-                                                    {point.count}
-                                                </text>
+
+                                                <circle
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={activeIndex === index ? "13" : "0"}
+                                                    fill="#0f172a"
+                                                    opacity="0.08"
+                                                    className="transition-all"
+                                                />
+
+                                                {visibleXAxisLabels[index] ? (
+                                                    <text
+                                                        x={point.x}
+                                                        y={height - 10}
+                                                        textAnchor="middle"
+                                                        className="fill-slate-500 text-[11px]"
+                                                    >
+                                                        {point.label}
+                                                    </text>
+                                                ) : null}
                                             </g>
                                         );
                                     })}
@@ -171,22 +398,6 @@ function ActivityChart({ series, peak }) {
                             ) : null}
                         </svg>
                     </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-                    {series.map((point) => (
-                        <div
-                            key={point.label}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
-                        >
-                            <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-                                {point.label}
-                            </p>
-                            <p className="mt-2 text-xl font-semibold text-slate-900">
-                                {point.count}
-                            </p>
-                        </div>
-                    ))}
                 </div>
             </div>
         </div>
