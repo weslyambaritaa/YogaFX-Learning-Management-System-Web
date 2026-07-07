@@ -243,6 +243,7 @@ function buildInstallmentSummaryForCount(
     selectedInstallmentCount,
     checkout,
     selectedPaymentOption,
+    activeBillingDay = null,
 ) {
     if (!summary) {
         return null;
@@ -289,28 +290,26 @@ function buildInstallmentSummaryForCount(
           ? summary.recurring_due_dates
           : [];
 
-    const billingDay = resolveBillingDay(
-        summary,
-        checkout,
-        selectedPaymentOption,
-    );
+    const billingDay =
+        Number(activeBillingDay) === 1 || Number(activeBillingDay) === 15
+            ? Number(activeBillingDay)
+            : resolveBillingDay(summary, checkout, selectedPaymentOption);
 
     const fallbackRecurringDueDates = buildRecurringDueDates({
         billingDay,
         recurringCount: normalizedInstallmentCount - 1,
     });
 
-    const selectedRecurringDueDates = Array.from(
-        { length: normalizedInstallmentCount - 1 },
-        (_, index) =>
-            fallbackRecurringDueDates[index] ??
-            existingRecurringDueDates[index] ??
-            null,
-    );
+    const selectedRecurringDueDates =
+        fallbackRecurringDueDates.length > 0
+            ? fallbackRecurringDueDates
+            : Array.from(
+                  { length: normalizedInstallmentCount - 1 },
+                  (_, index) => existingRecurringDueDates[index] ?? null,
+              );
 
     const finalDueAt =
         selectedRecurringDueDates[selectedRecurringDueDates.length - 1] ??
-        summary.final_due_at ??
         null;
 
     const scheduleBreakdown = [
@@ -586,6 +585,7 @@ export default function PublicCheckoutPanel({
               selectedInstallmentCount,
               checkout,
               selectedPaymentOption,
+              billingDay,
           )
         : baseInstallmentSummary;
 
