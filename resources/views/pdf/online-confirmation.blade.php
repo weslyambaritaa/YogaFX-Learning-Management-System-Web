@@ -11,23 +11,25 @@
             background: #ffffff;
         }
         .page {
-            padding: 34px 44px 40px;
+            padding: 32px 42px 38px;
+            max-width: 720px;
         }
         .title {
-            font-size: 26px;
+            font-size: 24px;
             font-weight: 700;
-            line-height: 1.2;
-            margin: 0 0 4px;
+            line-height: 1.18;
+            margin: 0 0 2px;
+            max-width: 640px;
         }
         .subtitle {
-            font-size: 23px;
+            font-size: 22px;
             font-weight: 700;
-            margin: 0 0 28px;
+            margin: 0 0 24px;
         }
         .paragraph {
             font-size: 16px;
-            line-height: 1.65;
-            margin: 0 0 18px;
+            line-height: 1.6;
+            margin: 0 0 16px;
         }
         .label {
             font-size: 16px;
@@ -37,18 +39,20 @@
         .amount {
             font-size: 24px;
             font-weight: 700;
-            margin: 0 0 16px;
+            margin: 0 0 14px;
         }
         .payment-line {
             font-size: 18px;
             font-weight: 700;
             line-height: 1.6;
-            margin: 0 0 24px;
+            margin: 0 0 20px;
+            max-width: 660px;
         }
         .footer {
             font-size: 16px;
             line-height: 1.7;
-            margin-top: 26px;
+            margin-top: 20px;
+            max-width: 660px;
         }
     </style>
 </head>

@@ -133,6 +133,7 @@ class InvoiceConfirmationPdfService
      *         amount: string,
      *         show_status: bool,
      *         status_label: string,
+     *         status_first: bool,
      *         date_label: string,
      *         date_value: string
      *     }>
@@ -160,7 +161,7 @@ class InvoiceConfirmationPdfService
             $firstPaymentAmount = (float) ($successPayments->first()?->amount_paid ?? 0);
         }
 
-        $balanceDueAmount = max(0, round((float) $invoice->total_amount - (float) $firstPaymentAmount, 2));
+        $balanceDueAmount = max(0, round((float) $invoice->balance_due, 2));
 
         return [
             'firstInstallmentAmount' => $this->formatMoney(
@@ -186,6 +187,7 @@ class InvoiceConfirmationPdfService
      *     amount: string,
      *     show_status: bool,
      *     status_label: string,
+     *     status_first: bool,
      *     date_label: string,
      *     date_value: string
      * }>
@@ -239,6 +241,7 @@ class InvoiceConfirmationPdfService
                 ),
                 'show_status' => false,
                 'status_label' => '',
+                'status_first' => false,
                 'date_label' => 'Received on',
                 'date_value' => $this->humanDate($paidAt),
             ]];
@@ -263,6 +266,7 @@ class InvoiceConfirmationPdfService
                 ),
                 'show_status' => $index > 0,
                 'status_label' => $isPaid ? 'Paid' : 'Scheduled',
+                'status_first' => $isPaid,
                 'date_label' => $isPaid ? 'Received on' : 'Due on',
                 'date_value' => $this->humanDate($dateSource),
             ];
