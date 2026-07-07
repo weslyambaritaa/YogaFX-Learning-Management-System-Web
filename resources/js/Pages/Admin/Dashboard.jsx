@@ -6,14 +6,23 @@ import { useState } from "react";
 
 function MetricCard({ label, value, helper }) {
     return (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">{label}</p>
-            <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
-                {value}
-            </p>
-            {helper ? (
-                <p className="mt-2 text-sm text-slate-500">{helper}</p>
-            ) : null}
+        <div className="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
+            <div className="flex h-full flex-col justify-between gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-500">{label}</p>
+                    {helper ? (
+                        <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                            {helper}
+                        </p>
+                    ) : null}
+                </div>
+
+                <div className="shrink-0 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:min-w-[180px] sm:text-right">
+                    <p className="text-3xl font-semibold tracking-tight text-slate-900">
+                        {value}
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }
@@ -75,13 +84,13 @@ function DashboardTable({ title, description, columns, rows, emptyMessage }) {
 
 function ActivityChart({ series, peak }) {
     const [activeIndex, setActiveIndex] = useState(null);
-    const width = 760;
-    const height = 320;
+    const width = 860;
+    const height = 300;
     const padding = {
-        top: 24,
-        right: 24,
-        bottom: 42,
-        left: 52,
+        top: 18,
+        right: 10,
+        bottom: 36,
+        left: 28,
     };
     const innerWidth = width - padding.left - padding.right;
     const innerHeight = height - padding.top - padding.bottom;
@@ -166,63 +175,68 @@ function ActivityChart({ series, peak }) {
 
     return (
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-6 py-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
+            <div className="border-b border-slate-200 px-6 py-4">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                    <div className="min-w-0">
                         <h3 className="text-lg font-semibold text-slate-900">
                             Daily Active Students
                         </h3>
-                        
                     </div>
 
-                    <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                    <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[420px]">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">
                                 Latest
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-slate-900">
-                                {latestPoint?.count ?? 0}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                                {latestPoint?.label ?? "-"}
-                            </p>
+                            <div className="mt-1.5 flex items-end justify-between gap-3">
+                                <p className="text-2xl font-semibold text-slate-900">
+                                    {latestPoint?.count ?? 0}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    {latestPoint?.label ?? "-"}
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">
                                 Peak
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-slate-900">
-                                {highestPoint?.count ?? 0}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                                {highestPoint?.label ?? "-"}
-                            </p>
+                            <div className="mt-1.5 flex items-end justify-between gap-3">
+                                <p className="text-2xl font-semibold text-slate-900">
+                                    {highestPoint?.count ?? 0}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    {highestPoint?.label ?? "-"}
+                                </p>
+                            </div>
                         </div>
 
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">
                                 Average
                             </p>
-                            <p className="mt-2 text-2xl font-semibold text-slate-900">
-                                {averageCount}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                                Active students
-                            </p>
+                            <div className="mt-1.5 flex items-end justify-between gap-3">
+                                <p className="text-2xl font-semibold text-slate-900">
+                                    {averageCount}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    Active students
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="px-6 py-6">
-                <div className="rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-4 sm:p-5">
-                    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="px-4 py-4 sm:px-5 sm:py-5">
+                <div className="rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-3 sm:p-4">
+                    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                         <div>
                             <p className="text-sm font-medium text-slate-500">
                                 Highlighted period
                             </p>
-                            <div className="mt-2 flex items-end gap-3">
+                            <div className="mt-1.5 flex items-end gap-3">
                                 <span className="text-4xl font-semibold tracking-tight text-slate-950">
                                     {highlightedPoint.count}
                                 </span>
@@ -264,7 +278,7 @@ function ActivityChart({ series, peak }) {
 
                         <svg
                             viewBox={`0 0 ${width} ${height}`}
-                            className="h-[320px] w-full"
+                            className="h-[300px] w-full"
                             role="img"
                             aria-label="Daily active students chart"
                         >
@@ -305,7 +319,7 @@ function ActivityChart({ series, peak }) {
                                             strokeDasharray="4 8"
                                         />
                                         <text
-                                            x={padding.left - 12}
+                                            x={padding.left - 8}
                                             y={y + 4}
                                             textAnchor="end"
                                             className="fill-slate-400 text-[11px]"
