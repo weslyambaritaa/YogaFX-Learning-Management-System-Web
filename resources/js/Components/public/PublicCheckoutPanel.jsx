@@ -303,8 +303,8 @@ function buildInstallmentSummaryForCount(
     const selectedRecurringDueDates = Array.from(
         { length: normalizedInstallmentCount - 1 },
         (_, index) =>
-            existingRecurringDueDates[index] ??
             fallbackRecurringDueDates[index] ??
+            existingRecurringDueDates[index] ??
             null,
     );
 
@@ -572,6 +572,13 @@ export default function PublicCheckoutPanel({
 
     const maximumInstallmentCount =
         availableInstallmentCounts[availableInstallmentCounts.length - 1] ?? 2;
+
+    const sliderProgressPercent =
+        maximumInstallmentCount > minimumInstallmentCount
+            ? ((selectedInstallmentCount - minimumInstallmentCount) /
+                  (maximumInstallmentCount - minimumInstallmentCount)) *
+              100
+            : 0;
 
     const activeInstallmentSummary = isInstallmentSelected
         ? buildInstallmentSummaryForCount(
@@ -1690,24 +1697,35 @@ export default function PublicCheckoutPanel({
                                 </p>
                             </div>
 
-                            <input
-                                type="range"
-                                min={minimumInstallmentCount}
-                                max={maximumInstallmentCount}
-                                step="1"
-                                value={selectedInstallmentCount}
-                                disabled={paymentIsLocked}
-                                onChange={(event) => {
-                                    setSelectedInstallmentCount(
-                                        Number(event.target.value),
-                                    );
-                                    setFieldErrors((current) => ({
-                                        ...current,
-                                        installment_count: "",
-                                    }));
-                                }}
-                                className="yogafx-installment-slider w-full disabled:opacity-60"
-                            />
+                            <div className="relative pt-7">
+                                <div
+                                    className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-full bg-[#DB202C] px-2 py-0.5 text-xs font-semibold text-white"
+                                    style={{
+                                        left: `${sliderProgressPercent}%`,
+                                    }}
+                                >
+                                    {selectedInstallmentCount}
+                                </div>
+
+                                <input
+                                    type="range"
+                                    min={minimumInstallmentCount}
+                                    max={maximumInstallmentCount}
+                                    step="1"
+                                    value={selectedInstallmentCount}
+                                    disabled={paymentIsLocked}
+                                    onChange={(event) => {
+                                        setSelectedInstallmentCount(
+                                            Number(event.target.value),
+                                        );
+                                        setFieldErrors((current) => ({
+                                            ...current,
+                                            installment_count: "",
+                                        }));
+                                    }}
+                                    className="yogafx-installment-slider w-full disabled:opacity-60"
+                                />
+                            </div>
 
                             <div className="flex items-center justify-between text-xs font-medium text-white/55">
                                 <span>{minimumInstallmentCount} payments</span>
@@ -1911,6 +1929,7 @@ export default function PublicCheckoutPanel({
                                     }`}
                                 >
                                     <div
+                                        className="rounded-[5px] p-3"
                                         style={{
                                             backgroundColor:
                                                 "rgba(255, 255, 255, 0.97)",
@@ -1960,6 +1979,7 @@ export default function PublicCheckoutPanel({
                         }`}
                     >
                         <div
+                            className="rounded-[5px] p-3"
                             style={{
                                 backgroundColor: "rgba(255, 255, 255, 0.97)",
                             }}

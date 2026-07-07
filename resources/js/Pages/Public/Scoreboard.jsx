@@ -1096,17 +1096,6 @@ export default function Scoreboard({
                 </form>
 
                 <section className="space-y-6">
-                    <p
-                        className="text-[#DB202C]"
-                        style={{
-                            fontFamily: FONT_FAMILY,
-                            fontSize: "22px",
-                            fontWeight: 500,
-                        }}
-                    >
-                        Payment
-                    </p>
-
                     <PublicCheckoutPanel
                         checkout={activeCheckout}
                         isPreview={!checkout}
