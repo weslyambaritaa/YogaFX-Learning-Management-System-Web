@@ -11,7 +11,7 @@ import {
 } from "@/lib/countryFlags";
 import { formatCurrency } from "@/lib/currency";
 import { usePage } from "@inertiajs/react";
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 function getCsrfToken() {
     return document
@@ -33,9 +33,8 @@ async function parseJsonSafely(response) {
     }
 }
 
-// Single source of truth for the new font so it can't be silently
-// overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
+
 const FIELD_ORDER = [
     "first_name",
     "last_name",
@@ -44,6 +43,7 @@ const FIELD_ORDER = [
     "phone_number",
     "country",
 ];
+
 const FIELD_ELEMENT_IDS = {
     first_name: "first_name",
     last_name: "last_name",
@@ -63,6 +63,18 @@ function isValidEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim());
 }
 
+function normalizeBillingDays(value) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .map((day) => Number(day))
+        .filter((day) => [1, 15].includes(day))
+        .filter((day, index, array) => array.indexOf(day) === index)
+        .sort((a, b) => a - b);
+}
+
 export default function Scoreboard({
     packages,
     submit_url,
@@ -70,13 +82,16 @@ export default function Scoreboard({
     is_package_locked = false,
 }) {
     const { directory = {} } = usePage().props;
+
     const packageOptions = Array.isArray(packages)
         ? packages
         : Object.values(packages ?? {});
+
     const countryOptions = enrichCountryOptions(directory.countries ?? []);
     const phoneCountryCodeOptions = enrichCountryOptions(
         directory.phone_country_codes ?? [],
     );
+
     const [data, setData] = useState({
         first_name: "",
         last_name: "",
@@ -86,44 +101,145 @@ export default function Scoreboard({
         country: "",
         package_id: selected_package_id ?? packageOptions[0]?.id ?? "",
     });
+
     const [errors, setErrors] = useState({});
     const [processing, setProcessing] = useState(false);
     const [checkout, setCheckout] = useState(null);
-    const checkoutRef = useRef(null);
+
     const fieldContainersRef = useRef({});
 
     const selectedPackage =
         packageOptions.find(
             (pkg) => String(pkg.id) === String(data.package_id),
         ) ?? null;
+
     const selectedCountryOption =
         countryOptions.find((option) => option.value === data.country) ?? null;
+
     const selectedPhoneCountryOption = findCountryOptionByDialCode(
         phoneCountryCodeOptions,
         data.phone_country_code,
         data.country,
     );
+
     const selectedPackageHasPrice = Number(selectedPackage?.price ?? 0) > 0;
     const isIdentityLocked = checkout !== null;
+
     const packageTitle = selectedPackage?.title ?? "YogaFX Package";
+
     const packagePrice = selectedPackageHasPrice
         ? formatCurrency(
               selectedPackage.price,
               selectedPackage.currency_code,
           )
         : "Price not set yet";
+
     const normalizedEmail = (data.email ?? "").trim().toLowerCase();
 
-    useEffect(() => {
-        if (!checkoutRef.current) {
-            return;
+    const selectedPackageAllowedBillingDays = useMemo(() => {
+        return normalizeBillingDays(
+            selectedPackage?.checkout_billing_day_options ??
+                selectedPackage?.allowed_billing_days ??
+                selectedPackage?.installment_billing_day_options ??
+                [],
+        );
+    }, [selectedPackage]);
+
+    const selectedPackageInstallmentEnabled = Boolean(
+        selectedPackage?.installment_enabled &&
+            selectedPackageAllowedBillingDays.length > 0,
+    );
+
+    const previewCheckout = useMemo(() => {
+        const amount = Number(selectedPackage?.price ?? 0);
+        const currencyCode = selectedPackage?.currency_code ?? "USD";
+        const billingDay = selectedPackageAllowedBillingDays[0] ?? 15;
+
+        const paymentOptions = [
+            {
+                type: "pay_full",
+                label: "Pay in full",
+                amount_due_today: amount.toFixed(2),
+                currency_code: currencyCode,
+            },
+        ];
+
+        if (selectedPackageInstallmentEnabled) {
+            paymentOptions.push({
+                type: "installment",
+                label: "Installment",
+                amount_due_today: amount > 0 ? (amount / 2).toFixed(2) : "0.00",
+                currency_code: currencyCode,
+                billing_day: billingDay,
+                allowed_billing_days: selectedPackageAllowedBillingDays,
+                summary: null,
+            });
         }
 
-        checkoutRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-        });
-    }, [checkout]);
+        return {
+            id: null,
+            amount,
+            currency_code: currencyCode,
+            status: "preview",
+            package: selectedPackage
+                ? {
+                      id: selectedPackage.id,
+                      title: selectedPackage.title,
+                      slug: selectedPackage.slug,
+                      description: selectedPackage.description,
+                      price: amount,
+                      currency_code: currencyCode,
+                      installment_enabled: selectedPackageInstallmentEnabled,
+                      allowed_billing_days: selectedPackageAllowedBillingDays,
+                  }
+                : null,
+            access_tier: selectedPackage?.access_tier ?? null,
+            payment_options: paymentOptions,
+            payment_method_options: [
+                {
+                    value: "paypal",
+                    label: "PayPal",
+                },
+            ],
+            installment_summary: null,
+            installment_summaries: {},
+            installment_allowed_billing_days: selectedPackageAllowedBillingDays,
+            installment_selected_billing_day: billingDay,
+            installment_accepts_billing_day: selectedPackageInstallmentEnabled,
+            installment_requires_billing_day_choice:
+                selectedPackageAllowedBillingDays.length > 1,
+            installment_billing_day_options: selectedPackageAllowedBillingDays,
+            installment_billing_interval_unit: "MONTH",
+            installment_billing_interval_count: 1,
+            installment_maximum_count: null,
+            installment_available_recurring_due_dates: [],
+            installment_deadline_date:
+                selectedPackage?.installment_deadline_date ?? null,
+            create_order_url: null,
+            installment_approve_url: null,
+            installment_status_url: null,
+            paypal: {
+                client_id: null,
+                client_token: null,
+                currency_code: currencyCode,
+                components: "buttons",
+                intent: "capture",
+                subscription: {
+                    components: "buttons",
+                    vault: "true",
+                    intent: "subscription",
+                },
+                environment: null,
+            },
+            is_preview: true,
+        };
+    }, [
+        selectedPackage,
+        selectedPackageAllowedBillingDays,
+        selectedPackageInstallmentEnabled,
+    ]);
+
+    const activeCheckout = checkout ?? previewCheckout;
 
     const setFieldContainerRef = (field, node) => {
         if (node) {
@@ -156,7 +272,7 @@ export default function Scoreboard({
         }
     };
 
-    const validateIdentityFields = () => {
+    const validateIdentityFields = ({ shouldFocus = true } = {}) => {
         const nextErrors = {};
 
         if (data.first_name.trim() === "") {
@@ -200,7 +316,7 @@ export default function Scoreboard({
 
         const firstInvalidField = FIELD_ORDER.find((field) => nextErrors[field]);
 
-        if (firstInvalidField) {
+        if (shouldFocus && firstInvalidField) {
             focusFirstInvalidField(firstInvalidField);
         }
 
@@ -219,18 +335,25 @@ export default function Scoreboard({
         setErrors((current) => ({
             ...current,
             [field]: "",
+            general: "",
         }));
+
+        setCheckout(null);
     };
 
-    const prepareCheckout = async () => {
+    const prepareCheckout = async ({ shouldFocus = true } = {}) => {
         if (processing) {
-            return;
+            return null;
         }
 
-        const validation = validateIdentityFields();
+        if (checkout) {
+            return checkout;
+        }
+
+        const validation = validateIdentityFields({ shouldFocus });
 
         if (!validation.isValid) {
-            return;
+            return null;
         }
 
         setProcessing(true);
@@ -263,7 +386,8 @@ export default function Scoreboard({
                             ),
                         ),
                     );
-                    return;
+
+                    return null;
                 }
 
                 setErrors({
@@ -271,7 +395,8 @@ export default function Scoreboard({
                         payload.message ??
                         "The checkout flow could not be prepared. Please try again.",
                 });
-                return;
+
+                return null;
             }
 
             if (!payload.checkout) {
@@ -279,15 +404,20 @@ export default function Scoreboard({
                     general:
                         "The checkout flow was prepared, but the payment panel could not be opened. Please try again.",
                 });
-                return;
+
+                return null;
             }
 
             setCheckout(payload.checkout);
+
+            return payload.checkout;
         } catch {
             setErrors({
                 general:
                     "The checkout flow could not be reached right now. Please check your connection and try again.",
             });
+
+            return null;
         } finally {
             setProcessing(false);
         }
@@ -295,7 +425,10 @@ export default function Scoreboard({
 
     const submit = async (event) => {
         event.preventDefault();
-        await prepareCheckout();
+
+        await prepareCheckout({
+            shouldFocus: true,
+        });
     };
 
     const resetCheckoutPreparation = () => {
@@ -308,9 +441,6 @@ export default function Scoreboard({
             title="Scoreboard"
             showBackButton={!is_package_locked}
             heading={
-                // Heading is rendered by PublicFlowLayout, so we pass a
-                // styled node to preserve the existing premium hero
-                // hierarchy while letting package data stay dynamic.
                 <span
                     className="block text-balance"
                     style={{
@@ -336,16 +466,15 @@ export default function Scoreboard({
                     {`Please Continue Your ${packagePrice} Transfer Below.`}
                 </span>
             }
-            aside={
-                <div className="space-y-6">
-                </div>
-            }
+            aside={<div className="space-y-6" />}
         >
-            {/* Root font-family applied here so any element below that
-                doesn't set its own font-family inherits Montserrat,
-                preventing an old global/legacy font from leaking in. */}
             <div className="space-y-10" style={{ fontFamily: FONT_FAMILY }}>
-                <form id="scoreboard-form" onSubmit={submit} className="space-y-8" style={{ fontFamily: FONT_FAMILY }}>
+                <form
+                    id="scoreboard-form"
+                    onSubmit={submit}
+                    className="space-y-8"
+                    style={{ fontFamily: FONT_FAMILY }}
+                >
                     {errors.general && (
                         <div
                             className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100"
@@ -362,7 +491,11 @@ export default function Scoreboard({
                                 variant="outline"
                                 onClick={resetCheckoutPreparation}
                                 className="rounded-[5px] border-white/20 bg-transparent px-2.5 py-2 text-sm font-medium text-white hover:bg-white/10"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             >
                                 Edit Details
                             </Button>
@@ -370,22 +503,36 @@ export default function Scoreboard({
                     ) : null}
 
                     <div className="grid gap-6 md:grid-cols-2">
-                        {/* First Name */}
-                        <div ref={(node) => setFieldContainerRef("first_name", node)}>
+                        <div
+                            ref={(node) =>
+                                setFieldContainerRef("first_name", node)
+                            }
+                        >
                             <InputLabel
                                 htmlFor="first_name"
                                 value="First Name"
                                 className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             />
                             <TextInput
                                 id="first_name"
                                 value={data.first_name}
                                 disabled={isIdentityLocked}
                                 className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 onChange={(event) =>
-                                    setFieldValue("first_name", event.target.value)
+                                    setFieldValue(
+                                        "first_name",
+                                        event.target.value,
+                                    )
                                 }
                                 required
                             />
@@ -396,22 +543,36 @@ export default function Scoreboard({
                             />
                         </div>
 
-                        {/* Last Name */}
-                        <div ref={(node) => setFieldContainerRef("last_name", node)}>
+                        <div
+                            ref={(node) =>
+                                setFieldContainerRef("last_name", node)
+                            }
+                        >
                             <InputLabel
                                 htmlFor="last_name"
                                 value="Last Name"
                                 className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             />
                             <TextInput
                                 id="last_name"
                                 value={data.last_name}
                                 disabled={isIdentityLocked}
                                 className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 onChange={(event) =>
-                                    setFieldValue("last_name", event.target.value)
+                                    setFieldValue(
+                                        "last_name",
+                                        event.target.value,
+                                    )
                                 }
                                 required
                             />
@@ -422,7 +583,6 @@ export default function Scoreboard({
                             />
                         </div>
 
-                        {/* Email */}
                         <div
                             className="md:col-span-2"
                             ref={(node) => setFieldContainerRef("email", node)}
@@ -431,7 +591,11 @@ export default function Scoreboard({
                                 htmlFor="email"
                                 value="Email"
                                 className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             />
                             <TextInput
                                 id="email"
@@ -439,7 +603,11 @@ export default function Scoreboard({
                                 value={data.email}
                                 disabled={isIdentityLocked}
                                 className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
                                 onChange={(event) =>
                                     setFieldValue("email", event.target.value)
                                 }
@@ -452,21 +620,29 @@ export default function Scoreboard({
                             />
                         </div>
 
-                        {/* Mobile Phone */}
                         <div
                             className="md:col-span-2"
-                            ref={(node) => setFieldContainerRef("phone_country_code", node)}
+                            ref={(node) =>
+                                setFieldContainerRef(
+                                    "phone_country_code",
+                                    node,
+                                )
+                            }
                         >
                             <InputLabel
                                 htmlFor="phone_number"
                                 value="Mobile Phone"
                                 className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             />
-                                    <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]">
-                                        <FlagOptionSelect
-                                            id="phone_country_code"
-                                            value={data.phone_country_code}
+                            <div className="mt-2 grid grid-cols-[128px_minmax(0,1fr)] items-start gap-4 sm:grid-cols-[160px_minmax(0,1fr)] md:grid-cols-[180px_minmax(0,1fr)]">
+                                <FlagOptionSelect
+                                    id="phone_country_code"
+                                    value={data.phone_country_code}
                                     selectedOption={selectedPhoneCountryOption}
                                     options={phoneCountryCodeOptions}
                                     onChange={(option) =>
@@ -494,7 +670,11 @@ export default function Scoreboard({
                                     value={data.phone_number}
                                     disabled={isIdentityLocked}
                                     className="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
-                                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                        fontSize: "14px",
+                                        fontWeight: 400,
+                                    }}
                                     onChange={(event) =>
                                         setFieldValue(
                                             "phone_number",
@@ -518,7 +698,6 @@ export default function Scoreboard({
                             />
                         </div>
 
-                        {/* Country */}
                         <div
                             className="md:col-span-2"
                             ref={(node) => setFieldContainerRef("country", node)}
@@ -527,7 +706,11 @@ export default function Scoreboard({
                                 htmlFor="country"
                                 value="Country"
                                 className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             />
                             <div className="mt-2">
                                 <FlagOptionSelect
@@ -537,10 +720,15 @@ export default function Scoreboard({
                                     options={countryOptions}
                                     onChange={(option) => {
                                         setFieldValue("country", option.value);
+
                                         const matchedDialCode =
-                                            phoneCountryCodeOptions.find((entry) =>
-                                                entry.label.startsWith(`${option.label} (`),
+                                            phoneCountryCodeOptions.find(
+                                                (entry) =>
+                                                    entry.label.startsWith(
+                                                        `${option.label} (`,
+                                                    ),
                                             );
+
                                         if (matchedDialCode && !data.phone_number) {
                                             setFieldValue(
                                                 "phone_country_code",
@@ -569,13 +757,16 @@ export default function Scoreboard({
                             />
                         </div>
 
-                        {/* Program / Tier */}
                         <div className="md:col-span-2">
                             <InputLabel
                                 htmlFor="package_id"
                                 value="Package"
                                 className="text-sm font-medium text-white/90"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                }}
                             />
                             {is_package_locked && selectedPackage ? (
                                 <div
@@ -624,7 +815,11 @@ export default function Scoreboard({
                                         )
                                     }
                                     className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
-                                    style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                        fontSize: "14px",
+                                        fontWeight: 400,
+                                    }}
                                     required
                                 >
                                     {packageOptions.map((pkg) => (
@@ -635,7 +830,10 @@ export default function Scoreboard({
                                             style={{ fontFamily: FONT_FAMILY }}
                                         >
                                             {pkg.title}
-                                            {pkg.access_tier?.name ? ` (${pkg.access_tier.name})` : ''} -{" "}
+                                            {pkg.access_tier?.name
+                                                ? ` (${pkg.access_tier.name})`
+                                                : ""}{" "}
+                                            -{" "}
                                             {Number(pkg.price) > 0
                                                 ? formatCurrency(
                                                       pkg.price,
@@ -654,42 +852,30 @@ export default function Scoreboard({
                         </div>
                     </div>
 
-                    {!checkout ? (
-                        <div className="space-y-4">
-                            <p
-                                className="text-sm text-white/65"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 400 }}
-                            >
-                                {selectedPackageHasPrice
-                                    ? "Complete your details, then continue to open the payment section."
-                                    : "Set package price first."}
-                            </p>
-                            <Button
-                                type="submit"
-                                disabled={processing || !selectedPackageHasPrice}
-                                className="min-h-[52px] w-full rounded-[5px] bg-[#DB202C] px-4 py-3 text-sm font-medium text-white hover:bg-[#c01a25] disabled:pointer-events-none disabled:opacity-60"
-                                style={{ fontFamily: FONT_FAMILY, fontSize: "14px", fontWeight: 500 }}
-                            >
-                                {processing
-                                    ? "Opening payment options..."
-                                    : "Continue to Payment"}
-                            </Button>
-                        </div>
-                    ) : null}
+                    <button type="submit" className="hidden" aria-hidden="true">
+                        Prepare Checkout
+                    </button>
                 </form>
 
-                {checkout ? (
-                    <section ref={checkoutRef} className="space-y-6">
-                       <p
-    className="text-[#DB202C]"
-    style={{ fontFamily: FONT_FAMILY, fontSize: "22px", fontWeight: 500 }}
->
-    Payment
-</p>
+                <section className="space-y-6">
+                    <p
+                        className="text-[#DB202C]"
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "22px",
+                            fontWeight: 500,
+                        }}
+                    >
+                        Payment
+                    </p>
 
-                        <PublicCheckoutPanel checkout={checkout} />
-                    </section>
-                ) : null}
+                    <PublicCheckoutPanel
+                        checkout={activeCheckout}
+                        isPreview={!checkout}
+                        isPreparingCheckout={processing}
+                        onBeforePayment={prepareCheckout}
+                    />
+                </section>
             </div>
         </PublicFlowLayout>
     );
