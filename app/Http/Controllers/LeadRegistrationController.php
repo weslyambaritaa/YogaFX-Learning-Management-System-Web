@@ -9,10 +9,12 @@ use App\Services\PackageResolverService;
 use App\Services\PaymentCheckoutService;
 use App\Services\PayPalService;
 use App\Support\PublicPageMeta;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class LeadRegistrationController extends Controller
 {
@@ -141,6 +143,7 @@ class LeadRegistrationController extends Controller
     {
         $allowedBillingDays = $this->resolveAllowedBillingDays($package);
         $installmentEnabled = $this->packageInstallmentIsEnabled($package, $allowedBillingDays);
+        $maximumInstallmentCount = $this->resolveMaximumInstallmentCount($package, $allowedBillingDays);
 
         return [
             'id' => $package->id,
@@ -162,12 +165,18 @@ class LeadRegistrationController extends Controller
             | Pilihan ini bisa tampil sejak awal, tetapi interaksinya dikunci
             | sampai data diri calon student lengkap.
             |
+            | installment_maximum_count / maximum_installment_count penting untuk
+            | slider Number of Installment. Tanpa field ini frontend akan fallback
+            | ke 2, sehingga slider terlihat mentok di 2 installment.
+            |
             */
             'installment_enabled' => $installmentEnabled,
             'installment_deadline_date' => $this->formatDateValue($package->installment_deadline_date ?? null),
             'allowed_billing_days' => $allowedBillingDays,
             'checkout_billing_day_options' => $allowedBillingDays,
             'installment_billing_day_options' => $allowedBillingDays,
+            'installment_maximum_count' => $maximumInstallmentCount,
+            'maximum_installment_count' => $maximumInstallmentCount,
 
             'access_tier' => $package->accessTier ? [
                 'id' => $package->accessTier->id,
@@ -223,6 +232,149 @@ class LeadRegistrationController extends Controller
             ->sort()
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<int, int>  $allowedBillingDays
+     */
+    private function resolveMaximumInstallmentCount(Package $package, array $allowedBillingDays): int
+    {
+        if (method_exists($package, 'resolvedMaximumInstallmentCount')) {
+            $resolvedMaximumInstallmentCount = (int) $package->resolvedMaximumInstallmentCount();
+
+            if ($resolvedMaximumInstallmentCount >= 2) {
+                return $resolvedMaximumInstallmentCount;
+            }
+        }
+
+        foreach ([
+            'installment_maximum_count',
+            'maximum_installment_count',
+            'max_installment_count',
+            'installment_count',
+        ] as $attribute) {
+            $value = $package->{$attribute} ?? null;
+
+            if (is_numeric($value) && (int) $value >= 2) {
+                return (int) $value;
+            }
+        }
+
+        $deadline = $this->parseDateValue($package->installment_deadline_date ?? null);
+
+        if (! $deadline || count($allowedBillingDays) === 0) {
+            return 2;
+        }
+
+        $today = CarbonImmutable::today();
+        $deadline = $deadline->endOfDay();
+
+        if ($deadline->lessThanOrEqualTo($today)) {
+            return 2;
+        }
+
+        $recurringPaymentDates = $this->countRecurringInstallmentDatesUntilDeadline(
+            $today,
+            $deadline,
+            $allowedBillingDays,
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total Installment Count
+        |--------------------------------------------------------------------------
+        |
+        | 1 payment pertama terjadi hari ini.
+        | Sisanya adalah recurring payment berdasarkan allowed billing days
+        | sampai installment_deadline_date.
+        |
+        | Contoh:
+        | - first payment today
+        | - recurring 1 bulan depan
+        | - recurring 2 bulan depan
+        |
+        | Maka total installment count = 1 + jumlah recurring dates.
+        |
+        */
+        return max(2, 1 + $recurringPaymentDates);
+    }
+
+    /**
+     * @param  array<int, int>  $allowedBillingDays
+     */
+    private function countRecurringInstallmentDatesUntilDeadline(
+        CarbonImmutable $today,
+        CarbonImmutable $deadline,
+        array $allowedBillingDays,
+    ): int {
+        $allowedBillingDays = collect($allowedBillingDays)
+            ->map(fn ($day) => (int) $day)
+            ->filter(fn (int $day) => in_array($day, [1, 15], true))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        if (count($allowedBillingDays) === 0) {
+            return 0;
+        }
+
+        $count = 0;
+        $cursor = $today->startOfMonth();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Safety Limit
+        |--------------------------------------------------------------------------
+        |
+        | Dipasang agar loop tetap aman jika deadline diset sangat jauh.
+        | 120 bulan = 10 tahun, lebih dari cukup untuk konteks installment course.
+        |
+        */
+        for ($monthOffset = 0; $monthOffset <= 120; $monthOffset++) {
+            foreach ($allowedBillingDays as $billingDay) {
+                $candidate = $cursor->addDays($billingDay - 1);
+
+                if ($candidate->lessThanOrEqualTo($today)) {
+                    continue;
+                }
+
+                if ($candidate->greaterThan($deadline)) {
+                    continue;
+                }
+
+                $count++;
+            }
+
+            $cursor = $cursor->addMonthNoOverflow()->startOfMonth();
+
+            if ($cursor->greaterThan($deadline)) {
+                break;
+            }
+        }
+
+        return $count;
+    }
+
+    private function parseDateValue(mixed $value): ?CarbonImmutable
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            if ($value instanceof CarbonImmutable) {
+                return $value;
+            }
+
+            if ($value instanceof \DateTimeInterface) {
+                return CarbonImmutable::instance($value);
+            }
+
+            return CarbonImmutable::parse((string) $value);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function formatDateValue(mixed $value): ?string
