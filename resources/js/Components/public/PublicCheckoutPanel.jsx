@@ -1,5 +1,4 @@
 import InputError from "@/Components/InputError";
-import InputLabel from "@/Components/InputLabel";
 import { Button } from "@/Components/ui/button";
 import { formatCurrency } from "@/lib/currency";
 import { AlertCircle, LoaderCircle } from "lucide-react";
@@ -226,17 +225,54 @@ function getPayPalNamespace(namespace) {
     return window[namespace] ?? null;
 }
 
-export default function PublicCheckoutPanel({ checkout }) {
-    const paymentOptions = Array.isArray(checkout.payment_options)
+export default function PublicCheckoutPanel({
+    checkout,
+    isPreview = false,
+    isPreparingCheckout = false,
+    onBeforePayment = null,
+}) {
+    const rawPaymentOptions = Array.isArray(checkout.payment_options)
         ? checkout.payment_options
         : [];
+
+    const paypalConfig = checkout.paypal ?? {};
+    const installmentSummaries = checkout.installment_summaries ?? {};
+
+    const rawIncludesInstallment = rawPaymentOptions.some(
+        (option) => option.type === "installment",
+    );
+
+    const hasInstallmentSummary =
+        checkout.installment_summary !== null &&
+        checkout.installment_summary !== undefined;
+
+    const hasInstallmentSummaries =
+        Object.keys(installmentSummaries ?? {}).length > 0;
+
+    const packageInstallmentEnabled =
+        checkout.package?.installment_enabled === true ||
+        checkout.installment_accepts_billing_day === true ||
+        (Array.isArray(checkout.installment_billing_day_options) &&
+            checkout.installment_billing_day_options.length > 0);
+
+    const installmentIsAvailable =
+        rawIncludesInstallment &&
+        (isPreview ||
+            hasInstallmentSummary ||
+            hasInstallmentSummaries ||
+            packageInstallmentEnabled);
+
+    const paymentOptions = rawPaymentOptions.filter((option) => {
+        if (option.type !== "installment") {
+            return true;
+        }
+
+        return installmentIsAvailable;
+    });
 
     const mockAvailable = (checkout.payment_method_options ?? []).some(
         (option) => option.value === "mock",
     );
-
-    const paypalConfig = checkout.paypal ?? {};
-    const installmentSummaries = checkout.installment_summaries ?? {};
 
     const installmentAllowedBillingDays = Array.isArray(
         checkout.installment_billing_day_options,
@@ -278,16 +314,6 @@ export default function PublicCheckoutPanel({ checkout }) {
 
     const [billingDay, setBillingDay] = useState(initialBillingDay);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Important change
-    |--------------------------------------------------------------------------
-    |
-    | Jangan langsung kunci ke maximum installment.
-    | Student boleh memilih dari 2 sampai maximum.
-    | Default dibuat 2 supaya jelas bahwa pilihan memang bisa diganti.
-    |
-    */
     const [selectedInstallmentCount, setSelectedInstallmentCount] = useState(
         initialInstallmentOptions[0] ?? 2,
     );
@@ -406,7 +432,10 @@ export default function PublicCheckoutPanel({ checkout }) {
         installmentAllowedBillingDays.length > 1;
 
     const usesMonthlyInstallmentSchedule = installmentIntervalUnit === "MONTH";
-    const canUseMock = mockAvailable && !isInstallmentSelected;
+    const canUseMock = mockAvailable && !isInstallmentSelected && !isPreview;
+
+    const paymentButtonGridClass =
+        paymentOptions.length > 1 ? "grid gap-3 sm:grid-cols-2" : "grid gap-3";
 
     const payFullScriptUrl = useMemo(() => {
         const params = new URLSearchParams({
@@ -436,15 +465,28 @@ export default function PublicCheckoutPanel({ checkout }) {
     }, [paypalConfig.client_id]);
 
     const shouldRenderInstallmentButtons =
+        !isPreview &&
         isInstallmentSelected &&
         installmentSession &&
         !installmentSession.provider_subscription_id;
 
-    const visibleSdkError = isInstallmentSelected
-        ? shouldRenderInstallmentButtons
-            ? installmentSdkError
-            : ""
-        : payFullSdkError;
+    const visibleSdkError = isPreview
+        ? ""
+        : isInstallmentSelected
+          ? shouldRenderInstallmentButtons
+              ? installmentSdkError
+              : ""
+          : payFullSdkError;
+
+    useEffect(() => {
+        if (!paymentOptions.some((option) => option.type === paymentType)) {
+            setPaymentType(paymentOptions[0]?.type ?? "pay_full");
+        }
+    }, [paymentOptions, paymentType]);
+
+    useEffect(() => {
+        setBillingDay(initialBillingDay);
+    }, [initialBillingDay]);
 
     useEffect(() => {
         installmentSessionRef.current = installmentSession;
@@ -457,16 +499,6 @@ export default function PublicCheckoutPanel({ checkout }) {
         }
     }, [isInstallmentSelected]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Keep installment count inside the valid range
-    |--------------------------------------------------------------------------
-    |
-    | Jika billing day berubah, maximum bisa berubah juga.
-    | Di sini nilai pilihan student dipertahankan jika masih valid.
-    | Jika tidak valid, fallback ke pilihan paling kecil yang tersedia.
-    |
-    */
     useEffect(() => {
         if (!isInstallmentSelected) {
             return;
@@ -495,11 +527,6 @@ export default function PublicCheckoutPanel({ checkout }) {
         availableInstallmentCounts.join(","),
     ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Reset prepared PayPal subscription when student changes the plan
-    |--------------------------------------------------------------------------
-    */
     useEffect(() => {
         if (!isInstallmentSelected) {
             return;
@@ -515,6 +542,12 @@ export default function PublicCheckoutPanel({ checkout }) {
     }, [billingDay, selectedInstallmentCount]);
 
     useEffect(() => {
+        if (isPreview) {
+            setPayFullSdkError("");
+            setPayFullSdkReady(false);
+            return undefined;
+        }
+
         if (!paypalConfig.client_id) {
             setPayFullSdkError("PayPal client configuration is missing.");
             return undefined;
@@ -584,9 +617,15 @@ export default function PublicCheckoutPanel({ checkout }) {
             script.removeEventListener("load", handleReady);
             script.removeEventListener("error", handleError);
         };
-    }, [payFullScriptUrl, paypalConfig.client_id]);
+    }, [isPreview, payFullScriptUrl, paypalConfig.client_id]);
 
     useEffect(() => {
+        if (isPreview) {
+            setInstallmentSdkError("");
+            setInstallmentSdkReady(false);
+            return undefined;
+        }
+
         if (!paypalConfig.client_id || !shouldRenderInstallmentButtons) {
             return undefined;
         }
@@ -656,13 +695,14 @@ export default function PublicCheckoutPanel({ checkout }) {
             script.removeEventListener("error", handleError);
         };
     }, [
+        isPreview,
         installmentScriptUrl,
         paypalConfig.client_id,
         shouldRenderInstallmentButtons,
     ]);
 
     useEffect(() => {
-        if (!payFullSdkReady || isInstallmentSelected) {
+        if (isPreview || !payFullSdkReady || isInstallmentSelected) {
             return undefined;
         }
 
@@ -734,10 +774,15 @@ export default function PublicCheckoutPanel({ checkout }) {
             clearPayPalContainer(payFullButtonsRef);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isInstallmentSelected, payFullSdkReady, checkout.create_order_url]);
+    }, [
+        isPreview,
+        isInstallmentSelected,
+        payFullSdkReady,
+        checkout.create_order_url,
+    ]);
 
     useEffect(() => {
-        if (!shouldRenderInstallmentButtons || !installmentSdkReady) {
+        if (isPreview || !shouldRenderInstallmentButtons || !installmentSdkReady) {
             return undefined;
         }
 
@@ -827,6 +872,7 @@ export default function PublicCheckoutPanel({ checkout }) {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
+        isPreview,
         installmentSdkReady,
         shouldRenderInstallmentButtons,
         checkout.create_order_url,
@@ -843,6 +889,7 @@ export default function PublicCheckoutPanel({ checkout }) {
 
     useEffect(() => {
         if (
+            isPreview ||
             !isInstallmentSelected ||
             !installmentSession?.provider_subscription_id ||
             !checkout.installment_status_url
@@ -881,9 +928,7 @@ export default function PublicCheckoutPanel({ checkout }) {
                 }
             } catch {
                 if (!cancelled) {
-                    setInstallmentApprovalMessage(
-                        "PayPal approval received. We are confirming your first payment now.",
-                    );
+                    setInstallmentApprovalMessage("");
                 }
             }
         };
@@ -896,6 +941,7 @@ export default function PublicCheckoutPanel({ checkout }) {
             window.clearInterval(intervalId);
         };
     }, [
+        isPreview,
         checkout.installment_status_url,
         installmentSession,
         isInstallmentSelected,
@@ -925,7 +971,7 @@ export default function PublicCheckoutPanel({ checkout }) {
         const nextErrors = { ...INITIAL_ERRORS };
         const currentData = formDataRef.current;
 
-        if (isInstallmentSelected) {
+        if (isInstallmentSelected && activeInstallmentSummary) {
             if (installmentAcceptsBillingDay && !billingDay) {
                 nextErrors.billing_day =
                     "Please select your preferred billing day.";
@@ -935,17 +981,19 @@ export default function PublicCheckoutPanel({ checkout }) {
                 selectedInstallmentCount,
             );
 
-            if (!normalizedInstallmentCount) {
-                nextErrors.installment_count =
-                    "Please select your installment count.";
-            } else if (normalizedInstallmentCount < 2) {
-                nextErrors.installment_count =
-                    "Installment count must be at least 2.";
-            } else if (
-                maximumInstallmentCount > 0 &&
-                normalizedInstallmentCount > maximumInstallmentCount
-            ) {
-                nextErrors.installment_count = `Installment count cannot be greater than ${maximumInstallmentCount}.`;
+            if (availableInstallmentCounts.length > 0) {
+                if (!normalizedInstallmentCount) {
+                    nextErrors.installment_count =
+                        "Please select your installment count.";
+                } else if (normalizedInstallmentCount < 2) {
+                    nextErrors.installment_count =
+                        "Installment count must be at least 2.";
+                } else if (
+                    maximumInstallmentCount > 0 &&
+                    normalizedInstallmentCount > maximumInstallmentCount
+                ) {
+                    nextErrors.installment_count = `Installment count cannot be greater than ${maximumInstallmentCount}.`;
+                }
             }
         }
 
@@ -965,6 +1013,51 @@ export default function PublicCheckoutPanel({ checkout }) {
         return isValid;
     };
 
+    const prepareRealCheckoutForPreview = async () => {
+        if (!isPreview) {
+            return checkout;
+        }
+
+        if (typeof onBeforePayment !== "function") {
+            setGeneralError(
+                "The payment panel is not connected to the checkout preparation flow.",
+            );
+
+            return null;
+        }
+
+        setGeneralError("");
+        setDebugInfo(null);
+
+        const preparedCheckout = await onBeforePayment({
+            shouldFocus: true,
+        });
+
+        if (!preparedCheckout) {
+            setGeneralError(
+                "Please complete your details above before continuing to payment.",
+            );
+
+            return null;
+        }
+
+        return preparedCheckout;
+    };
+
+    const preparePreviewPaymentOptions = async () => {
+        if (!validateCheckoutFields()) {
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            await prepareRealCheckoutForPreview();
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const createOrderSession = async (paymentMethod) => {
         if (!validateCheckoutFields()) {
             setIsSubmitting(false);
@@ -975,9 +1068,19 @@ export default function PublicCheckoutPanel({ checkout }) {
         setGeneralError("");
         setDebugInfo(null);
 
+        const checkoutForPayment = await prepareRealCheckoutForPreview();
+
+        if (!checkoutForPayment?.create_order_url) {
+            setGeneralError(
+                "Please complete your details above before continuing to payment.",
+            );
+            setIsSubmitting(false);
+            throw new Error("checkout-not-ready");
+        }
+
         const currentData = formDataRef.current;
 
-        const response = await fetch(checkout.create_order_url, {
+        const response = await fetch(checkoutForPayment.create_order_url, {
             method: "POST",
             credentials: "same-origin",
             headers: {
@@ -994,9 +1097,10 @@ export default function PublicCheckoutPanel({ checkout }) {
                     isInstallmentSelected && installmentAcceptsBillingDay
                         ? Number(billingDay)
                         : null,
-                installment_count: isInstallmentSelected
-                    ? Number(selectedInstallmentCount)
-                    : null,
+                installment_count:
+                    isInstallmentSelected && availableInstallmentCounts.length > 0
+                        ? Number(selectedInstallmentCount)
+                        : null,
                 terms_accepted: currentData.terms_accepted,
             }),
         });
@@ -1178,12 +1282,23 @@ export default function PublicCheckoutPanel({ checkout }) {
     };
 
     const runInstallmentCheckout = async () => {
+        if (isPreview) {
+            await preparePreviewPaymentOptions();
+            return;
+        }
+
         try {
             await createOrderSession("paypal");
         } catch {
             // Validation and server errors are already surfaced in state.
         }
     };
+
+    const previewPaymentButtonLabel = isPreparingCheckout
+        ? "Preparing secure payment options..."
+        : isInstallmentSelected
+          ? `Continue with PayPal - ${formatCurrency(amountDueToday, activeCurrencyCode)} today`
+          : "Continue to PayPal payment";
 
     return (
         <div className="w-full space-y-8" style={{ fontFamily: FONT_FAMILY }}>
@@ -1199,49 +1314,44 @@ export default function PublicCheckoutPanel({ checkout }) {
                 </div>
             )}
 
-            <div className="rounded-[5px] border border-white/10 bg-white/5 p-6 shadow-lg backdrop-blur-sm">
-                <div className="space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        {paymentOptions.map((option) => {
-                            const optionIsActive = paymentType === option.type;
-                            const optionIsInstallment =
-                                option.type === "installment";
+            <div className={paymentButtonGridClass}>
+                {paymentOptions.map((option) => {
+                    const optionIsActive = paymentType === option.type;
+                    const optionIsInstallment = option.type === "installment";
 
-                            return (
-                                <button
-                                    key={option.type}
-                                    type="button"
-                                    onClick={() => setPaymentType(option.type)}
-                                    className={`rounded-[5px] border px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
-                                        optionIsActive
-                                            ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_1px_rgba(219,32,44,0.25)]"
-                                            : "border-white/10 bg-black/20 text-white/75 hover:border-white/25 hover:bg-white/10"
-                                    }`}
-                                    style={{
-                                        fontFamily: FONT_FAMILY,
-                                        fontSize: "14px",
-                                        fontWeight: 600,
-                                    }}
-                                >
-                                    {optionIsInstallment
-                                        ? "Pay in installment"
-                                        : "Pay in full"}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
+                    return (
+                        <button
+                            key={option.type}
+                            type="button"
+                            onClick={() => setPaymentType(option.type)}
+                            className={`rounded-[5px] border px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
+                                optionIsActive
+                                    ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_1px_rgba(219,32,44,0.25)]"
+                                    : "border-white/10 bg-black/20 text-white/75 hover:border-white/25 hover:bg-white/10"
+                            }`}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "14px",
+                                fontWeight: 600,
+                            }}
+                        >
+                            {optionIsInstallment
+                                ? "Pay in installment"
+                                : "Pay in full"}
+                        </button>
+                    );
+                })}
             </div>
 
             {isInstallmentSelected && activeInstallmentSummary && (
-                <div className="space-y-5 rounded-[5px] border border-[#DB202C]/25 bg-[#DB202C]/8 p-6 shadow-lg backdrop-blur-sm">
+                <div className="space-y-5">
                     {showBillingDaySelector && (
-                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
+                        <div className="space-y-3">
                             <p className="text-xs uppercase tracking-[0.16em] text-white/45">
                                 Monthly billing date
                             </p>
 
-                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <div className="grid gap-3 md:grid-cols-2">
                                 {installmentAllowedBillingDays.map(
                                     (allowedDay) => (
                                         <label
@@ -1290,14 +1400,10 @@ export default function PublicCheckoutPanel({ checkout }) {
                         </div>
                     )}
 
-                    <div className="rounded-[5px] border border-white/10 bg-black/20 px-4 py-4">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div>
-                                <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                    Number of installments
-                                </p>
-                            </div>
-                        </div>
+                    <div className="space-y-3">
+                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                            Number of installments
+                        </p>
 
                         <select
                             value={selectedInstallmentCount || ""}
@@ -1310,7 +1416,7 @@ export default function PublicCheckoutPanel({ checkout }) {
                                     installment_count: "",
                                 }));
                             }}
-                            className="mt-4 block w-full rounded-[5px] border border-white/10 bg-black/40 px-4 py-3 text-sm text-white shadow-sm focus:border-[#DB202C] focus:ring-[#DB202C]"
+                            className="block w-full rounded-[5px] border border-white/10 bg-black/40 px-4 py-3 text-sm text-white shadow-sm focus:border-[#DB202C] focus:ring-[#DB202C]"
                         >
                             {availableInstallmentCounts.length === 0 ? (
                                 <option value="">
@@ -1332,31 +1438,28 @@ export default function PublicCheckoutPanel({ checkout }) {
                         />
                     </div>
 
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <p
-                                className="text-sm uppercase tracking-[0.18em] text-[#ffb8bf]"
-                                style={{
-                                    fontFamily: FONT_FAMILY,
-                                    fontSize: "12px",
-                                    fontWeight: 600,
-                                }}
-                            >
-                                Installment Plan
-                            </p>
+                    <div>
+                        <p
+                            className="text-sm uppercase tracking-[0.18em] text-[#ffb8bf]"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "12px",
+                                fontWeight: 600,
+                            }}
+                        >
+                            Installment Plan
+                        </p>
 
-                            <h3
-                                className="mt-2 text-white"
-                                style={{
-                                    fontFamily: FONT_FAMILY,
-                                    fontSize: "24px",
-                                    fontWeight: 600,
-                                }}
-                            >
-                                Pay in {installmentCount} Monthly Installments
-                            </h3>
-
-                        </div>
+                        <h3
+                            className="mt-2 text-white"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                                fontSize: "24px",
+                                fontWeight: 600,
+                            }}
+                        >
+                            Pay in {installmentCount} Monthly Installments
+                        </h3>
                     </div>
 
                     <div
@@ -1453,11 +1556,7 @@ export default function PublicCheckoutPanel({ checkout }) {
 
             <div>
                 <label
-                    className={`flex cursor-pointer items-start gap-4 rounded-[5px] border px-5 py-5 text-sm font-normal text-white/80 transition-all duration-200 ${
-                        fieldErrors.terms_accepted
-                            ? "border-rose-500 bg-rose-500/10 ring-1 ring-rose-500/20"
-                            : "border-white/10 bg-white/5 shadow-lg backdrop-blur-sm hover:border-white/30"
-                    }`}
+                    className="flex cursor-pointer items-start gap-4 text-sm font-normal text-white/80"
                     style={{
                         fontFamily: FONT_FAMILY,
                         fontSize: "14px",
@@ -1491,7 +1590,7 @@ export default function PublicCheckoutPanel({ checkout }) {
                 />
             </div>
 
-            <div className="rounded-[5px] border border-[#DB202C]/30 bg-white/5 p-6 shadow-xl backdrop-blur-sm">
+            <div className="space-y-5">
                 <h2
                     className="text-white"
                     style={{
@@ -1505,19 +1604,38 @@ export default function PublicCheckoutPanel({ checkout }) {
                         : "Payment Method"}
                 </h2>
 
-
-                {isInstallmentSelected ? (
+                {isPreview ? (
+                    <Button
+                        type="button"
+                        onClick={preparePreviewPaymentOptions}
+                        disabled={isSubmitting || isPreparingCheckout}
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "14px",
+                            fontWeight: 500,
+                        }}
+                        className="min-h-[52px] w-full rounded-[5px] bg-[#DB202C] px-4 py-3 text-sm font-medium text-white hover:bg-[#c01a25] disabled:pointer-events-none disabled:opacity-60"
+                    >
+                        {isSubmitting || isPreparingCheckout ? (
+                            <span className="inline-flex items-center justify-center gap-2">
+                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                                Preparing secure payment options...
+                            </span>
+                        ) : (
+                            previewPaymentButtonLabel
+                        )}
+                    </Button>
+                ) : isInstallmentSelected ? (
                     <div
-                        className={`mt-6 rounded-[5px] border border-white/10 bg-black/20 p-5 transition-opacity duration-300 ${
+                        className={`transition-opacity duration-300 ${
                             !formData.terms_accepted
                                 ? "opacity-60"
                                 : "opacity-100"
                         }`}
                     >
-
                         {installmentApprovalMessage && (
                             <div
-                                className="mt-5 rounded-[5px] border border-emerald-400/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100"
+                                className="mb-5 rounded-[5px] border border-emerald-400/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100"
                                 style={{ fontFamily: FONT_FAMILY }}
                             >
                                 {installmentApprovalMessage}
@@ -1534,7 +1652,7 @@ export default function PublicCheckoutPanel({ checkout }) {
                                     fontSize: "14px",
                                     fontWeight: 500,
                                 }}
-                                className="mt-5 min-h-[52px] w-full rounded-[5px] bg-[#DB202C] px-4 py-3 text-sm font-medium text-white hover:bg-[#c01a25] disabled:pointer-events-none disabled:opacity-60"
+                                className="min-h-[52px] w-full rounded-[5px] bg-[#DB202C] px-4 py-3 text-sm font-medium text-white hover:bg-[#c01a25] disabled:pointer-events-none disabled:opacity-60"
                             >
                                 {isSubmitting
                                     ? "Preparing PayPal installment approval..."
@@ -1542,17 +1660,15 @@ export default function PublicCheckoutPanel({ checkout }) {
                             </Button>
                         ) : installmentSession.provider_subscription_id ? (
                             <div
-                                className="mt-5 rounded-[5px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70"
+                                className="rounded-[5px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70"
                                 style={{ fontFamily: FONT_FAMILY }}
                             >
                                 {installmentApprovalMessage ||
                                     "PayPal approval has been received. We are confirming your first payment now."}
                             </div>
                         ) : (
-                            <div className="mt-5 space-y-4">
-
+                            <div className="space-y-4">
                                 <div
-                                    className="rounded-[5px] border border-white/10 p-5 shadow-inner"
                                     style={{
                                         backgroundColor:
                                             "rgba(255, 255, 255, 0.97)",
@@ -1581,14 +1697,13 @@ export default function PublicCheckoutPanel({ checkout }) {
                     </div>
                 ) : (
                     <div
-                        className={`mt-6 transition-opacity duration-300 ${
+                        className={`transition-opacity duration-300 ${
                             !formData.terms_accepted
                                 ? "opacity-50 grayscale-[30%]"
                                 : "opacity-100 grayscale-0"
                         }`}
                     >
                         <div
-                            className="rounded-[5px] border border-white/10 p-5 shadow-inner"
                             style={{
                                 backgroundColor: "rgba(255, 255, 255, 0.97)",
                             }}
@@ -1601,9 +1716,9 @@ export default function PublicCheckoutPanel({ checkout }) {
                     </div>
                 )}
 
-                {!isInstallmentSelected && !payFullSdkReady && (
+                {!isPreview && !isInstallmentSelected && !payFullSdkReady && (
                     <div
-                        className="mt-5 flex items-center gap-3 text-sm font-medium text-white/60"
+                        className="flex items-center gap-3 text-sm font-medium text-white/60"
                         style={{ fontFamily: FONT_FAMILY }}
                     >
                         <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
@@ -1611,6 +1726,33 @@ export default function PublicCheckoutPanel({ checkout }) {
                     </div>
                 )}
             </div>
+
+            {debugInfo && (
+                <div
+                    className="rounded-xl border border-white/10 bg-black/20 px-5 py-4 text-sm leading-6 text-white/70"
+                    style={{ fontFamily: FONT_FAMILY }}
+                >
+                    <p className="font-semibold text-white/90">
+                        Checkout debug
+                    </p>
+                    <p className="mt-1">
+                        Stage: {debugInfo.stage}
+                        {debugInfo.http_status
+                            ? ` (${debugInfo.http_status})`
+                            : ""}
+                    </p>
+                    {debugInfo.payload?.message && (
+                        <p className="mt-1">
+                            Message: {debugInfo.payload.message}
+                        </p>
+                    )}
+                    {paypalConfig.environment && (
+                        <p className="mt-1">
+                            PayPal Environment: {paypalConfig.environment}
+                        </p>
+                    )}
+                </div>
+            )}
 
             {canUseMock && (
                 <div className="rounded-[5px] border border-dashed border-white/20 bg-black/15 p-6 backdrop-blur-sm">
