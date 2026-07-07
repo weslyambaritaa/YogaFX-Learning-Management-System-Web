@@ -65,33 +65,6 @@ function formatBillingDayLabel(value) {
     return Number(value) === 1 ? "1st" : "15th";
 }
 
-function formatIntervalLabel(unit, count = 1) {
-    const normalizedUnit = String(unit ?? "").toUpperCase();
-    const normalizedCount = Number(count) > 0 ? Number(count) : 1;
-
-    if (normalizedUnit === "DAY") {
-        return normalizedCount === 1
-            ? "daily"
-            : `every ${normalizedCount} days`;
-    }
-
-    if (normalizedUnit === "WEEK") {
-        return normalizedCount === 1
-            ? "weekly"
-            : `every ${normalizedCount} weeks`;
-    }
-
-    if (normalizedUnit === "YEAR") {
-        return normalizedCount === 1
-            ? "yearly"
-            : `every ${normalizedCount} years`;
-    }
-
-    return normalizedCount === 1
-        ? "monthly"
-        : `every ${normalizedCount} months`;
-}
-
 function amountToCents(value) {
     return Math.round(Number(value ?? 0) * 100);
 }
@@ -211,6 +184,45 @@ function buildInstallmentSummaryForCount(summary, selectedInstallmentCount) {
     };
 }
 
+function buildPreviewInstallmentSummary(checkout, selectedPaymentOption) {
+    const totalAmount = Number(checkout.amount ?? 0);
+    const amountDueToday = Number(
+        selectedPaymentOption?.amount_due_today ?? totalAmount / 2,
+    );
+
+    if (!totalAmount || totalAmount <= 0) {
+        return null;
+    }
+
+    return {
+        total_amount: totalAmount.toFixed(2),
+        first_payment_amount: amountDueToday.toFixed(2),
+        recurring_payment_amount: amountDueToday.toFixed(2),
+        monthly_base_amount: amountDueToday.toFixed(2),
+        installment_count: 2,
+        maximum_installment_count: 2,
+        recurring_due_dates: [],
+        available_recurring_due_dates: [],
+        schedule_breakdown: [
+            {
+                cycle_number: 1,
+                type: "first_payment",
+                amount: amountDueToday.toFixed(2),
+                due_at: null,
+                grace_deadline: null,
+            },
+            {
+                cycle_number: 2,
+                type: "recurring",
+                amount: amountDueToday.toFixed(2),
+                due_at: null,
+                grace_deadline: null,
+            },
+        ],
+        final_due_at: null,
+    };
+}
+
 function clearPayPalContainer(containerRef) {
     if (containerRef?.current) {
         containerRef.current.innerHTML = "";
@@ -229,6 +241,7 @@ export default function PublicCheckoutPanel({
     checkout,
     isPreview = false,
     isPreparingCheckout = false,
+    canInteractWithPayment = false,
     onBeforePayment = null,
 }) {
     const rawPaymentOptions = Array.isArray(checkout.payment_options)
@@ -290,10 +303,6 @@ export default function PublicCheckoutPanel({
         checkout.installment_billing_interval_unit ?? "MONTH",
     ).toUpperCase();
 
-    const installmentIntervalCount = Number(
-        checkout.installment_billing_interval_count ?? 1,
-    );
-
     const initialBillingDay =
         checkout.installment_selected_billing_day ??
         installmentAllowedBillingDays[0] ??
@@ -352,7 +361,9 @@ export default function PublicCheckoutPanel({
         installmentSummaries[String(billingDay)] ??
         selectedPaymentOption?.summary ??
         checkout.installment_summary ??
-        null;
+        (isPreview && isInstallmentSelected
+            ? buildPreviewInstallmentSummary(checkout, selectedPaymentOption)
+            : null);
 
     const availableInstallmentCounts = buildInstallmentCountOptions(
         baseInstallmentSummary,
@@ -393,9 +404,6 @@ export default function PublicCheckoutPanel({
                   activeInstallmentSummary?.installment_count ??
                   0),
     );
-
-    const activeBillingDay =
-        activeInstallmentSummary?.billing_day ?? billingDay;
 
     const finalDueAt =
         activeInstallmentSummary?.final_due_at ??
@@ -443,6 +451,7 @@ export default function PublicCheckoutPanel({
             components: "buttons",
             currency: paypalConfig.currency_code ?? checkout.currency_code,
             intent: paypalConfig.intent ?? "capture",
+            "enable-funding": "card",
         });
 
         return `https://www.paypal.com/sdk/js?${params.toString()}`;
@@ -464,19 +473,23 @@ export default function PublicCheckoutPanel({
         return `https://www.paypal.com/sdk/js?${params.toString()}`;
     }, [paypalConfig.client_id]);
 
-    const shouldRenderInstallmentButtons =
-        !isPreview &&
-        isInstallmentSelected &&
-        installmentSession &&
-        !installmentSession.provider_subscription_id;
+    const shouldRenderPayFullButtons =
+        !isInstallmentSelected && Boolean(paypalConfig.client_id);
 
-    const visibleSdkError = isPreview
-        ? ""
-        : isInstallmentSelected
-          ? shouldRenderInstallmentButtons
-              ? installmentSdkError
-              : ""
-          : payFullSdkError;
+    const shouldRenderInstallmentButtons =
+        isInstallmentSelected &&
+        Boolean(paypalConfig.client_id) &&
+        (isPreview ||
+            !installmentSession ||
+            !installmentSession.provider_subscription_id);
+
+    const visibleSdkError = isInstallmentSelected
+        ? shouldRenderInstallmentButtons
+            ? installmentSdkError
+            : ""
+        : payFullSdkError;
+
+    const paymentIsLocked = !canInteractWithPayment || isPreparingCheckout;
 
     useEffect(() => {
         if (!paymentOptions.some((option) => option.type === paymentType)) {
@@ -542,12 +555,6 @@ export default function PublicCheckoutPanel({
     }, [billingDay, selectedInstallmentCount]);
 
     useEffect(() => {
-        if (isPreview) {
-            setPayFullSdkError("");
-            setPayFullSdkReady(false);
-            return undefined;
-        }
-
         if (!paypalConfig.client_id) {
             setPayFullSdkError("PayPal client configuration is missing.");
             return undefined;
@@ -617,15 +624,9 @@ export default function PublicCheckoutPanel({
             script.removeEventListener("load", handleReady);
             script.removeEventListener("error", handleError);
         };
-    }, [isPreview, payFullScriptUrl, paypalConfig.client_id]);
+    }, [payFullScriptUrl, paypalConfig.client_id]);
 
     useEffect(() => {
-        if (isPreview) {
-            setInstallmentSdkError("");
-            setInstallmentSdkReady(false);
-            return undefined;
-        }
-
         if (!paypalConfig.client_id || !shouldRenderInstallmentButtons) {
             return undefined;
         }
@@ -695,14 +696,13 @@ export default function PublicCheckoutPanel({
             script.removeEventListener("error", handleError);
         };
     }, [
-        isPreview,
         installmentScriptUrl,
         paypalConfig.client_id,
         shouldRenderInstallmentButtons,
     ]);
 
     useEffect(() => {
-        if (isPreview || !payFullSdkReady || isInstallmentSelected) {
+        if (!shouldRenderPayFullButtons || !payFullSdkReady) {
             return undefined;
         }
 
@@ -726,7 +726,7 @@ export default function PublicCheckoutPanel({
                 layout: "vertical",
                 shape: "rect",
                 color: "gold",
-                label: "paypal",
+                label: "buynow",
                 height: 48,
             },
             onClick: (_data, actions) => {
@@ -741,6 +741,11 @@ export default function PublicCheckoutPanel({
             },
             createOrder: async () => {
                 const createdOrder = await createOrderSession("paypal");
+
+                if (!createdOrder?.order_id) {
+                    throw new Error("order-id-missing");
+                }
+
                 return createdOrder.order_id;
             },
             onApprove: async (data) => {
@@ -775,14 +780,14 @@ export default function PublicCheckoutPanel({
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
-        isPreview,
-        isInstallmentSelected,
+        shouldRenderPayFullButtons,
         payFullSdkReady,
         checkout.create_order_url,
+        isPreview,
     ]);
 
     useEffect(() => {
-        if (isPreview || !shouldRenderInstallmentButtons || !installmentSdkReady) {
+        if (!shouldRenderInstallmentButtons || !installmentSdkReady) {
             return undefined;
         }
 
@@ -872,10 +877,10 @@ export default function PublicCheckoutPanel({
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
-        isPreview,
         installmentSdkReady,
         shouldRenderInstallmentButtons,
         checkout.create_order_url,
+        isPreview,
     ]);
 
     useEffect(() => {
@@ -1035,27 +1040,13 @@ export default function PublicCheckoutPanel({
 
         if (!preparedCheckout) {
             setGeneralError(
-                "Please complete your details above before continuing to payment.",
+                "Please complete your personal details before continuing to payment.",
             );
 
             return null;
         }
 
         return preparedCheckout;
-    };
-
-    const preparePreviewPaymentOptions = async () => {
-        if (!validateCheckoutFields()) {
-            return;
-        }
-
-        setIsSubmitting(true);
-
-        try {
-            await prepareRealCheckoutForPreview();
-        } finally {
-            setIsSubmitting(false);
-        }
     };
 
     const createOrderSession = async (paymentMethod) => {
@@ -1072,7 +1063,7 @@ export default function PublicCheckoutPanel({
 
         if (!checkoutForPayment?.create_order_url) {
             setGeneralError(
-                "Please complete your details above before continuing to payment.",
+                "Please complete your personal details before continuing to payment.",
             );
             setIsSubmitting(false);
             throw new Error("checkout-not-ready");
@@ -1281,24 +1272,20 @@ export default function PublicCheckoutPanel({
         }
     };
 
-    const runInstallmentCheckout = async () => {
-        if (isPreview) {
-            await preparePreviewPaymentOptions();
-            return;
-        }
-
-        try {
-            await createOrderSession("paypal");
-        } catch {
-            // Validation and server errors are already surfaced in state.
-        }
+    const showLockedMessage = () => {
+        setGeneralError(
+            "Please complete your personal details above before continuing to payment.",
+        );
     };
 
-    const previewPaymentButtonLabel = isPreparingCheckout
-        ? "Preparing secure payment options..."
-        : isInstallmentSelected
-          ? `Continue with PayPal - ${formatCurrency(amountDueToday, activeCurrencyCode)} today`
-          : "Continue to PayPal payment";
+    const lockedOverlay = paymentIsLocked ? (
+        <button
+            type="button"
+            onClick={showLockedMessage}
+            className="absolute inset-0 z-10 cursor-not-allowed rounded-[5px] bg-black/10"
+            aria-label="Complete your details before payment"
+        />
+    ) : null;
 
     return (
         <div className="w-full space-y-8" style={{ fontFamily: FONT_FAMILY }}>
@@ -1320,25 +1307,35 @@ export default function PublicCheckoutPanel({
                     const optionIsInstallment = option.type === "installment";
 
                     return (
-                        <button
-                            key={option.type}
-                            type="button"
-                            onClick={() => setPaymentType(option.type)}
-                            className={`rounded-[5px] border px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
-                                optionIsActive
-                                    ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_1px_rgba(219,32,44,0.25)]"
-                                    : "border-white/10 bg-black/20 text-white/75 hover:border-white/25 hover:bg-white/10"
-                            }`}
-                            style={{
-                                fontFamily: FONT_FAMILY,
-                                fontSize: "14px",
-                                fontWeight: 600,
-                            }}
-                        >
-                            {optionIsInstallment
-                                ? "Pay in installment"
-                                : "Pay in full"}
-                        </button>
+                        <div key={option.type} className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setPaymentType(option.type)}
+                                className={`w-full rounded-[5px] border px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
+                                    optionIsActive
+                                        ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_1px_rgba(219,32,44,0.25)]"
+                                        : "border-white/10 bg-black/20 text-white/75 hover:border-white/25 hover:bg-white/10"
+                                }`}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {optionIsInstallment
+                                    ? "Pay in installment"
+                                    : "Pay in full"}
+                            </button>
+
+                            {paymentIsLocked && (
+                                <button
+                                    type="button"
+                                    onClick={showLockedMessage}
+                                    className="absolute inset-0 z-10 cursor-not-allowed rounded-[5px] bg-black/10"
+                                    aria-label="Complete your details before choosing payment type"
+                                />
+                            )}
+                        </div>
                     );
                 })}
             </div>
@@ -1378,7 +1375,8 @@ export default function PublicCheckoutPanel({
                                                         }),
                                                     );
                                                 }}
-                                                className="h-4 w-4 border-white/20 bg-black/30 text-[#DB202C] focus:ring-[#DB202C]"
+                                                disabled={paymentIsLocked}
+                                                className="h-4 w-4 border-white/20 bg-black/30 text-[#DB202C] focus:ring-[#DB202C] disabled:opacity-60"
                                             />
                                             <span>
                                                 Every{" "}
@@ -1400,43 +1398,40 @@ export default function PublicCheckoutPanel({
                         </div>
                     )}
 
-                    <div className="space-y-3">
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                            Number of installments
-                        </p>
+                    {availableInstallmentCounts.length > 0 && (
+                        <div className="space-y-3">
+                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                Number of installments
+                            </p>
 
-                        <select
-                            value={selectedInstallmentCount || ""}
-                            onChange={(event) => {
-                                setSelectedInstallmentCount(
-                                    Number(event.target.value),
-                                );
-                                setFieldErrors((current) => ({
-                                    ...current,
-                                    installment_count: "",
-                                }));
-                            }}
-                            className="block w-full rounded-[5px] border border-white/10 bg-black/40 px-4 py-3 text-sm text-white shadow-sm focus:border-[#DB202C] focus:ring-[#DB202C]"
-                        >
-                            {availableInstallmentCounts.length === 0 ? (
-                                <option value="">
-                                    No installment option available
-                                </option>
-                            ) : (
-                                availableInstallmentCounts.map((count) => (
+                            <select
+                                value={selectedInstallmentCount || ""}
+                                onChange={(event) => {
+                                    setSelectedInstallmentCount(
+                                        Number(event.target.value),
+                                    );
+                                    setFieldErrors((current) => ({
+                                        ...current,
+                                        installment_count: "",
+                                    }));
+                                }}
+                                disabled={paymentIsLocked}
+                                className="block w-full rounded-[5px] border border-white/10 bg-black/40 px-4 py-3 text-sm text-white shadow-sm focus:border-[#DB202C] focus:ring-[#DB202C] disabled:opacity-60"
+                            >
+                                {availableInstallmentCounts.map((count) => (
                                     <option key={count} value={count}>
                                         {count} total payments
                                     </option>
-                                ))
-                            )}
-                        </select>
+                                ))}
+                            </select>
 
-                        <InputError
-                            className="mt-2 text-sm font-medium text-rose-400"
-                            style={{ fontFamily: FONT_FAMILY }}
-                            message={fieldErrors.installment_count}
-                        />
-                    </div>
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
+                                message={fieldErrors.installment_count}
+                            />
+                        </div>
+                    )}
 
                     <div>
                         <p
@@ -1458,7 +1453,7 @@ export default function PublicCheckoutPanel({
                                 fontWeight: 600,
                             }}
                         >
-                            Pay in {installmentCount} Monthly Installments
+                            Pay in {installmentCount || 2} Monthly Installments
                         </h3>
                     </div>
 
@@ -1481,14 +1476,14 @@ export default function PublicCheckoutPanel({
                                 },
                                 {
                                     label: "Number of Installments",
-                                    value: `${installmentCount}`,
+                                    value: `${installmentCount || 2}`,
                                 },
                                 {
                                     label: usesMonthlyInstallmentSchedule
                                         ? "Monthly Installment"
                                         : "Recurring Installment",
                                     value: formatCurrency(
-                                        recurringAmount,
+                                        recurringAmount || amountDueToday,
                                         activeCurrencyCode,
                                     ),
                                 },
@@ -1497,7 +1492,8 @@ export default function PublicCheckoutPanel({
                                     value: formatCurrency(
                                         Number(
                                             lastInstallment?.amount ??
-                                                recurringAmount,
+                                                recurringAmount ??
+                                                amountDueToday,
                                         ),
                                         activeCurrencyCode,
                                     ),
@@ -1604,28 +1600,7 @@ export default function PublicCheckoutPanel({
                         : "Payment Method"}
                 </h2>
 
-                {isPreview ? (
-                    <Button
-                        type="button"
-                        onClick={preparePreviewPaymentOptions}
-                        disabled={isSubmitting || isPreparingCheckout}
-                        style={{
-                            fontFamily: FONT_FAMILY,
-                            fontSize: "14px",
-                            fontWeight: 500,
-                        }}
-                        className="min-h-[52px] w-full rounded-[5px] bg-[#DB202C] px-4 py-3 text-sm font-medium text-white hover:bg-[#c01a25] disabled:pointer-events-none disabled:opacity-60"
-                    >
-                        {isSubmitting || isPreparingCheckout ? (
-                            <span className="inline-flex items-center justify-center gap-2">
-                                <LoaderCircle className="h-4 w-4 animate-spin" />
-                                Preparing secure payment options...
-                            </span>
-                        ) : (
-                            previewPaymentButtonLabel
-                        )}
-                    </Button>
-                ) : isInstallmentSelected ? (
+                {isInstallmentSelected ? (
                     <div
                         className={`transition-opacity duration-300 ${
                             !formData.terms_accepted
@@ -1642,23 +1617,7 @@ export default function PublicCheckoutPanel({
                             </div>
                         )}
 
-                        {!installmentSession ? (
-                            <Button
-                                type="button"
-                                onClick={runInstallmentCheckout}
-                                disabled={isSubmitting}
-                                style={{
-                                    fontFamily: FONT_FAMILY,
-                                    fontSize: "14px",
-                                    fontWeight: 500,
-                                }}
-                                className="min-h-[52px] w-full rounded-[5px] bg-[#DB202C] px-4 py-3 text-sm font-medium text-white hover:bg-[#c01a25] disabled:pointer-events-none disabled:opacity-60"
-                            >
-                                {isSubmitting
-                                    ? "Preparing PayPal installment approval..."
-                                    : `Continue with PayPal - ${formatCurrency(amountDueToday, activeCurrencyCode)} today`}
-                            </Button>
-                        ) : installmentSession.provider_subscription_id ? (
+                        {installmentSession?.provider_subscription_id ? (
                             <div
                                 className="rounded-[5px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70"
                                 style={{ fontFamily: FONT_FAMILY }}
@@ -1669,15 +1628,25 @@ export default function PublicCheckoutPanel({
                         ) : (
                             <div className="space-y-4">
                                 <div
-                                    style={{
-                                        backgroundColor:
-                                            "rgba(255, 255, 255, 0.97)",
-                                    }}
+                                    className={`relative transition-opacity duration-300 ${
+                                        paymentIsLocked
+                                            ? "opacity-70 grayscale-[35%]"
+                                            : "opacity-100 grayscale-0"
+                                    }`}
                                 >
                                     <div
-                                        ref={installmentButtonsRef}
-                                        className="min-h-[48px]"
-                                    />
+                                        style={{
+                                            backgroundColor:
+                                                "rgba(255, 255, 255, 0.97)",
+                                        }}
+                                    >
+                                        <div
+                                            ref={installmentButtonsRef}
+                                            className="min-h-[48px]"
+                                        />
+                                    </div>
+
+                                    {lockedOverlay}
                                 </div>
 
                                 {!installmentSdkReady && (
@@ -1687,8 +1656,19 @@ export default function PublicCheckoutPanel({
                                     >
                                         <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
                                         <span>
-                                            Loading PayPal sandbox approval
-                                            popup...
+                                            Loading PayPal approval methods...
+                                        </span>
+                                    </div>
+                                )}
+
+                                {(isSubmitting || isPreparingCheckout) && (
+                                    <div
+                                        className="flex items-center gap-3 text-sm font-medium text-white/60"
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                    >
+                                        <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
+                                        <span>
+                                            Preparing secure payment options...
                                         </span>
                                     </div>
                                 )}
@@ -1697,9 +1677,9 @@ export default function PublicCheckoutPanel({
                     </div>
                 ) : (
                     <div
-                        className={`transition-opacity duration-300 ${
-                            !formData.terms_accepted
-                                ? "opacity-50 grayscale-[30%]"
+                        className={`relative transition-opacity duration-300 ${
+                            paymentIsLocked || !formData.terms_accepted
+                                ? "opacity-70 grayscale-[35%]"
                                 : "opacity-100 grayscale-0"
                         }`}
                     >
@@ -1713,10 +1693,12 @@ export default function PublicCheckoutPanel({
                                 className="min-h-[48px]"
                             />
                         </div>
+
+                        {lockedOverlay}
                     </div>
                 )}
 
-                {!isPreview && !isInstallmentSelected && !payFullSdkReady && (
+                {!isInstallmentSelected && !payFullSdkReady && (
                     <div
                         className="flex items-center gap-3 text-sm font-medium text-white/60"
                         style={{ fontFamily: FONT_FAMILY }}
@@ -1725,6 +1707,19 @@ export default function PublicCheckoutPanel({
                         <span>Loading secure payment methods...</span>
                     </div>
                 )}
+
+                {(isSubmitting || isPreparingCheckout) &&
+                    !isInstallmentSelected && (
+                        <div
+                            className="flex items-center gap-3 text-sm font-medium text-white/60"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
+                            <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
+                            <span>
+                                Preparing secure payment options...
+                            </span>
+                        </div>
+                    )}
             </div>
 
             {debugInfo && (
