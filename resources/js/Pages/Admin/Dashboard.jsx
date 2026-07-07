@@ -1,7 +1,7 @@
-import { Badge } from '@/Components/ui/badge';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { formatCurrency } from '@/lib/currency';
-import { Head, router } from '@inertiajs/react';
+import { Badge } from "@/Components/ui/badge";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
+import { formatCurrency } from "@/lib/currency";
+import { Head, router } from "@inertiajs/react";
 
 function MetricCard({ label, value, helper }) {
     return (
@@ -10,7 +10,9 @@ function MetricCard({ label, value, helper }) {
             <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
                 {value}
             </p>
-            {helper ? <p className="mt-2 text-sm text-slate-500">{helper}</p> : null}
+            {helper ? (
+                <p className="mt-2 text-sm text-slate-500">{helper}</p>
+            ) : null}
         </div>
     );
 }
@@ -19,7 +21,9 @@ function DashboardTable({ title, description, columns, rows, emptyMessage }) {
     return (
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-5">
-                <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+                <h3 className="text-lg font-semibold text-slate-900">
+                    {title}
+                </h3>
                 <p className="mt-1 text-sm text-slate-500">{description}</p>
             </div>
 
@@ -80,11 +84,11 @@ function ActivityChart({ series, peak }) {
 
             return `${x},${Number.isFinite(y) ? y : height - 16}`;
         })
-        .join(' ');
+        .join(" ");
 
     const areaPoints = series.length
         ? `0,${height} ${points} ${width},${height}`
-        : '';
+        : "";
 
     return (
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -92,9 +96,6 @@ function ActivityChart({ series, peak }) {
                 <h3 className="text-lg font-semibold text-slate-900">
                     Daily Active Students
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                    Unique students with login session activity in each selected period.
-                </p>
             </div>
 
             <div className="space-y-6 px-6 py-6">
@@ -137,10 +138,14 @@ function ActivityChart({ series, peak }) {
                                         strokeLinecap="round"
                                     />
                                     {series.map((point, index) => {
-                                        const x = series.length === 1 ? width / 2 : index * pointGap;
+                                        const x =
+                                            series.length === 1
+                                                ? width / 2
+                                                : index * pointGap;
                                         const y =
                                             height -
-                                            (point.count / safePeak) * (height - 32) -
+                                            (point.count / safePeak) *
+                                                (height - 32) -
                                             16;
 
                                         return (
@@ -191,7 +196,7 @@ function ActivityChart({ series, peak }) {
 export default function AdminDashboard({ filters, dashboard }) {
     const applyFilters = (overrides) => {
         router.get(
-            route('admin.dashboard'),
+            route("admin.dashboard"),
             {
                 student_scope: filters.student_scope,
                 activity_range: filters.activity_range,
@@ -216,9 +221,9 @@ export default function AdminDashboard({ filters, dashboard }) {
     const revenueTableRows = dashboard.revenue_metrics.tiers.map((tier) => ({
         key: tier.tier_slug,
         tier_name: tier.tier_name,
-        revenue_usd: formatCurrency(tier.revenue_usd, 'USD'),
+        revenue_usd: formatCurrency(tier.revenue_usd, "USD"),
         paid_payments_count: tier.paid_payments_count,
-        unpaid_balance_usd: formatCurrency(tier.unpaid_balance_usd, 'USD'),
+        unpaid_balance_usd: formatCurrency(tier.unpaid_balance_usd, "USD"),
     }));
 
     return (
@@ -230,18 +235,16 @@ export default function AdminDashboard({ filters, dashboard }) {
                     <div className="rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
                         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                             <div className="space-y-2">
-                                <Badge variant="outline" className="rounded-full">
+                                <Badge
+                                    variant="outline"
+                                    className="rounded-full"
+                                >
                                     Admin Dashboard
                                 </Badge>
                                 <div>
                                     <h2 className="text-3xl font-semibold tracking-tight text-slate-900">
                                         Student and revenue snapshot
                                     </h2>
-                                    <p className="mt-2 max-w-3xl text-sm text-slate-600">
-                                        Monitor active student distribution, learning-path
-                                        completion, realized revenue, and daily active student
-                                        trends from login sessions.
-                                    </p>
                                 </div>
                             </div>
 
@@ -254,16 +257,22 @@ export default function AdminDashboard({ filters, dashboard }) {
                                         value={filters.student_scope}
                                         onChange={(event) =>
                                             applyFilters({
-                                                student_scope: event.target.value,
+                                                student_scope:
+                                                    event.target.value,
                                             })
                                         }
                                         className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700"
                                     >
-                                        {dashboard.student_scope_options.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
+                                        {dashboard.student_scope_options.map(
+                                            (option) => (
+                                                <option
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </option>
+                                            ),
+                                        )}
                                     </select>
                                 </label>
 
@@ -275,16 +284,22 @@ export default function AdminDashboard({ filters, dashboard }) {
                                         value={filters.activity_range}
                                         onChange={(event) =>
                                             applyFilters({
-                                                activity_range: event.target.value,
+                                                activity_range:
+                                                    event.target.value,
                                             })
                                         }
                                         className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-700"
                                     >
-                                        {dashboard.activity_range_options.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
+                                        {dashboard.activity_range_options.map(
+                                            (option) => (
+                                                <option
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </option>
+                                            ),
+                                        )}
                                     </select>
                                 </label>
                             </div>
@@ -309,30 +324,37 @@ export default function AdminDashboard({ filters, dashboard }) {
                             label="Total Students"
                             value={dashboard.student_metrics.total_students}
                             helper={
-                                filters.student_scope === 'active'
-                                    ? 'Filtered to students with an active login session.'
-                                    : 'Counts all student accounts.'
+                                filters.student_scope === "active"
+                                    ? "Filtered to students with an active login session."
+                                    : "Counts all student accounts."
                             }
                         />
                         <MetricCard
                             label="Total Revenue"
                             value={formatCurrency(
                                 dashboard.revenue_metrics.total_revenue_usd,
-                                'USD',
+                                "USD",
                             )}
-                            helper="Summed from successful payment amounts after USD conversion."
                         />
                     </div>
 
                     <div className="grid gap-6 xl:grid-cols-2">
                         <DashboardTable
                             title="Student Progress by Tier"
-                            description="Each row summarizes student distribution within the active learning path for that tier."
                             columns={[
-                                { key: 'tier_name', label: 'Tier' },
-                                { key: 'total_students', label: 'Total Students' },
-                                { key: 'in_progress_students', label: 'In Progress' },
-                                { key: 'completed_students', label: 'Completed' },
+                                { key: "tier_name", label: "Tier" },
+                                {
+                                    key: "total_students",
+                                    label: "Total Students",
+                                },
+                                {
+                                    key: "in_progress_students",
+                                    label: "In Progress",
+                                },
+                                {
+                                    key: "completed_students",
+                                    label: "Completed",
+                                },
                             ]}
                             rows={studentTableRows}
                             emptyMessage="No tier-based student data is available yet."
@@ -340,12 +362,17 @@ export default function AdminDashboard({ filters, dashboard }) {
 
                         <DashboardTable
                             title="Revenue by Tier"
-                            description="Revenue is converted to USD, paid payments are counted from successful payment records, and unpaid balance uses remaining invoice balance."
                             columns={[
-                                { key: 'tier_name', label: 'Tier' },
-                                { key: 'revenue_usd', label: 'Revenue' },
-                                { key: 'paid_payments_count', label: 'Paid Payments' },
-                                { key: 'unpaid_balance_usd', label: 'Unpaid Balance' },
+                                { key: "tier_name", label: "Tier" },
+                                { key: "revenue_usd", label: "Revenue" },
+                                {
+                                    key: "paid_payments_count",
+                                    label: "Paid Payments",
+                                },
+                                {
+                                    key: "unpaid_balance_usd",
+                                    label: "Unpaid Balance",
+                                },
                             ]}
                             rows={revenueTableRows}
                             emptyMessage="No revenue data is available yet."
