@@ -99,13 +99,12 @@ function ActivityChart({ series, peak }) {
           )
         : 0;
     const activePoint =
-        activeIndex !== null
-            ? series[activeIndex] ?? null
-            : null;
-    const highlightedPoint = activePoint ?? latestPoint ?? {
-        label: "-",
-        count: 0,
-    };
+        activeIndex !== null ? (series[activeIndex] ?? null) : null;
+    const highlightedPoint = activePoint ??
+        latestPoint ?? {
+            label: "-",
+            count: 0,
+        };
     const xStep = series.length > 1 ? innerWidth / (series.length - 1) : 0;
     const yTicks = Array.from({ length: 5 }, (_, index) =>
         Math.round((safePeak / 4) * (4 - index)),
@@ -117,9 +116,7 @@ function ActivityChart({ series, peak }) {
                 ? padding.left + innerWidth / 2
                 : padding.left + index * xStep;
         const y =
-            padding.top +
-            innerHeight -
-            (point.count / safePeak) * innerHeight;
+            padding.top + innerHeight - (point.count / safePeak) * innerHeight;
 
         return {
             ...point,
@@ -160,11 +157,12 @@ function ActivityChart({ series, peak }) {
                 ? "translate-x-0"
                 : "-translate-x-1/2";
 
-    const tooltipStyle = activeIndex !== null && points[activeIndex]
-        ? {
-              left: `${(points[activeIndex].x / width) * 100}%`,
-          }
-        : undefined;
+    const tooltipStyle =
+        activeIndex !== null && points[activeIndex]
+            ? {
+                  left: `${(points[activeIndex].x / width) * 100}%`,
+              }
+            : undefined;
 
     return (
         <div className="rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -174,10 +172,6 @@ function ActivityChart({ series, peak }) {
                         <h3 className="text-lg font-semibold text-slate-900">
                             Daily Active Students
                         </h3>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Unique student login activity across the selected
-                            period.
-                        </p>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3">
@@ -241,11 +235,6 @@ function ActivityChart({ series, peak }) {
                                 </div>
                             </div>
                         </div>
-
-                        <p className="max-w-md text-sm leading-6 text-slate-500">
-                            Hover each point to inspect the period in a cleaner,
-                            more dashboard-style presentation.
-                        </p>
                     </div>
 
                     <div
@@ -349,7 +338,8 @@ function ActivityChart({ series, peak }) {
                                         strokeLinecap="round"
                                     />
 
-                                    {activeIndex !== null && points[activeIndex] ? (
+                                    {activeIndex !== null &&
+                                    points[activeIndex] ? (
                                         <line
                                             x1={points[activeIndex].x}
                                             x2={points[activeIndex].x}
@@ -371,7 +361,9 @@ function ActivityChart({ series, peak }) {
                                                     r={isActive ? "7" : "4.5"}
                                                     fill="#ffffff"
                                                     stroke="#0f172a"
-                                                    strokeWidth={isActive ? "3" : "2.25"}
+                                                    strokeWidth={
+                                                        isActive ? "3" : "2.25"
+                                                    }
                                                     className="cursor-pointer transition-all duration-150"
                                                     onMouseEnter={() =>
                                                         setActiveIndex(index)
