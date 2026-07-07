@@ -7,6 +7,7 @@ use App\Models\OnboardingState;
 use App\Models\Payment;
 use App\Models\PaymentSubscription;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Collection;
@@ -32,44 +33,30 @@ class InvoiceConfirmationPdfService
         $successPayments = $invoice->payments
             ->filter(fn (Payment $payment) => $payment->status === Payment::STATUS_SUCCESS)
             ->values();
-        $user = $invoice->user;
-        $pendingRegistration = $invoice->pendingRegistration;
-        $studentName = $this->studentName($invoice);
-        $studentEmail = $user?->email ?: ($pendingRegistration?->email ?: '-');
-        $accessTier = $invoice->accessTier ?? $user?->accessTier ?? $pendingRegistration?->accessTier;
-        $latestSuccessfulPayment = $successPayments->last();
 
+        $studentName = $this->studentName($invoice);
+        $courseName = $invoice->package?->title
+            ?: ($invoice->accessTier?->name ?: ($invoice->user?->accessTier?->name ?: 'YogaFX Program'));
         $view = $invoice->payment_type === Invoice::PAYMENT_TYPE_INSTALLMENT
             ? 'pdf.installment-confirmation'
             : 'pdf.online-confirmation';
 
-        $attachment = [
-            'name' => $this->fileName($invoice, $studentName),
-            'mime' => 'application/pdf',
-            'data' => '',
-        ];
-
         $html = view($view, [
-            'invoice' => $invoice,
-            'studentName' => $studentName,
-            'studentEmail' => $studentEmail,
-            'studentCountry' => $user?->country ?: ($pendingRegistration?->country ?: '-'),
-            'packageTitle' => $invoice->package?->title ?: ($accessTier?->name ?: 'YogaFX Program'),
-            'tierName' => $accessTier?->name ?: '-',
-            'invoiceTypeLabel' => $invoice->type === Invoice::TYPE_UPGRADE ? 'Upgrade' : 'Initial Checkout',
-            'paymentTypeLabel' => $invoice->payment_type === Invoice::PAYMENT_TYPE_INSTALLMENT ? 'Installment' : 'Pay Full',
-            'currencyCode' => strtoupper((string) $invoice->currency_code),
-            'totalAmount' => $this->formatMoney($invoice->total_amount, $invoice->currency_code),
-            'balanceDue' => $this->formatMoney($invoice->balance_due, $invoice->currency_code),
-            'totalPaid' => $this->formatMoney($successPayments->sum(fn (Payment $payment) => (float) $payment->amount_paid), $invoice->currency_code),
-            'issuedAt' => optional($invoice->issued_at)->format('M j, Y') ?: '-',
-            'paidAt' => optional($invoice->paid_at)->format('M j, Y') ?: '-',
-            'generatedAt' => now()->format('M j, Y'),
-            'statusLabel' => Str::of($invoice->status)->replace('_', ' ')->title()->toString(),
-            'primaryPaymentReference' => $latestSuccessfulPayment?->payment_reference ?: '-',
-            'paymentReferences' => $this->paymentReferences($successPayments),
-            'installment' => $this->installmentData($invoice, $paymentSubscription),
-            'supportEmail' => config('mail.from.address', config('app.name', 'YogaFX LMS')),
+            'documentTitle' => $invoice->invoice_number,
+            'courseName' => $courseName,
+            'dearName' => $studentName,
+            'coursePrice' => $this->formatMoney(
+                amount: (float) $invoice->total_amount,
+                currencyCode: $invoice->currency_code,
+                decimals: $this->summaryDecimals((float) $invoice->total_amount),
+            ),
+            'fullPaymentAmount' => $this->formatMoney(
+                amount: $successPayments->sum(fn (Payment $payment) => (float) $payment->amount_paid),
+                currencyCode: $invoice->currency_code,
+                decimals: $this->summaryDecimals($successPayments->sum(fn (Payment $payment) => (float) $payment->amount_paid)),
+            ),
+            'paymentReceivedOn' => $this->paymentReceivedOn($successPayments),
+            ...$this->installmentViewData($invoice, $paymentSubscription, $successPayments),
         ])->render();
 
         $options = new Options();
@@ -82,9 +69,11 @@ class InvoiceConfirmationPdfService
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        $attachment['data'] = $dompdf->output();
-
-        return $attachment;
+        return [
+            'name' => $this->fileName($invoice, $studentName),
+            'mime' => 'application/pdf',
+            'data' => $dompdf->output(),
+        ];
     }
 
     public function paymentSuccessNextStepUrl(Invoice $invoice, ?OnboardingState $onboardingState = null): string
@@ -124,11 +113,7 @@ class InvoiceConfirmationPdfService
 
     private function fileName(Invoice $invoice, string $studentName): string
     {
-        $safeName = Str::of($studentName)
-            ->lower()
-            ->slug('-')
-            ->value();
-
+        $safeName = Str::of($studentName)->lower()->slug('-')->value();
         $prefix = $invoice->payment_type === Invoice::PAYMENT_TYPE_INSTALLMENT
             ? 'installment-confirmation'
             : 'online-confirmation';
@@ -137,56 +122,227 @@ class InvoiceConfirmationPdfService
     }
 
     /**
-     * @param  Collection<int, Payment>  $payments
-     * @return array<int, array{reference: string, amount: string, paid_at: string}>
-     */
-    private function paymentReferences(Collection $payments): array
-    {
-        return $payments
-            ->map(fn (Payment $payment) => [
-                'reference' => $payment->payment_reference ?: '-',
-                'amount' => $this->formatMoney($payment->amount_paid, $payment->currency_code),
-                'paid_at' => optional($payment->updated_at)->format('M j, Y') ?: '-',
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
+     * @param  Collection<int, Payment>  $successPayments
      * @return array{
-     *     first_payment_amount: string,
-     *     recurring_amount: string,
-     *     billing_day: string,
-     *     next_due_date: string,
-     *     installment_count: string,
-     *     installments_paid_count: string,
-     *     final_due_date: string
+     *     firstInstallmentAmount: string,
+     *     balanceDue: string,
+     *     firstInstallmentReceivedOn: string,
+     *     showBalanceScheduleCopy: bool,
+     *     installmentRows: array<int, array{
+     *         label: string,
+     *         amount: string,
+     *         show_status: bool,
+     *         status_label: string,
+     *         date_label: string,
+     *         date_value: string
+     *     }>
      * }
      */
-    private function installmentData(Invoice $invoice, ?PaymentSubscription $subscription): array
-    {
+    private function installmentViewData(
+        Invoice $invoice,
+        ?PaymentSubscription $subscription,
+        Collection $successPayments,
+    ): array {
+        if ($invoice->payment_type !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            return [
+                'firstInstallmentAmount' => '',
+                'balanceDue' => '',
+                'firstInstallmentReceivedOn' => '',
+                'showBalanceScheduleCopy' => false,
+                'installmentRows' => [],
+            ];
+        }
+
+        $rows = $this->buildInstallmentRows($invoice, $subscription, $successPayments);
+        $firstPaymentAmount = $subscription?->first_payment_amount;
+
+        if ($firstPaymentAmount === null) {
+            $firstPaymentAmount = (float) ($successPayments->first()?->amount_paid ?? 0);
+        }
+
+        $balanceDueAmount = max(0, round((float) $invoice->total_amount - (float) $firstPaymentAmount, 2));
+
         return [
-            'first_payment_amount' => $subscription
-                ? $this->formatMoney($subscription->first_payment_amount, $subscription->currency_code)
-                : '-',
-            'recurring_amount' => $subscription
-                ? $this->formatMoney($subscription->next_billing_amount, $subscription->currency_code)
-                : '-',
-            'billing_day' => $subscription?->billing_day ? (string) $subscription->billing_day : '-',
-            'next_due_date' => optional($subscription?->next_due_at)->format('M j, Y') ?: '-',
-            'installment_count' => $subscription?->installment_count ? (string) $subscription->installment_count : '-',
-            'installments_paid_count' => $subscription?->installments_paid_count !== null
-                ? (string) $subscription->installments_paid_count
-                : '-',
-            'final_due_date' => optional($subscription?->final_due_at)->format('M j, Y') ?: '-',
+            'firstInstallmentAmount' => $this->formatMoney(
+                amount: (float) $firstPaymentAmount,
+                currencyCode: $invoice->currency_code,
+                decimals: $this->detailDecimals((float) $firstPaymentAmount),
+            ),
+            'balanceDue' => $this->formatMoney(
+                amount: $balanceDueAmount,
+                currencyCode: $invoice->currency_code,
+                decimals: $this->detailDecimals($balanceDueAmount),
+            ),
+            'firstInstallmentReceivedOn' => $rows[0]['date_value'] ?? $this->paymentReceivedOn($successPayments),
+            'showBalanceScheduleCopy' => $balanceDueAmount > 0,
+            'installmentRows' => $rows,
         ];
     }
 
-    private function formatMoney(float|int|string|null $amount, ?string $currencyCode): string
+    /**
+     * @param  Collection<int, Payment>  $successPayments
+     * @return array<int, array{
+     *     label: string,
+     *     amount: string,
+     *     show_status: bool,
+     *     status_label: string,
+     *     date_label: string,
+     *     date_value: string
+     * }>
+     */
+    private function buildInstallmentRows(
+        Invoice $invoice,
+        ?PaymentSubscription $subscription,
+        Collection $successPayments,
+    ): array {
+        $scheduleBreakdown = [];
+        $metadata = is_array($subscription?->metadata) ? $subscription->metadata : [];
+        $installmentPlan = is_array($metadata['installment_plan'] ?? null) ? $metadata['installment_plan'] : [];
+
+        if (is_array($installmentPlan['schedule_breakdown'] ?? null)) {
+            $scheduleBreakdown = array_values(array_filter(
+                $installmentPlan['schedule_breakdown'],
+                fn ($row) => is_array($row) && isset($row['cycle_number'], $row['amount'], $row['due_at']),
+            ));
+        }
+
+        if ($scheduleBreakdown === [] && $subscription instanceof PaymentSubscription) {
+            $installmentCount = max(1, (int) $subscription->installment_count);
+            $scheduleBreakdown[] = [
+                'cycle_number' => 1,
+                'amount' => (float) $subscription->first_payment_amount,
+                'due_at' => optional($subscription->first_payment_paid_at ?? $subscription->started_at ?? $invoice->issued_at)->toDateString()
+                    ?? now()->toDateString(),
+            ];
+
+            for ($cycle = 2; $cycle <= $installmentCount; $cycle++) {
+                $amount = (float) ($subscription->next_billing_amount ?: $subscription->monthly_base_amount ?: 0);
+                $dueAt = $this->fallbackRecurringDate($subscription, $cycle);
+
+                $scheduleBreakdown[] = [
+                    'cycle_number' => $cycle,
+                    'amount' => $amount,
+                    'due_at' => $dueAt->toDateString(),
+                ];
+            }
+        }
+
+        if ($scheduleBreakdown === []) {
+            $paidAt = $successPayments->first()?->updated_at?->toDateString() ?? now()->toDateString();
+
+            return [[
+                'label' => '1st Installment',
+                'amount' => $this->formatMoney(
+                    amount: (float) ($successPayments->first()?->amount_paid ?? 0),
+                    currencyCode: $invoice->currency_code,
+                    decimals: 2,
+                ),
+                'show_status' => false,
+                'status_label' => '',
+                'date_label' => 'Received on',
+                'date_value' => $this->humanDate($paidAt),
+            ]];
+        }
+
+        $rows = [];
+        $successfulPayments = $successPayments->values();
+
+        foreach ($scheduleBreakdown as $index => $scheduleRow) {
+            $payment = $successfulPayments->get($index);
+            $isPaid = $payment instanceof Payment;
+            $dateSource = $isPaid
+                ? optional($payment->updated_at)->toDateString()
+                : (string) $scheduleRow['due_at'];
+
+            $rows[] = [
+                'label' => sprintf('%s Installment', $this->ordinal((int) $scheduleRow['cycle_number'])),
+                'amount' => $this->formatMoney(
+                    amount: (float) $scheduleRow['amount'],
+                    currencyCode: $invoice->currency_code,
+                    decimals: 2,
+                ),
+                'show_status' => $index > 0,
+                'status_label' => $isPaid ? 'Paid' : 'Scheduled',
+                'date_label' => $isPaid ? 'Received on' : 'Due on',
+                'date_value' => $this->humanDate($dateSource),
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function fallbackRecurringDate(PaymentSubscription $subscription, int $cycle): CarbonImmutable
+    {
+        $start = CarbonImmutable::parse(
+            optional($subscription->first_payment_paid_at ?? $subscription->started_at ?? $subscription->created_at)->toDateString()
+                ?? now()->toDateString()
+        );
+
+        return $start->addMonthsNoOverflow(max(0, $cycle - 1))
+            ->startOfMonth()
+            ->setDay((int) ($subscription->billing_day ?: 1));
+    }
+
+    /**
+     * @param  Collection<int, Payment>  $successPayments
+     */
+    private function paymentReceivedOn(Collection $successPayments): string
+    {
+        $paidAt = $successPayments->last()?->updated_at?->toDateString()
+            ?? $successPayments->first()?->updated_at?->toDateString()
+            ?? now()->toDateString();
+
+        return $this->humanDate($paidAt);
+    }
+
+    private function humanDate(string $value): string
+    {
+        return CarbonImmutable::parse($value)->format('M, jS Y');
+    }
+
+    private function ordinal(int $number): string
+    {
+        if ($number % 100 >= 11 && $number % 100 <= 13) {
+            return $number.'th';
+        }
+
+        return match ($number % 10) {
+            1 => $number.'st',
+            2 => $number.'nd',
+            3 => $number.'rd',
+            default => $number.'th',
+        };
+    }
+
+    private function summaryDecimals(float $amount): int
+    {
+        return abs($amount - round($amount)) < 0.00001 ? 0 : 2;
+    }
+
+    private function detailDecimals(float $amount): int
+    {
+        return abs($amount - round($amount)) < 0.00001 ? 0 : 2;
+    }
+
+    private function formatMoney(float|int|string|null $amount, ?string $currencyCode, int $decimals = 2): string
     {
         $numeric = (float) ($amount ?? 0);
         $currency = strtoupper((string) ($currencyCode ?: 'USD'));
+        $symbol = match ($currency) {
+            'USD' => '$',
+            'GBP' => '£',
+            'EUR' => '€',
+            'AUD' => 'A$',
+            'CAD' => 'C$',
+            'IDR' => 'Rp',
+            default => '',
+        };
 
-        return sprintf('%s %s', $currency, number_format($numeric, 2, '.', ','));
+        return trim(sprintf(
+            '%s %s%s',
+            $currency,
+            $symbol,
+            number_format($numeric, $decimals, '.', ','),
+        ));
     }
 }
