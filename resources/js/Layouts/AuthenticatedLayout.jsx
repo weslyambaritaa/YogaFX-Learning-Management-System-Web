@@ -27,6 +27,7 @@ import {
     ChevronRight,
     ClipboardList,
     FileSpreadsheet,
+    FileText,
     House,
     LayoutDashboard,
     Mail,
@@ -35,6 +36,7 @@ import {
     PlaySquare,
     Shield,
     UserRound,
+    Wallet,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -224,6 +226,18 @@ const adminUtilityItems = [
         match: ["admin.packages.*"],
     },
     {
+        label: "Invoice",
+        route: "admin.invoices.index",
+        icon: FileText,
+        match: ["admin.invoices.*"],
+    },
+    {
+        label: "Payment",
+        route: "admin.payments.index",
+        icon: Wallet,
+        match: ["admin.payments.*"],
+    },
+    {
         label: "Access Tiers",
         route: "admin.access-tiers.index",
         icon: FileSpreadsheet,
@@ -316,6 +330,8 @@ const adminPageTitles = {
     "admin.packages.index": "Packages",
     "admin.packages.create": "Create Package",
     "admin.packages.edit": "Edit Package",
+    "admin.invoices.index": "Invoice",
+    "admin.payments.index": "Payment",
     "admin.access-tiers.index": "Access Tiers",
     "admin.access-tiers.create": "Create Access Tier",
     "admin.access-tiers.edit": "Edit Access Tier",

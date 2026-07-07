@@ -172,6 +172,7 @@ function ActivityChart({ series, peak }) {
                         <h3 className="text-lg font-semibold text-slate-900">
                             Daily Active Students
                         </h3>
+                        
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3">
