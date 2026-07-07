@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AccessTierController;
 use App\Http\Controllers\Admin\AdminAccountController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AssignmentController as AdminAssignmentController;
 use App\Http\Controllers\Admin\AssessmentPreviewController;
@@ -108,9 +109,9 @@ Route::middleware('auth')->group(function () {
         return redirect()->route($user->postLoginRouteName());
     })->name('dashboard');
 
-    Route::get('/admin/dashboard', function () {
-        return Inertia::render('Admin/Dashboard');
-    })->middleware('role:admin,super_admin')->name('admin.dashboard');
+    Route::get('/admin/dashboard', AdminDashboardController::class)
+        ->middleware('role:admin,super_admin')
+        ->name('admin.dashboard');
 
     Route::get('/student/dashboard', [HomeController::class, 'index'])
         ->middleware(['role:student', 'student.active', 'track.student.session'])
