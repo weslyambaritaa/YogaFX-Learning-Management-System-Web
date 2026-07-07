@@ -483,7 +483,12 @@ class PaymentCheckoutService
         $amount = (float) ($package?->price ?? $pendingRegistration->accessTier->price);
         $currencyCode = (string) ($package?->currency_code ?? $pendingRegistration->accessTier->currency_code);
         $installmentData = $this->availableInstallmentData($pendingRegistration);
-        $installmentSummary = $installmentData['selected_summary'];
+        $installmentSummary = $this->normalizeInstallmentSummary(
+            $installmentData['selected_summary'],
+        );
+        $installmentSummaries = $this->normalizeInstallmentSummaries(
+            $installmentData['summaries'],
+        );
         $checkoutBillingDayOptions = $package?->checkoutBillingDayOptions() ?? [];
         $checkoutRequiresBillingDayChoice = $package?->checkoutRequiresBillingDayChoice() ?? false;
         $checkoutAcceptsBillingDay = $package?->checkoutAcceptsBillingDay() ?? false;
@@ -509,9 +514,13 @@ class PaymentCheckoutService
                 'installment_enabled' => (bool) $package->installment_enabled,
                 'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                 'allowed_billing_days' => $package->checkoutBillingDayOptions(),
+                'checkout_billing_day_options' => $checkoutBillingDayOptions,
+                'installment_billing_day_options' => $checkoutBillingDayOptions,
+                'installment_maximum_count' => $installmentSummary['installment_maximum_count'] ?? null,
+                'maximum_installment_count' => $installmentSummary['maximum_installment_count'] ?? null,
             ] : null,
             'installment_summary' => $installmentSummary,
-            'installment_summaries' => $installmentData['summaries'],
+            'installment_summaries' => $installmentSummaries,
             'installment_allowed_billing_days' => $installmentData['allowed_billing_days'],
             'installment_selected_billing_day' => $installmentData['selected_billing_day'],
             'installment_accepts_billing_day' => $checkoutAcceptsBillingDay,
@@ -519,7 +528,19 @@ class PaymentCheckoutService
             'installment_billing_day_options' => $checkoutBillingDayOptions,
             'installment_billing_interval_unit' => 'MONTH',
             'installment_billing_interval_count' => 1,
-            'installment_maximum_count' => $installmentSummary['maximum_installment_count'] ?? null,
+            'installment_count' => $installmentSummary['installment_count'] ?? null,
+            'total_amount' => $installmentSummary['total_amount'] ?? null,
+            'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
+            'first_payment_date' => $installmentSummary['first_payment_date'] ?? null,
+            'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
+            'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+            'billing_day' => $installmentSummary['billing_day'] ?? null,
+            'recurring_due_dates' => $installmentSummary['recurring_due_dates'] ?? [],
+            'available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
+            'schedule_breakdown' => $installmentSummary['schedule_breakdown'] ?? [],
+            'final_due_at' => $installmentSummary['final_due_at'] ?? null,
+            'installment_maximum_count' => $installmentSummary['installment_maximum_count'] ?? null,
+            'maximum_installment_count' => $installmentSummary['maximum_installment_count'] ?? null,
             'installment_available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
             'installment_deadline_date' => $installmentSummary['deadline_date'] ?? $package?->installment_deadline_date?->toDateString(),
             'access_tier' => [
@@ -706,7 +727,12 @@ class PaymentCheckoutService
         $amountDue = $this->relevantUpgradeAmountDue($user, $targetTier);
         $totalPaid = $this->relevantUpgradePaidAmount($user, $targetTier);
         $installmentData = $this->availableUpgradeInstallmentData($targetTier, $amountDue);
-        $installmentSummary = $installmentData['selected_summary'];
+        $installmentSummary = $this->normalizeInstallmentSummary(
+            $installmentData['selected_summary'],
+        );
+        $installmentSummaries = $this->normalizeInstallmentSummaries(
+            $installmentData['summaries'],
+        );
 
         return [
             'submit_url' => route('student.upgrades.pay', $targetTier),
@@ -736,7 +762,7 @@ class PaymentCheckoutService
                 allowedBillingDays: $installmentData['allowed_billing_days'],
             ),
             'installment_summary' => $installmentSummary,
-            'installment_summaries' => $installmentData['summaries'],
+            'installment_summaries' => $installmentSummaries,
             'installment_allowed_billing_days' => $installmentData['allowed_billing_days'],
             'installment_selected_billing_day' => $installmentData['selected_billing_day'],
             'installment_accepts_billing_day' => $installmentData['accepts_billing_day'],
@@ -744,7 +770,19 @@ class PaymentCheckoutService
             'installment_billing_day_options' => $installmentData['visible_billing_day_options'],
             'installment_billing_interval_unit' => 'MONTH',
             'installment_billing_interval_count' => 1,
-            'installment_maximum_count' => $installmentSummary['maximum_installment_count'] ?? null,
+            'installment_count' => $installmentSummary['installment_count'] ?? null,
+            'total_amount' => $installmentSummary['total_amount'] ?? null,
+            'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
+            'first_payment_date' => $installmentSummary['first_payment_date'] ?? null,
+            'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
+            'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+            'billing_day' => $installmentSummary['billing_day'] ?? null,
+            'recurring_due_dates' => $installmentSummary['recurring_due_dates'] ?? [],
+            'available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
+            'schedule_breakdown' => $installmentSummary['schedule_breakdown'] ?? [],
+            'final_due_at' => $installmentSummary['final_due_at'] ?? null,
+            'installment_maximum_count' => $installmentSummary['installment_maximum_count'] ?? null,
+            'maximum_installment_count' => $installmentSummary['maximum_installment_count'] ?? null,
             'installment_available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
             'installment_deadline_date' => $installmentSummary['deadline_date'] ?? null,
             'installment_approve_url' => $this->upgradeSubscriptionApproveUrl($targetTier),
@@ -1064,6 +1102,10 @@ class PaymentCheckoutService
                     'installment_enabled' => (bool) $package->installment_enabled,
                     'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                     'allowed_billing_days' => [],
+                    'checkout_billing_day_options' => [],
+                    'installment_billing_day_options' => [],
+                    'installment_maximum_count' => null,
+                    'maximum_installment_count' => null,
                 ],
                 'selected_summary' => null,
                 'selected_billing_day' => null,
@@ -1108,6 +1150,10 @@ class PaymentCheckoutService
                     'installment_enabled' => (bool) $package->installment_enabled,
                     'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                     'allowed_billing_days' => $visibleBillingDayOptions,
+                    'checkout_billing_day_options' => $visibleBillingDayOptions,
+                    'installment_billing_day_options' => $visibleBillingDayOptions,
+                    'installment_maximum_count' => null,
+                    'maximum_installment_count' => null,
                 ],
                 'selected_summary' => null,
                 'selected_billing_day' => null,
@@ -1140,6 +1186,10 @@ class PaymentCheckoutService
                 'installment_enabled' => (bool) $package->installment_enabled,
                 'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                 'allowed_billing_days' => $visibleBillingDayOptions,
+                'checkout_billing_day_options' => $visibleBillingDayOptions,
+                'installment_billing_day_options' => $visibleBillingDayOptions,
+                'installment_maximum_count' => $summaries[$selectedSummaryKey]['installment_maximum_count'] ?? null,
+                'maximum_installment_count' => $summaries[$selectedSummaryKey]['maximum_installment_count'] ?? null,
             ],
             'selected_summary' => $summaries[$selectedSummaryKey] ?? null,
             'selected_billing_day' => $selectedBillingDay,
@@ -1179,12 +1229,20 @@ class PaymentCheckoutService
                 'currency_code' => $installmentSummary['currency_code'],
                 'installment_count' => $installmentSummary['installment_count'],
                 'maximum_installment_count' => $installmentSummary['maximum_installment_count'] ?? $installmentSummary['installment_count'],
+                'installment_maximum_count' => $installmentSummary['installment_maximum_count'] ?? $installmentSummary['maximum_installment_count'] ?? $installmentSummary['installment_count'],
+                'total_amount' => $installmentSummary['total_amount'] ?? null,
+                'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
                 'recurring_amount' => $installmentSummary['recurring_payment_amount'],
+                'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
+                'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
                 'billing_day' => $installmentSummary['billing_day'],
                 'allowed_billing_days' => $allowedBillingDays,
                 'deadline_date' => $installmentSummary['deadline_date'] ?? null,
                 'final_due_at' => $installmentSummary['final_due_at'],
+                'first_payment_date' => $installmentSummary['first_payment_date'] ?? null,
+                'recurring_due_dates' => $installmentSummary['recurring_due_dates'] ?? [],
                 'available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
+                'schedule_breakdown' => $installmentSummary['schedule_breakdown'] ?? [],
                 'summary' => $installmentSummary,
             ];
         }
@@ -1246,5 +1304,54 @@ class PaymentCheckoutService
     private function formatMoney(float $amount): string
     {
         return number_format(round($amount, 2), 2, '.', '');
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $installmentSummary
+     * @return array<string, mixed>|null
+     */
+    private function normalizeInstallmentSummary(?array $installmentSummary): ?array
+    {
+        if ($installmentSummary === null) {
+            return null;
+        }
+
+        $maximumInstallmentCount = $installmentSummary['maximum_installment_count']
+            ?? $installmentSummary['installment_maximum_count']
+            ?? $installmentSummary['installment_count']
+            ?? null;
+
+        return [
+            ...$installmentSummary,
+            'total_amount' => $installmentSummary['total_amount'] ?? null,
+            'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
+            'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
+            'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+            'installment_count' => $installmentSummary['installment_count'] ?? null,
+            'maximum_installment_count' => $maximumInstallmentCount,
+            'installment_maximum_count' => $maximumInstallmentCount,
+            'recurring_due_dates' => $installmentSummary['recurring_due_dates'] ?? [],
+            'available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
+            'schedule_breakdown' => $installmentSummary['schedule_breakdown'] ?? [],
+            'final_due_at' => $installmentSummary['final_due_at'] ?? null,
+            'first_payment_date' => $installmentSummary['first_payment_date'] ?? null,
+            'billing_day' => $installmentSummary['billing_day'] ?? null,
+        ];
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $installmentSummaries
+     * @return array<string, array<string, mixed>>
+     */
+    private function normalizeInstallmentSummaries(array $installmentSummaries): array
+    {
+        $normalized = [];
+
+        foreach ($installmentSummaries as $billingDay => $installmentSummary) {
+            $normalized[(string) $billingDay] =
+                $this->normalizeInstallmentSummary($installmentSummary) ?? [];
+        }
+
+        return $normalized;
     }
 }

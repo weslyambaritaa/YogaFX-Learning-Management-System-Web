@@ -75,6 +75,160 @@ function normalizeBillingDays(value) {
         .sort((a, b) => a - b);
 }
 
+function normalizeInstallmentMaximumCount(value) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue) || numericValue < 2) {
+        return 2;
+    }
+
+    return Math.trunc(numericValue);
+}
+
+function amountToCents(value) {
+    return Math.round(Number(value ?? 0) * 100);
+}
+
+function centsToAmount(value) {
+    return Number((Number(value ?? 0) / 100).toFixed(2));
+}
+
+function toDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function daysInMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+function dateForBillingDay(year, monthIndex, billingDay) {
+    const safeBillingDay = Number(billingDay) === 1 ? 1 : 15;
+    const safeDay = Math.min(safeBillingDay, daysInMonth(year, monthIndex));
+
+    return new Date(year, monthIndex, safeDay, 12, 0, 0, 0);
+}
+
+function buildRecurringDueDates({ billingDay, recurringCount, startDate = new Date() }) {
+    const normalizedRecurringCount = Number(recurringCount);
+
+    if (
+        !Number.isFinite(normalizedRecurringCount) ||
+        normalizedRecurringCount <= 0
+    ) {
+        return [];
+    }
+
+    const normalizedBillingDay = Number(billingDay) === 1 ? 1 : 15;
+    const dates = [];
+    let cursorMonth = startDate.getMonth();
+    let cursorYear = startDate.getFullYear();
+
+    while (dates.length < normalizedRecurringCount) {
+        let candidate = dateForBillingDay(
+            cursorYear,
+            cursorMonth,
+            normalizedBillingDay,
+        );
+
+        if (candidate <= startDate) {
+            cursorMonth += 1;
+
+            if (cursorMonth > 11) {
+                cursorMonth = 0;
+                cursorYear += 1;
+            }
+
+            candidate = dateForBillingDay(
+                cursorYear,
+                cursorMonth,
+                normalizedBillingDay,
+            );
+        }
+
+        dates.push(toDateString(candidate));
+
+        cursorMonth += 1;
+
+        if (cursorMonth > 11) {
+            cursorMonth = 0;
+            cursorYear += 1;
+        }
+    }
+
+    return dates;
+}
+
+function buildPreviewInstallmentSummary({
+    amount,
+    maximumInstallmentCount,
+    billingDay,
+}) {
+    const normalizedAmount = Number(amount ?? 0);
+    const normalizedMaximumInstallmentCount = normalizeInstallmentMaximumCount(
+        maximumInstallmentCount,
+    );
+
+    if (!normalizedAmount || normalizedAmount <= 0) {
+        return null;
+    }
+
+    const totalAmountCents = amountToCents(normalizedAmount);
+    const recurringAmountCents = Math.floor(
+        totalAmountCents / normalizedMaximumInstallmentCount,
+    );
+    const firstPaymentAmountCents =
+        totalAmountCents -
+        recurringAmountCents * (normalizedMaximumInstallmentCount - 1);
+
+    const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
+    const recurringAmount = centsToAmount(recurringAmountCents);
+    const firstPaymentDate = toDateString(new Date());
+    const recurringDueDates = buildRecurringDueDates({
+        billingDay,
+        recurringCount: normalizedMaximumInstallmentCount - 1,
+    });
+    const finalDueAt =
+        recurringDueDates[recurringDueDates.length - 1] ?? firstPaymentDate;
+
+    return {
+        total_amount: normalizedAmount.toFixed(2),
+        first_payment_amount: firstPaymentAmount.toFixed(2),
+        first_payment_date: firstPaymentDate,
+        recurring_payment_amount: recurringAmount.toFixed(2),
+        monthly_base_amount: recurringAmount.toFixed(2),
+        installment_count: normalizedMaximumInstallmentCount,
+        maximum_installment_count: normalizedMaximumInstallmentCount,
+        installment_maximum_count: normalizedMaximumInstallmentCount,
+        billing_day: billingDay,
+        recurring_due_dates: recurringDueDates,
+        available_recurring_due_dates: recurringDueDates,
+        schedule_breakdown: [
+            {
+                cycle_number: 1,
+                type: "first_payment",
+                amount: firstPaymentAmount.toFixed(2),
+                due_at: firstPaymentDate,
+                grace_deadline: null,
+            },
+            ...Array.from(
+                { length: normalizedMaximumInstallmentCount - 1 },
+                (_, index) => ({
+                    cycle_number: index + 2,
+                    type: "recurring",
+                    amount: recurringAmount.toFixed(2),
+                    due_at: recurringDueDates[index] ?? null,
+                    grace_deadline: null,
+                }),
+            ),
+        ],
+        final_due_at: finalDueAt,
+    };
+}
+
 export default function Scoreboard({
     packages,
     submit_url,
@@ -168,9 +322,20 @@ export default function Scoreboard({
         );
     }, [selectedPackage]);
 
+    const selectedPackageMaximumInstallmentCount = useMemo(() => {
+        return normalizeInstallmentMaximumCount(
+            selectedPackage?.installment_maximum_count ??
+                selectedPackage?.maximum_installment_count ??
+                selectedPackage?.max_installment_count ??
+                selectedPackage?.installment_count ??
+                2,
+        );
+    }, [selectedPackage]);
+
     const selectedPackageInstallmentEnabled = Boolean(
         selectedPackage?.installment_enabled &&
-            selectedPackageAllowedBillingDays.length > 0,
+            selectedPackageAllowedBillingDays.length > 0 &&
+            selectedPackageMaximumInstallmentCount >= 2,
     );
 
     const previewCheckout = useMemo(() => {
@@ -178,6 +343,13 @@ export default function Scoreboard({
         const currencyCode =
             selectedPackage?.currency_code ?? paypal?.currency_code ?? "USD";
         const billingDay = selectedPackageAllowedBillingDays[0] ?? 15;
+        const maximumInstallmentCount = selectedPackageMaximumInstallmentCount;
+
+        const previewInstallmentSummary = buildPreviewInstallmentSummary({
+            amount,
+            maximumInstallmentCount,
+            billingDay,
+        });
 
         const paymentOptions = [
             {
@@ -192,11 +364,16 @@ export default function Scoreboard({
             paymentOptions.push({
                 type: "installment",
                 label: "Pay in installment",
-                amount_due_today: amount > 0 ? (amount / 2).toFixed(2) : "0.00",
+                amount_due_today:
+                    previewInstallmentSummary?.first_payment_amount ??
+                    (amount > 0 ? (amount / 2).toFixed(2) : "0.00"),
                 currency_code: currencyCode,
                 billing_day: billingDay,
                 allowed_billing_days: selectedPackageAllowedBillingDays,
-                summary: null,
+                installment_count: maximumInstallmentCount,
+                maximum_installment_count: maximumInstallmentCount,
+                installment_maximum_count: maximumInstallmentCount,
+                summary: previewInstallmentSummary,
             });
         }
 
@@ -215,6 +392,14 @@ export default function Scoreboard({
                       currency_code: currencyCode,
                       installment_enabled: selectedPackageInstallmentEnabled,
                       allowed_billing_days: selectedPackageAllowedBillingDays,
+                      checkout_billing_day_options:
+                          selectedPackageAllowedBillingDays,
+                      installment_billing_day_options:
+                          selectedPackageAllowedBillingDays,
+                      installment_deadline_date:
+                          selectedPackage.installment_deadline_date ?? null,
+                      installment_maximum_count: maximumInstallmentCount,
+                      maximum_installment_count: maximumInstallmentCount,
                   }
                 : null,
             access_tier: selectedPackage?.access_tier ?? null,
@@ -225,8 +410,12 @@ export default function Scoreboard({
                     label: "PayPal",
                 },
             ],
-            installment_summary: null,
-            installment_summaries: {},
+            installment_summary: previewInstallmentSummary,
+            installment_summaries: billingDay
+                ? {
+                      [String(billingDay)]: previewInstallmentSummary,
+                  }
+                : {},
             installment_allowed_billing_days: selectedPackageAllowedBillingDays,
             installment_selected_billing_day: billingDay,
             installment_accepts_billing_day: selectedPackageInstallmentEnabled,
@@ -235,8 +424,31 @@ export default function Scoreboard({
             installment_billing_day_options: selectedPackageAllowedBillingDays,
             installment_billing_interval_unit: "MONTH",
             installment_billing_interval_count: 1,
-            installment_maximum_count: null,
-            installment_available_recurring_due_dates: [],
+            installment_count:
+                previewInstallmentSummary?.installment_count ??
+                maximumInstallmentCount,
+            total_amount:
+                previewInstallmentSummary?.total_amount ?? amount.toFixed(2),
+            first_payment_amount:
+                previewInstallmentSummary?.first_payment_amount ?? null,
+            first_payment_date:
+                previewInstallmentSummary?.first_payment_date ?? null,
+            recurring_payment_amount:
+                previewInstallmentSummary?.recurring_payment_amount ?? null,
+            monthly_base_amount:
+                previewInstallmentSummary?.monthly_base_amount ?? null,
+            billing_day: previewInstallmentSummary?.billing_day ?? billingDay,
+            recurring_due_dates:
+                previewInstallmentSummary?.recurring_due_dates ?? [],
+            available_recurring_due_dates:
+                previewInstallmentSummary?.available_recurring_due_dates ?? [],
+            schedule_breakdown:
+                previewInstallmentSummary?.schedule_breakdown ?? [],
+            final_due_at: previewInstallmentSummary?.final_due_at ?? null,
+            installment_maximum_count: maximumInstallmentCount,
+            maximum_installment_count: maximumInstallmentCount,
+            installment_available_recurring_due_dates:
+                previewInstallmentSummary?.available_recurring_due_dates ?? [],
             installment_deadline_date:
                 selectedPackage?.installment_deadline_date ?? null,
             create_order_url: null,
@@ -261,6 +473,7 @@ export default function Scoreboard({
         selectedPackage,
         selectedPackageAllowedBillingDays,
         selectedPackageInstallmentEnabled,
+        selectedPackageMaximumInstallmentCount,
         paypal,
     ]);
 

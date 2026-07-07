@@ -83,17 +83,154 @@ function normalizeInstallmentCount(value) {
     return Math.trunc(numericValue);
 }
 
-function buildInstallmentCountOptions(summary) {
-    const maximumInstallmentCount = Number(
-        summary?.maximum_installment_count ?? summary?.installment_count ?? 0,
+function normalizeMaximumInstallmentCount(value) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue) || numericValue < 2) {
+        return null;
+    }
+
+    return Math.trunc(numericValue);
+}
+
+function toDateString(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function daysInMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+}
+
+function dateForBillingDay(year, monthIndex, billingDay) {
+    const safeBillingDay = Number(billingDay) === 1 ? 1 : 15;
+    const safeDay = Math.min(
+        safeBillingDay,
+        daysInMonth(year, monthIndex),
     );
 
+    return new Date(year, monthIndex, safeDay, 12, 0, 0, 0);
+}
+
+function buildRecurringDueDates({
+    billingDay,
+    recurringCount,
+    startDate = new Date(),
+}) {
+    const normalizedRecurringCount = Number(recurringCount);
+
     if (
-        !Number.isFinite(maximumInstallmentCount) ||
-        maximumInstallmentCount < 2
+        !Number.isFinite(normalizedRecurringCount) ||
+        normalizedRecurringCount <= 0
     ) {
         return [];
     }
+
+    const normalizedBillingDay = Number(billingDay) === 1 ? 1 : 15;
+    const dates = [];
+    let cursorMonth = startDate.getMonth();
+    let cursorYear = startDate.getFullYear();
+
+    while (dates.length < normalizedRecurringCount) {
+        let candidate = dateForBillingDay(
+            cursorYear,
+            cursorMonth,
+            normalizedBillingDay,
+        );
+
+        if (candidate <= startDate) {
+            cursorMonth += 1;
+
+            if (cursorMonth > 11) {
+                cursorMonth = 0;
+                cursorYear += 1;
+            }
+
+            candidate = dateForBillingDay(
+                cursorYear,
+                cursorMonth,
+                normalizedBillingDay,
+            );
+        }
+
+        dates.push(toDateString(candidate));
+
+        cursorMonth += 1;
+
+        if (cursorMonth > 11) {
+            cursorMonth = 0;
+            cursorYear += 1;
+        }
+    }
+
+    return dates;
+}
+
+function resolveBillingDay(summary, checkout, selectedPaymentOption) {
+    const value =
+        summary?.billing_day ??
+        selectedPaymentOption?.billing_day ??
+        checkout?.installment_selected_billing_day ??
+        checkout?.installment_billing_day_options?.[0] ??
+        checkout?.package?.installment_billing_day_options?.[0] ??
+        checkout?.package?.allowed_billing_days?.[0] ??
+        15;
+
+    return Number(value) === 1 ? 1 : 15;
+}
+
+function formatInstallmentDateAmount(dueAt, amount, currencyCode) {
+    const formattedAmount = formatCurrency(Number(amount ?? 0), currencyCode);
+
+    if (!dueAt) {
+        return `Date will be confirmed — ${formattedAmount}`;
+    }
+
+    return `${formatScheduleDate(dueAt)} — ${formattedAmount}`;
+}
+
+function resolveMaximumInstallmentCount(
+    summary,
+    checkout,
+    selectedPaymentOption,
+) {
+    const candidates = [
+        summary?.maximum_installment_count,
+        summary?.installment_maximum_count,
+        checkout?.maximum_installment_count,
+        checkout?.installment_maximum_count,
+        checkout?.package?.maximum_installment_count,
+        checkout?.package?.installment_maximum_count,
+        selectedPaymentOption?.maximum_installment_count,
+        selectedPaymentOption?.installment_maximum_count,
+        selectedPaymentOption?.installment_count,
+        summary?.installment_count,
+    ];
+
+    for (const candidate of candidates) {
+        const normalized = normalizeMaximumInstallmentCount(candidate);
+
+        if (normalized) {
+            return normalized;
+        }
+    }
+
+    return 2;
+}
+
+function buildInstallmentCountOptions(
+    summary,
+    checkout,
+    selectedPaymentOption,
+) {
+    const maximumInstallmentCount = resolveMaximumInstallmentCount(
+        summary,
+        checkout,
+        selectedPaymentOption,
+    );
 
     return Array.from(
         { length: maximumInstallmentCount - 1 },
@@ -101,13 +238,20 @@ function buildInstallmentCountOptions(summary) {
     );
 }
 
-function buildInstallmentSummaryForCount(summary, selectedInstallmentCount) {
+function buildInstallmentSummaryForCount(
+    summary,
+    selectedInstallmentCount,
+    checkout,
+    selectedPaymentOption,
+) {
     if (!summary) {
         return null;
     }
 
-    const maximumInstallmentCount = Number(
-        summary.maximum_installment_count ?? summary.installment_count ?? 0,
+    const maximumInstallmentCount = resolveMaximumInstallmentCount(
+        summary,
+        checkout,
+        selectedPaymentOption,
     );
 
     const normalizedInstallmentCount = normalizeInstallmentCount(
@@ -122,6 +266,7 @@ function buildInstallmentSummaryForCount(summary, selectedInstallmentCount) {
         return {
             ...summary,
             maximum_installment_count: maximumInstallmentCount,
+            installment_maximum_count: maximumInstallmentCount,
         };
     }
 
@@ -136,7 +281,7 @@ function buildInstallmentSummaryForCount(summary, selectedInstallmentCount) {
     const recurringAmount = centsToAmount(recurringAmountCents);
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
 
-    const availableRecurringDueDates = Array.isArray(
+    const existingRecurringDueDates = Array.isArray(
         summary.available_recurring_due_dates,
     )
         ? summary.available_recurring_due_dates
@@ -144,9 +289,23 @@ function buildInstallmentSummaryForCount(summary, selectedInstallmentCount) {
           ? summary.recurring_due_dates
           : [];
 
-    const selectedRecurringDueDates = availableRecurringDueDates.slice(
-        0,
-        normalizedInstallmentCount - 1,
+    const billingDay = resolveBillingDay(
+        summary,
+        checkout,
+        selectedPaymentOption,
+    );
+
+    const fallbackRecurringDueDates = buildRecurringDueDates({
+        billingDay,
+        recurringCount: normalizedInstallmentCount - 1,
+    });
+
+    const selectedRecurringDueDates = Array.from(
+        { length: normalizedInstallmentCount - 1 },
+        (_, index) =>
+            existingRecurringDueDates[index] ??
+            fallbackRecurringDueDates[index] ??
+            null,
     );
 
     const finalDueAt =
@@ -159,26 +318,32 @@ function buildInstallmentSummaryForCount(summary, selectedInstallmentCount) {
             cycle_number: 1,
             type: "first_payment",
             amount: firstPaymentAmount.toFixed(2),
-            due_at: summary.first_payment_date ?? null,
+            due_at: summary.first_payment_date ?? toDateString(new Date()),
             grace_deadline: null,
         },
-        ...selectedRecurringDueDates.map((dueDate, index) => ({
-            cycle_number: index + 2,
-            type: "recurring",
-            amount: recurringAmount.toFixed(2),
-            due_at: dueDate,
-            grace_deadline: null,
-        })),
+        ...Array.from(
+            { length: normalizedInstallmentCount - 1 },
+            (_, index) => ({
+                cycle_number: index + 2,
+                type: "recurring",
+                amount: recurringAmount.toFixed(2),
+                due_at: selectedRecurringDueDates[index] ?? null,
+                grace_deadline: null,
+            }),
+        ),
     ];
 
     return {
         ...summary,
+        billing_day: billingDay,
         installment_count: normalizedInstallmentCount,
         maximum_installment_count: maximumInstallmentCount,
+        installment_maximum_count: maximumInstallmentCount,
         first_payment_amount: firstPaymentAmount.toFixed(2),
         monthly_base_amount: recurringAmount.toFixed(2),
         recurring_payment_amount: recurringAmount.toFixed(2),
         recurring_due_dates: selectedRecurringDueDates,
+        available_recurring_due_dates: selectedRecurringDueDates,
         final_due_at: finalDueAt,
         schedule_breakdown: scheduleBreakdown,
     };
@@ -186,40 +351,69 @@ function buildInstallmentSummaryForCount(summary, selectedInstallmentCount) {
 
 function buildPreviewInstallmentSummary(checkout, selectedPaymentOption) {
     const totalAmount = Number(checkout.amount ?? 0);
-    const amountDueToday = Number(
-        selectedPaymentOption?.amount_due_today ?? totalAmount / 2,
-    );
 
     if (!totalAmount || totalAmount <= 0) {
         return null;
     }
 
+    const maximumInstallmentCount = resolveMaximumInstallmentCount(
+        null,
+        checkout,
+        selectedPaymentOption,
+    );
+
+    const billingDay = resolveBillingDay(
+        null,
+        checkout,
+        selectedPaymentOption,
+    );
+
+    const recurringDueDates = buildRecurringDueDates({
+        billingDay,
+        recurringCount: maximumInstallmentCount - 1,
+    });
+
+    const recurringAmountCents = Math.floor(
+        amountToCents(totalAmount) / maximumInstallmentCount,
+    );
+    const firstPaymentAmountCents =
+        amountToCents(totalAmount) -
+        recurringAmountCents * (maximumInstallmentCount - 1);
+
+    const recurringAmount = centsToAmount(recurringAmountCents);
+    const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
+
     return {
+        billing_day: billingDay,
         total_amount: totalAmount.toFixed(2),
-        first_payment_amount: amountDueToday.toFixed(2),
-        recurring_payment_amount: amountDueToday.toFixed(2),
-        monthly_base_amount: amountDueToday.toFixed(2),
-        installment_count: 2,
-        maximum_installment_count: 2,
-        recurring_due_dates: [],
-        available_recurring_due_dates: [],
+        first_payment_amount: firstPaymentAmount.toFixed(2),
+        recurring_payment_amount: recurringAmount.toFixed(2),
+        monthly_base_amount: recurringAmount.toFixed(2),
+        installment_count: maximumInstallmentCount,
+        maximum_installment_count: maximumInstallmentCount,
+        installment_maximum_count: maximumInstallmentCount,
+        recurring_due_dates: recurringDueDates,
+        available_recurring_due_dates: recurringDueDates,
         schedule_breakdown: [
             {
                 cycle_number: 1,
                 type: "first_payment",
-                amount: amountDueToday.toFixed(2),
-                due_at: null,
+                amount: firstPaymentAmount.toFixed(2),
+                due_at: toDateString(new Date()),
                 grace_deadline: null,
             },
-            {
-                cycle_number: 2,
-                type: "recurring",
-                amount: amountDueToday.toFixed(2),
-                due_at: null,
-                grace_deadline: null,
-            },
+            ...Array.from(
+                { length: maximumInstallmentCount - 1 },
+                (_, index) => ({
+                    cycle_number: index + 2,
+                    type: "recurring",
+                    amount: recurringAmount.toFixed(2),
+                    due_at: recurringDueDates[index] ?? null,
+                    grace_deadline: null,
+                }),
+            ),
         ],
-        final_due_at: null,
+        final_due_at: recurringDueDates[recurringDueDates.length - 1] ?? null,
     };
 }
 
@@ -315,6 +509,8 @@ export default function PublicCheckoutPanel({
 
     const initialInstallmentOptions = buildInstallmentCountOptions(
         initialInstallmentSummary,
+        checkout,
+        null,
     );
 
     const [paymentType, setPaymentType] = useState(
@@ -349,6 +545,7 @@ export default function PublicCheckoutPanel({
     const installmentButtonsRef = useRef(null);
     const activeOrderRef = useRef(null);
     const installmentSessionRef = useRef(installmentSession);
+    const checkoutForPaymentRef = useRef(checkout);
 
     const selectedPaymentOption =
         paymentOptions.find((option) => option.type === paymentType) ??
@@ -367,15 +564,21 @@ export default function PublicCheckoutPanel({
 
     const availableInstallmentCounts = buildInstallmentCountOptions(
         baseInstallmentSummary,
+        checkout,
+        selectedPaymentOption,
     );
 
+    const minimumInstallmentCount = availableInstallmentCounts[0] ?? 2;
+
     const maximumInstallmentCount =
-        availableInstallmentCounts[availableInstallmentCounts.length - 1] ?? 0;
+        availableInstallmentCounts[availableInstallmentCounts.length - 1] ?? 2;
 
     const activeInstallmentSummary = isInstallmentSelected
         ? buildInstallmentSummaryForCount(
               baseInstallmentSummary,
               selectedInstallmentCount,
+              checkout,
+              selectedPaymentOption,
           )
         : baseInstallmentSummary;
 
@@ -430,8 +633,25 @@ export default function PublicCheckoutPanel({
             : null);
 
     const lastInstallment =
+        installmentScheduleBreakdown
+            .filter((item) => item.type === "recurring")
+            .at(-1) ??
         installmentScheduleBreakdown[installmentScheduleBreakdown.length - 1] ??
         null;
+
+    const nextInstallmentAmount = Number(
+        nextInstallment?.amount ??
+            activeInstallmentSummary?.recurring_payment_amount ??
+            recurringAmount ??
+            amountDueToday,
+    );
+
+    const lastInstallmentAmount = Number(
+        lastInstallment?.amount ??
+            activeInstallmentSummary?.recurring_payment_amount ??
+            recurringAmount ??
+            amountDueToday,
+    );
 
     const showBillingDaySelector =
         isInstallmentSelected &&
@@ -479,9 +699,7 @@ export default function PublicCheckoutPanel({
     const shouldRenderInstallmentButtons =
         isInstallmentSelected &&
         Boolean(paypalConfig.client_id) &&
-        (isPreview ||
-            !installmentSession ||
-            !installmentSession.provider_subscription_id);
+        !installmentSession?.provider_subscription_id;
 
     const visibleSdkError = isInstallmentSelected
         ? shouldRenderInstallmentButtons
@@ -490,6 +708,10 @@ export default function PublicCheckoutPanel({
         : payFullSdkError;
 
     const paymentIsLocked = !canInteractWithPayment || isPreparingCheckout;
+
+    useEffect(() => {
+        checkoutForPaymentRef.current = checkout;
+    }, [checkout]);
 
     useEffect(() => {
         if (!paymentOptions.some((option) => option.type === paymentType)) {
@@ -513,11 +735,7 @@ export default function PublicCheckoutPanel({
     }, [isInstallmentSelected]);
 
     useEffect(() => {
-        if (!isInstallmentSelected) {
-            return;
-        }
-
-        if (availableInstallmentCounts.length === 0) {
+        if (!isInstallmentSelected || availableInstallmentCounts.length === 0) {
             return;
         }
 
@@ -893,11 +1111,13 @@ export default function PublicCheckoutPanel({
     }, [isInstallmentSelected]);
 
     useEffect(() => {
+        const checkoutForPayment = checkoutForPaymentRef.current;
+
         if (
             isPreview ||
             !isInstallmentSelected ||
             !installmentSession?.provider_subscription_id ||
-            !checkout.installment_status_url
+            !checkoutForPayment?.installment_status_url
         ) {
             return undefined;
         }
@@ -906,14 +1126,17 @@ export default function PublicCheckoutPanel({
 
         const pollInstallmentStatus = async () => {
             try {
-                const response = await fetch(checkout.installment_status_url, {
-                    method: "GET",
-                    credentials: "same-origin",
-                    headers: {
-                        Accept: "application/json",
-                        "X-Requested-With": "XMLHttpRequest",
+                const response = await fetch(
+                    checkoutForPayment.installment_status_url,
+                    {
+                        method: "GET",
+                        credentials: "same-origin",
+                        headers: {
+                            Accept: "application/json",
+                            "X-Requested-With": "XMLHttpRequest",
+                        },
                     },
-                });
+                );
 
                 const payload = await parseJsonSafely(response);
 
@@ -945,12 +1168,7 @@ export default function PublicCheckoutPanel({
             cancelled = true;
             window.clearInterval(intervalId);
         };
-    }, [
-        isPreview,
-        checkout.installment_status_url,
-        installmentSession,
-        isInstallmentSelected,
-    ]);
+    }, [isPreview, installmentSession, isInstallmentSelected]);
 
     const setFieldValue = (field, value) => {
         setFormData((current) => {
@@ -1020,6 +1238,7 @@ export default function PublicCheckoutPanel({
 
     const prepareRealCheckoutForPreview = async () => {
         if (!isPreview) {
+            checkoutForPaymentRef.current = checkout;
             return checkout;
         }
 
@@ -1045,6 +1264,8 @@ export default function PublicCheckoutPanel({
 
             return null;
         }
+
+        checkoutForPaymentRef.current = preparedCheckout;
 
         return preparedCheckout;
     };
@@ -1089,7 +1310,8 @@ export default function PublicCheckoutPanel({
                         ? Number(billingDay)
                         : null,
                 installment_count:
-                    isInstallmentSelected && availableInstallmentCounts.length > 0
+                    isInstallmentSelected &&
+                    availableInstallmentCounts.length > 0
                         ? Number(selectedInstallmentCount)
                         : null,
                 terms_accepted: currentData.terms_accepted,
@@ -1153,10 +1375,11 @@ export default function PublicCheckoutPanel({
 
     const attachApprovedSubscription = async (providerSubscriptionId) => {
         const activeSubscription = installmentSessionRef.current;
+        const checkoutForPayment = checkoutForPaymentRef.current;
 
         if (
             !activeSubscription?.payment_subscription_id ||
-            !checkout.installment_approve_url
+            !checkoutForPayment?.installment_approve_url
         ) {
             setGeneralError(
                 "The installment approval route was not prepared correctly.",
@@ -1169,21 +1392,24 @@ export default function PublicCheckoutPanel({
         setGeneralError("");
         setInstallmentApprovalMessage("");
 
-        const response = await fetch(checkout.installment_approve_url, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                "X-CSRF-TOKEN": getCsrfToken() ?? "",
-                "X-Requested-With": "XMLHttpRequest",
+        const response = await fetch(
+            checkoutForPayment.installment_approve_url,
+            {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "X-CSRF-TOKEN": getCsrfToken() ?? "",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: JSON.stringify({
+                    payment_subscription_id:
+                        activeSubscription.payment_subscription_id,
+                    provider_subscription_id: providerSubscriptionId,
+                }),
             },
-            body: JSON.stringify({
-                payment_subscription_id:
-                    activeSubscription.payment_subscription_id,
-                provider_subscription_id: providerSubscriptionId,
-            }),
-        });
+        );
 
         const payload = await parseJsonSafely(response);
 
@@ -1289,6 +1515,61 @@ export default function PublicCheckoutPanel({
 
     return (
         <div className="w-full space-y-8" style={{ fontFamily: FONT_FAMILY }}>
+            <style>{`
+                .yogafx-installment-slider {
+                    appearance: none;
+                    -webkit-appearance: none;
+                    height: 6px;
+                    border-radius: 9999px;
+                    background: rgba(255, 255, 255, 0.9);
+                    outline: none;
+                    cursor: pointer;
+                }
+
+                .yogafx-installment-slider:disabled {
+                    cursor: not-allowed;
+                }
+
+                .yogafx-installment-slider::-webkit-slider-runnable-track {
+                    height: 6px;
+                    border-radius: 9999px;
+                    background: rgba(255, 255, 255, 0.9);
+                }
+
+                .yogafx-installment-slider::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 18px;
+                    height: 18px;
+                    margin-top: -6px;
+                    border-radius: 9999px;
+                    background: #DB202C;
+                    border: 2px solid #ffffff;
+                    cursor: pointer;
+                }
+
+                .yogafx-installment-slider::-moz-range-track {
+                    height: 6px;
+                    border-radius: 9999px;
+                    background: rgba(255, 255, 255, 0.9);
+                }
+
+                .yogafx-installment-slider::-moz-range-progress {
+                    height: 6px;
+                    border-radius: 9999px;
+                    background: rgba(255, 255, 255, 0.9);
+                }
+
+                .yogafx-installment-slider::-moz-range-thumb {
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 9999px;
+                    background: #DB202C;
+                    border: 2px solid #ffffff;
+                    cursor: pointer;
+                }
+            `}</style>
+
             {(generalError || visibleSdkError) && (
                 <div
                     className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100"
@@ -1399,13 +1680,23 @@ export default function PublicCheckoutPanel({
                     )}
 
                     {availableInstallmentCounts.length > 0 && (
-                        <div className="space-y-3">
-                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                Number of installments
-                            </p>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between gap-4">
+                                <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                    Number of installments
+                                </p>
+                                <p className="rounded-full bg-[#DB202C] px-4 py-1.5 text-sm font-semibold text-white">
+                                    {selectedInstallmentCount} payments
+                                </p>
+                            </div>
 
-                            <select
-                                value={selectedInstallmentCount || ""}
+                            <input
+                                type="range"
+                                min={minimumInstallmentCount}
+                                max={maximumInstallmentCount}
+                                step="1"
+                                value={selectedInstallmentCount}
+                                disabled={paymentIsLocked}
                                 onChange={(event) => {
                                     setSelectedInstallmentCount(
                                         Number(event.target.value),
@@ -1415,15 +1706,13 @@ export default function PublicCheckoutPanel({
                                         installment_count: "",
                                     }));
                                 }}
-                                disabled={paymentIsLocked}
-                                className="block w-full rounded-[5px] border border-white/10 bg-black/40 px-4 py-3 text-sm text-white shadow-sm focus:border-[#DB202C] focus:ring-[#DB202C] disabled:opacity-60"
-                            >
-                                {availableInstallmentCounts.map((count) => (
-                                    <option key={count} value={count}>
-                                        {count} total payments
-                                    </option>
-                                ))}
-                            </select>
+                                className="yogafx-installment-slider w-full disabled:opacity-60"
+                            />
+
+                            <div className="flex items-center justify-between text-xs font-medium text-white/55">
+                                <span>{minimumInstallmentCount} payments</span>
+                                <span>{maximumInstallmentCount} payments</span>
+                            </div>
 
                             <InputError
                                 className="mt-2 text-sm font-medium text-rose-400"
@@ -1490,11 +1779,7 @@ export default function PublicCheckoutPanel({
                                 {
                                     label: "Last Installment",
                                     value: formatCurrency(
-                                        Number(
-                                            lastInstallment?.amount ??
-                                                recurringAmount ??
-                                                amountDueToday,
-                                        ),
+                                        lastInstallmentAmount,
                                         activeCurrencyCode,
                                     ),
                                 },
@@ -1528,12 +1813,12 @@ export default function PublicCheckoutPanel({
                                 <p className="text-[15px] font-medium text-white">
                                     Next Installment
                                 </p>
-                                <p className="text-[15px] font-semibold text-white">
-                                    {nextInstallment?.due_at
-                                        ? formatScheduleDate(
-                                              nextInstallment.due_at,
-                                          )
-                                        : "-"}
+                                <p className="text-right text-[15px] font-semibold text-white">
+                                    {formatInstallmentDateAmount(
+                                        nextInstallment?.due_at,
+                                        nextInstallmentAmount,
+                                        activeCurrencyCode,
+                                    )}
                                 </p>
                             </div>
 
@@ -1541,8 +1826,12 @@ export default function PublicCheckoutPanel({
                                 <p className="text-[15px] font-medium text-white">
                                     Last Installment
                                 </p>
-                                <p className="text-[15px] font-semibold text-white">
-                                    {formatScheduleDate(finalDueAt)}
+                                <p className="text-right text-[15px] font-semibold text-white">
+                                    {formatInstallmentDateAmount(
+                                        finalDueAt ?? lastInstallment?.due_at,
+                                        lastInstallmentAmount,
+                                        activeCurrencyCode,
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -1587,19 +1876,6 @@ export default function PublicCheckoutPanel({
             </div>
 
             <div className="space-y-5">
-                <h2
-                    className="text-white"
-                    style={{
-                        fontFamily: FONT_FAMILY,
-                        fontSize: "22px",
-                        fontWeight: 500,
-                    }}
-                >
-                    {isInstallmentSelected
-                        ? "PayPal Installment Approval"
-                        : "Payment Method"}
-                </h2>
-
                 {isInstallmentSelected ? (
                     <div
                         className={`transition-opacity duration-300 ${
@@ -1715,9 +1991,7 @@ export default function PublicCheckoutPanel({
                             style={{ fontFamily: FONT_FAMILY }}
                         >
                             <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
-                            <span>
-                                Preparing secure payment options...
-                            </span>
+                            <span>Preparing secure payment options...</span>
                         </div>
                     )}
             </div>

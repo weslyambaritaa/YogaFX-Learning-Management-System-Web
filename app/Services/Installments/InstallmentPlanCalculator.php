@@ -122,6 +122,7 @@ class InstallmentPlanCalculator
             'currency_code' => (string) $package->currency_code,
             'installment_count' => $selectedInstallmentCount,
             'maximum_installment_count' => $maximumInstallmentCount,
+            'installment_maximum_count' => $maximumInstallmentCount,
             'first_payment_amount' => $this->formatAmount($firstPaymentAmount),
             'monthly_base_amount' => $this->formatAmount($recurringAmount),
             'recurring_payment_amount' => $this->formatAmount($recurringAmount),
