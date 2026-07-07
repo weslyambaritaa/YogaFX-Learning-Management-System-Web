@@ -74,7 +74,7 @@ function DashboardTable({ title, description, columns, rows, emptyMessage }) {
 }
 
 function ActivityChart({ series, peak }) {
-    const [activeIndex, setActiveIndex] = useState(series.length - 1);
+    const [activeIndex, setActiveIndex] = useState(null);
     const width = 760;
     const height = 320;
     const padding = {
@@ -99,7 +99,9 @@ function ActivityChart({ series, peak }) {
           )
         : 0;
     const activePoint =
-        series[activeIndex] ?? latestPoint ?? { label: "-", count: 0 };
+        activeIndex !== null
+            ? series[activeIndex] ?? null
+            : null;
     const xStep = series.length > 1 ? innerWidth / (series.length - 1) : 0;
     const yTicks = Array.from({ length: 5 }, (_, index) =>
         Math.round((safePeak / 4) * (4 - index)),
@@ -146,13 +148,15 @@ function ActivityChart({ series, peak }) {
     });
 
     const tooltipAlignmentClass =
-        activeIndex >= Math.max(points.length - 2, 1)
-            ? "right-0"
-            : activeIndex <= 1
-              ? "left-0"
-              : "-translate-x-1/2";
+        activeIndex === null
+            ? ""
+            : activeIndex >= Math.max(points.length - 2, 1)
+              ? "-translate-x-full"
+              : activeIndex <= 1
+                ? "translate-x-0"
+                : "-translate-x-1/2";
 
-    const tooltipStyle = points[activeIndex]
+    const tooltipStyle = activeIndex !== null && points[activeIndex]
         ? {
               left: `${(points[activeIndex].x / width) * 100}%`,
           }
@@ -240,28 +244,29 @@ function ActivityChart({ series, peak }) {
                         </p>
                     </div>
 
-                    <div className="relative w-full">
-                        <div
-                            className={[
-                                "pointer-events-none absolute top-0 z-10 hidden rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur md:block",
-                                tooltipAlignmentClass === "left-0"
-                                    ? "left-0"
-                                    : tooltipAlignmentClass === "right-0"
-                                      ? "right-0 left-auto"
-                                      : "left-1/2 -translate-x-1/2",
-                            ].join(" ")}
-                            style={tooltipStyle}
-                        >
-                            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                                {activePoint.label}
-                            </p>
-                            <p className="mt-2 text-2xl font-semibold text-slate-950">
-                                {activePoint.count}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                                Daily active students
-                            </p>
-                        </div>
+                    <div
+                        className="relative w-full"
+                        onMouseLeave={() => setActiveIndex(null)}
+                    >
+                        {activePoint ? (
+                            <div
+                                className={[
+                                    "pointer-events-none absolute top-0 z-10 hidden rounded-2xl border border-slate-200 bg-white/98 px-4 py-3 shadow-xl ring-1 ring-slate-100 backdrop-blur md:block",
+                                    tooltipAlignmentClass,
+                                ].join(" ")}
+                                style={tooltipStyle}
+                            >
+                                <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                                    {activePoint.label}
+                                </p>
+                                <p className="mt-2 text-2xl font-semibold text-slate-950">
+                                    {activePoint.count}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                    Daily active students
+                                </p>
+                            </div>
+                        ) : null}
 
                         <svg
                             viewBox={`0 0 ${width} ${height}`}
@@ -340,7 +345,7 @@ function ActivityChart({ series, peak }) {
                                         strokeLinecap="round"
                                     />
 
-                                    {points[activeIndex] ? (
+                                    {activeIndex !== null && points[activeIndex] ? (
                                         <line
                                             x1={points[activeIndex].x}
                                             x2={points[activeIndex].x}
@@ -352,18 +357,18 @@ function ActivityChart({ series, peak }) {
                                     ) : null}
 
                                     {points.map((point, index) => {
+                                        const isActive = activeIndex === index;
+
                                         return (
                                             <g key={point.label}>
                                                 <circle
                                                     cx={point.x}
                                                     cy={point.y}
-                                                    r={activeIndex === index ? "7" : "5"}
+                                                    r={isActive ? "7" : "4.5"}
                                                     fill="#ffffff"
                                                     stroke="#0f172a"
-                                                    strokeWidth={
-                                                        activeIndex === index ? "3" : "2.5"
-                                                    }
-                                                    className="cursor-pointer transition-all"
+                                                    strokeWidth={isActive ? "3" : "2.25"}
+                                                    className="cursor-pointer transition-all duration-150"
                                                     onMouseEnter={() =>
                                                         setActiveIndex(index)
                                                     }
@@ -375,10 +380,24 @@ function ActivityChart({ series, peak }) {
                                                 <circle
                                                     cx={point.x}
                                                     cy={point.y}
-                                                    r={activeIndex === index ? "13" : "0"}
+                                                    r={isActive ? "16" : "0"}
                                                     fill="#0f172a"
-                                                    opacity="0.08"
+                                                    opacity="0.10"
                                                     className="transition-all"
+                                                />
+
+                                                <circle
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r="18"
+                                                    fill="transparent"
+                                                    className="cursor-pointer"
+                                                    onMouseEnter={() =>
+                                                        setActiveIndex(index)
+                                                    }
+                                                    onFocus={() =>
+                                                        setActiveIndex(index)
+                                                    }
                                                 />
 
                                                 {visibleXAxisLabels[index] ? (
@@ -386,7 +405,11 @@ function ActivityChart({ series, peak }) {
                                                         x={point.x}
                                                         y={height - 10}
                                                         textAnchor="middle"
-                                                        className="fill-slate-500 text-[11px]"
+                                                        className={
+                                                            isActive
+                                                                ? "fill-slate-900 text-[11px] font-medium"
+                                                                : "fill-slate-500 text-[11px]"
+                                                        }
                                                     >
                                                         {point.label}
                                                     </text>
