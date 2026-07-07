@@ -102,6 +102,10 @@ function ActivityChart({ series, peak }) {
         activeIndex !== null
             ? series[activeIndex] ?? null
             : null;
+    const highlightedPoint = activePoint ?? latestPoint ?? {
+        label: "-",
+        count: 0,
+    };
     const xStep = series.length > 1 ? innerWidth / (series.length - 1) : 0;
     const yTicks = Array.from({ length: 5 }, (_, index) =>
         Math.round((safePeak / 4) * (4 - index)),
@@ -225,14 +229,14 @@ function ActivityChart({ series, peak }) {
                             </p>
                             <div className="mt-2 flex items-end gap-3">
                                 <span className="text-4xl font-semibold tracking-tight text-slate-950">
-                                    {activePoint.count}
+                                    {highlightedPoint.count}
                                 </span>
                                 <div className="pb-1">
                                     <p className="text-sm font-medium text-slate-700">
                                         active students
                                     </p>
                                     <p className="text-sm text-slate-500">
-                                        {activePoint.label}
+                                        {highlightedPoint.label}
                                     </p>
                                 </div>
                             </div>
