@@ -260,6 +260,12 @@ export default function EmailNotificationShow({
                         </div>
                     )}
 
+                    {(notificationType === 'payment_success' || notificationType === 'installment_payment_success') && (
+                        <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                            Live payment success emails automatically attach the generated invoice PDF to both student and admin deliveries.
+                        </div>
+                    )}
+
                     {Object.keys(errors).length > 0 && (
                         <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                             {Object.values(errors)[0]}

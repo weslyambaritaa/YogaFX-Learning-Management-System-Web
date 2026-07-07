@@ -159,6 +159,14 @@ const adminNavigationItems = [
                 activeWhen: { notificationType: "payment_success" },
             },
             {
+                label: "Installment Payment Success",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "installment_payment_success" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "installment_payment_success" },
+            },
+            {
                 label: "Enrollment Success",
                 icon: Mail,
                 route: "admin.email-notifications.show",

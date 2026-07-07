@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\PaymentSubscription;
 use App\Models\PendingRegistration;
 use App\Models\User;
+use App\Services\Invoices\InvoiceConfirmationPdfService;
 use App\Services\Payments\PayPalSubscriptionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,6 +21,7 @@ class PaymentFinalizerService
     public function __construct(
         private readonly PayPalSubscriptionService $payPalSubscriptionService,
         private readonly EmailNotificationService $emailNotifications,
+        private readonly InvoiceConfirmationPdfService $invoiceConfirmationPdfService,
     ) {}
 
     /**
@@ -113,9 +115,16 @@ class PaymentFinalizerService
                 $user = $this->finalizeUpgradeInvoice($invoice, ! $hasPreviousSuccessfulActivity);
             }
 
-            if ($invoice->type === Invoice::TYPE_INITIAL && $onboardingState instanceof OnboardingState) {
-                DB::afterCommit(function () use ($onboardingState, $paymentActivity): void {
-                    $this->emailNotifications->sendPaymentSuccessNotification($onboardingState, $paymentActivity);
+            if (! $hasPreviousSuccessfulActivity) {
+                DB::afterCommit(function () use ($invoice, $onboardingState, $paymentActivity): void {
+                    $attachment = $this->invoiceConfirmationPdfService->makeAttachment($invoice);
+
+                    $this->emailNotifications->sendPaymentSuccessNotification(
+                        $invoice,
+                        $paymentActivity,
+                        $onboardingState,
+                        [$attachment],
+                    );
                 });
             }
 

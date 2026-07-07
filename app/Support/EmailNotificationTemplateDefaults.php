@@ -149,6 +149,7 @@ class EmailNotificationTemplateDefaults
                 'body_user' => implode('', [
                     '<p>Hi {user_name},</p>',
                     '<p>Congratulations. Your payment for <strong>{access_tier_label}</strong> was successful.</p>',
+                    '<p>Your invoice confirmation PDF is attached as <strong>{invoice_pdf_file_name}</strong>.</p>',
                     '<p>Invoice: <strong>{invoice_number}</strong></p>',
                     '<p>Payment reference: <strong>{payment_reference}</strong></p>',
                     '<p>Amount: <strong>{currency_code} {amount}</strong></p>',
@@ -159,6 +160,7 @@ class EmailNotificationTemplateDefaults
                 'subject_admin' => 'YogaFX payment successful: {user_email}',
                 'body_admin' => implode('', [
                     '<p>A new YogaFX onboarding payment has been completed successfully.</p>',
+                    '<p>Invoice PDF attached: <strong>{invoice_pdf_file_name}</strong></p>',
                     '<p>Student: <strong>{user_name}</strong> ({user_email})</p>',
                     '<p>Access tier: <strong>{access_tier_label}</strong></p>',
                     '<p>Invoice: <strong>{invoice_number}</strong></p>',
@@ -193,6 +195,7 @@ class EmailNotificationTemplateDefaults
                 'body_user' => implode('', [
                     '<p>Hi {user_name},</p>',
                     '<p>We have received your installment payment for <strong>{package_title}</strong>.</p>',
+                    '<p>Your invoice confirmation PDF is attached as <strong>{invoice_pdf_file_name}</strong>.</p>',
                     '<p>Payment amount: <strong>{currency_code} {payment_amount}</strong></p>',
                     '<p>Installments paid: {installments_paid_count} of {installment_count}</p>',
                     '<p>Remaining balance: <strong>{currency_code} {balance_due}</strong></p>',
@@ -201,6 +204,7 @@ class EmailNotificationTemplateDefaults
                 'subject_admin' => 'Installment payment success for {user_email}',
                 'body_admin' => implode('', [
                     '<p>A successful installment payment has been recorded.</p>',
+                    '<p>Invoice PDF attached: <strong>{invoice_pdf_file_name}</strong></p>',
                     '<p>Student: <strong>{user_name}</strong> ({user_email})</p>',
                     '<p>Package: <strong>{package_title}</strong></p>',
                     '<p>Tier: <strong>{tier_name}</strong></p>',

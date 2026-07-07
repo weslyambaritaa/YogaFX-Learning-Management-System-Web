@@ -193,11 +193,13 @@ class EmailNotificationTypeRegistry
                     '{{ user_email }}',
                     '{{ access_tier }}',
                     '{{ access_tier_label }}',
+                    '{{ package_title }}',
                     '{{ invoice_number }}',
                     '{{ payment_reference }}',
                     '{{ amount }}',
                     '{{ currency_code }}',
                     '{{ enrollment_url }}',
+                    '{{ invoice_pdf_file_name }}',
                 ],
             ],
             [
@@ -231,6 +233,7 @@ class EmailNotificationTypeRegistry
                     '{{ balance_due }}',
                     '{{ next_due_at }}',
                     '{{ grace_deadline_at }}',
+                    '{{ invoice_pdf_file_name }}',
                 ],
             ],
             [

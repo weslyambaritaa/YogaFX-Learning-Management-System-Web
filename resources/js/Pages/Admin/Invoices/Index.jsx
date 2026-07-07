@@ -4,6 +4,13 @@ import CommerceIndexPage, {
     statusBadgeClass,
 } from '@/Components/admin/commerce/CommerceIndexPage';
 import { Button } from '@/Components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/Components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 const columns = [
     {
@@ -64,14 +71,41 @@ const columns = [
         key: 'action',
         label: 'Action',
         render: (row, openDetail) => (
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => openDetail(row)}
-            >
-                Detail
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openDetail(row)}
+                >
+                    Detail
+                </Button>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button type="button" size="sm" className="gap-1.5">
+                            PDF
+                            <ChevronDown className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 min-w-40">
+                        <DropdownMenuItem asChild>
+                            <a
+                                href={row.pdf_preview_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Preview PDF
+                            </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <a href={row.pdf_download_url}>
+                                Download PDF
+                            </a>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         ),
     },
 ];

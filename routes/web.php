@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Admin\InvoiceIndexController;
+use App\Http\Controllers\Admin\InvoicePdfController;
 use App\Http\Controllers\Admin\PaymentIndexController;
 use App\Http\Controllers\Admin\StudentProgressController;
 use App\Http\Controllers\Admin\StudentController;
@@ -175,6 +176,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/packages/{package}', [PackageController::class, 'destroy'])->name('packages.destroy');
 
         Route::get('/invoices', [InvoiceIndexController::class, 'index'])->name('invoices.index');
+        Route::get('/invoices/{invoice}/pdf/preview', [InvoicePdfController::class, 'preview'])->name('invoices.pdf.preview');
+        Route::get('/invoices/{invoice}/pdf/download', [InvoicePdfController::class, 'download'])->name('invoices.pdf.download');
         Route::get('/payments', [PaymentIndexController::class, 'index'])->name('payments.index');
 
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');

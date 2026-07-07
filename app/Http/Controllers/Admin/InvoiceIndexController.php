@@ -155,6 +155,8 @@ class InvoiceIndexController extends Controller
             'id' => $invoice->id,
             'number' => $number,
             'invoice_number' => $invoice->invoice_number,
+            'pdf_preview_url' => route('admin.invoices.pdf.preview', $invoice),
+            'pdf_download_url' => route('admin.invoices.pdf.download', $invoice),
             'student_name' => $studentName !== '' ? $studentName : 'Unknown student',
             'email' => $studentEmail ?: '-',
             'tier' => $invoice->accessTier?->name ?? '-',

@@ -8,6 +8,7 @@ use App\Models\PaymentSubscription;
 use App\Models\PaymentSubscriptionEvent;
 use App\Models\User;
 use App\Services\EmailNotificationService;
+use App\Services\Invoices\InvoiceConfirmationPdfService;
 use App\Services\PaymentFinalizerService;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Support\Carbon;
@@ -18,6 +19,7 @@ class InstallmentWebhookHandler
     public function __construct(
         private readonly PaymentFinalizerService $paymentFinalizer,
         private readonly EmailNotificationService $emailNotificationService,
+        private readonly InvoiceConfirmationPdfService $invoiceConfirmationPdfService,
     ) {}
 
     public function handle(PaymentSubscriptionEvent $event): PaymentSubscriptionEvent
@@ -384,7 +386,11 @@ class InstallmentWebhookHandler
             'payment_activity_id' => $paymentActivity->id,
         ])->save();
 
-        if (! $alreadySuccessful && ! ($result['skipped'] ?? false)) {
+        if (! $alreadySuccessful && ! ($result['skipped'] ?? false) && $paidCount > 1) {
+            $attachment = $this->invoiceConfirmationPdfService->makeAttachment(
+                $result['invoice'] instanceof Invoice ? $result['invoice'] : $invoice,
+            );
+
             $this->emailNotificationService->sendAutomated(
                 EmailNotificationTypeRegistry::INSTALLMENT_PAYMENT_SUCCESS,
                 $this->notificationPayload(
@@ -394,9 +400,11 @@ class InstallmentWebhookHandler
                     event: $event,
                     paymentAmount: $amount,
                     installmentsPaidCount: $paidCount,
+                    invoicePdfFileName: $attachment['name'],
                 ),
                 OverdueInstallmentService::REFERENCE_TYPE_PAYMENT_SUBSCRIPTION,
                 $subscription->id,
+                [$attachment],
             );
         }
 
@@ -428,6 +436,7 @@ class InstallmentWebhookHandler
         ?float $paymentAmount = null,
         ?int $installmentsPaidCount = null,
         ?Carbon $paymentCompletedAt = null,
+        ?string $invoicePdfFileName = null,
     ): array {
         $invoice ??= $subscription->invoice;
         $user ??= $subscription->user ?? $invoice?->user;
@@ -448,6 +457,7 @@ class InstallmentWebhookHandler
             'next_due_at' => optional($subscription->next_due_at)->toDateString() ?? '',
             'grace_deadline_at' => optional($subscription->grace_deadline_at)->toDateString() ?? '',
             'payment_completed_at' => optional($paymentCompletedAt)->toDateTimeString() ?? '',
+            'invoice_pdf_file_name' => $invoicePdfFileName ?? '',
         ];
     }
 

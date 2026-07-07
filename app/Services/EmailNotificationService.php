@@ -7,6 +7,7 @@ use App\Events\EmailNotifications\ResetPasswordRequested;
 use App\Mail\TemplatedNotificationMail;
 use App\Models\EmailLog;
 use App\Models\EmailTemplate;
+use App\Models\Invoice;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\OnboardingState;
@@ -178,6 +179,7 @@ class EmailNotificationService
         array $payload,
         ?string $referenceType = null,
         ?int $referenceId = null,
+        array $attachments = [],
     ): void {
         $template = $this->preparedTemplate($notificationType);
 
@@ -202,6 +204,7 @@ class EmailNotificationService
                 referenceType: $referenceType,
                 referenceId: $referenceId,
                 variantLabel: $delivery['variant_label'],
+                attachments: $attachments,
             );
         }
     }
@@ -302,8 +305,10 @@ class EmailNotificationService
     }
 
     public function sendPaymentSuccessNotification(
-        OnboardingState $onboardingState,
+        Invoice $invoice,
         Payment $paymentActivity,
+        ?OnboardingState $onboardingState = null,
+        array $attachments = [],
     ): void {
         if ($this->notificationAlreadySent(
             EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
@@ -313,35 +318,37 @@ class EmailNotificationService
             return;
         }
 
-        $onboardingState->loadMissing('user.accessTier', 'pendingRegistration.accessTier');
+        $invoice->loadMissing('user.accessTier', 'pendingRegistration.accessTier', 'accessTier', 'package');
+        $onboardingState?->loadMissing('user.accessTier', 'pendingRegistration.accessTier');
         $paymentActivity->loadMissing('invoice.accessTier');
 
-        $user = $onboardingState->user;
-
-        if (! $user instanceof User) {
-            return;
-        }
-
-        $invoice = $paymentActivity->invoice;
-        $accessTier = $user->accessTier ?? $onboardingState->pendingRegistration?->accessTier ?? $invoice?->accessTier;
+        $user = $invoice->user;
+        $pendingRegistration = $invoice->pendingRegistration;
+        $accessTier = $user?->accessTier
+            ?? $pendingRegistration?->accessTier
+            ?? $onboardingState?->pendingRegistration?->accessTier
+            ?? $invoice->accessTier;
+        $userName = $user?->name ?: $pendingRegistration?->fullName() ?: 'Student';
+        $userEmail = $user?->email ?: ($pendingRegistration?->email ?: '');
 
         $this->sendAutomated(
             EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
             [
-                'user_name' => $user->name,
-                'user_email' => $user->email,
+                'user_name' => $userName,
+                'user_email' => $userEmail,
                 'access_tier' => $accessTier?->slug,
                 'access_tier_label' => $accessTier?->name,
-                'invoice_number' => (string) ($invoice?->invoice_number ?? ''),
+                'package_title' => (string) ($invoice->package?->title ?? ''),
+                'invoice_number' => (string) ($invoice->invoice_number ?? ''),
                 'payment_reference' => (string) ($paymentActivity->payment_reference ?? ''),
                 'amount' => number_format((float) $paymentActivity->amount_paid, 2, '.', ''),
                 'currency_code' => (string) $paymentActivity->currency_code,
-                'enrollment_url' => $this->signedOnboardingRoute('onboarding.enrollment.show', [
-                    'onboardingState' => $onboardingState->id,
-                ]),
+                'invoice_pdf_file_name' => isset($attachments[0]['name']) ? (string) $attachments[0]['name'] : '',
+                'enrollment_url' => $this->paymentSuccessUrl($invoice, $onboardingState),
             ],
             'payment_activity',
             $paymentActivity->id,
+            $attachments,
         );
     }
 
@@ -962,6 +969,7 @@ class EmailNotificationService
             'enrollment_url' => $this->signedOnboardingRoute('onboarding.enrollment.show', [
                 'onboardingState' => 999001,
             ]),
+            'invoice_pdf_file_name' => 'online-confirmation-test-student.pdf',
             'signup_url' => $this->signedOnboardingRoute('onboarding.signup.show', [
                 'onboardingState' => 999001,
             ]),
@@ -1144,5 +1152,24 @@ class EmailNotificationService
             now()->addDays(7),
             $parameters,
         );
+    }
+
+    private function paymentSuccessUrl(Invoice $invoice, ?OnboardingState $onboardingState = null): string
+    {
+        if ($invoice->type === Invoice::TYPE_INITIAL && $onboardingState instanceof OnboardingState) {
+            return $this->signedOnboardingRoute('onboarding.enrollment.show', [
+                'onboardingState' => $onboardingState->id,
+            ]);
+        }
+
+        if ($invoice->type === Invoice::TYPE_UPGRADE) {
+            return URL::temporarySignedRoute(
+                'student.upgrades.success',
+                now()->addDays(7),
+                ['invoice' => $invoice->id],
+            );
+        }
+
+        return $this->studentLoginUrl();
     }
 }
