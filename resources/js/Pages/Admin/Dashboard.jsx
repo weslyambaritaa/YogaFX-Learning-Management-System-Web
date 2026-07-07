@@ -85,11 +85,11 @@ function DashboardTable({ title, description, columns, rows, emptyMessage }) {
 function ActivityChart({ series, peak }) {
     const [activeIndex, setActiveIndex] = useState(null);
     const width = 860;
-    const height = 300;
+    const height = 264;
     const padding = {
         top: 18,
         right: 10,
-        bottom: 36,
+        bottom: 18,
         left: 28,
     };
     const innerWidth = width - padding.left - padding.right;
@@ -229,7 +229,7 @@ function ActivityChart({ series, peak }) {
                 </div>
             </div>
 
-            <div className="px-4 py-4 sm:px-5 sm:py-5">
+            <div className="px-4 py-4 sm:px-5 sm:py-4">
                 <div className="rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-3 sm:p-4">
                     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                         <div>
@@ -278,7 +278,7 @@ function ActivityChart({ series, peak }) {
 
                         <svg
                             viewBox={`0 0 ${width} ${height}`}
-                            className="h-[300px] w-full"
+                            className="h-[264px] w-full"
                             role="img"
                             aria-label="Daily active students chart"
                         >
@@ -414,7 +414,7 @@ function ActivityChart({ series, peak }) {
                                                 {visibleXAxisLabels[index] ? (
                                                     <text
                                                         x={point.x}
-                                                        y={height - 10}
+                                                        y={height - 4}
                                                         textAnchor="middle"
                                                         className={
                                                             isActive
