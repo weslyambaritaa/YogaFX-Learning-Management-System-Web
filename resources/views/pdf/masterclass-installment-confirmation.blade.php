@@ -16,7 +16,7 @@
         .header-banner img { width: 100%; height: auto; object-fit: contain; }
         .date-badge { text-align: right; margin-bottom: 8px; margin-top: -30px; }
         .date-badge span { display: inline-block; border: 1px solid #9ca3af; padding: 4px 12px; font-size: 12px; font-style: italic; color: #1f2937; background: #f9fafb; }
-        .subtitle { text-align: center; margin-bottom: 18px; font-size: 18px; font-weight: 700; line-height: 1.45; }
+        .subtitle { text-align: center; margin: 0 auto 18px; max-width: 100%; font-size: 28px; font-weight: 700; line-height: 1.3; }
         .confirm { color: #dc2626; font-style: italic; font-weight: 800; margin-top: 2px; display: block; }
         .greeting { margin: 0 0 10px; font-weight: 700; }
         .intro { margin: 0 0 12px; }
@@ -30,10 +30,10 @@
         .installments .due { width: 38%; }
         .installments .status { width: 12%; text-align: right; }
         .closing { margin-top: 14px; line-height: 1.55; }
-        .pdf-footer { margin-top: 12px; padding: 0 42px; text-align: left; }
+        .pdf-footer { margin: 0 0 10px; padding: 0; text-align: left; }
         .signature { margin-top: 12px; padding: 0 42px; text-align: left; }
         .signature img { width: 100%; object-fit: contain; object-position: left center; }
-        .copyright { margin-top: 16px; text-align: center; font-size: 11px; font-style: italic; color: #374151; }
+        .copyright { margin-top: 8px; text-align: center; font-size: 11px; font-style: italic; color: #374151; }
         .website { margin-top: 8px; padding: 9px 12px; text-align: center; background: #dc2626; color: #fff; font-size: 16px; font-weight: 800; letter-spacing: 0.2px; }
         .check-icon { display: inline-block; width: 14px; height: 14px; margin-left: 6px; vertical-align: -2px; }
     </style>
