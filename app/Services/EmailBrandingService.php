@@ -14,6 +14,10 @@ class EmailBrandingService
             ['singleton_key' => EmailBranding::GLOBAL_KEY],
             [
                 'logo_html' => EmailBrandingDefaults::logoHtml(),
+                'email_header_html' => EmailBrandingDefaults::headerHtml(),
+                'email_signature_html' => EmailBrandingDefaults::footerHtml(),
+                'pdf_header_html' => EmailBrandingDefaults::pdfHeaderHtml(),
+                'watermark_html' => EmailBrandingDefaults::watermarkHtml(),
                 'header_html' => EmailBrandingDefaults::headerHtml(),
                 'footer_html' => EmailBrandingDefaults::footerHtml(),
             ],
@@ -29,15 +33,40 @@ class EmailBrandingService
                 $branding->logo_html,
                 $this->legacyLogoHtml($branding) ?? EmailBrandingDefaults::logoHtml(),
             ),
-            'header_html' => $this->normalizeHtml(
-                $branding->header_html,
+            'email_header_html' => $this->normalizeHtml(
+                $branding->email_header_html ?: $branding->header_html,
                 EmailBrandingDefaults::headerHtml(),
             ),
-            'footer_html' => $this->normalizeHtml(
-                $branding->footer_html,
+            'email_signature_html' => $this->normalizeHtml(
+                $branding->email_signature_html ?: $branding->footer_html,
                 EmailBrandingDefaults::footerHtml(),
             ),
+            'pdf_header_html' => $this->normalizeHtml(
+                $branding->pdf_header_html,
+                EmailBrandingDefaults::pdfHeaderHtml(),
+            ),
+            'watermark_html' => $this->normalizeHtml(
+                $branding->watermark_html,
+                EmailBrandingDefaults::watermarkHtml(),
+            ),
             'app_name' => (string) config('app.name', 'YogaFX LMS'),
+        ];
+    }
+
+    public function currentPdfBrandingPayload(): array
+    {
+        $branding = $this->findOrCreateBranding();
+
+        return [
+            'logo_html' => $this->logoEditorHtml($branding),
+            'pdf_header_html' => $this->normalizeHtml(
+                $branding->pdf_header_html,
+                EmailBrandingDefaults::pdfHeaderHtml(),
+            ),
+            'watermark_html' => $this->normalizeHtml(
+                $branding->watermark_html,
+                EmailBrandingDefaults::watermarkHtml(),
+            ),
         ];
     }
 
@@ -63,6 +92,46 @@ class EmailBrandingService
         return $this->normalizeHtml(
             $branding->logo_html,
             $this->legacyLogoHtml($branding) ?? EmailBrandingDefaults::logoHtml(),
+        );
+    }
+
+    public function emailHeaderEditorHtml(?EmailBranding $branding = null): string
+    {
+        $branding ??= $this->findOrCreateBranding();
+
+        return $this->normalizeHtml(
+            $branding->email_header_html ?: $branding->header_html,
+            EmailBrandingDefaults::headerHtml(),
+        );
+    }
+
+    public function emailSignatureEditorHtml(?EmailBranding $branding = null): string
+    {
+        $branding ??= $this->findOrCreateBranding();
+
+        return $this->normalizeHtml(
+            $branding->email_signature_html ?: $branding->footer_html,
+            EmailBrandingDefaults::footerHtml(),
+        );
+    }
+
+    public function pdfHeaderEditorHtml(?EmailBranding $branding = null): string
+    {
+        $branding ??= $this->findOrCreateBranding();
+
+        return $this->normalizeHtml(
+            $branding->pdf_header_html,
+            EmailBrandingDefaults::pdfHeaderHtml(),
+        );
+    }
+
+    public function watermarkEditorHtml(?EmailBranding $branding = null): string
+    {
+        $branding ??= $this->findOrCreateBranding();
+
+        return $this->normalizeHtml(
+            $branding->watermark_html,
+            EmailBrandingDefaults::watermarkHtml(),
         );
     }
 

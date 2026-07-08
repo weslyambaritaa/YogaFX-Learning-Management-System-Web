@@ -23,8 +23,10 @@ class EmailBrandingController extends Controller
             'branding' => [
                 'id' => $branding->id,
                 'logo_html' => $this->emailBrandingService->logoEditorHtml($branding),
-                'header_html' => $branding->header_html,
-                'footer_html' => $branding->footer_html,
+                'email_header_html' => $this->emailBrandingService->emailHeaderEditorHtml($branding),
+                'email_signature_html' => $this->emailBrandingService->emailSignatureEditorHtml($branding),
+                'pdf_header_html' => $this->emailBrandingService->pdfHeaderEditorHtml($branding),
+                'watermark_html' => $this->emailBrandingService->watermarkEditorHtml($branding),
             ],
             'statusMessage' => session('status_message'),
             'statusTone' => session('status_tone'),
@@ -38,8 +40,12 @@ class EmailBrandingController extends Controller
 
         $branding->update([
             'logo_html' => $validated['logo_html'] ?? null,
-            'header_html' => $validated['header_html'] ?? null,
-            'footer_html' => $validated['footer_html'] ?? null,
+            'email_header_html' => $validated['email_header_html'] ?? null,
+            'email_signature_html' => $validated['email_signature_html'] ?? null,
+            'pdf_header_html' => $validated['pdf_header_html'] ?? null,
+            'watermark_html' => $validated['watermark_html'] ?? null,
+            'header_html' => $validated['email_header_html'] ?? null,
+            'footer_html' => $validated['email_signature_html'] ?? null,
         ]);
 
         return redirect()

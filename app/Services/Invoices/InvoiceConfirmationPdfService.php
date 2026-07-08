@@ -8,6 +8,7 @@ use App\Models\OnboardingState;
 use App\Models\Payment;
 use App\Models\PaymentSubscription;
 use App\Models\User;
+use App\Services\EmailBrandingService;
 use Carbon\CarbonImmutable;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -17,6 +18,10 @@ use Illuminate\Support\Str;
 class InvoiceConfirmationPdfService
 {
     private const GREEN_TICK_URL = 'https://yogafx-training.b-cdn.net/branding/green-tick-20260402083851-4a7f71fb.png';
+
+    public function __construct(
+        private readonly EmailBrandingService $emailBrandingService,
+    ) {}
 
     /**
      * @return array{name: string, mime: string, data: string}
@@ -123,11 +128,12 @@ class InvoiceConfirmationPdfService
         $installmentRows = $this->buildInstallmentRows($invoice, $subscription, $successPayments);
         $depositReceivedOn = $this->depositReceivedOn($subscription, $successPayments);
         $showCourseDates = ! $onlineLike && $this->masterclassHasCourseDates($invoice);
+        $branding = $this->emailBrandingService->currentPdfBrandingPayload();
 
         return [
-            'headerUrl' => null,
-            'signatureUrl' => null,
-            'watermarkUrl' => null,
+            'logoHtml' => $branding['logo_html'] ?? '',
+            'pdfHeaderHtml' => $branding['pdf_header_html'] ?? '',
+            'watermarkHtml' => $branding['watermark_html'] ?? '',
             'greenTickUrl' => self::GREEN_TICK_URL,
             'generatedOn' => now()->format('j M Y'),
             'courseName' => $courseName,

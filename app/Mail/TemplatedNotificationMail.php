@@ -65,8 +65,8 @@ class TemplatedNotificationMail extends Mailable
     private function buildEmailHtml(?Email $message = null): string
     {
         $logoHtml = $this->htmlFragment((string) ($this->branding['logo_html'] ?? ''));
-        $headerHtml = $this->htmlFragment($this->branding['header_html'] ?? '');
-        $footerHtml = $this->htmlFragment($this->branding['footer_html'] ?? '');
+        $headerHtml = $this->htmlFragment($this->branding['email_header_html'] ?? '');
+        $footerHtml = $this->htmlFragment($this->branding['email_signature_html'] ?? '');
         $contentHtml = $this->htmlFragment($this->bodyHtml);
 
         $html = <<<HTML

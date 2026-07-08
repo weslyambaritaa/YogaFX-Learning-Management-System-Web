@@ -10,6 +10,10 @@ use Illuminate\Database\Eloquent\Model;
     'singleton_key',
     'logo_path',
     'logo_html',
+    'email_header_html',
+    'email_signature_html',
+    'pdf_header_html',
+    'watermark_html',
     'header_html',
     'footer_html',
 ])]
