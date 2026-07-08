@@ -72,7 +72,10 @@ class TemplatedNotificationMail extends Mailable
             $this->branding['email_signature_html'] ?? '',
             'footer',
         );
-        $contentHtml = $this->htmlFragment($this->bodyHtml);
+        $contentHtml = $this->constrainImages(
+    $this->htmlFragment($this->bodyHtml),
+    'display:block; width:100%; max-width:100%; height:auto; box-sizing:border-box;'
+);
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -87,9 +90,9 @@ class TemplatedNotificationMail extends Mailable
         <div style="padding: 24px 24px 16px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);">
             {$headerHtml}
         </div>
-        <div style="padding: 28px 24px;">
-            {$contentHtml}
-        </div>
+        <div style="padding: 24px; overflow: hidden;">
+    {$contentHtml}
+</div>
         <div style="padding: 16px 24px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
             {$footerHtml}
         </div>
