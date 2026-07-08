@@ -14,26 +14,48 @@
         .watermark { position: fixed; top: 120px; left: 10%; width: 80%; z-index: -1; opacity: 0.12; text-align: center; }
         .watermark img { width: 100%; height: auto; object-fit: contain; }
         .watermark-fallback { position: fixed; top: 150px; right: 94px; font-size: 520px; line-height: 0.78; color: rgba(220, 38, 38, 0.12); font-weight: 900; z-index: -1; transform: rotate(10deg); }
-        .header-shell {
+.header-shell {
     position: fixed;
-    top: 0;
+    top: -30px;
     left: 0;
     right: 0;
     margin: 0;
     padding: 0;
 }
-        .header-banner {
+
+.header-banner {
     text-align: center;
     margin: 0;
     padding: 0;
     line-height: 0;
 }
-        .header-banner img {
+
+.header-banner * {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 0 !important;
+}
+
+.header-banner p,
+.header-banner figure,
+.header-banner table,
+.header-banner tbody,
+.header-banner tr,
+.header-banner td {
+    margin: 0 !important;
+    padding: 0 !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    line-height: 0 !important;
+}
+
+.header-banner img {
     display: block;
     width: 100%;
     height: auto;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0;
     object-fit: contain;
 }
         .heading-block { position: relative; margin-bottom: 14px; min-height: 68px; }
