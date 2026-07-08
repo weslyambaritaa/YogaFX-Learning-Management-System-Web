@@ -129,15 +129,16 @@ class InvoiceConfirmationPdfService
         $depositReceivedOn = $this->depositReceivedOn($subscription, $successPayments);
         $showCourseDates = ! $onlineLike && $this->masterclassHasCourseDates($invoice);
         $branding = $this->emailBrandingService->currentPdfBrandingPayload();
+        $tierSlug = $this->tierSlug($invoice);
 
         return [
-            'logoHtml' => $branding['logo_html'] ?? '',
             'pdfHeaderHtml' => $branding['pdf_header_html'] ?? '',
             'pdfFooterHtml' => $branding['pdf_footer_html'] ?? '',
             'watermarkHtml' => $branding['watermark_html'] ?? '',
             'greenTickUrl' => self::GREEN_TICK_URL,
             'generatedOn' => now()->format('j M Y'),
             'courseName' => $courseName,
+            'courseHeading' => $this->courseHeading($courseName),
             'dearName' => $studentName !== '' ? $studentName : 'Student',
             'paymentMode' => $paymentMode,
             'isPayIn4' => $paymentMode === 'pay_in_4',
@@ -161,6 +162,7 @@ class InvoiceConfirmationPdfService
             'courseDateRange' => $this->masterclassCourseDateRange($invoice),
             'checkInAt' => $this->masterclassCheckIn($invoice),
             'checkOutAt' => $this->masterclassCheckOut($invoice),
+            'showBonuses' => $tierSlug !== AccessTier::SLUG_STARTER_KIT,
             'isInstallmentFullyPaid' => $paymentMode === 'pay_in_4'
                 && $installmentRows !== []
                 && collect($installmentRows)->every(fn (array $row) => strtolower((string) ($row['status'] ?? '')) === 'paid'),
@@ -188,6 +190,32 @@ class InvoiceConfirmationPdfService
             ?: $invoice->user?->accessTier?->name
             ?: 'YogaFX Program'
         );
+    }
+
+    private function courseHeading(string $courseName): string
+    {
+        $heading = trim($courseName);
+
+        if ($heading === '') {
+            return 'YogaFX Program';
+        }
+
+        if (! str_starts_with(Str::lower($heading), 'yogafx')) {
+            $heading = 'YogaFX '.$heading;
+        }
+
+        return str_replace('OnlineClass', 'Online', $heading);
+    }
+
+    private function tierSlug(Invoice $invoice): string
+    {
+        return AccessTier::canonicalSlug((string) (
+            $invoice->accessTier?->slug
+            ?: $invoice->package?->accessTier?->slug
+            ?: $invoice->pendingRegistration?->accessTier?->slug
+            ?: $invoice->user?->accessTier?->slug
+            ?: ''
+        ));
     }
 
     private function studentName(Invoice $invoice): string

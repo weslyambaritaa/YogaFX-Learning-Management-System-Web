@@ -14,8 +14,6 @@
         .watermark-fallback { position: fixed; top: 210px; right: 94px; font-size: 520px; line-height: 0.78; color: rgba(220, 38, 38, 0.12); font-weight: 900; z-index: -1; transform: rotate(10deg); }
         .header-banner { text-align: center; margin-bottom: 10px; }
         .header-banner img { width: 100%; height: auto; object-fit: contain; }
-        .brand-logo { text-align: center; margin: 0 0 12px; }
-        .brand-logo img { max-width: 180px; height: auto; }
         .date-badge { text-align: right; margin-bottom: 8px; margin-top: -30px; }
         .date-badge span { display: inline-block; border: 1px solid #9ca3af; padding: 4px 12px; font-size: 12px; font-style: italic; color: #1f2937; background: #f9fafb; }
         .subtitle { text-align: center; margin-bottom: 18px; font-size: 24px; font-weight: 700; line-height: 1.45; }
@@ -52,11 +50,8 @@
         @endif
 
         <div class="date-badge"><span>{{ $generatedOn }}</span></div>
-        @if (filled(trim((string) ($logoHtml ?? ''))))
-            <div class="brand-logo">{!! $logoHtml !!}</div>
-        @endif
         <div class="subtitle">
-            {{ $courseName }}<br>
+            {{ $courseHeading ?? $courseName }}<br>
             <span class="confirm">Confirmation</span>
         </div>
 
@@ -177,13 +172,15 @@
                 Thank you for your interest in Yoga<span style="color:red">FX</span> International Yoga Teacher Training Academy<br>it really is appreciated.
             </p>
 
-            <div style="font-size:20px;font-weight:700;">
-                <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 1:</strong> 10 Premium Online Lectures ($490) - Module 14<br>
-                <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Meditation & Mindfulness Course ($99) - Module 15<br>
-                <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 2:</strong> Full $197 Credit to Mr. Ian's MasterClass<br>
-                <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 3:</strong> MasterClass Pre-Course Preparation Credit<br>
-                <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 5:</strong> Yoga Alliance RYT-200
-            </div>
+            @if (!empty($showBonuses))
+                <div style="font-size:20px;font-weight:700;">
+                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 1:</strong> 10 Premium Online Lectures ($490) - Module 14<br>
+                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Meditation & Mindfulness Course ($99) - Module 15<br>
+                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 2:</strong> Full $197 Credit to Mr. Ian's MasterClass<br>
+                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 3:</strong> MasterClass Pre-Course Preparation Credit<br>
+                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 5:</strong> Yoga Alliance RYT-200
+                </div>
+            @endif
         </div>
 
         <div class="footer">

@@ -67,9 +67,12 @@ class EmailBrandingService
                 $branding->pdf_header_html,
                 EmailBrandingDefaults::pdfHeaderHtml(),
             ),
-            'pdf_footer_html' => $this->normalizeOptionalHtml(
-                $branding->pdf_footer_html,
-            ),
+            'pdf_footer_html' => $this->normalizeOptionalHtml($branding->pdf_footer_html) !== ''
+                ? $this->normalizeOptionalHtml($branding->pdf_footer_html)
+                : $this->normalizeHtml(
+                    $branding->email_signature_html ?: $branding->footer_html,
+                    EmailBrandingDefaults::footerHtml(),
+                ),
             'watermark_html' => $this->normalizeHtml(
                 $branding->watermark_html,
                 EmailBrandingDefaults::watermarkHtml(),
