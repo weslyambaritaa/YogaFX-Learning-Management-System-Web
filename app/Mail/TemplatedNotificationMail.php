@@ -64,9 +64,18 @@ class TemplatedNotificationMail extends Mailable
 
     private function buildEmailHtml(?Email $message = null): string
     {
-        $logoHtml = $this->htmlFragment((string) ($this->branding['logo_html'] ?? ''));
-        $headerHtml = $this->htmlFragment($this->branding['email_header_html'] ?? '');
-        $footerHtml = $this->htmlFragment($this->branding['email_signature_html'] ?? '');
+        $logoHtml = $this->prepareBrandingSectionHtml(
+            (string) ($this->branding['logo_html'] ?? ''),
+            'logo',
+        );
+        $headerHtml = $this->prepareBrandingSectionHtml(
+            $this->branding['email_header_html'] ?? '',
+            'header',
+        );
+        $footerHtml = $this->prepareBrandingSectionHtml(
+            $this->branding['email_signature_html'] ?? '',
+            'footer',
+        );
         $contentHtml = $this->htmlFragment($this->bodyHtml);
 
         $html = <<<HTML
@@ -79,14 +88,14 @@ class TemplatedNotificationMail extends Mailable
 </head>
 <body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
     <div style="margin: 0 auto; max-width: 680px; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 18px; background: #ffffff;">
-        <div style="padding: 32px 32px 20px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);">
+        <div style="padding: 24px 24px 16px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);">
             {$logoHtml}
             {$headerHtml}
         </div>
-        <div style="padding: 32px;">
+        <div style="padding: 28px 24px;">
             {$contentHtml}
         </div>
-        <div style="padding: 20px 32px 28px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+        <div style="padding: 16px 24px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
             {$footerHtml}
         </div>
     </div>
@@ -132,6 +141,67 @@ HTML;
     private function escapedSubjectLine(): string
     {
         return e($this->subjectLine);
+    }
+
+    private function prepareBrandingSectionHtml(string $content, string $section): string
+    {
+        $html = $this->htmlFragment($content);
+
+        return match ($section) {
+            'logo' => $this->wrapBrandingSection(
+                $this->constrainImages($html, 'display:block; max-width:220px; width:auto; height:auto;'),
+                'margin: 0 0 14px; text-align: left;',
+            ),
+            'header' => $this->wrapBrandingSection(
+                $this->constrainImages($html, 'display:block; width:100%; max-width:100%; height:auto;'),
+                'margin: 0; text-align: left;',
+            ),
+            'footer' => $this->wrapBrandingSection(
+                $this->constrainImages($html, 'display:block; width:100%; max-width:100%; height:auto;'),
+                'margin: 0; text-align: left;',
+            ),
+            default => $html,
+        };
+    }
+
+    private function wrapBrandingSection(string $html, string $style): string
+    {
+        return '<div style="'.$style.'">'.$html.'</div>';
+    }
+
+    private function constrainImages(string $html, string $requiredStyle): string
+    {
+        return preg_replace_callback(
+            '/<img\b([^>]*)>/i',
+            function (array $matches) use ($requiredStyle): string {
+                $tag = $matches[0];
+
+                if (preg_match('/\sstyle=(["\'])(.*?)\1/i', $tag, $styleMatch) === 1) {
+                    $mergedStyle = rtrim(trim($styleMatch[2]), ';');
+
+                    if ($mergedStyle !== '') {
+                        $mergedStyle .= '; ';
+                    }
+
+                    $mergedStyle .= $requiredStyle;
+
+                    return preg_replace(
+                        '/\sstyle=(["\'])(.*?)\1/i',
+                        ' style="'.$mergedStyle.'"',
+                        $tag,
+                        1,
+                    ) ?? $tag;
+                }
+
+                return preg_replace(
+                    '/<img\b/i',
+                    '<img style="'.$requiredStyle.'"',
+                    $tag,
+                    1,
+                ) ?? $tag;
+            },
+            $html,
+        ) ?? $html;
     }
 
     private function resolveEmbeddableImagePath(string $src): ?string
