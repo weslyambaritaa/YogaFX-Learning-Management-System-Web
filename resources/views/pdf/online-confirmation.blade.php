@@ -6,15 +6,36 @@
     <style>
         @page { margin: 0; }
         body { font-family: Arial, sans-serif; color: #111; font-size: 16px; line-height: 1.5; margin: 0; background: #fff; }
-        .page { padding: 0 42px; position: relative; }
-        .content { padding: 155px 42px 130px; }
+        .page { padding: 0; position: relative; }
+        .content {
+    padding: 155px 84px 130px;
+}
         .footer { position: fixed; left: 42px; right: 42px; bottom: 0; }
         .watermark { position: fixed; top: 120px; left: 10%; width: 80%; z-index: -1; opacity: 0.12; text-align: center; }
         .watermark img { width: 100%; height: auto; object-fit: contain; }
         .watermark-fallback { position: fixed; top: 150px; right: 94px; font-size: 520px; line-height: 0.78; color: rgba(220, 38, 38, 0.12); font-weight: 900; z-index: -1; transform: rotate(10deg); }
-        .header-shell { position: fixed; top: -1px; left: 42px; right: 42px; margin: 0; padding: 0; }
-        .header-banner { text-align: center; margin-bottom: 4px; }
-        .header-banner img { width: 100%; height: auto; object-fit: contain; }
+        .header-shell {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
+}
+        .header-banner {
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    line-height: 0;
+}
+        .header-banner img {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    object-fit: contain;
+}
         .heading-block { position: relative; margin-bottom: 14px; min-height: 68px; }
         .date-badge { position: absolute; top: 4px; right: 0; text-align: right; }
         .date-badge span { display: inline-block; border: 1px solid #9ca3af; padding: 4px 12px; font-size: 12px; font-style: italic; color: #1f2937; background: #f9fafb; }
