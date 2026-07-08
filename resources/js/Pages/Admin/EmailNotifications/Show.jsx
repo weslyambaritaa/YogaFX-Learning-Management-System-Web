@@ -291,11 +291,10 @@ export default function EmailNotificationShow({
                                         </div>
 
                                         <div className="flex items-center gap-3">
-                                            {brandingSummary?.logo_url ? (
-                                                <img
-                                                    src={brandingSummary.logo_url}
-                                                    alt="Global email branding logo"
-                                                    className="max-h-10 w-auto object-contain"
+                                            {brandingSummary?.logo_html ? (
+                                                <div
+                                                    className="max-w-[220px] overflow-hidden rounded-md border border-slate-200 bg-white px-3 py-2"
+                                                    dangerouslySetInnerHTML={{ __html: brandingSummary.logo_html }}
                                                 />
                                             ) : null}
 

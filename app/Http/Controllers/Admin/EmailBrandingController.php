@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\EmailBrandingUpdateRequest;
 use App\Services\EmailBrandingService;
@@ -12,8 +11,6 @@ use Inertia\Response;
 
 class EmailBrandingController extends Controller
 {
-    use HandlesLocalUploads;
-
     public function __construct(
         private readonly EmailBrandingService $emailBrandingService,
     ) {}
@@ -25,7 +22,7 @@ class EmailBrandingController extends Controller
         return Inertia::render('Admin/EmailNotifications/Branding', [
             'branding' => [
                 'id' => $branding->id,
-                'logo_url' => $this->emailBrandingService->logoPreviewUrl($branding),
+                'logo_html' => $this->emailBrandingService->logoEditorHtml($branding),
                 'header_html' => $branding->header_html,
                 'footer_html' => $branding->footer_html,
             ],
@@ -39,14 +36,8 @@ class EmailBrandingController extends Controller
         $branding = $this->emailBrandingService->findOrCreateBranding();
         $validated = $request->validated();
 
-        $logoPath = $this->storeUploadedFile(
-            $request->file('logo'),
-            'email-branding/logos',
-            $branding->logo_path,
-        );
-
         $branding->update([
-            'logo_path' => $logoPath,
+            'logo_html' => $validated['logo_html'] ?? null,
             'header_html' => $validated['header_html'] ?? null,
             'footer_html' => $validated['footer_html'] ?? null,
         ]);

@@ -14,7 +14,7 @@ class EmailBrandingUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'logo' => ['nullable', 'image', 'max:2048'],
+            'logo_html' => ['nullable', 'string'],
             'header_html' => ['nullable', 'string'],
             'footer_html' => ['nullable', 'string'],
         ];

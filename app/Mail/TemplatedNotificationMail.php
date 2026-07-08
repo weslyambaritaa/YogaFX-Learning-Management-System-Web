@@ -64,7 +64,7 @@ class TemplatedNotificationMail extends Mailable
 
     private function buildEmailHtml(?Email $message = null): string
     {
-        $logoHtml = $this->buildLogoHtml();
+        $logoHtml = $this->htmlFragment((string) ($this->branding['logo_html'] ?? ''));
         $headerHtml = $this->htmlFragment($this->branding['header_html'] ?? '');
         $footerHtml = $this->htmlFragment($this->branding['footer_html'] ?? '');
         $contentHtml = $this->htmlFragment($this->bodyHtml);
@@ -136,18 +136,6 @@ HTML;
 
     private function resolveEmbeddableImagePath(string $src): ?string
     {
-        if ($src === 'branding-logo://inline') {
-            $brandingLogoPath = $this->branding['logo_path'] ?? null;
-
-            if (! is_string($brandingLogoPath) || ! is_file($brandingLogoPath) || ! is_readable($brandingLogoPath)) {
-                return null;
-            }
-
-            $mimeType = mime_content_type($brandingLogoPath) ?: '';
-
-            return str_starts_with($mimeType, 'image/') ? $brandingLogoPath : null;
-        }
-
         $path = parse_url($src, PHP_URL_PATH);
 
         if (is_string($path) && str_starts_with($path, '/storage/email-notifications/media/')) {
@@ -213,23 +201,6 @@ HTML;
 
         return $imagePath;
     }
-
-    private function buildLogoHtml(): string
-    {
-        $hasLocalLogo = is_string($this->branding['logo_path'] ?? null) && $this->branding['logo_path'] !== '';
-        $logoUrl = is_string($this->branding['logo_url'] ?? null) && $this->branding['logo_url'] !== ''
-            ? $this->branding['logo_url']
-            : ($hasLocalLogo ? 'branding-logo://inline' : '');
-
-        if ($logoUrl === '') {
-            return '';
-        }
-
-        $alt = e((string) ($this->branding['app_name'] ?? config('app.name', 'YogaFX LMS')));
-
-        return '<div style="margin-bottom: 20px;"><img src="'.e($logoUrl).'" alt="'.$alt.'" style="display: block; max-width: 180px; width: auto; height: auto;"></div>';
-    }
-
     private function htmlFragment(string $content): string
     {
         if (! Str::contains($content, '<')) {
