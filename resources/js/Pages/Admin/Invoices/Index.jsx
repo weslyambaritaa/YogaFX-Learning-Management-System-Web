@@ -2,74 +2,80 @@ import CommerceIndexPage, {
     formatCurrency,
     formatDateTime,
     statusBadgeClass,
-} from '@/Components/admin/commerce/CommerceIndexPage';
-import { Button } from '@/Components/ui/button';
+} from "@/Components/admin/commerce/CommerceIndexPage";
+import { Button } from "@/Components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from '@/Components/ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
+} from "@/Components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 const columns = [
     {
-        key: 'number',
-        label: 'No',
+        key: "number",
+        label: "No",
         render: (row) => row.number,
     },
     {
-        key: 'invoice_number',
-        label: 'Invoice',
+        key: "invoice_number",
+        label: "Invoice",
         render: (row) => (
             <div>
-                <div className="font-medium text-slate-900">{row.invoice_number}</div>
+                <div className="font-medium text-slate-900">
+                    {row.invoice_number}
+                </div>
                 <div className="text-xs text-slate-500">{row.type_label}</div>
             </div>
         ),
     },
     {
-        key: 'student',
-        label: 'Student',
+        key: "student",
+        label: "Student",
         render: (row) => (
             <div>
-                <div className="font-medium text-slate-900">{row.student_name}</div>
+                <div className="font-medium text-slate-900">
+                    {row.student_name}
+                </div>
                 <div className="text-xs text-slate-500">{row.email}</div>
             </div>
         ),
     },
     {
-        key: 'tier',
-        label: 'Tier',
+        key: "tier",
+        label: "Tier",
         render: (row) => row.tier,
     },
     {
-        key: 'total_amount',
-        label: 'Total Amount',
+        key: "total_amount",
+        label: "Total Amount",
         render: (row) => formatCurrency(row.total_amount, row.currency_code),
     },
     {
-        key: 'balance_due',
-        label: 'Balance Due',
+        key: "balance_due",
+        label: "Balance Due",
         render: (row) => formatCurrency(row.balance_due, row.currency_code),
     },
     {
-        key: 'status',
-        label: 'Status',
+        key: "status",
+        label: "Status",
         render: (row) => (
-            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(row.status)}`}>
+            <span
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(row.status)}`}
+            >
                 {row.status_label}
             </span>
         ),
     },
     {
-        key: 'issued_at',
-        label: 'Issued At',
+        key: "issued_at",
+        label: "Issued At",
         render: (row) => formatDateTime(row.issued_at),
     },
     {
-        key: 'action',
-        label: 'Action',
+        key: "action",
+        label: "Action",
         render: (row, openDetail) => (
             <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -88,7 +94,10 @@ const columns = [
                             <ChevronDown className="size-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-40 min-w-40">
+                    <DropdownMenuContent
+                        align="end"
+                        className="z-50 w-40 min-w-40 rounded-md border border-slate-200 bg-white p-1 shadow-lg"
+                    >
                         <DropdownMenuItem asChild>
                             <a
                                 href={row.pdf_preview_url}
@@ -99,9 +108,7 @@ const columns = [
                             </a>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                            <a href={row.pdf_download_url}>
-                                Download PDF
-                            </a>
+                            <a href={row.pdf_download_url}>Download PDF</a>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -110,7 +117,11 @@ const columns = [
     },
 ];
 
-export default function InvoicesIndex({ sections, tierOptions, statusOptions }) {
+export default function InvoicesIndex({
+    sections,
+    tierOptions,
+    statusOptions,
+}) {
     return (
         <CommerceIndexPage
             title="Invoice"
@@ -122,21 +133,29 @@ export default function InvoicesIndex({ sections, tierOptions, statusOptions }) 
             statusOptions={statusOptions}
             columns={columns}
             detailTitle={(row) => `Invoice ${row.invoice_number}`}
-            detailDescription={(row) => `Full invoice detail for ${row.student_name}.`}
+            detailDescription={(row) =>
+                `Full invoice detail for ${row.student_name}.`
+            }
             buildDetailFields={(row) => [
-                { label: 'Invoice Number', value: row.invoice_number },
-                { label: 'Student Name', value: row.student_name },
-                { label: 'Email', value: row.email },
-                { label: 'Tier', value: row.tier },
-                { label: 'Package', value: row.package },
-                { label: 'Type', value: row.type_label },
-                { label: 'Payment Type', value: row.payment_type_label },
-                { label: 'Total Amount', value: formatCurrency(row.total_amount, row.currency_code) },
-                { label: 'Balance Due', value: formatCurrency(row.balance_due, row.currency_code) },
-                { label: 'Currency', value: row.currency_code },
-                { label: 'Status', value: row.status_label },
-                { label: 'Issued At', value: formatDateTime(row.issued_at) },
-                { label: 'Paid At', value: formatDateTime(row.paid_at) },
+                { label: "Invoice Number", value: row.invoice_number },
+                { label: "Student Name", value: row.student_name },
+                { label: "Email", value: row.email },
+                { label: "Tier", value: row.tier },
+                { label: "Package", value: row.package },
+                { label: "Type", value: row.type_label },
+                { label: "Payment Type", value: row.payment_type_label },
+                {
+                    label: "Total Amount",
+                    value: formatCurrency(row.total_amount, row.currency_code),
+                },
+                {
+                    label: "Balance Due",
+                    value: formatCurrency(row.balance_due, row.currency_code),
+                },
+                { label: "Currency", value: row.currency_code },
+                { label: "Status", value: row.status_label },
+                { label: "Issued At", value: formatDateTime(row.issued_at) },
+                { label: "Paid At", value: formatDateTime(row.paid_at) },
             ]}
         />
     );
