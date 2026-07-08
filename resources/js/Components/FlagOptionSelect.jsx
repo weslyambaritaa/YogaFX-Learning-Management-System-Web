@@ -139,14 +139,16 @@ export default function FlagOptionSelect({
                         buttonClassName,
                     ].join(" ")}
                 >
-                    <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
                         <FlagVisual
                             option={currentOption}
                             fallbackClassName={fallbackClassName}
                         />
                         <span
                             className={[
-                                "block truncate",
+                                displayMode === "phone-code"
+                                    ? "block shrink-0 whitespace-nowrap"
+                                    : "block truncate",
                                 currentOption
                                     ? buttonTextClassName
                                     : placeholderClassName,
@@ -158,7 +160,9 @@ export default function FlagOptionSelect({
                         </span>
                     </span>
                     <ChevronDown
-                        className={["size-4 shrink-0", chevronClassName].join(" ")}
+                        className={["size-4 shrink-0", chevronClassName].join(
+                            " ",
+                        )}
                         aria-hidden="true"
                     />
                 </ListboxButton>
@@ -210,23 +214,30 @@ export default function FlagOptionSelect({
                                 >
                                     {({ selected }) => (
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="flex min-w-0 items-center gap-3">
+                                            <span className="flex min-w-0 flex-1 items-center gap-2">
                                                 <FlagVisual
-                                                    option={option}
+                                                    option={currentOption}
                                                     fallbackClassName={
                                                         fallbackClassName
                                                     }
                                                 />
                                                 <span
                                                     className={[
-                                                        "block truncate",
-                                                        optionTextClassName,
+                                                        displayMode ===
+                                                        "phone-code"
+                                                            ? "block shrink-0 whitespace-nowrap"
+                                                            : "block truncate",
+                                                        currentOption
+                                                            ? buttonTextClassName
+                                                            : placeholderClassName,
                                                     ].join(" ")}
                                                 >
-                                                    {formatOptionLabel(
-                                                        option,
-                                                        displayMode,
-                                                    )}
+                                                    {currentOption
+                                                        ? formatOptionLabel(
+                                                              currentOption,
+                                                              displayMode,
+                                                          )
+                                                        : placeholder}
                                                 </span>
                                             </span>
                                             {selected ? (
