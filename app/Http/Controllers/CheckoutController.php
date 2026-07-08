@@ -169,6 +169,7 @@ class CheckoutController extends Controller
                 'total_amount' => (float) $paymentSubscription->total_amount,
                 'currency_code' => $paymentSubscription->currency_code,
                 'next_due_at' => $paymentSubscription->next_due_at?->toDateString(),
+                'paypal_subscription_start_time' => $this->paypalSubscriptionStartTime($paymentSubscription),
                 'final_due_at' => $paymentSubscription->final_due_at?->toDateString(),
                 'grace_deadline_at' => $paymentSubscription->grace_deadline_at?->toDateString(),
                 'installment_plan' => $installmentPlan,
@@ -529,5 +530,18 @@ class CheckoutController extends Controller
 
             'environment' => $this->paypalService->environment(),
         ];
+    }
+
+    private function paypalSubscriptionStartTime(PaymentSubscription $paymentSubscription): ?string
+    {
+        if (! $paymentSubscription->next_due_at) {
+            return null;
+        }
+
+        return $paymentSubscription->next_due_at
+            ->copy()
+            ->utc()
+            ->startOfDay()
+            ->format('Y-m-d\TH:i:s\Z');
     }
 }

@@ -453,9 +453,16 @@ export default function UpgradeCheckout({ upgrade }) {
                     throw new Error("subscription-plan-missing");
                 }
 
-                return actions.subscription.create({
+                const subscriptionPayload = {
                     plan_id: session.provider_plan_id,
-                });
+                };
+
+                if (session.paypal_subscription_start_time) {
+                    subscriptionPayload.start_time =
+                        session.paypal_subscription_start_time;
+                }
+
+                return actions.subscription.create(subscriptionPayload);
             },
             onApprove: async (approvalData) => {
                 await attachApprovedSubscription(approvalData.subscriptionID);

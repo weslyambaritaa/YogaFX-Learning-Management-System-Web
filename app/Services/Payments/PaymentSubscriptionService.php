@@ -17,6 +17,12 @@ use Illuminate\Validation\ValidationException;
 
 class PaymentSubscriptionService
 {
+    private const PLAN_CACHE_VERSION = 'v2';
+
+    private const CONTEXT_INITIAL = 'initial';
+
+    private const CONTEXT_UPGRADE = 'upgrade';
+
     public function __construct(
         private readonly InvoiceNumberService $invoiceNumbers,
         private readonly InstallmentPlanCalculator $installmentPlanCalculator,
@@ -61,41 +67,6 @@ class PaymentSubscriptionService
             ->latest('id')
             ->first();
 
-        $existingBillingDayMatches = $existingPreparedSubscription instanceof PaymentSubscription
-            && (int) ($existingPreparedSubscription->billing_day ?? 0) === (int) ($billingDay ?? 0);
-
-        $existingInstallmentCountMatches = $existingPreparedSubscription instanceof PaymentSubscription
-            && (int) ($existingPreparedSubscription->installment_count ?? 0) === (int) ($installmentCount ?? 0);
-
-        if (
-            $existingPreparedSubscription instanceof PaymentSubscription
-            && $existingPreparedSubscription->invoice instanceof Invoice
-            && $existingBillingDayMatches
-            && $existingInstallmentCountMatches
-            && is_string($existingPreparedSubscription->provider_plan_id)
-            && $existingPreparedSubscription->provider_plan_id !== ''
-        ) {
-            return [
-                'invoice' => $existingPreparedSubscription->invoice,
-                'payment_subscription' => $existingPreparedSubscription,
-                'provider_plan_id' => $existingPreparedSubscription->provider_plan_id,
-            ];
-        }
-
-        if (
-            $existingPreparedSubscription instanceof PaymentSubscription
-            && (
-                ! $existingBillingDayMatches
-                || ! $existingInstallmentCountMatches
-            )
-            && (
-                (is_string($existingPreparedSubscription->provider_subscription_id) && $existingPreparedSubscription->provider_subscription_id !== '')
-                || $existingPreparedSubscription->status !== PaymentSubscription::STATUS_DRAFT
-            )
-        ) {
-            abort(409, 'Installment billing configuration cannot be changed after PayPal approval has started.');
-        }
-
         try {
             $installmentPlan = $this->installmentPlanCalculator->calculate(
                 package: $package,
@@ -107,8 +78,55 @@ class PaymentSubscriptionService
             abort(422, $exception->getMessage() ?: 'This package is not eligible for installment checkout.');
         }
 
+        $planFingerprint = $this->providerPlanFingerprint(
+            context: self::CONTEXT_INITIAL,
+            package: $package,
+            installmentPlan: $installmentPlan,
+        );
+
+        $existingConfigMatches = $existingPreparedSubscription instanceof PaymentSubscription
+            && $this->preparedSubscriptionConfigMatches(
+                paymentSubscription: $existingPreparedSubscription,
+                installmentPlan: $installmentPlan,
+                billingDay: $billingDay,
+            );
+
+        if (
+            $existingPreparedSubscription instanceof PaymentSubscription
+            && $existingPreparedSubscription->invoice instanceof Invoice
+            && $existingConfigMatches
+            && $this->preparedSubscriptionCanReuse(
+                paymentSubscription: $existingPreparedSubscription,
+                context: self::CONTEXT_INITIAL,
+                planFingerprint: $planFingerprint,
+                installmentPlan: $installmentPlan,
+                billingDay: $billingDay,
+            )
+        ) {
+            return [
+                'invoice' => $existingPreparedSubscription->invoice,
+                'payment_subscription' => $existingPreparedSubscription,
+                'provider_plan_id' => $existingPreparedSubscription->provider_plan_id,
+            ];
+        }
+
+        if (
+            $existingPreparedSubscription instanceof PaymentSubscription
+            && ! $existingConfigMatches
+            && $this->paypalApprovalHasStarted($existingPreparedSubscription)
+        ) {
+            abort(409, 'Installment billing configuration cannot be changed after PayPal approval has started.');
+        }
+
         /** @var array{invoice: Invoice, payment_subscription: PaymentSubscription} $created */
-        $created = DB::transaction(function () use ($pendingRegistration, $package, $installmentPlan, $billingDay, $existingPreparedSubscription): array {
+        $created = DB::transaction(function () use (
+            $pendingRegistration,
+            $package,
+            $installmentPlan,
+            $billingDay,
+            $existingPreparedSubscription,
+            $planFingerprint
+        ): array {
             $pendingRegistration->forceFill([
                 'installment_billing_day' => $billingDay,
             ])->save();
@@ -117,7 +135,7 @@ class PaymentSubscriptionService
                 $existingPreparedSubscription instanceof PaymentSubscription
                 && $existingPreparedSubscription->invoice instanceof Invoice
                 && $existingPreparedSubscription->status === PaymentSubscription::STATUS_DRAFT
-                && ! is_string($existingPreparedSubscription->provider_subscription_id)
+                && ! $this->paypalApprovalHasStarted($existingPreparedSubscription)
             ) {
                 $invoice = $existingPreparedSubscription->invoice;
 
@@ -156,9 +174,11 @@ class PaymentSubscriptionService
                     'last_payment_failed_at' => null,
                     'last_synced_at' => null,
                     'metadata' => [
+                        'context' => self::CONTEXT_INITIAL,
                         'installment_plan' => $installmentPlan,
                         'selected_billing_day' => $billingDay,
                         'selected_installment_count' => $installmentPlan['installment_count'],
+                        'provider_plan_fingerprint' => $planFingerprint,
                     ],
                 ])->save();
 
@@ -203,9 +223,11 @@ class PaymentSubscriptionService
                 'final_due_at' => $installmentPlan['final_due_at'],
                 'grace_deadline_at' => $installmentPlan['grace_deadlines'][0] ?? null,
                 'metadata' => [
+                    'context' => self::CONTEXT_INITIAL,
                     'installment_plan' => $installmentPlan,
                     'selected_billing_day' => $billingDay,
                     'selected_installment_count' => $installmentPlan['installment_count'],
+                    'provider_plan_fingerprint' => $planFingerprint,
                 ],
             ]);
 
@@ -215,83 +237,15 @@ class PaymentSubscriptionService
             ];
         });
 
-        try {
-            $productId = $package->paypal_product_id;
-
-            if (! is_string($productId) || $productId === '') {
-                $productId = $this->provider->createProduct($package, $installmentPlan)['id'];
-            }
-
-            $planId = $this->providerPlanIdForInstallmentConfig(
-                package: $package,
-                billingDay: $billingDay,
-                installmentCount: (int) $installmentPlan['installment_count'],
-            );
-
-            if (! is_string($planId) || $planId === '') {
-                $planId = $this->provider->createPlan($package, $installmentPlan, $productId)['id'];
-            }
-        } catch (\Throwable $throwable) {
-            DB::transaction(function () use ($created, $throwable): void {
-                $errorDetails = $throwable instanceof ValidationException
-                    ? $throwable->errors()
-                    : null;
-
-                $created['payment_subscription']->forceFill([
-                    'status' => PaymentSubscription::STATUS_FAILED,
-                    'metadata' => array_merge($created['payment_subscription']->metadata ?? [], [
-                        'provider_error' => $throwable->getMessage(),
-                        'provider_error_details' => $errorDetails,
-                    ]),
-                ])->save();
-            });
-
-            throw $throwable;
-        }
-
-        DB::transaction(function () use ($package, $created, $productId, $planId, $urls, $billingDay, $installmentPlan): void {
-            $metadata = is_array($package->metadata) ? $package->metadata : [];
-
-            $paypalPlanIds = is_array($metadata['paypal_plan_ids'] ?? null)
-                ? $metadata['paypal_plan_ids']
-                : [];
-
-            $paypalPlanKey = $this->providerPlanKeyForInstallmentConfig(
-                billingDay: $billingDay,
-                installmentCount: (int) $installmentPlan['installment_count'],
-            );
-
-            $paypalPlanIds[$paypalPlanKey] = $planId;
-            $metadata['paypal_plan_ids'] = $paypalPlanIds;
-
-            if ($package->paypal_product_id !== $productId || $package->paypal_plan_id !== $planId || $package->metadata !== $metadata) {
-                $package->forceFill([
-                    'paypal_product_id' => $productId,
-                    'paypal_plan_id' => $planId,
-                    'metadata' => $metadata,
-                ])->save();
-            }
-
-            $created['payment_subscription']->forceFill([
-                'provider_product_id' => $productId,
-                'provider_plan_id' => $planId,
-                'status' => PaymentSubscription::STATUS_DRAFT,
-                'metadata' => array_merge($created['payment_subscription']->metadata ?? [], [
-                    'provider_prepare_stage' => 'plan_ready',
-                    'provider_return_url' => $urls['return_url'],
-                    'provider_cancel_url' => $urls['cancel_url'],
-                    'selected_billing_day' => $billingDay,
-                    'selected_installment_count' => (int) $installmentPlan['installment_count'],
-                    'provider_plan_key' => $paypalPlanKey,
-                ]),
-            ])->save();
-        });
-
-        return [
-            'invoice' => $created['invoice']->fresh(),
-            'payment_subscription' => $created['payment_subscription']->fresh(),
-            'provider_plan_id' => $planId,
-        ];
+        return $this->preparePlanForCheckout(
+            package: $package,
+            created: $created,
+            urls: $urls,
+            billingDay: $billingDay,
+            installmentPlan: $installmentPlan,
+            context: self::CONTEXT_INITIAL,
+            planFingerprint: $planFingerprint,
+        );
     }
 
     /**
@@ -332,41 +286,6 @@ class PaymentSubscriptionService
             ->latest('id')
             ->first();
 
-        $existingBillingDayMatches = $existingPreparedSubscription instanceof PaymentSubscription
-            && (int) ($existingPreparedSubscription->billing_day ?? 0) === (int) ($billingDay ?? 0);
-
-        $existingInstallmentCountMatches = $existingPreparedSubscription instanceof PaymentSubscription
-            && (int) ($existingPreparedSubscription->installment_count ?? 0) === (int) ($installmentCount ?? 0);
-
-        if (
-            $existingPreparedSubscription instanceof PaymentSubscription
-            && $existingPreparedSubscription->invoice instanceof Invoice
-            && $existingBillingDayMatches
-            && $existingInstallmentCountMatches
-            && is_string($existingPreparedSubscription->provider_plan_id)
-            && $existingPreparedSubscription->provider_plan_id !== ''
-        ) {
-            return [
-                'invoice' => $existingPreparedSubscription->invoice,
-                'payment_subscription' => $existingPreparedSubscription,
-                'provider_plan_id' => $existingPreparedSubscription->provider_plan_id,
-            ];
-        }
-
-        if (
-            $existingPreparedSubscription instanceof PaymentSubscription
-            && (
-                ! $existingBillingDayMatches
-                || ! $existingInstallmentCountMatches
-            )
-            && (
-                (is_string($existingPreparedSubscription->provider_subscription_id) && $existingPreparedSubscription->provider_subscription_id !== '')
-                || $existingPreparedSubscription->status !== PaymentSubscription::STATUS_DRAFT
-            )
-        ) {
-            abort(409, 'Installment billing configuration cannot be changed after PayPal approval has started.');
-        }
-
         try {
             $installmentPlan = $this->installmentPlanCalculator->calculateForAmount(
                 package: $package,
@@ -379,6 +298,46 @@ class PaymentSubscriptionService
             abort(422, $exception->getMessage() ?: 'This package is not eligible for installment checkout.');
         }
 
+        $planFingerprint = $this->providerPlanFingerprint(
+            context: self::CONTEXT_UPGRADE,
+            package: $package,
+            installmentPlan: $installmentPlan,
+        );
+
+        $existingConfigMatches = $existingPreparedSubscription instanceof PaymentSubscription
+            && $this->preparedSubscriptionConfigMatches(
+                paymentSubscription: $existingPreparedSubscription,
+                installmentPlan: $installmentPlan,
+                billingDay: $billingDay,
+            );
+
+        if (
+            $existingPreparedSubscription instanceof PaymentSubscription
+            && $existingPreparedSubscription->invoice instanceof Invoice
+            && $existingConfigMatches
+            && $this->preparedSubscriptionCanReuse(
+                paymentSubscription: $existingPreparedSubscription,
+                context: self::CONTEXT_UPGRADE,
+                planFingerprint: $planFingerprint,
+                installmentPlan: $installmentPlan,
+                billingDay: $billingDay,
+            )
+        ) {
+            return [
+                'invoice' => $existingPreparedSubscription->invoice,
+                'payment_subscription' => $existingPreparedSubscription,
+                'provider_plan_id' => $existingPreparedSubscription->provider_plan_id,
+            ];
+        }
+
+        if (
+            $existingPreparedSubscription instanceof PaymentSubscription
+            && ! $existingConfigMatches
+            && $this->paypalApprovalHasStarted($existingPreparedSubscription)
+        ) {
+            abort(409, 'Installment billing configuration cannot be changed after PayPal approval has started.');
+        }
+
         /** @var array{invoice: Invoice, payment_subscription: PaymentSubscription} $created */
         $created = DB::transaction(function () use (
             $user,
@@ -386,13 +345,14 @@ class PaymentSubscriptionService
             $package,
             $installmentPlan,
             $billingDay,
-            $existingPreparedSubscription
+            $existingPreparedSubscription,
+            $planFingerprint
         ): array {
             if (
                 $existingPreparedSubscription instanceof PaymentSubscription
                 && $existingPreparedSubscription->invoice instanceof Invoice
                 && $existingPreparedSubscription->status === PaymentSubscription::STATUS_DRAFT
-                && ! is_string($existingPreparedSubscription->provider_subscription_id)
+                && ! $this->paypalApprovalHasStarted($existingPreparedSubscription)
             ) {
                 $invoice = $existingPreparedSubscription->invoice;
 
@@ -436,10 +396,11 @@ class PaymentSubscriptionService
                     'last_payment_failed_at' => null,
                     'last_synced_at' => null,
                     'metadata' => [
+                        'context' => self::CONTEXT_UPGRADE,
                         'installment_plan' => $installmentPlan,
-                        'context' => 'upgrade',
                         'selected_billing_day' => $billingDay,
                         'selected_installment_count' => $installmentPlan['installment_count'],
+                        'provider_plan_fingerprint' => $planFingerprint,
                     ],
                 ])->save();
 
@@ -484,10 +445,11 @@ class PaymentSubscriptionService
                 'final_due_at' => $installmentPlan['final_due_at'],
                 'grace_deadline_at' => $installmentPlan['grace_deadlines'][0] ?? null,
                 'metadata' => [
+                    'context' => self::CONTEXT_UPGRADE,
                     'installment_plan' => $installmentPlan,
-                    'context' => 'upgrade',
                     'selected_billing_day' => $billingDay,
                     'selected_installment_count' => $installmentPlan['installment_count'],
+                    'provider_plan_fingerprint' => $planFingerprint,
                 ],
             ]);
 
@@ -497,83 +459,15 @@ class PaymentSubscriptionService
             ];
         });
 
-        try {
-            $productId = $package->paypal_product_id;
-
-            if (! is_string($productId) || $productId === '') {
-                $productId = $this->provider->createProduct($package, $installmentPlan)['id'];
-            }
-
-            $planId = $this->providerPlanIdForInstallmentConfig(
-                package: $package,
-                billingDay: $billingDay,
-                installmentCount: (int) $installmentPlan['installment_count'],
-            );
-
-            if (! is_string($planId) || $planId === '') {
-                $planId = $this->provider->createPlan($package, $installmentPlan, $productId)['id'];
-            }
-        } catch (\Throwable $throwable) {
-            DB::transaction(function () use ($created, $throwable): void {
-                $errorDetails = $throwable instanceof ValidationException
-                    ? $throwable->errors()
-                    : null;
-
-                $created['payment_subscription']->forceFill([
-                    'status' => PaymentSubscription::STATUS_FAILED,
-                    'metadata' => array_merge($created['payment_subscription']->metadata ?? [], [
-                        'provider_error' => $throwable->getMessage(),
-                        'provider_error_details' => $errorDetails,
-                    ]),
-                ])->save();
-            });
-
-            throw $throwable;
-        }
-
-        DB::transaction(function () use ($package, $created, $productId, $planId, $urls, $billingDay, $installmentPlan): void {
-            $metadata = is_array($package->metadata) ? $package->metadata : [];
-
-            $paypalPlanIds = is_array($metadata['paypal_plan_ids'] ?? null)
-                ? $metadata['paypal_plan_ids']
-                : [];
-
-            $paypalPlanKey = $this->providerPlanKeyForInstallmentConfig(
-                billingDay: $billingDay,
-                installmentCount: (int) $installmentPlan['installment_count'],
-            );
-
-            $paypalPlanIds[$paypalPlanKey] = $planId;
-            $metadata['paypal_plan_ids'] = $paypalPlanIds;
-
-            if ($package->paypal_product_id !== $productId || $package->paypal_plan_id !== $planId || $package->metadata !== $metadata) {
-                $package->forceFill([
-                    'paypal_product_id' => $productId,
-                    'paypal_plan_id' => $planId,
-                    'metadata' => $metadata,
-                ])->save();
-            }
-
-            $created['payment_subscription']->forceFill([
-                'provider_product_id' => $productId,
-                'provider_plan_id' => $planId,
-                'status' => PaymentSubscription::STATUS_DRAFT,
-                'metadata' => array_merge($created['payment_subscription']->metadata ?? [], [
-                    'provider_prepare_stage' => 'plan_ready',
-                    'provider_return_url' => $urls['return_url'],
-                    'provider_cancel_url' => $urls['cancel_url'],
-                    'selected_billing_day' => $billingDay,
-                    'selected_installment_count' => (int) $installmentPlan['installment_count'],
-                    'provider_plan_key' => $paypalPlanKey,
-                ]),
-            ])->save();
-        });
-
-        return [
-            'invoice' => $created['invoice']->fresh(),
-            'payment_subscription' => $created['payment_subscription']->fresh(),
-            'provider_plan_id' => $planId,
-        ];
+        return $this->preparePlanForCheckout(
+            package: $package,
+            created: $created,
+            urls: $urls,
+            billingDay: $billingDay,
+            installmentPlan: $installmentPlan,
+            context: self::CONTEXT_UPGRADE,
+            planFingerprint: $planFingerprint,
+        );
     }
 
     public function attachApprovedSubscription(
@@ -630,7 +524,7 @@ class PaymentSubscriptionService
             'metadata' => array_merge($paymentSubscription->metadata ?? [], [
                 'approval_attached_at' => now()->toIso8601String(),
                 'provider_status' => 'APPROVAL_PENDING',
-                'context' => 'upgrade',
+                'context' => self::CONTEXT_UPGRADE,
             ]),
         ])->save();
 
@@ -647,50 +541,191 @@ class PaymentSubscriptionService
         return $paymentSubscription->fresh();
     }
 
-    private function providerPlanIdForInstallmentConfig(
+    /**
+     * @param  array{invoice: Invoice, payment_subscription: PaymentSubscription}  $created
+     * @param  array{return_url: string, cancel_url: string}  $urls
+     * @param  array<string, mixed>  $installmentPlan
+     * @return array{invoice: Invoice, payment_subscription: PaymentSubscription, provider_plan_id: string}
+     */
+    private function preparePlanForCheckout(
         Package $package,
+        array $created,
+        array $urls,
         ?int $billingDay,
-        int $installmentCount,
+        array $installmentPlan,
+        string $context,
+        string $planFingerprint,
+    ): array {
+        try {
+            $productId = $package->paypal_product_id;
+
+            if (! is_string($productId) || $productId === '') {
+                $productId = $this->provider->createProduct($package, $installmentPlan)['id'];
+            }
+
+            $planId = $this->providerPlanIdForInstallmentFingerprint($package, $planFingerprint);
+
+            if (! is_string($planId) || $planId === '') {
+                $planId = $this->provider->createPlan($package, $installmentPlan, $productId)['id'];
+            }
+        } catch (\Throwable $throwable) {
+            DB::transaction(function () use ($created, $throwable): void {
+                $errorDetails = $throwable instanceof ValidationException
+                    ? $throwable->errors()
+                    : null;
+
+                $created['payment_subscription']->forceFill([
+                    'status' => PaymentSubscription::STATUS_FAILED,
+                    'metadata' => array_merge($created['payment_subscription']->metadata ?? [], [
+                        'provider_error' => $throwable->getMessage(),
+                        'provider_error_details' => $errorDetails,
+                    ]),
+                ])->save();
+            });
+
+            throw $throwable;
+        }
+
+        DB::transaction(function () use (
+            $package,
+            $created,
+            $productId,
+            $planId,
+            $urls,
+            $billingDay,
+            $installmentPlan,
+            $context,
+            $planFingerprint
+        ): void {
+            $metadata = is_array($package->metadata) ? $package->metadata : [];
+            $paypalPlanIdsV2 = is_array($metadata['paypal_plan_ids_v2'] ?? null)
+                ? $metadata['paypal_plan_ids_v2']
+                : [];
+
+            $paypalPlanIdsV2[$planFingerprint] = $planId;
+            $metadata['paypal_plan_ids_v2'] = $paypalPlanIdsV2;
+
+            if ($package->paypal_product_id !== $productId || $package->paypal_plan_id !== $planId || $package->metadata !== $metadata) {
+                $package->forceFill([
+                    'paypal_product_id' => $productId,
+                    'paypal_plan_id' => $planId,
+                    'metadata' => $metadata,
+                ])->save();
+            }
+
+            $created['payment_subscription']->forceFill([
+                'provider_product_id' => $productId,
+                'provider_plan_id' => $planId,
+                'status' => PaymentSubscription::STATUS_DRAFT,
+                'metadata' => array_merge($created['payment_subscription']->metadata ?? [], [
+                    'context' => $context,
+                    'provider_prepare_stage' => 'plan_ready',
+                    'provider_return_url' => $urls['return_url'],
+                    'provider_cancel_url' => $urls['cancel_url'],
+                    'selected_billing_day' => $billingDay,
+                    'selected_installment_count' => (int) $installmentPlan['installment_count'],
+                    'provider_plan_key' => $this->providerPlanKeyForInstallmentConfig(
+                        billingDay: $billingDay,
+                        installmentCount: (int) $installmentPlan['installment_count'],
+                    ),
+                    'provider_plan_fingerprint' => $planFingerprint,
+                    'provider_plan_cache_version' => self::PLAN_CACHE_VERSION,
+                ]),
+            ])->save();
+        });
+
+        return [
+            'invoice' => $created['invoice']->fresh(),
+            'payment_subscription' => $created['payment_subscription']->fresh(),
+            'provider_plan_id' => $planId,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $installmentPlan
+     */
+    private function preparedSubscriptionConfigMatches(
+        PaymentSubscription $paymentSubscription,
+        array $installmentPlan,
+        ?int $billingDay,
+    ): bool {
+        return (int) ($paymentSubscription->billing_day ?? 0) === (int) ($billingDay ?? 0)
+            && (int) ($paymentSubscription->installment_count ?? 0) === (int) ($installmentPlan['installment_count'] ?? 0)
+            && (string) $paymentSubscription->currency_code === (string) ($installmentPlan['currency_code'] ?? '')
+            && $this->amountToCents($paymentSubscription->total_amount) === $this->amountToCents($installmentPlan['total_amount'] ?? 0)
+            && $this->amountToCents($paymentSubscription->first_payment_amount) === $this->amountToCents($installmentPlan['first_payment_amount'] ?? 0)
+            && $this->amountToCents($paymentSubscription->next_billing_amount) === $this->amountToCents($installmentPlan['recurring_payment_amount'] ?? 0);
+    }
+
+    /**
+     * @param  array<string, mixed>  $installmentPlan
+     */
+    private function preparedSubscriptionCanReuse(
+        PaymentSubscription $paymentSubscription,
+        string $context,
+        string $planFingerprint,
+        array $installmentPlan,
+        ?int $billingDay,
+    ): bool {
+        if (! is_string($paymentSubscription->provider_plan_id) || $paymentSubscription->provider_plan_id === '') {
+            return false;
+        }
+
+        $metadata = is_array($paymentSubscription->metadata) ? $paymentSubscription->metadata : [];
+
+        return ($metadata['provider_plan_cache_version'] ?? null) === self::PLAN_CACHE_VERSION
+            && ($metadata['provider_plan_fingerprint'] ?? null) === $planFingerprint
+            && ($metadata['context'] ?? self::CONTEXT_INITIAL) === $context
+            && $this->preparedSubscriptionConfigMatches($paymentSubscription, $installmentPlan, $billingDay);
+    }
+
+    private function paypalApprovalHasStarted(PaymentSubscription $paymentSubscription): bool
+    {
+        return (is_string($paymentSubscription->provider_subscription_id) && $paymentSubscription->provider_subscription_id !== '')
+            || $paymentSubscription->status !== PaymentSubscription::STATUS_DRAFT;
+    }
+
+    /**
+     * @param  array<string, mixed>  $installmentPlan
+     */
+    private function providerPlanFingerprint(
+        string $context,
+        Package $package,
+        array $installmentPlan,
+    ): string {
+        $billingDay = $installmentPlan['billing_day'] ?? null;
+        $billingDayKey = $billingDay === null ? 'default' : (string) $billingDay;
+        $intervalUnit = strtolower((string) ($installmentPlan['billing_interval_unit'] ?? 'month'));
+        $intervalCount = max(1, (int) ($installmentPlan['billing_interval_count'] ?? 1));
+
+        return sprintf(
+            '%s_%s_pkg%s_day%s_%sx_%s_total%s_first%s_rec%s_%s%s',
+            self::PLAN_CACHE_VERSION,
+            strtolower($context),
+            (string) $package->getKey(),
+            $billingDayKey,
+            (int) ($installmentPlan['installment_count'] ?? 0),
+            strtoupper((string) ($installmentPlan['currency_code'] ?? '')),
+            $this->amountToCents($installmentPlan['total_amount'] ?? 0),
+            $this->amountToCents($installmentPlan['first_payment_amount'] ?? 0),
+            $this->amountToCents($installmentPlan['recurring_payment_amount'] ?? 0),
+            $intervalUnit,
+            $intervalCount,
+        );
+    }
+
+    private function providerPlanIdForInstallmentFingerprint(
+        Package $package,
+        string $planFingerprint,
     ): ?string {
         $metadata = is_array($package->metadata) ? $package->metadata : [];
-
-        $paypalPlanIds = is_array($metadata['paypal_plan_ids'] ?? null)
-            ? $metadata['paypal_plan_ids']
+        $paypalPlanIdsV2 = is_array($metadata['paypal_plan_ids_v2'] ?? null)
+            ? $metadata['paypal_plan_ids_v2']
             : [];
 
-        $planKey = $this->providerPlanKeyForInstallmentConfig($billingDay, $installmentCount);
-        $planId = $paypalPlanIds[$planKey] ?? null;
+        $planId = $paypalPlanIdsV2[$planFingerprint] ?? null;
 
-        if (is_string($planId) && $planId !== '') {
-            return $planId;
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Legacy fallback
-        |--------------------------------------------------------------------------
-        |
-        | Dulu plan hanya dibedakan berdasarkan billing_day. Sekarang jumlah cicilan
-        | juga memengaruhi plan. Fallback ini hanya dipakai jika metadata lama masih
-        | tersedia, tetapi plan baru akan disimpan dengan key yang lebih spesifik.
-        |
-        */
-        $legacyPlanKey = $this->providerPlanKeyForBillingDay($billingDay);
-        $legacyPlanId = $paypalPlanIds[$legacyPlanKey] ?? null;
-
-        if (is_string($legacyPlanId) && $legacyPlanId !== '') {
-            return $legacyPlanId;
-        }
-
-        if (
-            in_array($package->fixed_billing_day, [null, $billingDay], true)
-            && is_string($package->paypal_plan_id)
-            && $package->paypal_plan_id !== ''
-        ) {
-            return $package->paypal_plan_id;
-        }
-
-        return null;
+        return is_string($planId) && $planId !== '' ? $planId : null;
     }
 
     private function providerPlanKeyForInstallmentConfig(?int $billingDay, int $installmentCount): string
@@ -700,8 +735,8 @@ class PaymentSubscriptionService
         return $billingDayKey.'_'.$installmentCount.'x';
     }
 
-    private function providerPlanKeyForBillingDay(?int $billingDay): string
+    private function amountToCents(float|int|string|null $amount): int
     {
-        return $billingDay === null ? 'default' : (string) $billingDay;
+        return (int) round(((float) ($amount ?? 0)) * 100);
     }
 }

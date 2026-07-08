@@ -57,6 +57,7 @@ class UpgradeController extends Controller
                 'provider_plan_id' => $paymentSubscription->provider_plan_id,
                 'provider_subscription_id' => $paymentSubscription->provider_subscription_id,
                 'billing_day' => $paymentSubscription->billing_day,
+                'paypal_subscription_start_time' => $this->paypalSubscriptionStartTime($paymentSubscription),
                 'status_url' => $this->paymentFlow->upgradeSubscriptionStatusUrl($accessTier),
             ]);
         }
@@ -206,5 +207,18 @@ class UpgradeController extends Controller
         return redirect()
             ->route('student.upgrades.show', $accessTier)
             ->withErrors(['payment_method' => 'The PayPal installment checkout was cancelled.']);
+    }
+
+    private function paypalSubscriptionStartTime(PaymentSubscription $paymentSubscription): ?string
+    {
+        if (! $paymentSubscription->next_due_at) {
+            return null;
+        }
+
+        return $paymentSubscription->next_due_at
+            ->copy()
+            ->utc()
+            ->startOfDay()
+            ->format('Y-m-d\TH:i:s\Z');
     }
 }

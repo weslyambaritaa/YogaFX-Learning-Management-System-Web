@@ -112,6 +112,20 @@ function dateForBillingDay(year, monthIndex, billingDay) {
     return new Date(year, monthIndex, safeDay, 12, 0, 0, 0);
 }
 
+function normalizeDateInput(value) {
+    if (!value) {
+        return null;
+    }
+
+    const parsed = new Date(value);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return null;
+    }
+
+    return parsed;
+}
+
 function buildRecurringDueDates({
     billingDay,
     recurringCount,
@@ -128,30 +142,21 @@ function buildRecurringDueDates({
 
     const normalizedBillingDay = Number(billingDay) === 1 ? 1 : 15;
     const dates = [];
-    let cursorMonth = startDate.getMonth();
-    let cursorYear = startDate.getFullYear();
+    const normalizedStartDate = normalizeDateInput(startDate) ?? new Date();
+    let cursorMonth = normalizedStartDate.getMonth() + 1;
+    let cursorYear = normalizedStartDate.getFullYear();
+
+    if (cursorMonth > 11) {
+        cursorMonth = 0;
+        cursorYear += 1;
+    }
 
     while (dates.length < normalizedRecurringCount) {
-        let candidate = dateForBillingDay(
+        const candidate = dateForBillingDay(
             cursorYear,
             cursorMonth,
             normalizedBillingDay,
         );
-
-        if (candidate <= startDate) {
-            cursorMonth += 1;
-
-            if (cursorMonth > 11) {
-                cursorMonth = 0;
-                cursorYear += 1;
-            }
-
-            candidate = dateForBillingDay(
-                cursorYear,
-                cursorMonth,
-                normalizedBillingDay,
-            );
-        }
 
         dates.push(toDateString(candidate));
 
@@ -278,6 +283,7 @@ function buildInstallmentSummaryForCount(
 
     const recurringAmount = centsToAmount(recurringAmountCents);
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
+    const requiredRecurringCount = normalizedInstallmentCount - 1;
 
     const existingRecurringDueDates = Array.isArray(
         summary.available_recurring_due_dates,
@@ -287,23 +293,38 @@ function buildInstallmentSummaryForCount(
           ? summary.recurring_due_dates
           : [];
 
+    const backendRecurringDueDates = existingRecurringDueDates
+        .filter(Boolean)
+        .slice(0, requiredRecurringCount);
+
     const billingDay =
         Number(activeBillingDay) === 1 || Number(activeBillingDay) === 15
             ? Number(activeBillingDay)
             : resolveBillingDay(summary, checkout, selectedPaymentOption);
 
+    const summaryStartDate =
+        normalizeDateInput(summary.first_payment_date) ??
+        normalizeDateInput(summary.started_at) ??
+        normalizeDateInput(checkout?.first_payment_date) ??
+        normalizeDateInput(checkout?.created_at) ??
+        new Date();
+
     const fallbackRecurringDueDates = buildRecurringDueDates({
         billingDay,
-        recurringCount: normalizedInstallmentCount - 1,
+        recurringCount: requiredRecurringCount,
+        startDate: summaryStartDate,
     });
 
     const selectedRecurringDueDates =
-        fallbackRecurringDueDates.length > 0
-            ? fallbackRecurringDueDates
-            : Array.from(
-                  { length: normalizedInstallmentCount - 1 },
-                  (_, index) => existingRecurringDueDates[index] ?? null,
-              );
+        backendRecurringDueDates.length >= requiredRecurringCount
+            ? backendRecurringDueDates
+            : Array.from({ length: requiredRecurringCount }, (_, index) => {
+                  return (
+                      backendRecurringDueDates[index] ??
+                      fallbackRecurringDueDates[index] ??
+                      null
+                  );
+              });
 
     const finalDueAt =
         selectedRecurringDueDates[selectedRecurringDueDates.length - 1] ?? null;
@@ -317,7 +338,7 @@ function buildInstallmentSummaryForCount(
             grace_deadline: null,
         },
         ...Array.from(
-            { length: normalizedInstallmentCount - 1 },
+            { length: requiredRecurringCount },
             (_, index) => ({
                 cycle_number: index + 2,
                 type: "recurring",
@@ -1122,9 +1143,22 @@ export default function PublicCheckoutPanel({
                         throw new Error("subscription-already-attached");
                     }
 
-                    return actions.subscription.create({
+                    const subscriptionPayload = {
                         plan_id: session.provider_plan_id,
-                    });
+                    };
+
+                    if (session.paypal_subscription_start_time) {
+                        subscriptionPayload.start_time =
+                            session.paypal_subscription_start_time;
+                    }
+
+                    console.log("YogaFX installment session", session);
+                    console.log(
+                        "YogaFX PayPal subscription payload",
+                        subscriptionPayload,
+                    );
+
+                    return actions.subscription.create(subscriptionPayload);
                 } catch (error) {
                     setIsConfirmingPayment(false);
                     setIsSubmitting(false);

@@ -219,21 +219,13 @@ class InstallmentPlanCalculator
         CarbonImmutable $deadlineDate,
         int $billingDay,
     ): array {
+        $firstRecurringMonth = $checkoutDate->startOfMonth()->addMonth();
+
         $cursor = $this->safeMonthlyBillingDate(
-            year: $checkoutDate->year,
-            month: $checkoutDate->month,
+            year: $firstRecurringMonth->year,
+            month: $firstRecurringMonth->month,
             billingDay: $billingDay,
         );
-
-        if ($cursor->lessThanOrEqualTo($checkoutDate)) {
-            $nextMonth = $checkoutDate->startOfMonth()->addMonth();
-
-            $cursor = $this->safeMonthlyBillingDate(
-                year: $nextMonth->year,
-                month: $nextMonth->month,
-                billingDay: $billingDay,
-            );
-        }
 
         $dates = [];
 

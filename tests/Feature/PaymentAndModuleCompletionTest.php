@@ -11,6 +11,7 @@ use App\Models\Module;
 use App\Models\OnboardingState;
 use App\Models\Package;
 use App\Models\Payment;
+use App\Models\PaymentSubscription;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Jobs\SendOnboardingContinuationEmailJob;
@@ -18,6 +19,7 @@ use App\Jobs\SendUpgradeWelcomeEmailJob;
 use App\Services\PayPalService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\PaymentCheckoutService;
+use App\Services\Payments\PayPalSubscriptionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
@@ -257,6 +259,8 @@ class PaymentAndModuleCompletionTest extends TestCase
                 'cancel_url',
                 'invoice_id',
             ]);
+
+        $this->assertArrayNotHasKey('paypal_subscription_start_time', $response->json());
 
         $this->assertDatabaseHas('payment_activities', [
             'payment_reference' => 'PAYPAL-ONSITE-ORDER-001',
@@ -660,6 +664,199 @@ class PaymentAndModuleCompletionTest extends TestCase
 
         $this->assertSame($masterTier->id, $student->fresh()->access_tier_id);
         Queue::assertPushed(SendUpgradeWelcomeEmailJob::class, 1);
+    }
+
+    public function test_upgrade_installment_does_not_reuse_initial_plan_cache_when_amount_fingerprint_differs(): void
+    {
+        $this->travelTo(now()->setDate(2026, 7, 10)->setTime(9, 0));
+
+        $starterTier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_STARTER_KIT,
+            'name' => 'Starter Kit',
+            'level' => 1,
+            'price' => 200.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
+
+        $masterTier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'name' => 'Master Class',
+            'level' => 3,
+            'price' => 500.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
+
+        $upgradePackage = Package::factory()->create([
+            'access_tier_id' => $masterTier->id,
+            'title' => 'Masterclass Standard',
+            'slug' => 'masterclass-standard',
+            'price' => 500.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'fixed_billing_day' => 15,
+            'allowed_billing_days' => [1, 15],
+            'installment_deadline_date' => '2027-01-15',
+            'paypal_product_id' => 'PROD-UPGRADE-001',
+            'paypal_plan_id' => 'P-LEGACY-UPGRADE',
+            'metadata' => [
+                'paypal_plan_ids_v2' => [
+                    'v2_initial_pkg999_day15_7x_USD_total50000_first8000_rec7000_month1' => 'P-INITIAL-ONLY',
+                ],
+                'paypal_plan_ids' => [
+                    '15_7x' => 'P-LEGACY-BY-COUNT',
+                ],
+            ],
+        ]);
+
+        $student = User::factory()->student()->create([
+            'access_tier_id' => $starterTier->id,
+            'is_active' => true,
+        ]);
+
+        $initialInvoice = Invoice::query()->create([
+            'invoice_number' => 'INV-UPGRADE-BASIS-001',
+            'user_id' => $student->id,
+            'access_tier_id' => $starterTier->id,
+            'type' => Invoice::TYPE_INITIAL,
+            'payment_type' => Invoice::PAYMENT_TYPE_FULL,
+            'total_amount' => 200.00,
+            'balance_due' => 0.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => Invoice::STATUS_PAID_FULL,
+            'issued_at' => now()->subDays(2),
+            'paid_at' => now()->subDay(),
+        ]);
+
+        Payment::query()->create([
+            'invoice_id' => $initialInvoice->id,
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'payment_type' => Payment::TYPE_PAY_FULL,
+            'payment_reference' => 'PAYPAL-UPGRADE-BASIS-001',
+            'amount_paid' => 200.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => Payment::STATUS_SUCCESS,
+        ]);
+
+        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
+            $mock->shouldNotReceive('createProduct');
+            $mock->shouldReceive('createPlan')
+                ->once()
+                ->andReturn(['id' => 'P-UPGRADE-V2-001', 'status' => 'ACTIVE']);
+        });
+
+        $result = app(PaymentCheckoutService::class)->startUpgradeCheckout($student->fresh(['accessTier']), $masterTier, [
+            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'billing_day' => 15,
+            'installment_count' => 7,
+        ]);
+
+        /** @var Invoice $upgradeInvoice */
+        $upgradeInvoice = $result['invoice'];
+
+        $this->assertSame(Invoice::TYPE_UPGRADE, $upgradeInvoice->type);
+        $this->assertSame('300.00', $upgradeInvoice->total_amount);
+        $this->assertSame('P-UPGRADE-V2-001', $result['provider_plan_id']);
+        $this->assertSame('P-UPGRADE-V2-001', $result['payment_subscription']->provider_plan_id);
+        $this->assertSame(
+            sprintf('v2_upgrade_pkg%s_day15_7x_USD_total30000_first4290_rec4285_month1', $upgradePackage->id),
+            $result['payment_subscription']->metadata['provider_plan_fingerprint'] ?? null,
+        );
+
+        $this->travelBack();
+    }
+
+    public function test_upgrade_installment_response_includes_paypal_subscription_start_time_from_next_due_at(): void
+    {
+        $this->travelTo(now()->setDate(2026, 7, 10)->setTime(9, 0));
+
+        $starterTier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_STARTER_KIT,
+            'name' => 'Starter Kit',
+            'level' => 1,
+            'price' => 200.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
+
+        $masterTier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'name' => 'Master Class',
+            'level' => 3,
+            'price' => 500.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
+
+        Package::factory()->create([
+            'access_tier_id' => $masterTier->id,
+            'title' => 'Masterclass Standard',
+            'slug' => 'masterclass-standard',
+            'price' => 500.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
+            'fixed_billing_day' => 15,
+            'allowed_billing_days' => [1, 15],
+            'installment_deadline_date' => '2027-01-15',
+            'paypal_product_id' => 'PROD-UPGRADE-START-001',
+        ]);
+
+        $student = User::factory()->student()->create([
+            'access_tier_id' => $starterTier->id,
+            'is_active' => true,
+        ]);
+
+        $initialInvoice = Invoice::query()->create([
+            'invoice_number' => 'INV-UPGRADE-START-001',
+            'user_id' => $student->id,
+            'access_tier_id' => $starterTier->id,
+            'type' => Invoice::TYPE_INITIAL,
+            'payment_type' => Invoice::PAYMENT_TYPE_FULL,
+            'total_amount' => 200.00,
+            'balance_due' => 0.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => Invoice::STATUS_PAID_FULL,
+            'issued_at' => now()->subDays(2),
+            'paid_at' => now()->subDay(),
+        ]);
+
+        Payment::query()->create([
+            'invoice_id' => $initialInvoice->id,
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'payment_type' => Payment::TYPE_PAY_FULL,
+            'payment_reference' => 'PAYPAL-UPGRADE-START-001',
+            'amount_paid' => 200.00,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => Payment::STATUS_SUCCESS,
+        ]);
+
+        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
+            $mock->shouldNotReceive('createProduct');
+            $mock->shouldReceive('createPlan')
+                ->once()
+                ->andReturn(['id' => 'P-UPGRADE-START-001', 'status' => 'ACTIVE']);
+        });
+
+        $response = $this->actingAs($student)->postJson(route('student.upgrades.pay', $masterTier), [
+            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'checkout_mode' => 'paypal',
+            'billing_day' => 15,
+            'installment_count' => 7,
+            'terms_accepted' => true,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('status', 'prepared')
+            ->assertJsonPath('provider_plan_id', 'P-UPGRADE-START-001')
+            ->assertJsonPath('paypal_subscription_start_time', '2026-08-15T00:00:00Z');
+
+        $subscription = PaymentSubscription::query()->latest('id')->firstOrFail();
+
+        $this->assertSame('2026-08-15 00:00:00', optional($subscription->next_due_at)->format('Y-m-d H:i:s'));
+
+        $this->travelBack();
     }
 
     public function test_assignment_module_requires_approval_before_next_module_unlocks(): void

@@ -6,7 +6,7 @@ use App\Models\AccessTier;
 use App\Models\Package;
 use App\Services\Installments\InstallmentPlanCalculator;
 use DomainException;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class InstallmentPlanCalculatorTest extends TestCase
 {
@@ -49,9 +49,9 @@ class InstallmentPlanCalculatorTest extends TestCase
         );
 
         $this->assertSame(7, $plan['installment_count']);
-        $this->assertSame('48.00', $plan['first_payment_amount']);
-        $this->assertSame('42.00', $plan['monthly_base_amount']);
-        $this->assertSame('42.00', $plan['recurring_payment_amount']);
+        $this->assertSame('42.90', $plan['first_payment_amount']);
+        $this->assertSame('42.85', $plan['monthly_base_amount']);
+        $this->assertSame('42.85', $plan['recurring_payment_amount']);
         $this->assertSame([
             '2026-08-15',
             '2026-09-15',
@@ -62,7 +62,7 @@ class InstallmentPlanCalculatorTest extends TestCase
         ], $plan['recurring_due_dates']);
     }
 
-    public function test_checkout_before_the_15th_counts_current_month_as_first_cycle(): void
+    public function test_checkout_before_the_15th_starts_recurring_from_next_month(): void
     {
         $plan = $this->calculator()->calculate(
             $this->eligiblePackage(price: 300),
@@ -122,20 +122,15 @@ class InstallmentPlanCalculatorTest extends TestCase
         $this->assertSame('150.00', $plan['recurring_payment_amount']);
     }
 
-    public function test_checkout_in_january_before_deadline_has_single_payment_cycle(): void
+    public function test_checkout_in_january_before_deadline_is_no_longer_eligible_for_installment(): void
     {
-        $plan = $this->calculator()->calculate(
+        $this->expectException(DomainException::class);
+
+        $this->calculator()->calculate(
             $this->eligiblePackage(price: 300),
             '2027-01-10',
             15,
         );
-
-        $this->assertSame(1, $plan['installment_count']);
-        $this->assertSame('300.00', $plan['first_payment_amount']);
-        $this->assertSame('300.00', $plan['monthly_base_amount']);
-        $this->assertSame([], $plan['recurring_due_dates']);
-        $this->assertSame([], $plan['grace_deadlines']);
-        $this->assertSame('2027-01-15', $plan['final_due_at']);
     }
 
     public function test_package_with_installment_disabled_is_not_eligible(): void
@@ -220,35 +215,26 @@ class InstallmentPlanCalculatorTest extends TestCase
         );
     }
 
-    public function test_daily_installment_package_builds_daily_schedule_until_configured_deadline(): void
+    public function test_checkout_on_july_eighth_with_billing_day_one_starts_second_cycle_on_august_first(): void
     {
         $plan = $this->calculator()->calculate(
             $this->eligiblePackage(
                 price: 300,
-                allowedBillingDays: [1, 15],
                 overrides: [
-                    'billing_interval_unit' => 'DAY',
-                    'billing_interval_count' => 1,
+                    'installment_deadline_date' => '2027-01-01',
                     'installment_deadline_month' => 1,
                     'installment_deadline_day' => 1,
                 ],
             ),
-            '2026-12-29',
-            null,
+            '2026-07-08',
+            1,
         );
 
-        $this->assertSame('DAY', $plan['billing_interval_unit']);
-        $this->assertSame(1, $plan['billing_interval_count']);
-        $this->assertNull($plan['billing_day']);
+        $this->assertSame('2026-07-08', $plan['first_payment_date']);
+        $this->assertSame(1, $plan['billing_day']);
+        $this->assertSame('2026-08-01', $plan['recurring_due_dates'][0]);
+        $this->assertSame('2026-08-01', $plan['schedule_breakdown'][1]['due_at']);
         $this->assertSame('2027-01-01', $plan['final_due_at']);
-        $this->assertSame([
-            '2026-12-30',
-            '2026-12-31',
-            '2027-01-01',
-        ], $plan['recurring_due_dates']);
-        $this->assertSame(4, $plan['installment_count']);
-        $this->assertSame('75.00', $plan['first_payment_amount']);
-        $this->assertSame('75.00', $plan['recurring_payment_amount']);
     }
 
     private function calculator(): InstallmentPlanCalculator
@@ -256,25 +242,27 @@ class InstallmentPlanCalculatorTest extends TestCase
         return new InstallmentPlanCalculator();
     }
 
-    public function test_daily_installment_keeps_recurring_amount_above_zero_for_long_schedule(): void
+    public function test_selected_installment_count_treats_first_payment_as_cycle_one(): void
     {
         $plan = $this->calculator()->calculate(
             $this->eligiblePackage(
-                price: 29.99,
+                price: 1999.95,
                 overrides: [
-                    'billing_interval_unit' => 'DAY',
-                    'billing_interval_count' => 1,
-                    'installment_deadline_month' => 5,
+                    'installment_deadline_date' => '2027-09-15',
+                    'installment_deadline_month' => 9,
                     'installment_deadline_day' => 15,
                 ],
             ),
-            '2026-06-30',
-            null,
+            '2026-07-08',
+            15,
+            15,
         );
 
-        $this->assertGreaterThan(100, $plan['installment_count']);
-        $this->assertSame('0.09', $plan['recurring_payment_amount']);
-        $this->assertSame('1.28', $plan['first_payment_amount']);
+        $this->assertSame(15, $plan['installment_count']);
+        $this->assertCount(14, $plan['recurring_due_dates']);
+        $this->assertSame('2026-07-08', $plan['schedule_breakdown'][0]['due_at']);
+        $this->assertSame('2026-08-15', $plan['schedule_breakdown'][1]['due_at']);
+        $this->assertSame('2027-09-15', $plan['schedule_breakdown'][14]['due_at']);
     }
 
     private function eligiblePackage(
@@ -296,6 +284,7 @@ class InstallmentPlanCalculatorTest extends TestCase
             'billing_interval_count' => 1,
             'fixed_billing_day' => 15,
             'allowed_billing_days' => $allowedBillingDays,
+            'installment_deadline_date' => '2027-01-15',
             'installment_deadline_month' => 1,
             'installment_deadline_day' => 15,
         ], $overrides));
