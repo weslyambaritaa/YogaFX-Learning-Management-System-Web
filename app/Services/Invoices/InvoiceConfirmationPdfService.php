@@ -384,27 +384,93 @@ class InvoiceConfirmationPdfService
     <meta charset="UTF-8">
     <title>{$documentTitle}</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; color: #111827; margin: 0; background: #ffffff; }
-        .page { padding: 32px 42px 38px; max-width: 720px; }
-        .title { font-size: 24px; font-weight: 700; line-height: 1.18; margin: 0 0 2px; max-width: 640px; }
-        .subtitle { font-size: 22px; font-weight: 700; margin: 0 0 24px; }
-        .paragraph { font-size: 16px; line-height: 1.6; margin: 0 0 16px; }
-        .label { font-size: 16px; font-weight: 700; margin: 0 0 6px; }
-        .amount { font-size: 24px; font-weight: 700; margin: 0 0 14px; }
-        .payment-line { font-size: 18px; font-weight: 700; line-height: 1.6; margin: 0 0 20px; max-width: 660px; }
-        .footer { font-size: 16px; line-height: 1.7; margin-top: 20px; max-width: 660px; }
+        body { font-family: DejaVu Sans, sans-serif; color: #14213d; margin: 0; background: #f7f3ec; }
+        .page { position: relative; padding: 34px 42px 34px; min-height: 1020px; overflow: hidden; }
+        .watermark {
+            position: absolute;
+            top: 190px;
+            right: -20px;
+            font-size: 88px;
+            font-weight: 700;
+            color: rgba(177, 138, 80, 0.07);
+            transform: rotate(-90deg);
+            letter-spacing: 0.18em;
+        }
+        .sheet {
+            position: relative;
+            background: #fffdfa;
+            border: 1px solid #d8c7a9;
+            padding: 28px 30px 30px;
+            box-shadow: 0 14px 34px rgba(26, 35, 56, 0.08);
+        }
+        .top-band {
+            height: 12px;
+            margin: -28px -30px 24px;
+            background: linear-gradient(90deg, #14213d 0%, #1f3a5f 55%, #c49a56 100%);
+        }
+        .academy {
+            font-size: 10px;
+            letter-spacing: 0.34em;
+            text-transform: uppercase;
+            color: #8d6b36;
+            margin: 0 0 12px;
+        }
+        .title { font-size: 25px; font-weight: 700; line-height: 1.18; margin: 0 0 3px; max-width: 620px; color: #10203b; }
+        .subtitle { font-size: 23px; font-weight: 700; margin: 0 0 20px; color: #10203b; }
+        .divider {
+            width: 98px;
+            height: 3px;
+            background: #c49a56;
+            margin: 0 0 24px;
+        }
+        .paragraph { font-size: 16px; line-height: 1.68; margin: 0 0 15px; color: #20314e; }
+        .paragraph strong { color: #10203b; }
+        .investment-box {
+            margin: 20px 0 18px;
+            padding: 16px 18px 14px;
+            border: 1px solid #e2d6c1;
+            background: linear-gradient(180deg, #fffdfa 0%, #fbf5ea 100%);
+        }
+        .label { font-size: 14px; font-weight: 700; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.08em; color: #7f5c28; }
+        .amount { font-size: 28px; font-weight: 700; margin: 0; color: #10203b; }
+        .payment-line {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.6;
+            margin: 0 0 18px;
+            padding: 13px 16px;
+            border-left: 4px solid #c49a56;
+            background: #f7f1e7;
+            color: #10203b;
+        }
+        .footer {
+            font-size: 15px;
+            line-height: 1.75;
+            margin-top: 24px;
+            color: #33415c;
+            border-top: 1px solid #e5d8c6;
+            padding-top: 16px;
+        }
     </style>
 </head>
 <body>
     <div class="page">
-        <h1 class="title">{$courseName}</h1>
-        <div class="subtitle">Confirmation</div>
-        <p class="paragraph">Dear {$dearName},</p>
-        <p class="paragraph">We are thrilled that you will be joining us for our {$courseName}.</p>
-        <p class="label">Course Investment:</p>
-        <p class="amount">{$coursePrice}</p>
-        <p class="payment-line">Full Payment Received: {$fullPaymentAmount} Received on {$paymentReceivedOn}</p>
-        <p class="footer">Thank you for your interest in YogaFX International Yoga Teacher Training Academy<br>it really is appreciated</p>
+        <div class="watermark">YOGAFX</div>
+        <div class="sheet">
+            <div class="top-band"></div>
+            <p class="academy">YogaFX International Yoga Teacher Training Academy</p>
+            <h1 class="title">{$courseName}</h1>
+            <div class="subtitle">Confirmation</div>
+            <div class="divider"></div>
+            <p class="paragraph">Dear {$dearName},</p>
+            <p class="paragraph">We are thrilled that you will be joining us for our <strong>{$courseName}</strong>.</p>
+            <div class="investment-box">
+                <p class="label">Course Investment</p>
+                <p class="amount">{$coursePrice}</p>
+            </div>
+            <p class="payment-line">Full Payment Received: {$fullPaymentAmount} Received on {$paymentReceivedOn}</p>
+            <p class="footer">Thank you for your interest in YogaFX International Yoga Teacher Training Academy<br>it really is appreciated</p>
+        </div>
     </div>
 </body>
 </html>
@@ -481,48 +547,127 @@ HTML;
     <meta charset="UTF-8">
     <title>{$documentTitle}</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; color: #111827; margin: 0; background: #ffffff; }
-        .page { padding: 32px 42px 38px; max-width: 720px; }
-        .title { font-size: 24px; font-weight: 700; line-height: 1.18; margin: 0 0 2px; max-width: 640px; }
-        .subtitle { font-size: 22px; font-weight: 700; margin: 0 0 24px; }
-        .paragraph { font-size: 16px; line-height: 1.6; margin: 0 0 16px; max-width: 660px; }
-        .summary-table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; table-layout: fixed; }
-        .summary-table td { vertical-align: top; padding: 0 14px 8px 0; width: 33.33%; }
-        .label { font-size: 16px; font-weight: 700; margin: 0 0 6px; }
-        .amount { font-size: 24px; font-weight: 700; margin: 0; }
-        .balance-copy { font-size: 18px; font-weight: 700; line-height: 1.55; margin: 0 0 14px; max-width: 660px; }
-        .schedule { width: 100%; border-collapse: collapse; margin-top: 6px; table-layout: fixed; }
-        .schedule td { vertical-align: top; padding: 0 0 11px; }
-        .schedule-left { width: 46%; }
-        .schedule-right { width: 54%; padding-left: 18px; }
-        .installment-label { font-size: 16px; font-weight: 700; margin: 0 0 2px; }
-        .installment-amount { font-size: 18px; font-weight: 700; margin: 0; }
-        .installment-status { font-size: 16px; font-weight: 700; margin: 0 0 1px; }
-        .installment-date { font-size: 15px; line-height: 1.45; margin: 0; }
-        .footer { font-size: 16px; line-height: 1.7; margin-top: 18px; max-width: 660px; }
+        body { font-family: DejaVu Sans, sans-serif; color: #14213d; margin: 0; background: #f7f3ec; }
+        .page { position: relative; padding: 34px 42px 34px; min-height: 1020px; overflow: hidden; }
+        .watermark {
+            position: absolute;
+            top: 220px;
+            right: -20px;
+            font-size: 88px;
+            font-weight: 700;
+            color: rgba(177, 138, 80, 0.07);
+            transform: rotate(-90deg);
+            letter-spacing: 0.18em;
+        }
+        .sheet {
+            position: relative;
+            background: #fffdfa;
+            border: 1px solid #d8c7a9;
+            padding: 28px 30px 30px;
+            box-shadow: 0 14px 34px rgba(26, 35, 56, 0.08);
+        }
+        .top-band {
+            height: 12px;
+            margin: -28px -30px 24px;
+            background: linear-gradient(90deg, #14213d 0%, #1f3a5f 55%, #c49a56 100%);
+        }
+        .academy {
+            font-size: 10px;
+            letter-spacing: 0.34em;
+            text-transform: uppercase;
+            color: #8d6b36;
+            margin: 0 0 12px;
+        }
+        .title { font-size: 25px; font-weight: 700; line-height: 1.18; margin: 0 0 3px; max-width: 620px; color: #10203b; }
+        .subtitle { font-size: 23px; font-weight: 700; margin: 0 0 20px; color: #10203b; }
+        .divider {
+            width: 98px;
+            height: 3px;
+            background: #c49a56;
+            margin: 0 0 24px;
+        }
+        .paragraph { font-size: 16px; line-height: 1.68; margin: 0 0 15px; max-width: 660px; color: #20314e; }
+        .summary-table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 8px 0 16px; table-layout: fixed; }
+        .summary-table td {
+            vertical-align: top;
+            padding: 14px 16px 14px 0;
+            width: 33.33%;
+            border-top: 1px solid #e2d6c1;
+            border-bottom: 1px solid #e2d6c1;
+            background: linear-gradient(180deg, #fffdfa 0%, #fbf5ea 100%);
+        }
+        .summary-table td:first-child {
+            padding-left: 14px;
+            border-left: 1px solid #e2d6c1;
+        }
+        .summary-table td:last-child {
+            border-right: 1px solid #e2d6c1;
+        }
+        .label { font-size: 13px; font-weight: 700; margin: 0 0 6px; text-transform: uppercase; letter-spacing: 0.08em; color: #7f5c28; }
+        .amount { font-size: 24px; font-weight: 700; margin: 0; color: #10203b; }
+        .balance-copy {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.6;
+            margin: 0 0 16px;
+            max-width: 660px;
+            padding: 13px 16px;
+            border-left: 4px solid #c49a56;
+            background: #f7f1e7;
+            color: #10203b;
+        }
+        .schedule {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            margin-top: 2px;
+            table-layout: fixed;
+        }
+        .schedule td {
+            vertical-align: top;
+            padding: 12px 14px;
+            background: #fffdfa;
+            border: 1px solid #eadfce;
+        }
+        .schedule-left { width: 46%; border-right: none; }
+        .schedule-right { width: 54%; border-left: none; }
+        .installment-label { font-size: 16px; font-weight: 700; margin: 0 0 3px; color: #10203b; }
+        .installment-amount { font-size: 18px; font-weight: 700; margin: 0; color: #10203b; }
+        .installment-status { font-size: 14px; font-weight: 700; margin: 0 0 2px; text-transform: uppercase; letter-spacing: 0.08em; color: #8d6b36; }
+        .installment-date { font-size: 15px; line-height: 1.5; margin: 0; color: #33415c; }
+        .footer {
+            font-size: 15px;
+            line-height: 1.75;
+            margin-top: 22px;
+            max-width: 660px;
+            color: #33415c;
+            border-top: 1px solid #e5d8c6;
+            padding-top: 16px;
+        }
     </style>
 </head>
 <body>
     <div class="page">
-        <h1 class="title">{$courseName}</h1>
-        <div class="subtitle">Confirmation</div>
-        <p class="paragraph">Dear {$dearName},</p>
-        <p class="paragraph">We are thrilled that you will be joining us for our {$courseName}.</p>
-        <table class="summary-table">
-            <tr>
-                <td><p class="label">Course Investment:</p></td>
-                <td><p class="label">1st Installment:</p></td>
-                <td><p class="label">Balance:</p></td>
-            </tr>
-            <tr>
-                <td><p class="amount">{$coursePrice}</p></td>
-                <td><p class="amount">{$firstInstallmentAmount}</p></td>
-                <td><p class="amount">{$balanceDue}</p></td>
-            </tr>
-        </table>
-        <p class="balance-copy">{$firstInstallmentAmount} Received on {$firstInstallmentReceivedOn}{$balanceCopy}</p>
-        <table class="schedule">{$rowsHtml}</table>
-        <p class="footer">Thank you for your interest in YogaFX International Yoga Teacher Training Academy<br>it really is appreciated</p>
+        <div class="watermark">YOGAFX</div>
+        <div class="sheet">
+            <div class="top-band"></div>
+            <p class="academy">YogaFX International Yoga Teacher Training Academy</p>
+            <h1 class="title">{$courseName}</h1>
+            <div class="subtitle">Confirmation</div>
+            <div class="divider"></div>
+            <p class="paragraph">Dear {$dearName},</p>
+            <p class="paragraph">We are thrilled that you will be joining us for our {$courseName}.</p>
+            <table class="summary-table">
+                <tr>
+                    <td><p class="label">Course Investment</p><p class="amount">{$coursePrice}</p></td>
+                    <td><p class="label">1st Installment</p><p class="amount">{$firstInstallmentAmount}</p></td>
+                    <td><p class="label">Balance</p><p class="amount">{$balanceDue}</p></td>
+                </tr>
+            </table>
+            <p class="balance-copy">{$firstInstallmentAmount} Received on {$firstInstallmentReceivedOn}{$balanceCopy}</p>
+            <table class="schedule">{$rowsHtml}</table>
+            <p class="footer">Thank you for your interest in YogaFX International Yoga Teacher Training Academy<br>it really is appreciated</p>
+        </div>
     </div>
 </body>
 </html>
