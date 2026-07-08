@@ -34,6 +34,7 @@ class TemplatedNotificationMail extends Mailable
     public function build()
     {
         $initialHtml = $this->buildEmailHtml();
+
         $mail = $this->subject($this->subjectLine)
             ->html($initialHtml);
 
@@ -68,14 +69,15 @@ class TemplatedNotificationMail extends Mailable
             $this->branding['email_header_html'] ?? '',
             'header',
         );
+
         $footerHtml = $this->prepareBrandingSectionHtml(
             $this->branding['email_signature_html'] ?? '',
             'footer',
         );
-        $contentHtml = $this->constrainImages(
-    $this->htmlFragment($this->bodyHtml),
-    'display:block; width:100%; max-width:100%; height:auto; box-sizing:border-box;'
-);
+
+        $contentHtml = $this->normalizeEmailHtml(
+            $this->htmlFragment($this->bodyHtml)
+        );
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -85,17 +87,21 @@ class TemplatedNotificationMail extends Mailable
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{$this->escapedSubjectLine()}</title>
 </head>
-<body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-    <div style="margin: 0 auto; max-width: 680px; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 18px; background: #ffffff;">
-        <div style="padding: 24px 24px 16px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);">
+<body style="margin:0; padding:24px; background-color:#f8fafc; font-family:Arial, sans-serif; color:#0f172a; line-height:1.6;">
+    <div style="margin:0 auto; max-width:680px; width:100%; overflow:hidden; border:1px solid #e2e8f0; border-radius:18px; background:#ffffff; box-sizing:border-box;">
+
+        <div style="padding:24px; border-bottom:1px solid #e2e8f0; background:linear-gradient(180deg, #fff7ed 0%, #ffffff 100%); box-sizing:border-box;">
             {$headerHtml}
         </div>
-        <div style="padding: 24px; overflow: hidden;">
-    {$contentHtml}
-</div>
-        <div style="padding: 16px 24px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+
+        <div style="padding:24px; box-sizing:border-box;">
+            {$contentHtml}
+        </div>
+
+        <div style="padding:24px; border-top:1px solid #e2e8f0; background:#f8fafc; box-sizing:border-box;">
             {$footerHtml}
         </div>
+
     </div>
 </body>
 </html>
@@ -143,21 +149,26 @@ HTML;
 
     private function prepareBrandingSectionHtml(string $content, string $section): string
     {
-        $html = $this->htmlFragment($content);
+        $html = $this->normalizeEmailHtml(
+            $this->htmlFragment($content)
+        );
 
         return match ($section) {
             'logo' => $this->wrapBrandingSection(
-                $this->constrainImages($html, 'display:block; max-width:220px; width:auto; height:auto;'),
-                'margin: 0 0 14px; text-align: left;',
+                $html,
+                'margin:0; text-align:left; width:100%; max-width:100%; box-sizing:border-box;',
             ),
+
             'header' => $this->wrapBrandingSection(
-                $this->constrainImages($html, 'display:block; width:100%; max-width:100%; height:auto;'),
-                'margin: 0; text-align: left;',
+                $html,
+                'margin:0; text-align:left; width:100%; max-width:100%; box-sizing:border-box;',
             ),
+
             'footer' => $this->wrapBrandingSection(
-                $this->constrainImages($html, 'display:block; width:100%; max-width:100%; height:auto;'),
-                'margin: 0; text-align: left;',
+                $html,
+                'margin:0; text-align:left; width:100%; max-width:100%; box-sizing:border-box;',
             ),
+
             default => $html,
         };
     }
@@ -167,12 +178,85 @@ HTML;
         return '<div style="'.$style.'">'.$html.'</div>';
     }
 
+    private function normalizeEmailHtml(string $html): string
+    {
+        $html = $this->constrainTags(
+            $html,
+            ['figure', 'table', 'tbody', 'thead', 'tfoot', 'tr', 'td', 'th', 'div', 'p'],
+            'max-width:100%; box-sizing:border-box;'
+        );
+
+        $html = $this->constrainImages(
+            $html,
+            'display:block; width:100%; max-width:100%; height:auto; box-sizing:border-box; margin:0; padding:0;'
+        );
+
+        $html = preg_replace('/\swidth=(["\']?)[0-9]+%?\1/i', '', $html) ?? $html;
+        $html = preg_replace('/\sheight=(["\']?)[0-9]+%?\1/i', '', $html) ?? $html;
+
+        $html = preg_replace(
+            '/<figure\b([^>]*)>/i',
+            '<figure$1 style="margin:0; padding:0; width:100%; max-width:100%; box-sizing:border-box;">',
+            $html
+        ) ?? $html;
+
+        $html = preg_replace(
+            '/<table\b([^>]*)>/i',
+            '<table$1 style="width:100%; max-width:100%; border-collapse:collapse; table-layout:fixed; box-sizing:border-box;">',
+            $html
+        ) ?? $html;
+
+        return $html;
+    }
+
+    private function constrainTags(string $html, array $tags, string $requiredStyle): string
+    {
+        foreach ($tags as $tagName) {
+            $html = preg_replace_callback(
+                '/<'.$tagName.'\b([^>]*)>/i',
+                function (array $matches) use ($tagName, $requiredStyle): string {
+                    $tag = $matches[0];
+
+                    if (preg_match('/\sstyle=(["\'])(.*?)\1/i', $tag, $styleMatch) === 1) {
+                        $mergedStyle = rtrim(trim($styleMatch[2]), ';');
+
+                        if ($mergedStyle !== '') {
+                            $mergedStyle .= '; ';
+                        }
+
+                        $mergedStyle .= $requiredStyle;
+
+                        return preg_replace(
+                            '/\sstyle=(["\'])(.*?)\1/i',
+                            ' style="'.$mergedStyle.'"',
+                            $tag,
+                            1,
+                        ) ?? $tag;
+                    }
+
+                    return preg_replace(
+                        '/<'.$tagName.'\b/i',
+                        '<'.$tagName.' style="'.$requiredStyle.'"',
+                        $tag,
+                        1,
+                    ) ?? $tag;
+                },
+                $html,
+            ) ?? $html;
+        }
+
+        return $html;
+    }
+
     private function constrainImages(string $html, string $requiredStyle): string
     {
         return preg_replace_callback(
             '/<img\b([^>]*)>/i',
             function (array $matches) use ($requiredStyle): string {
                 $tag = $matches[0];
+
+                $tag = preg_replace('/\swidth=(["\']?)[0-9]+%?\1/i', '', $tag) ?? $tag;
+                $tag = preg_replace('/\sheight=(["\']?)[0-9]+%?\1/i', '', $tag) ?? $tag;
 
                 if (preg_match('/\sstyle=(["\'])(.*?)\1/i', $tag, $styleMatch) === 1) {
                     $mergedStyle = rtrim(trim($styleMatch[2]), ';');
@@ -245,6 +329,7 @@ HTML;
             'image/bmp' => 'bmp',
             default => 'img',
         };
+
         $temporaryPath = tempnam(sys_get_temp_dir(), 'yogafx-email-');
 
         if ($temporaryPath === false) {
@@ -269,10 +354,11 @@ HTML;
 
         return $imagePath;
     }
+
     private function htmlFragment(string $content): string
     {
         if (! Str::contains($content, '<')) {
-            return '<div style="white-space: pre-line;">'.e($content).'</div>';
+            return '<div style="white-space:pre-line;">'.e($content).'</div>';
         }
 
         return $content;
