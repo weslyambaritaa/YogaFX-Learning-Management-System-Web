@@ -1,6 +1,6 @@
 import { Button } from "@/Components/ui/button";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
-import { CheckCircle2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { Link } from "@inertiajs/react";
 
 export default function PaymentSuccess({ onboarding }) {
@@ -11,13 +11,18 @@ export default function PaymentSuccess({ onboarding }) {
             heading="Your payment was received."
         >
             <div className="flex justify-center py-4">
-                <div className="w-full max-w-md rounded-[5px] border border-white/10 bg-white/5 px-6 py-8 text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
-                        <CheckCircle2 className="h-9 w-9 text-emerald-400" />
+                <div className="w-full max-w-md text-center">
+                    <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500">
+                        <Check
+                            className="h-14 w-14 text-white"
+                            strokeWidth={3.2}
+                        />
                     </div>
-                    <p className="mt-5 text-sm text-white/75">
+
+                    <p className="mt-6 text-base font-semibold leading-relaxed text-white">
                         Continue to enrollment to complete your YogaFX account.
                     </p>
+
                     <Button
                         asChild
                         className="mt-6 w-full rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"

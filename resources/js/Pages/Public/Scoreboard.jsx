@@ -11,7 +11,7 @@ import {
 } from "@/lib/countryFlags";
 import { formatCurrency } from "@/lib/currency";
 import { usePage } from "@inertiajs/react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 
 function getCsrfToken() {
     return document
@@ -42,6 +42,7 @@ const FIELD_ORDER = [
     "phone_country_code",
     "phone_number",
     "country",
+    "package_id",
 ];
 
 const FIELD_ELEMENT_IDS = {
@@ -51,6 +52,7 @@ const FIELD_ELEMENT_IDS = {
     phone_country_code: "phone_country_code",
     phone_number: "phone_number",
     country: "country",
+    package_id: "package_id",
 };
 
 function normalizePhoneNumberInput(value) {
@@ -112,7 +114,11 @@ function dateForBillingDay(year, monthIndex, billingDay) {
     return new Date(year, monthIndex, safeDay, 12, 0, 0, 0);
 }
 
-function buildRecurringDueDates({ billingDay, recurringCount, startDate = new Date() }) {
+function buildRecurringDueDates({
+    billingDay,
+    recurringCount,
+    startDate = new Date(),
+}) {
     const normalizedRecurringCount = Number(recurringCount);
 
     if (
@@ -261,6 +267,11 @@ export default function Scoreboard({
     const [checkout, setCheckout] = useState(null);
 
     const fieldContainersRef = useRef({});
+    const dataRef = useRef(data);
+
+    useEffect(() => {
+        dataRef.current = data;
+    }, [data]);
 
     const selectedPackage =
         packageOptions.find(
@@ -278,14 +289,10 @@ export default function Scoreboard({
 
     const selectedPackageHasPrice = Number(selectedPackage?.price ?? 0) > 0;
     const isIdentityLocked = checkout !== null;
-
     const packageTitle = selectedPackage?.title ?? "YogaFX Package";
 
     const packagePrice = selectedPackageHasPrice
-        ? formatCurrency(
-              selectedPackage.price,
-              selectedPackage.currency_code,
-          )
+        ? formatCurrency(selectedPackage.price, selectedPackage.currency_code)
         : "Price not set yet";
 
     const normalizedEmail = (data.email ?? "").trim().toLowerCase();
@@ -334,8 +341,8 @@ export default function Scoreboard({
 
     const selectedPackageInstallmentEnabled = Boolean(
         selectedPackage?.installment_enabled &&
-            selectedPackageAllowedBillingDays.length > 0 &&
-            selectedPackageMaximumInstallmentCount >= 2,
+        selectedPackageAllowedBillingDays.length > 0 &&
+        selectedPackageMaximumInstallmentCount >= 2,
     );
 
     const previewCheckout = useMemo(() => {
@@ -510,49 +517,60 @@ export default function Scoreboard({
         }
     };
 
-    const validateIdentityFields = ({ shouldFocus = true } = {}) => {
+    const validateIdentityFields = ({
+        shouldFocus = true,
+        shouldSetErrors = true,
+        values = dataRef.current,
+    } = {}) => {
         const nextErrors = {};
+        const emailValue = String(values.email ?? "")
+            .trim()
+            .toLowerCase();
 
-        if (data.first_name.trim() === "") {
+        if (String(values.first_name ?? "").trim() === "") {
             nextErrors.first_name = "First name is required.";
         }
 
-        if (data.last_name.trim() === "") {
+        if (String(values.last_name ?? "").trim() === "") {
             nextErrors.last_name = "Last name is required.";
         }
 
-        if (normalizedEmail === "") {
+        if (emailValue === "") {
             nextErrors.email = "Email is required.";
-        } else if (!isValidEmail(normalizedEmail)) {
+        } else if (!isValidEmail(emailValue)) {
             nextErrors.email = "Enter a valid email address.";
         }
 
-        if (data.phone_country_code.trim() === "") {
+        if (String(values.phone_country_code ?? "").trim() === "") {
             nextErrors.phone_country_code = "Phone country code is required.";
         }
 
-        if (data.phone_number.trim() === "") {
+        if (String(values.phone_number ?? "").trim() === "") {
             nextErrors.phone_number = "Mobile phone is required.";
         }
 
-        if (data.country.trim() === "") {
+        if (String(values.country ?? "").trim() === "") {
             nextErrors.country = "Country is required.";
         }
 
-        if (String(data.package_id ?? "") === "") {
+        if (String(values.package_id ?? "") === "") {
             nextErrors.package_id = "Package is required.";
         } else if (!selectedPackageHasPrice) {
             nextErrors.package_id =
                 "This package is not ready for checkout yet.";
         }
 
-        setErrors((current) => ({
-            ...current,
-            ...nextErrors,
-            general: "",
-        }));
+        if (shouldSetErrors) {
+            setErrors((current) => ({
+                ...current,
+                ...nextErrors,
+                general: "",
+            }));
+        }
 
-        const firstInvalidField = FIELD_ORDER.find((field) => nextErrors[field]);
+        const firstInvalidField = FIELD_ORDER.find(
+            (field) => nextErrors[field],
+        );
 
         if (shouldFocus && firstInvalidField) {
             focusFirstInvalidField(firstInvalidField);
@@ -565,10 +583,16 @@ export default function Scoreboard({
     };
 
     const setFieldValue = (field, value) => {
-        setData((current) => ({
-            ...current,
-            [field]: value,
-        }));
+        setData((current) => {
+            const nextData = {
+                ...current,
+                [field]: value,
+            };
+
+            dataRef.current = nextData;
+
+            return nextData;
+        });
 
         setErrors((current) => ({
             ...current,
@@ -576,10 +600,15 @@ export default function Scoreboard({
             general: "",
         }));
 
-        setCheckout(null);
+        if (checkout) {
+            setCheckout(null);
+        }
     };
 
-    const prepareCheckout = async ({ shouldFocus = true } = {}) => {
+    const prepareCheckout = async ({
+        shouldFocus = true,
+        shouldSetErrors = true,
+    } = {}) => {
         if (processing) {
             return null;
         }
@@ -588,14 +617,23 @@ export default function Scoreboard({
             return checkout;
         }
 
-        const validation = validateIdentityFields({ shouldFocus });
+        const currentData = dataRef.current;
+
+        const validation = validateIdentityFields({
+            shouldFocus,
+            shouldSetErrors,
+            values: currentData,
+        });
 
         if (!validation.isValid) {
             return null;
         }
 
         setProcessing(true);
-        setErrors({});
+
+        if (shouldSetErrors) {
+            setErrors({});
+        }
 
         try {
             const response = await fetch(submit_url, {
@@ -607,41 +645,47 @@ export default function Scoreboard({
                     "X-CSRF-TOKEN": getCsrfToken() ?? "",
                     "X-Requested-With": "XMLHttpRequest",
                 },
-                body: JSON.stringify(data),
+                body: JSON.stringify(currentData),
             });
 
             const payload = await parseJsonSafely(response);
 
             if (!response.ok) {
                 if (response.status === 422 && payload.errors) {
-                    setErrors(
-                        Object.fromEntries(
-                            Object.entries(payload.errors).map(
-                                ([key, value]) => [
-                                    key,
-                                    Array.isArray(value) ? value[0] : value,
-                                ],
+                    if (shouldSetErrors) {
+                        setErrors(
+                            Object.fromEntries(
+                                Object.entries(payload.errors).map(
+                                    ([key, value]) => [
+                                        key,
+                                        Array.isArray(value) ? value[0] : value,
+                                    ],
+                                ),
                             ),
-                        ),
-                    );
+                        );
+                    }
 
                     return null;
                 }
 
-                setErrors({
-                    general:
-                        payload.message ??
-                        "The checkout flow could not be prepared. Please try again.",
-                });
+                if (shouldSetErrors) {
+                    setErrors({
+                        general:
+                            payload.message ??
+                            "The checkout flow could not be prepared. Please try again.",
+                    });
+                }
 
                 return null;
             }
 
             if (!payload.checkout) {
-                setErrors({
-                    general:
-                        "The checkout flow was prepared, but the payment panel could not be opened. Please try again.",
-                });
+                if (shouldSetErrors) {
+                    setErrors({
+                        general:
+                            "The checkout flow was prepared, but the payment panel could not be opened. Please try again.",
+                    });
+                }
 
                 return null;
             }
@@ -650,10 +694,12 @@ export default function Scoreboard({
 
             return payload.checkout;
         } catch {
-            setErrors({
-                general:
-                    "The checkout flow could not be reached right now. Please check your connection and try again.",
-            });
+            if (shouldSetErrors) {
+                setErrors({
+                    general:
+                        "The checkout flow could not be reached right now. Please check your connection and try again.",
+                });
+            }
 
             return null;
         } finally {
@@ -861,10 +907,7 @@ export default function Scoreboard({
                         <div
                             className="md:col-span-2"
                             ref={(node) =>
-                                setFieldContainerRef(
-                                    "phone_country_code",
-                                    node,
-                                )
+                                setFieldContainerRef("phone_country_code", node)
                             }
                         >
                             <InputLabel
@@ -938,7 +981,9 @@ export default function Scoreboard({
 
                         <div
                             className="md:col-span-2"
-                            ref={(node) => setFieldContainerRef("country", node)}
+                            ref={(node) =>
+                                setFieldContainerRef("country", node)
+                            }
                         >
                             <InputLabel
                                 htmlFor="country"
@@ -967,7 +1012,10 @@ export default function Scoreboard({
                                                     ),
                                             );
 
-                                        if (matchedDialCode && !data.phone_number) {
+                                        if (
+                                            matchedDialCode &&
+                                            !dataRef.current.phone_number
+                                        ) {
                                             setFieldValue(
                                                 "phone_country_code",
                                                 matchedDialCode.value,

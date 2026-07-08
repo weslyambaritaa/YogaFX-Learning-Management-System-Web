@@ -107,10 +107,7 @@ function daysInMonth(year, monthIndex) {
 
 function dateForBillingDay(year, monthIndex, billingDay) {
     const safeBillingDay = Number(billingDay) === 1 ? 1 : 15;
-    const safeDay = Math.min(
-        safeBillingDay,
-        daysInMonth(year, monthIndex),
-    );
+    const safeDay = Math.min(safeBillingDay, daysInMonth(year, monthIndex));
 
     return new Date(year, monthIndex, safeDay, 12, 0, 0, 0);
 }
@@ -309,8 +306,7 @@ function buildInstallmentSummaryForCount(
               );
 
     const finalDueAt =
-        selectedRecurringDueDates[selectedRecurringDueDates.length - 1] ??
-        null;
+        selectedRecurringDueDates[selectedRecurringDueDates.length - 1] ?? null;
 
     const scheduleBreakdown = [
         {
@@ -361,11 +357,7 @@ function buildPreviewInstallmentSummary(checkout, selectedPaymentOption) {
         selectedPaymentOption,
     );
 
-    const billingDay = resolveBillingDay(
-        null,
-        checkout,
-        selectedPaymentOption,
-    );
+    const billingDay = resolveBillingDay(null, checkout, selectedPaymentOption);
 
     const recurringDueDates = buildRecurringDueDates({
         billingDay,
@@ -534,6 +526,7 @@ export default function PublicCheckoutPanel({
     const [payFullSdkError, setPayFullSdkError] = useState("");
     const [installmentSdkError, setInstallmentSdkError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
     const [debugInfo, setDebugInfo] = useState(null);
     const [installmentSession, setInstallmentSession] = useState(null);
     const [installmentStatus, setInstallmentStatus] = useState(null);
@@ -714,7 +707,8 @@ export default function PublicCheckoutPanel({
             : ""
         : payFullSdkError;
 
-    const paymentIsLocked = !canInteractWithPayment || isPreparingCheckout;
+    const paymentIsLocked =
+        !canInteractWithPayment || isPreparingCheckout || isConfirmingPayment;
 
     useEffect(() => {
         checkoutForPaymentRef.current = checkout;
@@ -738,6 +732,7 @@ export default function PublicCheckoutPanel({
         if (!isInstallmentSelected) {
             setInstallmentApprovalMessage("");
             setInstallmentStatus(null);
+            setIsConfirmingPayment(false);
         }
     }, [isInstallmentSelected]);
 
@@ -954,11 +949,18 @@ export default function PublicCheckoutPanel({
                 label: "buynow",
                 height: 48,
             },
-            onClick: (_data, actions) => {
+            onClick: async (_data, actions) => {
                 setGeneralError("");
                 setDebugInfo(null);
+                setIsConfirmingPayment(false);
 
                 if (!validateCheckoutFields()) {
+                    return actions.reject();
+                }
+
+                const preparedCheckout = await prepareRealCheckoutForPreview();
+
+                if (!preparedCheckout?.create_order_url) {
                     return actions.reject();
                 }
 
@@ -983,6 +985,7 @@ export default function PublicCheckoutPanel({
                 setGeneralError(
                     "PayPal could not start the embedded checkout flow. Please try again.",
                 );
+                setIsConfirmingPayment(false);
                 setIsSubmitting(false);
             },
         });
@@ -1039,12 +1042,19 @@ export default function PublicCheckoutPanel({
                 label: "paypal",
                 height: 48,
             },
-            onClick: (_data, actions) => {
+            onClick: async (_data, actions) => {
                 setGeneralError("");
                 setInstallmentApprovalMessage("");
                 setDebugInfo(null);
+                setIsConfirmingPayment(false);
 
                 if (!validateCheckoutFields()) {
+                    return actions.reject();
+                }
+
+                const preparedCheckout = await prepareRealCheckoutForPreview();
+
+                if (!preparedCheckout?.create_order_url) {
                     return actions.reject();
                 }
 
@@ -1074,12 +1084,14 @@ export default function PublicCheckoutPanel({
                 setGeneralError(
                     "The PayPal installment approval popup was cancelled.",
                 );
+                setIsConfirmingPayment(false);
                 setIsSubmitting(false);
             },
             onError: () => {
                 setGeneralError(
                     "PayPal could not start the subscription approval popup. Please try again.",
                 );
+                setIsConfirmingPayment(false);
                 setIsSubmitting(false);
             },
         });
@@ -1154,16 +1166,21 @@ export default function PublicCheckoutPanel({
                 setInstallmentStatus(payload);
 
                 if (payload.onboarding_ready && payload.onboarding_url) {
+                    setIsConfirmingPayment(true);
                     window.location.assign(payload.onboarding_url);
                     return;
                 }
+
+                setIsConfirmingPayment(true);
 
                 if (payload.message) {
                     setInstallmentApprovalMessage(payload.message);
                 }
             } catch {
                 if (!cancelled) {
-                    setInstallmentApprovalMessage("");
+                    setInstallmentApprovalMessage(
+                        "PayPal approval received. We are still confirming your first payment.",
+                    );
                 }
             }
         };
@@ -1244,6 +1261,12 @@ export default function PublicCheckoutPanel({
     };
 
     const prepareRealCheckoutForPreview = async () => {
+        const cachedCheckout = checkoutForPaymentRef.current;
+
+        if (cachedCheckout?.create_order_url) {
+            return cachedCheckout;
+        }
+
         if (!isPreview) {
             checkoutForPaymentRef.current = checkout;
             return checkout;
@@ -1262,9 +1285,10 @@ export default function PublicCheckoutPanel({
 
         const preparedCheckout = await onBeforePayment({
             shouldFocus: true,
+            shouldSetErrors: true,
         });
 
-        if (!preparedCheckout) {
+        if (!preparedCheckout?.create_order_url) {
             setGeneralError(
                 "Please complete your personal details before continuing to payment.",
             );
@@ -1293,6 +1317,7 @@ export default function PublicCheckoutPanel({
             setGeneralError(
                 "Please complete your personal details before continuing to payment.",
             );
+            setIsConfirmingPayment(false);
             setIsSubmitting(false);
             throw new Error("checkout-not-ready");
         }
@@ -1354,11 +1379,13 @@ export default function PublicCheckoutPanel({
                 payload.message ??
                     "The checkout session could not be created. Please try again.",
             );
+            setIsConfirmingPayment(false);
             setIsSubmitting(false);
             throw new Error("create-order");
         }
 
         if (payload.redirect_url && payload.status === "success") {
+            setIsConfirmingPayment(true);
             window.location.assign(payload.redirect_url);
             return payload;
         }
@@ -1391,6 +1418,7 @@ export default function PublicCheckoutPanel({
             setGeneralError(
                 "The installment approval route was not prepared correctly.",
             );
+            setIsConfirmingPayment(false);
             setIsSubmitting(false);
             return;
         }
@@ -1432,6 +1460,7 @@ export default function PublicCheckoutPanel({
                 payload.message ??
                     "The PayPal installment approval could not be attached to this checkout.",
             );
+            setIsConfirmingPayment(false);
             setIsSubmitting(false);
             return;
         }
@@ -1449,16 +1478,20 @@ export default function PublicCheckoutPanel({
             payload.message ??
                 "PayPal approval received. We are confirming your first payment now.",
         );
+        setIsConfirmingPayment(true);
         setIsSubmitting(false);
     };
 
     const captureApprovedOrder = async (orderId) => {
+        setIsConfirmingPayment(true);
+
         const activeOrder = activeOrderRef.current;
 
         if (!activeOrder?.capture_url) {
             setGeneralError(
                 "The payment capture route was not prepared correctly.",
             );
+            setIsConfirmingPayment(false);
             setIsSubmitting(false);
             return;
         }
@@ -1487,6 +1520,7 @@ export default function PublicCheckoutPanel({
             payload.message ??
                 "The payment was processed, but the next onboarding step could not be opened automatically.",
         );
+        setIsConfirmingPayment(false);
         setIsSubmitting(false);
     };
 
@@ -1494,6 +1528,7 @@ export default function PublicCheckoutPanel({
         activeOrderRef.current = null;
         setDebugInfo(null);
         setGeneralError("");
+        setIsConfirmingPayment(false);
         setIsSubmitting(false);
     };
 
@@ -1577,6 +1612,40 @@ export default function PublicCheckoutPanel({
                 }
             `}</style>
 
+
+            {isConfirmingPayment && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-6 backdrop-blur-sm"
+                    style={{ fontFamily: FONT_FAMILY }}
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div className="w-full max-w-md rounded-[18px] border border-white/15 bg-[#111111] px-7 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#DB202C]/35 bg-[#DB202C]/12">
+                            <LoaderCircle className="h-8 w-8 animate-spin text-[#DB202C]" />
+                        </div>
+
+                        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-[#ffb8bf]">
+                            Payment received
+                        </p>
+
+                        <h2 className="mt-3 text-2xl font-semibold text-white">
+                            Confirming your payment
+                        </h2>
+
+                        <p className="mt-3 text-sm leading-6 text-white/70">
+                            Please do not close this page. We are confirming
+                            your first payment and preparing your enrollment
+                            access.
+                        </p>
+
+                        <div className="mt-6 overflow-hidden rounded-full bg-white/10">
+                            <div className="h-1.5 w-2/3 animate-pulse rounded-full bg-[#DB202C]" />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {(generalError || visibleSdkError) && (
                 <div
                     className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-5 py-4 text-sm font-medium text-rose-100"
@@ -1599,10 +1668,10 @@ export default function PublicCheckoutPanel({
                             <button
                                 type="button"
                                 onClick={() => setPaymentType(option.type)}
-                                className={`w-full rounded-[5px] border px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
+                                className={`w-full rounded-[5px] border-2 px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
                                     optionIsActive
-                                        ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_1px_rgba(219,32,44,0.25)]"
-                                        : "border-white/10 bg-black/20 text-white/75 hover:border-white/25 hover:bg-white/10"
+                                        ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_2px_rgba(219,32,44,0.28)]"
+                                        : "border-white/35 bg-black/25 text-white/85 hover:border-white/55 hover:bg-white/10"
                                 }`}
                                 style={{
                                     fontFamily: FONT_FAMILY,
@@ -1902,7 +1971,7 @@ export default function PublicCheckoutPanel({
                                 : "opacity-100"
                         }`}
                     >
-                        {installmentApprovalMessage && (
+                        {installmentApprovalMessage && !isConfirmingPayment && (
                             <div
                                 className="mb-5 rounded-[5px] border border-emerald-400/30 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100"
                                 style={{ fontFamily: FONT_FAMILY }}
@@ -1911,7 +1980,7 @@ export default function PublicCheckoutPanel({
                             </div>
                         )}
 
-                        {installmentSession?.provider_subscription_id ? (
+                        {installmentSession?.provider_subscription_id && !isConfirmingPayment ? (
                             <div
                                 className="rounded-[5px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70"
                                 style={{ fontFamily: FONT_FAMILY }}

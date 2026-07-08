@@ -8,6 +8,10 @@ import { Check, ChevronDown, Globe } from "lucide-react";
 import { resolveCountryIso2 } from "@/lib/countryFlags";
 import { useEffect, useMemo, useState } from "react";
 
+function normalizeOptionValue(value) {
+    return String(value ?? "").trim();
+}
+
 function FlagVisual({ option, fallbackClassName = "" }) {
     const iso2 = resolveCountryIso2(option);
 
@@ -79,8 +83,23 @@ export default function FlagOptionSelect({
     searchPlaceholder = "Search country or code",
 }) {
     const [searchQuery, setSearchQuery] = useState("");
-    const currentOption =
-        selectedOption ?? options.find((option) => option.value === value) ?? null;
+    const currentOption = useMemo(() => {
+        const normalizedValue = normalizeOptionValue(value);
+
+        if (
+            selectedOption &&
+            normalizeOptionValue(selectedOption.value) === normalizedValue
+        ) {
+            return selectedOption;
+        }
+
+        return (
+            options.find(
+                (option) =>
+                    normalizeOptionValue(option.value) === normalizedValue,
+            ) ?? null
+        );
+    }, [options, selectedOption, value]);
     const filteredOptions = useMemo(() => {
         const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -105,7 +124,11 @@ export default function FlagOptionSelect({
             by={(left, right) =>
                 left?.value === right?.value && left?.label === right?.label
             }
-            onChange={onChange}
+            onChange={(option) => {
+                if (option) {
+                    onChange(option);
+                }
+            }}
             disabled={disabled}
         >
             <div className="relative">
