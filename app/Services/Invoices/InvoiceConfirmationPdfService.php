@@ -35,29 +35,27 @@ class InvoiceConfirmationPdfService
             ->values();
 
         $studentName = $this->studentName($invoice);
-        $courseName = $invoice->package?->title
-            ?: ($invoice->accessTier?->name ?: ($invoice->user?->accessTier?->name ?: 'YogaFX Program'));
-        $view = $invoice->payment_type === Invoice::PAYMENT_TYPE_INSTALLMENT
-            ? 'pdf.installment-confirmation'
-            : 'pdf.online-confirmation';
-
-        $html = view($view, [
-            'documentTitle' => $invoice->invoice_number,
-            'courseName' => $courseName,
-            'dearName' => $studentName,
-            'coursePrice' => $this->formatMoney(
+        $payload = [
+            'document_title' => (string) $invoice->invoice_number,
+            'course_name' => $this->courseName($invoice),
+            'dear_name' => $studentName,
+            'course_price' => $this->formatMoney(
                 amount: (float) $invoice->total_amount,
                 currencyCode: $invoice->currency_code,
                 decimals: $this->summaryDecimals((float) $invoice->total_amount),
             ),
-            'fullPaymentAmount' => $this->formatMoney(
+            'full_payment_amount' => $this->formatMoney(
                 amount: $successPayments->sum(fn (Payment $payment) => (float) $payment->amount_paid),
                 currencyCode: $invoice->currency_code,
                 decimals: $this->summaryDecimals($successPayments->sum(fn (Payment $payment) => (float) $payment->amount_paid)),
             ),
-            'paymentReceivedOn' => $this->paymentReceivedOn($successPayments),
+            'payment_received_on' => $this->paymentReceivedOn($successPayments),
             ...$this->installmentViewData($invoice, $paymentSubscription, $successPayments),
-        ])->render();
+        ];
+
+        $html = $invoice->payment_type === Invoice::PAYMENT_TYPE_INSTALLMENT
+            ? $this->renderInstallmentConfirmationHtml($payload)
+            : $this->renderOnlineConfirmationHtml($payload);
 
         $options = new Options();
         $options->set('isHtml5ParserEnabled', true);
@@ -95,6 +93,16 @@ class InvoiceConfirmationPdfService
         }
 
         return route('login');
+    }
+
+    private function courseName(Invoice $invoice): string
+    {
+        return (string) (
+            $invoice->package?->title
+            ?: $invoice->accessTier?->name
+            ?: $invoice->user?->accessTier?->name
+            ?: 'YogaFX Program'
+        );
     }
 
     private function studentName(Invoice $invoice): string
@@ -334,8 +342,8 @@ class InvoiceConfirmationPdfService
         $currency = strtoupper((string) ($currencyCode ?: 'USD'));
         $symbol = match ($currency) {
             'USD' => '$',
-            'GBP' => '£',
-            'EUR' => '€',
+            'GBP' => "\u{00A3}",
+            'EUR' => "\u{20AC}",
             'AUD' => 'A$',
             'CAD' => 'C$',
             'IDR' => 'Rp',
@@ -348,5 +356,181 @@ class InvoiceConfirmationPdfService
             $symbol,
             number_format($numeric, $decimals, '.', ','),
         ));
+    }
+
+    /**
+     * @param  array{
+     *     document_title: string,
+     *     course_name: string,
+     *     dear_name: string,
+     *     course_price: string,
+     *     full_payment_amount: string,
+     *     payment_received_on: string
+     * }  $payload
+     */
+    private function renderOnlineConfirmationHtml(array $payload): string
+    {
+        $documentTitle = $this->escape($payload['document_title']);
+        $courseName = $this->escape($payload['course_name']);
+        $dearName = $this->escape($payload['dear_name']);
+        $coursePrice = $this->escape($payload['course_price']);
+        $fullPaymentAmount = $this->escape($payload['full_payment_amount']);
+        $paymentReceivedOn = $this->escape($payload['payment_received_on']);
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{$documentTitle}</title>
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; color: #111827; margin: 0; background: #ffffff; }
+        .page { padding: 32px 42px 38px; max-width: 720px; }
+        .title { font-size: 24px; font-weight: 700; line-height: 1.18; margin: 0 0 2px; max-width: 640px; }
+        .subtitle { font-size: 22px; font-weight: 700; margin: 0 0 24px; }
+        .paragraph { font-size: 16px; line-height: 1.6; margin: 0 0 16px; }
+        .label { font-size: 16px; font-weight: 700; margin: 0 0 6px; }
+        .amount { font-size: 24px; font-weight: 700; margin: 0 0 14px; }
+        .payment-line { font-size: 18px; font-weight: 700; line-height: 1.6; margin: 0 0 20px; max-width: 660px; }
+        .footer { font-size: 16px; line-height: 1.7; margin-top: 20px; max-width: 660px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1 class="title">{$courseName}</h1>
+        <div class="subtitle">Confirmation</div>
+        <p class="paragraph">Dear {$dearName},</p>
+        <p class="paragraph">We are thrilled that you will be joining us for our {$courseName}.</p>
+        <p class="label">Course Investment:</p>
+        <p class="amount">{$coursePrice}</p>
+        <p class="payment-line">Full Payment Received: {$fullPaymentAmount} Received on {$paymentReceivedOn}</p>
+        <p class="footer">Thank you for your interest in YogaFX International Yoga Teacher Training Academy<br>it really is appreciated</p>
+    </div>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * @param  array{
+     *     document_title: string,
+     *     course_name: string,
+     *     dear_name: string,
+     *     course_price: string,
+     *     firstInstallmentAmount: string,
+     *     balanceDue: string,
+     *     firstInstallmentReceivedOn: string,
+     *     showBalanceScheduleCopy: bool,
+     *     installmentRows: array<int, array{
+     *         label: string,
+     *         amount: string,
+     *         show_status: bool,
+     *         status_label: string,
+     *         status_first: bool,
+     *         date_label: string,
+     *         date_value: string
+     *     }>
+     * }  $payload
+     */
+    private function renderInstallmentConfirmationHtml(array $payload): string
+    {
+        $documentTitle = $this->escape($payload['document_title']);
+        $courseName = $this->escape($payload['course_name']);
+        $dearName = $this->escape($payload['dear_name']);
+        $coursePrice = $this->escape($payload['course_price']);
+        $firstInstallmentAmount = $this->escape($payload['firstInstallmentAmount']);
+        $balanceDue = $this->escape($payload['balanceDue']);
+        $firstInstallmentReceivedOn = $this->escape($payload['firstInstallmentReceivedOn']);
+        $balanceCopy = $payload['showBalanceScheduleCopy']
+            ? '<br>'.$balanceDue.' due as follows please'
+            : '';
+
+        $rowsHtml = '';
+
+        foreach ($payload['installmentRows'] as $row) {
+            $label = $this->escape($row['label']);
+            $amount = $this->escape($row['amount']);
+            $status = $this->escape($row['status_label']);
+            $dateLine = $this->escape($row['date_label'].' '.$row['date_value']);
+            $topLine = $row['show_status'] && $row['status_first']
+                ? '<p class="installment-status">'.$status.'</p>'
+                : '';
+            $bottomLine = $row['show_status'] && ! $row['status_first']
+                ? '<p class="installment-status">'.$status.'</p>'
+                : '';
+
+            $rowsHtml .= <<<HTML
+<tr>
+    <td class="schedule-left">
+        <p class="installment-label">{$label}</p>
+        <p class="installment-amount">{$amount}</p>
+    </td>
+    <td class="schedule-right">
+        {$topLine}
+        <p class="installment-date">{$dateLine}</p>
+        {$bottomLine}
+    </td>
+</tr>
+HTML;
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{$documentTitle}</title>
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; color: #111827; margin: 0; background: #ffffff; }
+        .page { padding: 32px 42px 38px; max-width: 720px; }
+        .title { font-size: 24px; font-weight: 700; line-height: 1.18; margin: 0 0 2px; max-width: 640px; }
+        .subtitle { font-size: 22px; font-weight: 700; margin: 0 0 24px; }
+        .paragraph { font-size: 16px; line-height: 1.6; margin: 0 0 16px; max-width: 660px; }
+        .summary-table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; table-layout: fixed; }
+        .summary-table td { vertical-align: top; padding: 0 14px 8px 0; width: 33.33%; }
+        .label { font-size: 16px; font-weight: 700; margin: 0 0 6px; }
+        .amount { font-size: 24px; font-weight: 700; margin: 0; }
+        .balance-copy { font-size: 18px; font-weight: 700; line-height: 1.55; margin: 0 0 14px; max-width: 660px; }
+        .schedule { width: 100%; border-collapse: collapse; margin-top: 6px; table-layout: fixed; }
+        .schedule td { vertical-align: top; padding: 0 0 11px; }
+        .schedule-left { width: 46%; }
+        .schedule-right { width: 54%; padding-left: 18px; }
+        .installment-label { font-size: 16px; font-weight: 700; margin: 0 0 2px; }
+        .installment-amount { font-size: 18px; font-weight: 700; margin: 0; }
+        .installment-status { font-size: 16px; font-weight: 700; margin: 0 0 1px; }
+        .installment-date { font-size: 15px; line-height: 1.45; margin: 0; }
+        .footer { font-size: 16px; line-height: 1.7; margin-top: 18px; max-width: 660px; }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1 class="title">{$courseName}</h1>
+        <div class="subtitle">Confirmation</div>
+        <p class="paragraph">Dear {$dearName},</p>
+        <p class="paragraph">We are thrilled that you will be joining us for our {$courseName}.</p>
+        <table class="summary-table">
+            <tr>
+                <td><p class="label">Course Investment:</p></td>
+                <td><p class="label">1st Installment:</p></td>
+                <td><p class="label">Balance:</p></td>
+            </tr>
+            <tr>
+                <td><p class="amount">{$coursePrice}</p></td>
+                <td><p class="amount">{$firstInstallmentAmount}</p></td>
+                <td><p class="amount">{$balanceDue}</p></td>
+            </tr>
+        </table>
+        <p class="balance-copy">{$firstInstallmentAmount} Received on {$firstInstallmentReceivedOn}{$balanceCopy}</p>
+        <table class="schedule">{$rowsHtml}</table>
+        <p class="footer">Thank you for your interest in YogaFX International Yoga Teacher Training Academy<br>it really is appreciated</p>
+    </div>
+</body>
+</html>
+HTML;
+    }
+
+    private function escape(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }
