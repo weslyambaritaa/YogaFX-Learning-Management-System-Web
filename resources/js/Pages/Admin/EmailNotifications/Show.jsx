@@ -43,16 +43,6 @@ export default function EmailNotificationShow({
     });
 
     useEffect(() => {
-        templateForm.defaults({
-            notification_type: notificationType,
-            is_enabled: template.is_enabled,
-            admin_recipients: template.admin_recipients,
-            subject_admin: template.subject_admin,
-            body_admin: template.body_admin,
-            subject_user: template.subject_user,
-            body_user: template.body_user,
-        });
-
         templateForm.setData({
             notification_type: notificationType,
             is_enabled: template.is_enabled,
