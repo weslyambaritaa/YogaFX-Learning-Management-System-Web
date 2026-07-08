@@ -176,6 +176,7 @@
 
             @if (!empty($showBonuses))
                 <div style="font-size:20px;font-weight:700;">
+                    <strong>Also Included — Your Online Course Bonuses:</strong><br>
                     <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 1:</strong> 10 Premium Online Lectures ($490) - Module 14<br>
                     <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Meditation & Mindfulness Course ($99) - Module 15<br>
                     <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 2:</strong> Full $197 Credit to Mr. Ian's MasterClass<br>
