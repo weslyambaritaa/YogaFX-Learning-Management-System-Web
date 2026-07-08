@@ -1209,6 +1209,24 @@ export default function PublicCheckoutPanel({
         setGeneralError("");
     };
 
+    const handleTermsAcceptedChange = async (checked) => {
+        setFieldValue("terms_accepted", checked);
+
+        if (!checked) {
+            return;
+        }
+
+        if (checkoutForPaymentRef.current?.create_order_url) {
+            return;
+        }
+
+        if (isSubmitting || isPreparingCheckout) {
+            return;
+        }
+
+        await prepareRealCheckoutForPreview();
+    };
+
     const setValidationState = (nextErrors, fallbackMessage) => {
         setFieldErrors(nextErrors);
         setGeneralError(firstErrorMessage(nextErrors) || fallbackMessage);
@@ -1939,8 +1957,7 @@ export default function PublicCheckoutPanel({
                         type="checkbox"
                         checked={formData.terms_accepted}
                         onChange={(event) =>
-                            setFieldValue(
-                                "terms_accepted",
+                            void handleTermsAcceptedChange(
                                 event.target.checked,
                             )
                         }
