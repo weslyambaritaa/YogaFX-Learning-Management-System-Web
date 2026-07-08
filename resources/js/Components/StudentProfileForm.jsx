@@ -335,7 +335,7 @@ function ChoiceGrid({
     onChange,
     multiple = false,
     theme,
-    optionsGridClassName = "grid gap-4 sm:grid-cols-2",
+    optionsGridClassName = "grid grid-cols-2 gap-3 sm:gap-4",
 }) {
     const selectedValues = Array.isArray(value) ? value : [];
 
@@ -612,7 +612,7 @@ export default function StudentProfileForm({
     }, [backendErrorKey, localErrorKey]);
 
     // Desain Form Tanpa Frame
-    const sectionClassName = "space-y-8 pt-8";
+    const sectionClassName = "space-y-6";
     const theme = isAdminMode
         ? {
               labelClassName: "text-sm font-medium text-slate-900",
@@ -960,7 +960,7 @@ export default function StudentProfileForm({
 
             <form
                 onSubmit={handleSubmit}
-                className="space-y-12"
+                className="space-y-6"
                 style={{ fontFamily: FONT_FAMILY }}
             >
                 {isEnrollment && (backendErrorKey || localErrorKey) ? (
@@ -1076,10 +1076,10 @@ export default function StudentProfileForm({
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
                             <div
-                                className={`mt-2 grid items-start gap-4 ${
+                                className={`mt-2 grid items-start gap-3 ${
                                     isEnrollment
-                                        ? "grid-cols-[104px_minmax(0,1fr)] sm:grid-cols-[112px_minmax(0,1fr)] md:grid-cols-[120px_minmax(0,1fr)]"
-                                        : "grid-cols-[112px_minmax(0,1fr)] sm:grid-cols-[136px_minmax(0,1fr)] md:grid-cols-[152px_minmax(0,1fr)]"
+                                        ? "grid-cols-[112px_minmax(0,1fr)] sm:grid-cols-[120px_minmax(0,1fr)] md:grid-cols-[128px_minmax(0,1fr)]"
+                                        : "grid-cols-[112px_minmax(0,1fr)] sm:grid-cols-[128px_minmax(0,1fr)] md:grid-cols-[136px_minmax(0,1fr)]"
                                 }`}
                             >
                                 <FlagOptionSelect
@@ -1168,7 +1168,7 @@ export default function StudentProfileForm({
                                 }}
                             />
 
-                            <div className="mt-4 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                            <div className="mt-4 flex flex-row gap-4 items-center">
                                 {/* Area Preview Berbentuk Lonjong (Oval) */}
                                 <div
                                     className={theme.photoPreviewFrameClassName}
@@ -1474,6 +1474,7 @@ export default function StudentProfileForm({
                                 setData("current_fitness_level", value)
                             }
                             theme={theme}
+                            optionsGridClassName="grid grid-cols-3 gap-3 sm:gap-4"
                         />
 
                         <ChoiceGrid
@@ -1486,6 +1487,7 @@ export default function StudentProfileForm({
                                 setData("flexibility_rating", value)
                             }
                             theme={theme}
+                            optionsGridClassName="grid grid-cols-3 gap-3 sm:gap-4"
                         />
                     </div>
                 </section>

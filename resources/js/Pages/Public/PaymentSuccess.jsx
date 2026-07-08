@@ -10,7 +10,7 @@ export default function PaymentSuccess({ onboarding }) {
             eyebrow="Payment Approved"
             heading="Your payment was received."
         >
-            <div className="flex justify-center py-4">
+            <div className="flex justify-center pt-0 pb-6">
                 <div className="w-full max-w-md text-center">
                     <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500">
                         <Check
@@ -19,7 +19,7 @@ export default function PaymentSuccess({ onboarding }) {
                         />
                     </div>
 
-                    <p className="mt-6 text-base font-semibold leading-relaxed text-white">
+                    <p className="mt-9 text-base font-semibold leading-relaxed text-white">
                         Continue to enrollment to complete your YogaFX account.
                     </p>
 
