@@ -16,7 +16,7 @@
         .watermark-fallback { position: fixed; top: 150px; right: 94px; font-size: 520px; line-height: 0.78; color: rgba(220, 38, 38, 0.12); font-weight: 900; z-index: -1; transform: rotate(10deg); }
 .header-shell {
     position: fixed;
-    top: -30px;
+    top: -10px;
     left: 0;
     right: 0;
     margin: 0;
