@@ -15,7 +15,7 @@
         .header-shell { position: fixed; top: 0; left: 42px; right: 42px; }
         .header-banner { text-align: center; margin-bottom: 4px; }
         .header-banner img { width: 100%; height: auto; object-fit: contain; }
-        .heading-block { position: relative; margin-bottom: 14px; }
+        .heading-block { position: relative; margin-bottom: 14px; min-height: 68px; }
         .date-badge { position: absolute; top: 4px; right: 0; text-align: right; }
         .date-badge span { display: inline-block; border: 1px solid #9ca3af; padding: 4px 12px; font-size: 12px; font-style: italic; color: #1f2937; background: #f9fafb; }
         .subtitle { text-align: center; margin: 0 auto; max-width: 100%; padding-right: 90px; font-size: 24px; font-weight: 700; line-height: 1.25; }
