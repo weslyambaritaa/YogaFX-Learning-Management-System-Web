@@ -4,10 +4,10 @@
     <meta charset="utf-8">
     <title>Installment Confirmation</title>
     <style>
-        @page { margin: 170px 0 140px; }
+        @page { margin: 0; }
         body { font-family: Arial, sans-serif; color: #111; font-size: 16px; line-height: 1.5; margin: 0; background: #fff; }
         .page { padding: 0 42px; position: relative; }
-        .content { padding: 0 42px; }
+        .content { padding: 155px 42px 130px; }
         .footer { position: fixed; left: 42px; right: 42px; bottom: 0; }
         .watermark { position: fixed; top: 120px; left: 10%; width: 80%; z-index: -1; opacity: 0.12; text-align: center; }
         .watermark img { width: 100%; height: auto; object-fit: contain; }
@@ -52,15 +52,15 @@
             <div class="header-banner">{!! $pdfHeaderHtml !!}</div>
         @endif
         </div>
-        <div class="heading-block">
-            <div class="date-badge"><span>{{ $generatedOn }}</span></div>
-            <div class="subtitle">
-                {{ $courseHeading ?? $courseName }}<br>
-                <span class="confirm">Confirmation</span>
-            </div>
-        </div>
-
         <div class="content">
+            <div class="heading-block">
+                <div class="date-badge"><span>{{ $generatedOn }}</span></div>
+                <div class="subtitle">
+                    {{ $courseHeading ?? $courseName }}<br>
+                    <span class="confirm">Confirmation</span>
+                </div>
+            </div>
+
             <p class="greeting">Dear {{ $dearName }},</p>
             <p class="intro">We are thrilled that you will be joining us for our {{ $courseName }}.</p>
 
