@@ -16,7 +16,7 @@
         .header-banner img { width: 100%; height: auto; object-fit: contain; }
         .date-badge { text-align: right; margin-bottom: 8px; margin-top: -30px; }
         .date-badge span { display: inline-block; border: 1px solid #9ca3af; padding: 4px 12px; font-size: 12px; font-style: italic; color: #1f2937; background: #f9fafb; }
-        .subtitle { text-align: center; margin: 0 auto 18px; max-width: 100%; font-size: 28px; font-weight: 700; line-height: 1.3; }
+        .subtitle { text-align: center; margin: 0 auto 18px; max-width: 100%; font-size: 24px; font-weight: 700; line-height: 1.25; }
         .confirm { color: #dc2626; font-style: italic; font-weight: 800; margin-top: 2px; display: block; }
         .greeting { margin: 0 0 10px; font-weight: 700; }
         .intro { margin: 0 0 12px; }
