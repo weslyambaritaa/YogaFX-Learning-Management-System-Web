@@ -415,6 +415,38 @@ class InvoiceConfirmationPdfService
             color: #8d6b36;
             margin: 0 0 12px;
         }
+        .meta-row {
+            margin: 0 0 10px;
+            overflow: hidden;
+        }
+        .meta-left {
+            float: left;
+            width: 72%;
+        }
+        .meta-right {
+            float: right;
+            width: 92px;
+            height: 92px;
+            border: 2px solid #c49a56;
+            border-radius: 999px;
+            text-align: center;
+            color: #8d6b36;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            padding-top: 20px;
+            box-sizing: border-box;
+            background: rgba(255, 248, 236, 0.92);
+        }
+        .meta-right span {
+            display: block;
+            margin-top: 6px;
+            font-size: 28px;
+            line-height: 1;
+            letter-spacing: 0;
+            color: #10203b;
+        }
         .title { font-size: 25px; font-weight: 700; line-height: 1.18; margin: 0 0 3px; max-width: 620px; color: #10203b; }
         .subtitle { font-size: 23px; font-weight: 700; margin: 0 0 20px; color: #10203b; }
         .divider {
@@ -451,6 +483,16 @@ class InvoiceConfirmationPdfService
             border-top: 1px solid #e5d8c6;
             padding-top: 16px;
         }
+        .signature {
+            margin-top: 22px;
+            width: 210px;
+            border-top: 1px solid #bda47e;
+            padding-top: 7px;
+            font-size: 12px;
+            color: #7c6b52;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -459,8 +501,13 @@ class InvoiceConfirmationPdfService
         <div class="sheet">
             <div class="top-band"></div>
             <p class="academy">YogaFX International Yoga Teacher Training Academy</p>
-            <h1 class="title">{$courseName}</h1>
-            <div class="subtitle">Confirmation</div>
+            <div class="meta-row">
+                <div class="meta-left">
+                    <h1 class="title">{$courseName}</h1>
+                    <div class="subtitle">Confirmation</div>
+                </div>
+                <div class="meta-right">Confirmed<span>✓</span></div>
+            </div>
             <div class="divider"></div>
             <p class="paragraph">Dear {$dearName},</p>
             <p class="paragraph">We are thrilled that you will be joining us for our <strong>{$courseName}</strong>.</p>
@@ -470,6 +517,7 @@ class InvoiceConfirmationPdfService
             </div>
             <p class="payment-line">Full Payment Received: {$fullPaymentAmount} Received on {$paymentReceivedOn}</p>
             <p class="footer">Thank you for your interest in YogaFX International Yoga Teacher Training Academy<br>it really is appreciated</p>
+            <div class="signature">YogaFX Admissions Team</div>
         </div>
     </div>
 </body>
@@ -518,11 +566,12 @@ HTML;
             $amount = $this->escape($row['amount']);
             $status = $this->escape($row['status_label']);
             $dateLine = $this->escape($row['date_label'].' '.$row['date_value']);
+            $statusClass = $row['status_label'] === 'Paid' ? 'status-paid' : 'status-scheduled';
             $topLine = $row['show_status'] && $row['status_first']
-                ? '<p class="installment-status">'.$status.'</p>'
+                ? '<p class="installment-status '.$statusClass.'">'.$status.'</p>'
                 : '';
             $bottomLine = $row['show_status'] && ! $row['status_first']
-                ? '<p class="installment-status">'.$status.'</p>'
+                ? '<p class="installment-status '.$statusClass.'">'.$status.'</p>'
                 : '';
 
             $rowsHtml .= <<<HTML
@@ -577,6 +626,38 @@ HTML;
             text-transform: uppercase;
             color: #8d6b36;
             margin: 0 0 12px;
+        }
+        .meta-row {
+            margin: 0 0 10px;
+            overflow: hidden;
+        }
+        .meta-left {
+            float: left;
+            width: 72%;
+        }
+        .meta-right {
+            float: right;
+            width: 92px;
+            height: 92px;
+            border: 2px solid #c49a56;
+            border-radius: 999px;
+            text-align: center;
+            color: #8d6b36;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            padding-top: 20px;
+            box-sizing: border-box;
+            background: rgba(255, 248, 236, 0.92);
+        }
+        .meta-right span {
+            display: block;
+            margin-top: 6px;
+            font-size: 28px;
+            line-height: 1;
+            letter-spacing: 0;
+            color: #10203b;
         }
         .title { font-size: 25px; font-weight: 700; line-height: 1.18; margin: 0 0 3px; max-width: 620px; color: #10203b; }
         .subtitle { font-size: 23px; font-weight: 700; margin: 0 0 20px; color: #10203b; }
@@ -635,6 +716,14 @@ HTML;
         .installment-amount { font-size: 18px; font-weight: 700; margin: 0; color: #10203b; }
         .installment-status { font-size: 14px; font-weight: 700; margin: 0 0 2px; text-transform: uppercase; letter-spacing: 0.08em; color: #8d6b36; }
         .installment-date { font-size: 15px; line-height: 1.5; margin: 0; color: #33415c; }
+        .progress-note {
+            margin: 0 0 14px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #7a6850;
+        }
+        .status-paid { color: #2f6b45; }
+        .status-scheduled { color: #8d6b36; }
         .footer {
             font-size: 15px;
             line-height: 1.75;
@@ -644,6 +733,16 @@ HTML;
             border-top: 1px solid #e5d8c6;
             padding-top: 16px;
         }
+        .signature {
+            margin-top: 22px;
+            width: 210px;
+            border-top: 1px solid #bda47e;
+            padding-top: 7px;
+            font-size: 12px;
+            color: #7c6b52;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
@@ -652,8 +751,13 @@ HTML;
         <div class="sheet">
             <div class="top-band"></div>
             <p class="academy">YogaFX International Yoga Teacher Training Academy</p>
-            <h1 class="title">{$courseName}</h1>
-            <div class="subtitle">Confirmation</div>
+            <div class="meta-row">
+                <div class="meta-left">
+                    <h1 class="title">{$courseName}</h1>
+                    <div class="subtitle">Confirmation</div>
+                </div>
+                <div class="meta-right">Installment<span>✓</span></div>
+            </div>
             <div class="divider"></div>
             <p class="paragraph">Dear {$dearName},</p>
             <p class="paragraph">We are thrilled that you will be joining us for our {$courseName}.</p>
@@ -665,8 +769,10 @@ HTML;
                 </tr>
             </table>
             <p class="balance-copy">{$firstInstallmentAmount} Received on {$firstInstallmentReceivedOn}{$balanceCopy}</p>
+            <p class="progress-note">Below is the current installment schedule recorded for this confirmation.</p>
             <table class="schedule">{$rowsHtml}</table>
             <p class="footer">Thank you for your interest in YogaFX International Yoga Teacher Training Academy<br>it really is appreciated</p>
+            <div class="signature">YogaFX Admissions Team</div>
         </div>
     </div>
 </body>
