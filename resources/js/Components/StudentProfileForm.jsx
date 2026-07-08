@@ -222,7 +222,7 @@ function isValidEmail(value) {
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const PUBLIC_FORM_LABEL_CLASS = "text-sm font-medium text-white/90";
 const PUBLIC_FORM_FIELD_CLASS =
-    "min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20";
+    "min-h-[52px] rounded-[5px] border-2 border-white/50 bg-black/45 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/55 shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 focus:border-white focus:bg-black/60 focus:ring-2 focus:ring-white/35";
 const PUBLIC_FORM_SELECT_PANEL_CLASS =
     "border-white/10 bg-[#161616] text-white";
 
@@ -335,6 +335,7 @@ function ChoiceGrid({
     onChange,
     multiple = false,
     theme,
+    optionsGridClassName = "grid gap-4 sm:grid-cols-2",
 }) {
     const selectedValues = Array.isArray(value) ? value : [];
 
@@ -357,7 +358,7 @@ function ChoiceGrid({
                 ) : null}
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className={optionsGridClassName}>
                 {options.map((option) => {
                     const checked = multiple
                         ? selectedValues.includes(option.value)
@@ -620,9 +621,9 @@ export default function StudentProfileForm({
               choiceDescriptionClassName:
                   "mt-1 text-sm font-normal text-slate-600",
               choiceCheckedClassName:
-                  "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_12px_rgba(219,32,44,0.18)]",
+                  "border-2 border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_2px_rgba(219,32,44,0.35),0_0_18px_rgba(219,32,44,0.28)]",
               choiceUncheckedClassName:
-                  "border-slate-400 bg-white text-slate-700 hover:border-[#DB202C]/50 hover:bg-rose-50/50",
+                  "border-2 border-white/50 bg-black/45 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 hover:border-white hover:bg-white/10",
               choiceIndicatorCheckedClassName:
                   "border-[#DB202C] bg-[#DB202C] text-white",
               choiceIndicatorUncheckedClassName:
@@ -677,9 +678,9 @@ export default function StudentProfileForm({
               choiceDescriptionClassName:
                   "mt-1 text-[12px] font-normal text-white/70",
               choiceCheckedClassName:
-                  "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_12px_rgba(219,32,44,0.28)]",
+                  "border-2 border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_2px_rgba(219,32,44,0.35),0_0_18px_rgba(219,32,44,0.28)]",
               choiceUncheckedClassName:
-                  "border-white/20 bg-black/20 text-white/80 shadow-sm transition-all duration-200 hover:border-white/40 hover:bg-white/[0.06]",
+                  "border-2 border-white/50 bg-black/45 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 hover:border-white hover:bg-white/10",
               choiceIndicatorCheckedClassName:
                   "border-white bg-white text-[#DB202C]",
               choiceIndicatorUncheckedClassName:
@@ -1384,7 +1385,7 @@ export default function StudentProfileForm({
                             />
                         </div>
 
-                        <div className="md:col-span-2">
+                        <div>
                             <ChoiceGrid
                                 id="gender"
                                 label="Gender"
@@ -1393,6 +1394,7 @@ export default function StudentProfileForm({
                                 options={GENDER_OPTIONS}
                                 onChange={(value) => setData("gender", value)}
                                 theme={theme}
+                                optionsGridClassName="grid grid-cols-2 gap-4"
                             />
                         </div>
                     </div>
@@ -1566,7 +1568,7 @@ export default function StudentProfileForm({
                                     "flex cursor-pointer items-start gap-4 rounded-[5px] border px-[10px] py-[8px] text-white transition",
                                     data.terms_accepted
                                         ? "border-[#DB202C] bg-[#DB202C]/12"
-                                        : "border-white bg-transparent hover:bg-[#DB202C]/10",
+                                        : "border-2 border-white/70 bg-black/35 hover:border-white hover:bg-[#DB202C]/10",
                                 ].join(" ")}
                             >
                                 <input
@@ -1631,7 +1633,7 @@ export default function StudentProfileForm({
                                     "flex cursor-pointer items-start gap-4 rounded-[5px] border px-[10px] py-[8px] text-white transition",
                                     data.recaptcha_confirmed
                                         ? "border-[#DB202C] bg-[#DB202C]/12"
-                                        : "border-white bg-transparent hover:bg-[#DB202C]/10",
+                                        : "border-2 border-white/70 bg-black/35 hover:border-white hover:bg-[#DB202C]/10",
                                 ].join(" ")}
                             >
                                 <input
