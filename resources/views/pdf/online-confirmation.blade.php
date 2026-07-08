@@ -12,7 +12,12 @@
         .watermark { position: fixed; top: 170px; left: 10%; width: 80%; z-index: -1; opacity: 0.12; text-align: center; }
         .watermark img { width: 100%; height: auto; object-fit: contain; }
         .watermark-fallback { position: fixed; top: 210px; right: 94px; font-size: 520px; line-height: 0.78; color: rgba(220, 38, 38, 0.12); font-weight: 900; z-index: -1; transform: rotate(10deg); }
-        .header-banner { text-align: center; margin-bottom: 10px; }
+        .header-banner {
+    text-align: center;
+    margin-top: -15px;
+    margin-bottom: 10px;
+    line-height: 0;
+}
         .header-banner img { width: 100%; height: auto; object-fit: contain; }
         .date-badge { text-align: right; margin-bottom: 8px; margin-top: -30px; }
         .date-badge span { display: inline-block; border: 1px solid #9ca3af; padding: 4px 12px; font-size: 12px; font-style: italic; color: #1f2937; background: #f9fafb; }
