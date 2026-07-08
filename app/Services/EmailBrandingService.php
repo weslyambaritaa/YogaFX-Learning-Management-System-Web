@@ -13,6 +13,7 @@ class EmailBrandingService
         return EmailBranding::query()->firstOrCreate(
             ['singleton_key' => EmailBranding::GLOBAL_KEY],
             [
+                'logo_html' => EmailBrandingDefaults::logoHtml(),
                 'header_html' => EmailBrandingDefaults::headerHtml(),
                 'footer_html' => EmailBrandingDefaults::footerHtml(),
             ],
@@ -24,8 +25,10 @@ class EmailBrandingService
         $branding = $this->findOrCreateBranding();
 
         return [
-            'logo_path' => $this->logoAbsolutePath($branding),
-            'logo_url' => $this->logoPreviewUrl($branding),
+            'logo_html' => $this->normalizeHtml(
+                $branding->logo_html,
+                $this->legacyLogoHtml($branding) ?? EmailBrandingDefaults::logoHtml(),
+            ),
             'header_html' => $this->normalizeHtml(
                 $branding->header_html,
                 EmailBrandingDefaults::headerHtml(),
@@ -53,6 +56,16 @@ class EmailBrandingService
         ]);
     }
 
+    public function logoEditorHtml(?EmailBranding $branding = null): string
+    {
+        $branding ??= $this->findOrCreateBranding();
+
+        return $this->normalizeHtml(
+            $branding->logo_html,
+            $this->legacyLogoHtml($branding) ?? EmailBrandingDefaults::logoHtml(),
+        );
+    }
+
     private function logoAbsolutePath(EmailBranding $branding): ?string
     {
         $path = (string) ($branding->logo_path ?? '');
@@ -69,5 +82,18 @@ class EmailBrandingService
         $normalized = trim((string) $value);
 
         return $normalized !== '' ? $normalized : $fallback;
+    }
+
+    private function legacyLogoHtml(EmailBranding $branding): ?string
+    {
+        $logoUrl = $this->logoPreviewUrl($branding);
+
+        if (! is_string($logoUrl) || $logoUrl === '') {
+            return null;
+        }
+
+        $alt = e((string) config('app.name', 'YogaFX LMS'));
+
+        return '<p style="margin: 0;"><img src="'.e($logoUrl).'" alt="'.$alt.'" style="display: block; max-width: 180px; width: auto; height: auto;"></p>';
     }
 }

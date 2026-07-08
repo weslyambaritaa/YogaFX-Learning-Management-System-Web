@@ -61,7 +61,7 @@ class EmailNotificationController extends Controller
             'availableMergeTags' => EmailNotificationTypeRegistry::mergeTagsFor($notificationType),
             'brandingSettingsUrl' => route('admin.email-branding.show'),
             'brandingSummary' => [
-                'logo_url' => $this->emailBrandingService->logoPreviewUrl(),
+                'logo_html' => $this->emailBrandingService->logoEditorHtml(),
             ],
             'statusMessage' => session('status_message'),
             'statusTone' => session('status_tone'),

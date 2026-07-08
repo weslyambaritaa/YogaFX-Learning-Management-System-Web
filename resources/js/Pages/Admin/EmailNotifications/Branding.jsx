@@ -8,7 +8,7 @@ export default function EmailBranding({ branding, statusMessage, statusTone }) {
     const errors = usePage().props.errors;
 
     const form = useForm({
-        logo: null,
+        logo_html: branding.logo_html ?? '',
         header_html: branding.header_html ?? '',
         footer_html: branding.footer_html ?? '',
     });
@@ -70,33 +70,30 @@ export default function EmailBranding({ branding, statusMessage, statusTone }) {
                             <div>
                                 <h3 className="font-medium text-slate-900">Logo</h3>
                                 <p className="mt-1 text-xs text-slate-500">
-                                    Upload one global logo for all notification emails.
+                                    This content appears above the header and can contain image HTML or branded text.
                                 </p>
                             </div>
 
-                            {branding.logo_url ? (
+                            {branding.logo_html ? (
                                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
-                                    <img
-                                        src={branding.logo_url}
-                                        alt="Email branding logo"
-                                        className="max-h-24 w-auto object-contain"
+                                    <div
+                                        className="prose prose-sm max-w-none"
+                                        dangerouslySetInnerHTML={{ __html: branding.logo_html }}
                                     />
                                 </div>
                             ) : (
                                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                                    No logo uploaded yet. Emails will still send safely using the global header and footer.
+                                    No logo content saved yet. Emails will still send safely using the global header and footer.
                                 </div>
                             )}
 
-                            <div className="space-y-2">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(event) => form.setData('logo', event.target.files?.[0] ?? null)}
-                                    className="block w-full text-sm text-slate-700 file:mr-4 file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
-                                />
-                                <InputError message={errors.logo} />
-                            </div>
+                            <CkeditorField
+                                value={form.data.logo_html}
+                                onChange={(value) => form.setData('logo_html', value)}
+                                disabled={form.processing}
+                                invalid={Boolean(errors.logo_html)}
+                            />
+                            <InputError message={errors.logo_html} />
                         </section>
 
                         <section className="space-y-4 rounded-2xl border border-slate-200 p-5">

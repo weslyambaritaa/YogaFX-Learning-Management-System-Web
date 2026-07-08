@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable([
     'singleton_key',
     'logo_path',
+    'logo_html',
     'header_html',
     'footer_html',
 ])]
