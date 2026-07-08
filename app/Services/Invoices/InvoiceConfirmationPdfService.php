@@ -146,7 +146,7 @@ class InvoiceConfirmationPdfService
             'coursePrice' => $this->formatMoney($coursePriceAmount, $invoice->currency_code, $this->summaryDecimals($coursePriceAmount)),
             'paymentReceivedOn' => $this->paymentReceivedOn($successPayments),
             'depositPaid' => $this->formatMoney($firstPaymentAmount, $invoice->currency_code, $this->detailDecimals($firstPaymentAmount)),
-            'depositLabel' => $onlineLike ? '1st Installment:' : 'Deposit',
+            'depositLabel' => '1st Installment:',
             'depositReceivedText' => 'Received on',
             'depositReceivedOn' => $depositReceivedOn,
             'hasDepositReceived' => $successPayments->isNotEmpty(),

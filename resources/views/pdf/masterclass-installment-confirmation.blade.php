@@ -23,11 +23,11 @@
         table.meta { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
         .meta .k { width: 172px; color: #dc2626; font-weight: 700; }
         .meta .v { color: #111827; font-weight: 700; font-style: italic; padding-left: 12px; }
-        .installments { margin: 2px 0 14px 174px; width: calc(100% - 174px); border-collapse: collapse; }
-        .installments td { padding: 2px 0; font-weight: 700; font-style: italic; }
-        .installments .label { width: 34%; }
-        .installments .amount { width: 24%; }
-        .installments .due { width: 30%; }
+        .installments { margin: 2px 0 14px 0; width: 100%; border-collapse: collapse; border: 1px solid #000000; }
+        .installments td { padding: 2px 8px; font-weight: 700; font-style: italic; border: 1px solid #000000; }
+        .installments .label { width: 20%; }
+        .installments .amount { width: 20%; }
+        .installments .due { width: 38%; }
         .installments .status { width: 12%; text-align: right; }
         .closing { margin-top: 14px; line-height: 1.55; }
         .pdf-footer { margin-top: 12px; padding: 0 42px; text-align: left; }
@@ -112,7 +112,7 @@
                 <table class="installments">
                     @if ($isPayIn4)
                         <tr>
-                            <td class="label">Deposit</td>
+                            <td class="label">1st Installment</td>
                             <td class="amount">{{ $payIn4DepositRow['amount'] ?? $depositPaid }}</td>
                             <td class="due">
                                 @if (filled($payIn4DepositRow['received_on'] ?? null))
