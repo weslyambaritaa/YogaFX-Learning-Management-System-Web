@@ -577,10 +577,12 @@ class EmailNotificationService
         $defaults = EmailNotificationTemplateDefaults::for($notificationType);
         $hasChanges = false;
 
-        foreach (['subject_user', 'body_user', 'subject_admin', 'body_admin'] as $field) {
-            if (! filled($template->{$field}) && filled($defaults[$field] ?? null)) {
-                $template->{$field} = $defaults[$field];
-                $hasChanges = true;
+        if ($template->wasRecentlyCreated) {
+            foreach (['subject_user', 'body_user', 'subject_admin', 'body_admin'] as $field) {
+                if (! filled($template->{$field}) && filled($defaults[$field] ?? null)) {
+                    $template->{$field} = $defaults[$field];
+                    $hasChanges = true;
+                }
             }
         }
 
