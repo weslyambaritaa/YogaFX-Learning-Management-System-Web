@@ -70,21 +70,21 @@ class EmailNotificationService
             $mailer = $this->activeSendTestMailer();
 
             if ($mailer['transport'] !== 'smtp') {
-            foreach ($deliveries as $delivery) {
-                $snapshotBody = $this->brandedBodySnapshot(
-                    $delivery['subject'],
-                    $delivery['body'],
-                    $delivery['variant_label'],
-                );
+                foreach ($deliveries as $delivery) {
+                    $snapshotBody = $this->brandedBodySnapshot(
+                        $delivery['subject'],
+                        $delivery['body'],
+                        $delivery['variant_label'],
+                    );
 
-                $this->storeLog(
-                    template: $template,
-                    notificationType: $notificationType,
-                    subject: $delivery['subject'],
-                    body: $snapshotBody,
-                    recipientEmail: $sendTo,
-                    recipientType: $delivery['recipient_type'],
-                    status: 'not_sent',
+                    $this->storeLog(
+                        template: $template,
+                        notificationType: $notificationType,
+                        subject: $delivery['subject'],
+                        body: $snapshotBody,
+                        recipientEmail: $delivery['recipient_email'],
+                        recipientType: $delivery['recipient_type'],
+                        status: 'not_sent',
                         referenceType: 'test',
                         referenceId: null,
                         errorMessage: $mailer['message'],
@@ -108,10 +108,10 @@ class EmailNotificationService
                 );
 
                 if (app()->environment('testing')) {
-                    Mail::to($sendTo)->send($mailable);
+                    Mail::to($delivery['recipient_email'])->send($mailable);
                 } else {
                     Mail::mailer($mailer['name'])
-                        ->to($sendTo)
+                        ->to($delivery['recipient_email'])
                         ->send($mailable);
                 }
 
@@ -120,7 +120,7 @@ class EmailNotificationService
                     notificationType: $notificationType,
                     subject: $delivery['subject'],
                     body: $mailable->previewHtml(),
-                    recipientEmail: $sendTo,
+                    recipientEmail: $delivery['recipient_email'],
                     recipientType: $delivery['recipient_type'],
                     status: 'sent',
                     referenceType: 'test',
@@ -155,7 +155,7 @@ class EmailNotificationService
                     notificationType: $notificationType,
                     subject: $delivery['subject'],
                     body: $snapshotBody,
-                    recipientEmail: $sendTo,
+                    recipientEmail: $delivery['recipient_email'],
                     recipientType: $delivery['recipient_type'],
                     status: 'failed',
                     referenceType: 'test',
@@ -676,14 +676,26 @@ class EmailNotificationService
         }
 
         if (filled($subjectAdmin) && filled($bodyAdmin)) {
-            $deliveries[] = [
-                'recipient_type' => 'test_admin',
-                'recipient_email' => $sendTo,
-                'subject' => $this->renderStrict($subjectAdmin, $payload, 'admin subject'),
-                'body' => $this->renderStrict($bodyAdmin, $payload, 'admin body'),
-                'variant_label' => 'Admin Email',
-            ];
+            foreach ($this->parseRecipients($template->admin_recipients) as $recipient) {
+                $deliveries[] = [
+                    'recipient_type' => 'test_admin',
+                    'recipient_email' => $recipient,
+                    'subject' => $this->renderStrict($subjectAdmin, $payload, 'admin subject'),
+                    'body' => $this->renderStrict($bodyAdmin, $payload, 'admin body'),
+                    'variant_label' => 'Admin Email',
+                ];
+            }
         }
+
+        $deliveries = collect($deliveries)
+            ->unique(fn (array $delivery) => implode('|', [
+                $delivery['recipient_type'],
+                strtolower(trim($delivery['recipient_email'])),
+                $delivery['subject'],
+                $delivery['body'],
+            ]))
+            ->values()
+            ->all();
 
         if ($deliveries !== []) {
             return $deliveries;
