@@ -32,6 +32,7 @@
         .installments .due { width: 38%; }
         .installments .status { width: 12%; text-align: right; }
         .closing { margin-top: 14px; line-height: 1.55; }
+        .pdf-footer { margin-top: 12px; padding: 0 42px; text-align: left; }
         .signature { margin-top: 12px; padding: 0 42px; text-align: left; }
         .signature img { width: 100%; object-fit: contain; object-position: left center; }
         .copyright { margin-top: 16px; text-align: center; font-size: 11px; font-style: italic; color: #374151; }
@@ -186,6 +187,9 @@
         </div>
 
         <div class="footer">
+            @if (filled(trim((string) ($pdfFooterHtml ?? ''))))
+                <div class="pdf-footer">{!! $pdfFooterHtml !!}</div>
+            @endif
             <div class="copyright">Copyright &copy; {{ date('Y') }} Yoga<span style="color:red">FX</span> International Yoga Teacher Training Academy</div>
             <div class="website">www.YogaFXTeacherTraining.com</div>
         </div>

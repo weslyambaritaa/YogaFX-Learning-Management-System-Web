@@ -37,4 +37,9 @@ class EmailBrandingDefaults
     {
         return '<div style="font-size:520px;line-height:0.78;color:rgba(220, 38, 38, 0.12);font-weight:900;">Y</div>';
     }
+
+    public static function pdfFooterHtml(): string
+    {
+        return '';
+    }
 }

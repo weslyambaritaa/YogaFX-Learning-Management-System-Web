@@ -17,6 +17,7 @@ class EmailBrandingService
                 'email_header_html' => EmailBrandingDefaults::headerHtml(),
                 'email_signature_html' => EmailBrandingDefaults::footerHtml(),
                 'pdf_header_html' => EmailBrandingDefaults::pdfHeaderHtml(),
+                'pdf_footer_html' => EmailBrandingDefaults::pdfFooterHtml(),
                 'watermark_html' => EmailBrandingDefaults::watermarkHtml(),
                 'header_html' => EmailBrandingDefaults::headerHtml(),
                 'footer_html' => EmailBrandingDefaults::footerHtml(),
@@ -45,6 +46,9 @@ class EmailBrandingService
                 $branding->pdf_header_html,
                 EmailBrandingDefaults::pdfHeaderHtml(),
             ),
+            'pdf_footer_html' => $this->normalizeOptionalHtml(
+                $branding->pdf_footer_html,
+            ),
             'watermark_html' => $this->normalizeHtml(
                 $branding->watermark_html,
                 EmailBrandingDefaults::watermarkHtml(),
@@ -62,6 +66,9 @@ class EmailBrandingService
             'pdf_header_html' => $this->normalizeHtml(
                 $branding->pdf_header_html,
                 EmailBrandingDefaults::pdfHeaderHtml(),
+            ),
+            'pdf_footer_html' => $this->normalizeOptionalHtml(
+                $branding->pdf_footer_html,
             ),
             'watermark_html' => $this->normalizeHtml(
                 $branding->watermark_html,
@@ -135,6 +142,13 @@ class EmailBrandingService
         );
     }
 
+    public function pdfFooterEditorHtml(?EmailBranding $branding = null): string
+    {
+        $branding ??= $this->findOrCreateBranding();
+
+        return $this->normalizeOptionalHtml($branding->pdf_footer_html);
+    }
+
     private function logoAbsolutePath(EmailBranding $branding): ?string
     {
         $path = (string) ($branding->logo_path ?? '');
@@ -151,6 +165,11 @@ class EmailBrandingService
         $normalized = trim((string) $value);
 
         return $normalized !== '' ? $normalized : $fallback;
+    }
+
+    private function normalizeOptionalHtml(?string $value): string
+    {
+        return trim((string) $value);
     }
 
     private function legacyLogoHtml(EmailBranding $branding): ?string

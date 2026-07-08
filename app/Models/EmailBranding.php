@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
     'email_header_html',
     'email_signature_html',
     'pdf_header_html',
+    'pdf_footer_html',
     'watermark_html',
     'header_html',
     'footer_html',

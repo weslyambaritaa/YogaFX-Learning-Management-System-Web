@@ -133,6 +133,7 @@ class InvoiceConfirmationPdfService
         return [
             'logoHtml' => $branding['logo_html'] ?? '',
             'pdfHeaderHtml' => $branding['pdf_header_html'] ?? '',
+            'pdfFooterHtml' => $branding['pdf_footer_html'] ?? '',
             'watermarkHtml' => $branding['watermark_html'] ?? '',
             'greenTickUrl' => self::GREEN_TICK_URL,
             'generatedOn' => now()->format('j M Y'),

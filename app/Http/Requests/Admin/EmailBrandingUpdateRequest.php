@@ -18,6 +18,7 @@ class EmailBrandingUpdateRequest extends FormRequest
             'email_header_html' => ['nullable', 'string'],
             'email_signature_html' => ['nullable', 'string'],
             'pdf_header_html' => ['nullable', 'string'],
+            'pdf_footer_html' => ['nullable', 'string'],
             'watermark_html' => ['nullable', 'string'],
         ];
     }

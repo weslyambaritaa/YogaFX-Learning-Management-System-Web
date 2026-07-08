@@ -12,6 +12,7 @@ export default function EmailBranding({ branding, statusMessage, statusTone }) {
         email_header_html: branding.email_header_html ?? '',
         email_signature_html: branding.email_signature_html ?? '',
         pdf_header_html: branding.pdf_header_html ?? '',
+        pdf_footer_html: branding.pdf_footer_html ?? '',
         watermark_html: branding.watermark_html ?? '',
     });
 
@@ -163,6 +164,23 @@ export default function EmailBranding({ branding, statusMessage, statusTone }) {
                                 invalid={Boolean(errors.watermark_html)}
                             />
                             <InputError message={errors.watermark_html} />
+                        </section>
+
+                        <section className="space-y-4 rounded-2xl border border-slate-200 p-5">
+                            <div>
+                                <h3 className="font-medium text-slate-900">PDF Footer</h3>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    This content appears above the copyright and website line in invoice and confirmation PDFs.
+                                </p>
+                            </div>
+
+                            <CkeditorField
+                                value={form.data.pdf_footer_html}
+                                onChange={(value) => form.setData('pdf_footer_html', value)}
+                                disabled={form.processing}
+                                invalid={Boolean(errors.pdf_footer_html)}
+                            />
+                            <InputError message={errors.pdf_footer_html} />
                         </section>
 
                         <div className="flex justify-end">
