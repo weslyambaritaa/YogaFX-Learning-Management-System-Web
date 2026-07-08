@@ -538,6 +538,11 @@ export default function PublicCheckoutPanel({
     const activeOrderRef = useRef(null);
     const installmentSessionRef = useRef(installmentSession);
     const checkoutForPaymentRef = useRef(checkout);
+    const billingDayRef = useRef(null);
+    const selectedInstallmentCountRef = useRef(2);
+    const isInstallmentSelectedRef = useRef(false);
+    const installmentAcceptsBillingDayRef = useRef(false);
+    const availableInstallmentCountsRef = useRef([]);
 
     const selectedPaymentOption =
         paymentOptions.find((option) => option.type === paymentType) ??
@@ -715,6 +720,26 @@ export default function PublicCheckoutPanel({
     }, [checkout]);
 
     useEffect(() => {
+        billingDayRef.current = billingDay;
+    }, [billingDay]);
+
+    useEffect(() => {
+        selectedInstallmentCountRef.current = selectedInstallmentCount;
+    }, [selectedInstallmentCount]);
+
+    useEffect(() => {
+        isInstallmentSelectedRef.current = isInstallmentSelected;
+    }, [isInstallmentSelected]);
+
+    useEffect(() => {
+        installmentAcceptsBillingDayRef.current = installmentAcceptsBillingDay;
+    }, [installmentAcceptsBillingDay]);
+
+    useEffect(() => {
+        availableInstallmentCountsRef.current = availableInstallmentCounts;
+    }, [availableInstallmentCounts]);
+
+    useEffect(() => {
         if (!paymentOptions.some((option) => option.type === paymentType)) {
             setPaymentType(paymentOptions[0]?.type ?? "pay_full");
         }
@@ -734,6 +759,18 @@ export default function PublicCheckoutPanel({
             setInstallmentStatus(null);
             setIsConfirmingPayment(false);
         }
+    }, [isInstallmentSelected]);
+
+    useEffect(() => {
+        if (!isInstallmentSelected) {
+            return;
+        }
+
+        setInstallmentSession(null);
+        installmentSessionRef.current = null;
+        setInstallmentStatus(null);
+        setInstallmentApprovalMessage("");
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isInstallmentSelected]);
 
     useEffect(() => {
@@ -1006,12 +1043,9 @@ export default function PublicCheckoutPanel({
         return () => {
             clearPayPalContainer(payFullButtonsRef);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         shouldRenderPayFullButtons,
         payFullSdkReady,
-        checkout.create_order_url,
-        isPreview,
     ]);
 
     useEffect(() => {
@@ -1061,21 +1095,58 @@ export default function PublicCheckoutPanel({
                 return actions.resolve();
             },
             createSubscription: async (_data, actions) => {
-                const session =
-                    installmentSessionRef.current ??
-                    (await createOrderSession("paypal"));
+                try {
+                    const session =
+                        installmentSessionRef.current ??
+                        (await createOrderSession("paypal"));
 
-                if (!session?.provider_plan_id) {
-                    throw new Error("subscription-plan-missing");
+                    if (!session?.provider_plan_id) {
+                        setDebugInfo({
+                            stage: "subscription-plan-missing",
+                            payload: session ?? null,
+                        });
+                        setGeneralError(
+                            "The installment subscription plan could not be prepared. Please try again.",
+                        );
+                        throw new Error("subscription-plan-missing");
+                    }
+
+                    if (session.provider_subscription_id) {
+                        setDebugInfo({
+                            stage: "subscription-already-attached",
+                            payload: session,
+                        });
+                        setGeneralError(
+                            "This installment subscription has already been attached. Please refresh and try again.",
+                        );
+                        throw new Error("subscription-already-attached");
+                    }
+
+                    return actions.subscription.create({
+                        plan_id: session.provider_plan_id,
+                    });
+                } catch (error) {
+                    setIsConfirmingPayment(false);
+                    setIsSubmitting(false);
+
+                    if (error instanceof Error) {
+                        setDebugInfo((current) => ({
+                            ...(current ?? {}),
+                            stage:
+                                current?.stage ??
+                                "installment-create-subscription-error",
+                            error: error.message,
+                        }));
+
+                        if (!generalError) {
+                            setGeneralError(
+                                "PayPal could not start the installment subscription approval. Please try again.",
+                            );
+                        }
+                    }
+
+                    throw error;
                 }
-
-                if (session.provider_subscription_id) {
-                    throw new Error("subscription-already-attached");
-                }
-
-                return actions.subscription.create({
-                    plan_id: session.provider_plan_id,
-                });
             },
             onApprove: async (data) => {
                 await attachApprovedSubscription(data.subscriptionID);
@@ -1112,12 +1183,13 @@ export default function PublicCheckoutPanel({
         return () => {
             clearPayPalContainer(installmentButtonsRef);
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         installmentSdkReady,
         shouldRenderInstallmentButtons,
-        checkout.create_order_url,
-        isPreview,
+        billingDay,
+        selectedInstallmentCount,
+        availableInstallmentCounts.join(","),
+        installmentAcceptsBillingDay,
     ]);
 
     useEffect(() => {
@@ -1207,6 +1279,28 @@ export default function PublicCheckoutPanel({
         }));
 
         setGeneralError("");
+    };
+
+    const handleTermsAcceptedChange = async (checked) => {
+        setFieldValue("terms_accepted", checked);
+
+        if (!checked) {
+            return;
+        }
+
+        if (isInstallmentSelectedRef.current) {
+            return;
+        }
+
+        if (checkoutForPaymentRef.current?.create_order_url) {
+            return;
+        }
+
+        if (isSubmitting || isPreparingCheckout) {
+            return;
+        }
+
+        await prepareRealCheckoutForPreview();
     };
 
     const setValidationState = (nextErrors, fallbackMessage) => {
@@ -1334,17 +1428,20 @@ export default function PublicCheckoutPanel({
                 "X-Requested-With": "XMLHttpRequest",
             },
             body: JSON.stringify({
-                payment_type: paymentType,
+                payment_type: isInstallmentSelectedRef.current
+                    ? "installment"
+                    : "pay_full",
                 payment_method: paymentMethod,
                 checkout_mode: "paypal",
                 billing_day:
-                    isInstallmentSelected && installmentAcceptsBillingDay
-                        ? Number(billingDay)
+                    isInstallmentSelectedRef.current &&
+                    installmentAcceptsBillingDayRef.current
+                        ? Number(billingDayRef.current)
                         : null,
                 installment_count:
-                    isInstallmentSelected &&
-                    availableInstallmentCounts.length > 0
-                        ? Number(selectedInstallmentCount)
+                    isInstallmentSelectedRef.current &&
+                    availableInstallmentCountsRef.current.length > 0
+                        ? Number(selectedInstallmentCountRef.current)
                         : null,
                 terms_accepted: currentData.terms_accepted,
             }),
@@ -1939,8 +2036,7 @@ export default function PublicCheckoutPanel({
                         type="checkbox"
                         checked={formData.terms_accepted}
                         onChange={(event) =>
-                            setFieldValue(
-                                "terms_accepted",
+                            void handleTermsAcceptedChange(
                                 event.target.checked,
                             )
                         }
