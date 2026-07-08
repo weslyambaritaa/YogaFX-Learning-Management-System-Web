@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import {
     Autoformat,
@@ -161,6 +161,21 @@ const CkeditorField = forwardRef(function CkeditorField({
             return true;
         },
     }), []);
+
+    useEffect(() => {
+        const editor = editorRef.current;
+        const normalizedValue = value ?? '';
+
+        if (!editor) {
+            return;
+        }
+
+        if (editor.getData() === normalizedValue) {
+            return;
+        }
+
+        editor.setData(normalizedValue);
+    }, [value]);
 
     return (
         <div

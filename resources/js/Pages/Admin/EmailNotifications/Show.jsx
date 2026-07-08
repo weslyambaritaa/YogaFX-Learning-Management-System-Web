@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -41,6 +41,36 @@ export default function EmailNotificationShow({
         subject_user: template.subject_user,
         body_user: template.body_user,
     });
+
+    useEffect(() => {
+        templateForm.defaults({
+            notification_type: notificationType,
+            is_enabled: template.is_enabled,
+            admin_recipients: template.admin_recipients,
+            subject_admin: template.subject_admin,
+            body_admin: template.body_admin,
+            subject_user: template.subject_user,
+            body_user: template.body_user,
+        });
+
+        templateForm.setData({
+            notification_type: notificationType,
+            is_enabled: template.is_enabled,
+            admin_recipients: template.admin_recipients,
+            subject_admin: template.subject_admin,
+            body_admin: template.body_admin,
+            subject_user: template.subject_user,
+            body_user: template.body_user,
+        });
+    }, [
+        notificationType,
+        template.is_enabled,
+        template.admin_recipients,
+        template.subject_admin,
+        template.body_admin,
+        template.subject_user,
+        template.body_user,
+    ]);
 
     const testForm = useForm({
         notification_type: notificationType,
