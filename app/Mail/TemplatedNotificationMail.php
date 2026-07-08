@@ -64,10 +64,6 @@ class TemplatedNotificationMail extends Mailable
 
     private function buildEmailHtml(?Email $message = null): string
     {
-        $logoHtml = $this->prepareBrandingSectionHtml(
-            (string) ($this->branding['logo_html'] ?? ''),
-            'logo',
-        );
         $headerHtml = $this->prepareBrandingSectionHtml(
             $this->branding['email_header_html'] ?? '',
             'header',
@@ -89,7 +85,6 @@ class TemplatedNotificationMail extends Mailable
 <body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
     <div style="margin: 0 auto; max-width: 680px; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 18px; background: #ffffff;">
         <div style="padding: 24px 24px 16px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);">
-            {$logoHtml}
             {$headerHtml}
         </div>
         <div style="padding: 28px 24px;">
