@@ -9,8 +9,10 @@ export default function EmailBranding({ branding, statusMessage, statusTone }) {
 
     const form = useForm({
         logo_html: branding.logo_html ?? '',
-        header_html: branding.header_html ?? '',
-        footer_html: branding.footer_html ?? '',
+        email_header_html: branding.email_header_html ?? '',
+        email_signature_html: branding.email_signature_html ?? '',
+        pdf_header_html: branding.pdf_header_html ?? '',
+        watermark_html: branding.watermark_html ?? '',
     });
 
     const submit = (event) => {
@@ -61,8 +63,7 @@ export default function EmailBranding({ branding, statusMessage, statusTone }) {
                                 Global Email Branding
                             </h2>
                             <p className="mt-1 text-sm text-slate-500">
-                                Logo, header, and footer saved here are applied automatically to every
-                                Email Notification template and send-test flow.
+                                Manage shared branding blocks for email and PDF output from one place.
                             </p>
                         </div>
 
@@ -98,36 +99,70 @@ export default function EmailBranding({ branding, statusMessage, statusTone }) {
 
                         <section className="space-y-4 rounded-2xl border border-slate-200 p-5">
                             <div>
-                                <h3 className="font-medium text-slate-900">Header</h3>
+                                <h3 className="font-medium text-slate-900">Email Header</h3>
                                 <p className="mt-1 text-xs text-slate-500">
                                     This content appears above the per-notification email body.
                                 </p>
                             </div>
 
                             <CkeditorField
-                                value={form.data.header_html}
-                                onChange={(value) => form.setData('header_html', value)}
+                                value={form.data.email_header_html}
+                                onChange={(value) => form.setData('email_header_html', value)}
                                 disabled={form.processing}
-                                invalid={Boolean(errors.header_html)}
+                                invalid={Boolean(errors.email_header_html)}
                             />
-                            <InputError message={errors.header_html} />
+                            <InputError message={errors.email_header_html} />
                         </section>
 
                         <section className="space-y-4 rounded-2xl border border-slate-200 p-5">
                             <div>
-                                <h3 className="font-medium text-slate-900">Footer</h3>
+                                <h3 className="font-medium text-slate-900">Email Signature</h3>
                                 <p className="mt-1 text-xs text-slate-500">
                                     This content appears below the per-notification email body.
                                 </p>
                             </div>
 
                             <CkeditorField
-                                value={form.data.footer_html}
-                                onChange={(value) => form.setData('footer_html', value)}
+                                value={form.data.email_signature_html}
+                                onChange={(value) => form.setData('email_signature_html', value)}
                                 disabled={form.processing}
-                                invalid={Boolean(errors.footer_html)}
+                                invalid={Boolean(errors.email_signature_html)}
                             />
-                            <InputError message={errors.footer_html} />
+                            <InputError message={errors.email_signature_html} />
+                        </section>
+
+                        <section className="space-y-4 rounded-2xl border border-slate-200 p-5">
+                            <div>
+                                <h3 className="font-medium text-slate-900">PDF Header</h3>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    This content appears at the top of invoice and confirmation PDFs.
+                                </p>
+                            </div>
+
+                            <CkeditorField
+                                value={form.data.pdf_header_html}
+                                onChange={(value) => form.setData('pdf_header_html', value)}
+                                disabled={form.processing}
+                                invalid={Boolean(errors.pdf_header_html)}
+                            />
+                            <InputError message={errors.pdf_header_html} />
+                        </section>
+
+                        <section className="space-y-4 rounded-2xl border border-slate-200 p-5">
+                            <div>
+                                <h3 className="font-medium text-slate-900">Watermark</h3>
+                                <p className="mt-1 text-xs text-slate-500">
+                                    This content appears behind the PDF body as the watermark layer.
+                                </p>
+                            </div>
+
+                            <CkeditorField
+                                value={form.data.watermark_html}
+                                onChange={(value) => form.setData('watermark_html', value)}
+                                disabled={form.processing}
+                                invalid={Boolean(errors.watermark_html)}
+                            />
+                            <InputError message={errors.watermark_html} />
                         </section>
 
                         <div className="flex justify-end">
