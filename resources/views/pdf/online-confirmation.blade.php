@@ -14,7 +14,7 @@
         .watermark-fallback { position: fixed; top: 210px; right: 94px; font-size: 520px; line-height: 0.78; color: rgba(220, 38, 38, 0.12); font-weight: 900; z-index: -1; transform: rotate(10deg); }
         .header-banner {
     text-align: center;
-    margin-top: -45px;
+    margin-top: -35px;
     margin-bottom: 10px;
     line-height: 0;
 }
