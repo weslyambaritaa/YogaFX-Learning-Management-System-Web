@@ -12,7 +12,7 @@
         .watermark { position: fixed; top: 120px; left: 10%; width: 80%; z-index: -1; opacity: 0.12; text-align: center; }
         .watermark img { width: 100%; height: auto; object-fit: contain; }
         .watermark-fallback { position: fixed; top: 150px; right: 94px; font-size: 520px; line-height: 0.78; color: rgba(220, 38, 38, 0.12); font-weight: 900; z-index: -1; transform: rotate(10deg); }
-        .header-shell { position: fixed; top: 0; left: 42px; right: 42px; }
+        .header-shell { position: fixed; top: -1px; left: 42px; right: 42px; margin: 0; padding: 0; }
         .header-banner { text-align: center; margin-bottom: 4px; }
         .header-banner img { width: 100%; height: auto; object-fit: contain; }
         .heading-block { position: relative; margin-bottom: 14px; min-height: 68px; }
