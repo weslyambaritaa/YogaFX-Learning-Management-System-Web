@@ -8,10 +8,17 @@ import { useState } from 'react';
 export default function PackagesIndex({ packages, status }) {
     const errors = usePage().props.errors;
     const [copyToast, setCopyToast] = useState('');
+    const [copyToastKey, setCopyToastKey] = useState(0);
 
     const copyPackageLink = async (publicLink) => {
-        await navigator.clipboard.writeText(publicLink);
-        setCopyToast('Package link copied successfully.');
+        try {
+            await navigator.clipboard.writeText(publicLink);
+            setCopyToast('Package link copied successfully.');
+            setCopyToastKey(Date.now());
+        } catch (error) {
+            setCopyToast('Unable to copy the package link. Please try again.');
+            setCopyToastKey(Date.now());
+        }
     };
 
     return (
@@ -42,7 +49,13 @@ export default function PackagesIndex({ packages, status }) {
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     <TransientStatusBanner
                         message={copyToast}
-                        tone="success"
+                        noticeKey={copyToastKey}
+                        tone={
+                            copyToast === 'Package link copied successfully.'
+                                ? 'success'
+                                : 'error'
+                        }
+                        className="fixed right-4 top-4 z-50 w-[min(28rem,calc(100vw-2rem))] rounded-xl border shadow-lg"
                         onDismiss={() => setCopyToast('')}
                     />
                     {status === 'package-created' && (

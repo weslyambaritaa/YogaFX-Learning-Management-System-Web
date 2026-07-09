@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 const toneClasses = {
-    success: "border-emerald-400/20 bg-emerald-500/10 text-emerald-100",
-    error: "border-rose-400/25 bg-rose-500/10 text-rose-100",
+    success: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    error: "border-rose-200 bg-rose-50 text-rose-900",
 };
 
 export default function TransientStatusBanner({
