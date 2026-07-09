@@ -1,13 +1,17 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import TransientStatusBanner from '@/Components/TransientStatusBanner';
 import { Button } from '@/Components/ui/button';
 import { formatCurrency } from '@/lib/currency';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 
 export default function PackagesIndex({ packages, status }) {
     const errors = usePage().props.errors;
+    const [copyToast, setCopyToast] = useState('');
 
     const copyPackageLink = async (publicLink) => {
         await navigator.clipboard.writeText(publicLink);
+        setCopyToast('Package link copied successfully.');
     };
 
     return (
@@ -36,6 +40,11 @@ export default function PackagesIndex({ packages, status }) {
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    <TransientStatusBanner
+                        message={copyToast}
+                        tone="success"
+                        onDismiss={() => setCopyToast('')}
+                    />
                     {status === 'package-created' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Package has been created.
