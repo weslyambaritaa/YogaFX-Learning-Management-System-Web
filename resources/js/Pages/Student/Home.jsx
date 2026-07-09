@@ -131,15 +131,15 @@ function OnboardingOverlay({ onDone, appDownload }) {
                 <div className="space-y-3 text-center">
                     {current.type === "app-download" ? (
                         <div className="space-y-5">
-                            <div className="mx-auto overflow-hidden rounded-[18px] border border-white/10 bg-white p-3 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+                            <div className="mx-auto flex w-fit max-w-full items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white p-3 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
                                 {appDownload?.qr_image_url ? (
                                     <img
                                         src={appDownload.qr_image_url}
                                         alt="YogaFX mobile app QR code"
-                                        className="h-48 w-48 object-contain"
+                                        className="h-48 w-48 object-contain sm:h-52 sm:w-52"
                                     />
                                 ) : (
-                                    <div className="flex h-48 w-48 items-center justify-center rounded-[12px] border border-dashed border-slate-300 text-center text-sm text-slate-500">
+                                    <div className="flex h-48 w-48 items-center justify-center rounded-[12px] border border-dashed border-slate-300 text-center text-sm text-slate-500 sm:h-52 sm:w-52">
                                         QR code is not available yet.
                                     </div>
                                 )}
@@ -993,10 +993,12 @@ export default function StudentHome({
                                     Get it on your mobile!
                                 </h2>
                             </div>
-                            <AppStoreBadges
-                                googlePlayUrl={appDownload.google_play_url}
-                                appStoreUrl={appDownload.app_store_url}
-                            />
+                            <div className="mt-4">
+                                <AppStoreBadges
+                                    googlePlayUrl={appDownload.google_play_url}
+                                    appStoreUrl={appDownload.app_store_url}
+                                />
+                            </div>
                         </div>
                     </section>
                 ) : null}
