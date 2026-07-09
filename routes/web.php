@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Admin\InvoiceIndexController;
 use App\Http\Controllers\Admin\InvoicePdfController;
+use App\Http\Controllers\Admin\LinkControlSettingController;
 use App\Http\Controllers\Admin\PaymentIndexController;
 use App\Http\Controllers\Admin\StudentProgressController;
 use App\Http\Controllers\Admin\StudentController;
@@ -253,6 +254,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/email-notifications/{notificationType}', [EmailNotificationController::class, 'update'])->name('email-notifications.update');
         Route::post('/email-notifications/{notificationType}/media', [EmailNotificationController::class, 'uploadMedia'])->name('email-notifications.media');
         Route::post('/email-notifications/{notificationType}/send-test', [EmailNotificationController::class, 'sendTest'])->name('email-notifications.send-test');
+        Route::get('/link-control', [LinkControlSettingController::class, 'show'])->name('link-control.show');
+        Route::patch('/link-control', [LinkControlSettingController::class, 'update'])->name('link-control.update');
         Route::get('/support-settings', [SupportSettingController::class, 'show'])->name('support-settings.show');
         Route::patch('/support-settings', [SupportSettingController::class, 'update'])->name('support-settings.update');
 

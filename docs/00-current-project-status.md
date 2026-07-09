@@ -41,6 +41,7 @@ Implementasi aktif saat ini sudah mencakup:
 - admin student progress operations
 - email notification template management dan email logs
 - student session tracking dan inactivity reminder
+- link control settings untuk QR app dan store links student
 - mobile API foundation untuk student app
 
 Stack aktif:
@@ -104,6 +105,7 @@ Catatan:
 - student dapat request password change link
 - student dapat melihat opsi tier upgrade dari halaman profile
 - admin dapat edit profile student dari menu `Students`
+- student home mobile dapat menampilkan CTA download app berbasis admin-managed links
 
 <<<<<<< Updated upstream
 ### 2.3 Admin Account Profile
@@ -217,6 +219,7 @@ Catatan:
   - assignment milestone
   - certificate milestone
   - ebook resources section
+  - mobile app download CTA di mobile home bila sudah dikonfigurasi admin
 - modules index
 - module detail
 - lesson detail
@@ -302,6 +305,14 @@ Catatan:
 Catatan aktif:
 - child menu sidebar admin masih menampilkan 11 item legacy
 - route notification type installment sudah tersedia di backend
+
+### 2.14 Link Control
+- admin dapat mengelola satu set global:
+  - QR image
+  - Google Play link
+  - App Store link
+- QR image dipakai di welcome popup desktop student dan popup `Download Application`
+- store links dipakai di bagian bawah `Home` student mobile
 
 ### 2.14 Installment Lifecycle
 - `InstallmentPlanCalculator` aktif di backend

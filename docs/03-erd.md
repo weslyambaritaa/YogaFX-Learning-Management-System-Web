@@ -24,6 +24,7 @@ Domain data aktif saat ini:
 - email templates and logs
 - dialog content
 - student access time and sessions
+- link control settings
 
 ---
 
@@ -705,7 +706,17 @@ Key fields:
 Relationships:
 - belongs to `User`
 
-### 3.32 Pivot Tables
+### 3.32 LinkControlSetting
+Purpose:
+- single global configuration untuk QR app dan store links student
+
+Key fields:
+- `id`
+- `qr_image`
+- `google_play_url`
+- `app_store_url`
+
+### 3.33 Pivot Tables
 
 #### `access_tier_module`
 - `access_tier_id`

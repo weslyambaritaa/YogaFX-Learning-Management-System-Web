@@ -10,6 +10,7 @@ use App\Models\Course;
 use App\Models\EmailBranding;
 use App\Models\Ebook;
 use App\Models\Lesson;
+use App\Models\LinkControlSetting;
 use App\Models\QuestionOption;
 use App\Models\Package;
 use App\Models\Module;
@@ -112,6 +113,12 @@ class ContentFileController extends Controller
                     'logo_path' => ['download' => false],
                 ],
             ],
+            'link-control-setting' => [
+                'model' => LinkControlSetting::class,
+                'fields' => [
+                    'qr_image' => ['download' => false],
+                ],
+            ],
             'question-option' => [
                 'model' => QuestionOption::class,
                 'fields' => [
@@ -173,6 +180,10 @@ class ContentFileController extends Controller
         if ($record instanceof EmailBranding) {
             abort_unless($user->isAdmin(), 403);
 
+            return;
+        }
+
+        if ($record instanceof LinkControlSetting) {
             return;
         }
 

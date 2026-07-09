@@ -117,6 +117,12 @@ Dokumen ini mencerminkan scope produk yang sudah aktif di repository saat ini.
 - automated notification trigger
 - email logs
 
+### 3.11 Link Control
+- single admin settings page untuk QR image
+- link Google Play
+- link App Store
+- integrasi ke student home mobile dan student desktop popup
+
 ### 3.11 Mobile Backend Support
 - mobile student API untuk auth, content, assessment, assignment, certificate, dan profile
 
@@ -204,6 +210,7 @@ Aturan implementasi saat ini:
 - admin harus dapat mengedit profile student
 - profile photo harus didukung
 - upgrade options harus tampil berdasarkan tier level yang lebih tinggi
+- student desktop dapat membuka popup `Download Application` dari user menu bila link control sudah terisi
 
 <<<<<<< Updated upstream
 ### 6.3 Admin Account Profile
@@ -292,6 +299,11 @@ Aturan implementasi saat ini:
 - sistem harus mendukung notification types aktif, termasuk lifecycle installment
 - admin harus dapat save template, upload media, dan send test
 - automated email harus tercatat ke email logs
+
+### 6.14 Link Control
+- admin harus dapat mengelola satu set global QR image, Google Play link, dan App Store link
+- home student mobile harus dapat menampilkan tombol store berdasarkan link control aktif
+- welcome popup pertama di student home desktop harus dapat menampilkan QR image dari link control
 
 <<<<<<< Updated upstream
 ### 6.12 Upload Rules

@@ -61,6 +61,7 @@ Catatan:
 
 ### 4.3 User Menu Access
 - Profile
+- Download Application
 - Logout
 
 ### 4.4 Student Pages
@@ -109,6 +110,7 @@ Catatan:
 ### 5.2 Supporting Pages Group
 - Packages
 - Access Tiers
+- Link Control
 
 ### 5.3 Admin Topbar
 Topbar berisi:
@@ -144,6 +146,9 @@ Topbar berisi:
 - Access Tiers Index
 - Access Tiers Create
 - Access Tiers Edit
+
+### 6.4A Link Control
+- Link Control Show / Update
 
 ### 6.5 Learning Content
 - Modules Index / Create / Edit
