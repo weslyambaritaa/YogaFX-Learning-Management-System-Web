@@ -72,7 +72,7 @@ function AppStoreBadges({ googlePlayUrl, appStoreUrl, className = "" }) {
                     <img
                         src={item.src}
                         alt={item.alt}
-                        className="h-11 w-auto object-contain"
+                        className="h-14 w-auto object-contain"
                     />
                 </a>
             ))}
