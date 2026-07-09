@@ -15,7 +15,6 @@ export default function StudentAppDownloadDialog({
     onOpenChange,
     qrImageUrl,
     title = "Get it on your mobile!",
-    description = "Scan this QR code from your phone to continue your YogaFX experience on mobile.",
     maxWidthClassName = "sm:max-w-md",
 }) {
     return (
@@ -51,7 +50,7 @@ export default function StudentAppDownloadDialog({
                         </div>
                     </DialogHeader>
                 </div>
-                <DialogFooter className="border-white/10 bg-black/20 sm:justify-center">
+                <DialogFooter className="border-t border-white/10 bg-black/20 px-6 pb-6 pt-4 sm:justify-center">
                     <Button
                         type="button"
                         variant="outline"
