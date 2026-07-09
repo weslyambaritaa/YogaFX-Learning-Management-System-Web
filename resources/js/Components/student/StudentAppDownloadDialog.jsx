@@ -44,9 +44,6 @@ export default function StudentAppDownloadDialog({
                             <DialogTitle className="text-2xl font-semibold text-white sm:text-3xl">
                                 {title}
                             </DialogTitle>
-                            <DialogDescription className="max-w-md text-sm leading-7 text-white/65">
-                                {description}
-                            </DialogDescription>
                         </div>
                     </DialogHeader>
                 </div>
