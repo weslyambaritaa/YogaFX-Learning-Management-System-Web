@@ -1,12 +1,13 @@
 import {
-    Listbox,
-    ListboxButton,
-    ListboxOption,
-    ListboxOptions,
+    Combobox,
+    ComboboxButton,
+    ComboboxInput,
+    ComboboxOption,
+    ComboboxOptions,
 } from "@headlessui/react";
 import { Check, ChevronDown, Globe } from "lucide-react";
 import { resolveCountryIso2 } from "@/lib/countryFlags";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function normalizeOptionValue(value) {
     return String(value ?? "").trim();
@@ -83,6 +84,8 @@ export default function FlagOptionSelect({
     searchPlaceholder = "Search country or code",
 }) {
     const [searchQuery, setSearchQuery] = useState("");
+    const inputRef = useRef(null);
+
     const currentOption = useMemo(() => {
         const normalizedValue = normalizeOptionValue(value);
 
@@ -100,6 +103,7 @@ export default function FlagOptionSelect({
             ) ?? null
         );
     }, [options, selectedOption, value]);
+
     const filteredOptions = useMemo(() => {
         const normalizedQuery = searchQuery.trim().toLowerCase();
 
@@ -119,76 +123,80 @@ export default function FlagOptionSelect({
     }, [value]);
 
     return (
-        <Listbox
+        <Combobox
             value={currentOption}
             by={(left, right) =>
                 left?.value === right?.value && left?.label === right?.label
             }
+            immediate
             onChange={(option) => {
                 if (option) {
                     onChange(option);
                 }
             }}
+            onClose={() => {
+                setSearchQuery("");
+            }}
             disabled={disabled}
         >
             <div className="relative">
-                <ListboxButton
+                <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-4">
+                    <FlagVisual
+                        option={currentOption}
+                        fallbackClassName={fallbackClassName}
+                    />
+                </span>
+
+                <ComboboxInput
+                    ref={inputRef}
                     id={id}
+                    autoComplete="off"
+                    aria-label={placeholder}
+                    displayValue={(option) =>
+                        formatOptionLabel(option, displayMode)
+                    }
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onFocus={(event) => {
+                        if (event.target.value) {
+                            requestAnimationFrame(() => {
+                                event.target.select();
+                            });
+                        }
+                    }}
+                    placeholder={placeholder}
                     className={[
-                        "flex w-full items-center justify-between gap-3 text-left",
+                        "block w-full text-left outline-none",
+                        "pl-11 pr-10",
+                        currentOption
+                            ? buttonTextClassName
+                            : placeholderClassName,
                         buttonClassName,
                     ].join(" ")}
+                    disabled={disabled}
+                />
+
+                <ComboboxButton
+                    className="absolute inset-y-0 right-0 flex items-center pr-4"
+                    onClick={() => {
+                        inputRef.current?.focus();
+                    }}
+                    aria-label={searchPlaceholder}
                 >
-                    <span className="flex min-w-0 flex-1 items-center gap-2">
-                        <FlagVisual
-                            option={currentOption}
-                            fallbackClassName={fallbackClassName}
-                        />
-                        <span
-                            className={[
-                                displayMode === "phone-code"
-                                    ? "block shrink-0 whitespace-nowrap"
-                                    : "block truncate",
-                                currentOption
-                                    ? buttonTextClassName
-                                    : placeholderClassName,
-                            ].join(" ")}
-                        >
-                            {currentOption
-                                ? formatOptionLabel(currentOption, displayMode)
-                                : placeholder}
-                        </span>
-                    </span>
                     <ChevronDown
                         className={["size-4 shrink-0", chevronClassName].join(
                             " ",
                         )}
                         aria-hidden="true"
                     />
-                </ListboxButton>
+                </ComboboxButton>
 
-                <ListboxOptions
+                <ComboboxOptions
                     anchor="bottom start"
                     className={[
-                        "z-50 mt-2 w-[var(--button-width)] overflow-hidden rounded-[5px] border shadow-lg focus:outline-none",
+                        "z-50 mt-2 w-[var(--input-width)] overflow-hidden rounded-[5px] border shadow-lg focus:outline-none empty:invisible",
                         panelClassName,
                     ].join(" ")}
                 >
-                    <div className="border-b border-current/10 p-2">
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(event) =>
-                                setSearchQuery(event.target.value)
-                            }
-                            onKeyDown={(event) => {
-                                event.stopPropagation();
-                            }}
-                            placeholder={searchPlaceholder}
-                            className="h-10 w-full rounded-[5px] border border-current/10 bg-transparent px-3 text-sm outline-none placeholder:text-current/45"
-                        />
-                    </div>
-
                     <div
                         className="max-h-72 overflow-y-auto [&::-webkit-scrollbar]:hidden"
                         style={{
@@ -198,7 +206,7 @@ export default function FlagOptionSelect({
                     >
                         {filteredOptions.length ? (
                             filteredOptions.map((option) => (
-                                <ListboxOption
+                                <ComboboxOption
                                     key={`${option.value}-${option.label}`}
                                     value={option}
                                     className={({ focus, selected }) =>
@@ -244,7 +252,7 @@ export default function FlagOptionSelect({
                                             ) : null}
                                         </div>
                                     )}
-                                </ListboxOption>
+                                </ComboboxOption>
                             ))
                         ) : (
                             <div className="px-3 py-4 text-sm text-current/60">
@@ -252,8 +260,8 @@ export default function FlagOptionSelect({
                             </div>
                         )}
                     </div>
-                </ListboxOptions>
+                </ComboboxOptions>
             </div>
-        </Listbox>
+        </Combobox>
     );
 }
