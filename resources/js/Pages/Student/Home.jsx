@@ -88,7 +88,6 @@ function OnboardingOverlay({ onDone, appDownload }) {
             ? [
                   {
                       title: "Get it on your mobile!",
-                      body: "Scan the QR code from your phone to open the YogaFX mobile experience anytime.",
                       type: "app-download",
                   },
               ]
@@ -148,9 +147,6 @@ function OnboardingOverlay({ onDone, appDownload }) {
                                 <h2 className="text-2xl font-semibold">
                                     {current.title}
                                 </h2>
-                                <p className="text-sm leading-7 text-white/60">
-                                    {current.body}
-                                </p>
                             </div>
                         </div>
                     ) : (
