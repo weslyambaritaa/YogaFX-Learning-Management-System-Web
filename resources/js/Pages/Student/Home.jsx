@@ -161,13 +161,6 @@ function OnboardingOverlay({ onDone, appDownload }) {
                     )}
                 </div>
                 <div className="mt-8 flex items-center justify-between">
-                    <button
-                        type="button"
-                        onClick={finish}
-                        className="text-sm text-white/40 transition hover:text-white/70"
-                    >
-                        Skip
-                    </button>
                     <Button
                         type="button"
                         onClick={() =>
