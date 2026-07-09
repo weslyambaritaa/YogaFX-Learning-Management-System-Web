@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Support\CountryDirectory;
 use App\Support\StudentProfileValue;
+use App\Services\SupportSettingService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,6 +36,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $supportSettingService = app(SupportSettingService::class);
 
         return [
             ...parent::share($request),
@@ -44,6 +46,8 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'role' => $user->role,
                     'is_active' => $user->isStudentAccountActive(),
+                    'account_status' => $user->studentAccountStatus(),
+                    'irregular_activity_count' => (int) ($user->irregular_activity_count ?? 0),
                     'access_tier_id' => $user->access_tier_id,
                     'access_tier' => $user->accessTier ? [
                         'id' => $user->accessTier->id,
@@ -92,6 +96,7 @@ class HandleInertiaRequests extends Middleware
                 'countries' => CountryDirectory::countryOptions(),
                 'phone_country_codes' => CountryDirectory::phoneCountryCodeOptions(),
             ],
+            'supportContact' => $supportSettingService->publicPayload(),
         ];
     }
 }

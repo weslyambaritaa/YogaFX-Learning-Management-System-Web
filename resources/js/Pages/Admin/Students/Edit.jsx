@@ -17,7 +17,7 @@ export default function EditStudent({
     const { data, setData, post, errors, processing } = useForm({
         _method: 'patch',
         management_context: managementContext,
-        is_active: Boolean(student.is_active),
+        account_status: student.account_status ?? 'available',
         access_tier_id: student.access_tier_id ?? '',
         first_name: student.first_name ?? '',
         last_name: student.last_name ?? '',
@@ -50,7 +50,7 @@ export default function EditStudent({
         event.preventDefault();
         router.patch(route('admin.students.status', student.id), {
             management_context: managementContext,
-            is_active: data.is_active,
+            account_status: data.account_status,
         });
     };
 
@@ -191,31 +191,35 @@ export default function EditStudent({
                                 Student Status
                             </h3>
                             <p className="mt-1 text-sm text-gray-600">
-                                Active students can access the LMS. Inactive students are redirected into the blocked state after login.
+                                Available students can access the LMS. Inactive and suspended students are redirected into the blocked state after login.
+                            </p>
+                            <p className="mt-1 text-sm text-gray-600">
+                                Irregular activity count: {student.irregular_activity_count ?? 0}
                             </p>
                         </div>
 
                         <div>
                             <label
-                                htmlFor="is_active"
+                                htmlFor="account_status"
                                 className="text-sm font-medium text-gray-700"
                             >
                                 Status
                             </label>
                             <select
-                                id="is_active"
-                                value={data.is_active ? '1' : '0'}
+                                id="account_status"
+                                value={data.account_status}
                                 onChange={(event) =>
-                                    setData('is_active', event.target.value === '1')
+                                    setData('account_status', event.target.value)
                                 }
                                 className="mt-1 block w-full rounded-md border border-slate-400 bg-white text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
-                                <option value="1">Active</option>
-                                <option value="0">Inactive</option>
+                                <option value="available">Available</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="suspended">Suspended</option>
                             </select>
-                            {errors.is_active && (
+                            {errors.account_status && (
                                 <div className="mt-2 text-sm text-rose-600">
-                                    {errors.is_active}
+                                    {errors.account_status}
                                 </div>
                             )}
                         </div>

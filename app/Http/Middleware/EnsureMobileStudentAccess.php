@@ -26,7 +26,7 @@ class EnsureMobileStudentAccess
         }
 
         if (! $user->isStudentAccountActive()) {
-            return MobileApiResponse::error('Your student account is inactive.', Response::HTTP_FORBIDDEN);
+            return MobileApiResponse::error($user->studentBlockedMessage(), Response::HTTP_FORBIDDEN);
         }
 
         $this->sessionTrackingService->touchMobileSession($request, $user);

@@ -45,7 +45,7 @@ class StudentController extends Controller
     {
         $search = trim((string) $request->input('search', ''));
         $status = (string) $request->input('status_filter', 'all');
-        $status = in_array($status, ['all', 'active', 'inactive'], true) ? $status : 'all';
+        $status = in_array($status, ['all', 'available', 'inactive', 'suspended'], true) ? $status : 'all';
         $tierFilter = (string) $request->input('access_tier_id', '');
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = in_array($perPage, [10, 25, 50], true) ? $perPage : 10;
@@ -62,8 +62,7 @@ class StudentController extends Controller
                         ->orWhere('email', 'ilike', '%'.$search.'%');
                 });
             })
-            ->when($status === 'active', fn ($query) => $query->where('is_active', true))
-            ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
+            ->when($status !== 'all', fn ($query) => $query->where('account_status', $status))
             ->when($tierFilter !== '', fn ($query) => $query->where('access_tier_id', $tierFilter))
             ->orderByDesc('created_at')
             ->paginate($perPage, [
@@ -73,6 +72,7 @@ class StudentController extends Controller
                 'last_name',
                 'email',
                 'is_active',
+                'account_status',
                 'access_tier_id',
                 'profile_photo',
                 'created_at',
@@ -95,6 +95,7 @@ class StudentController extends Controller
                 'profile_initials' => $this->initialsFor($student),
                 'access_tier_name' => $student->accessTier?->name ?? 'Not assigned',
                 'is_active' => (bool) $student->is_active,
+                'account_status' => $student->studentAccountStatus(),
                 'registration_date' => optional($student->created_at)->format('Y-m-d'),
             ]));
 
@@ -151,6 +152,7 @@ class StudentController extends Controller
             'role' => User::ROLE_STUDENT,
             'access_tier_id' => $validated['access_tier_id'],
             'is_active' => true,
+            'account_status' => User::ACCOUNT_STATUS_AVAILABLE,
             'email_verified_at' => now(),
         ]);
 
@@ -170,6 +172,8 @@ class StudentController extends Controller
                 'name' => $student->name,
                 'role' => $student->role,
                 'is_active' => $student->isStudentAccountActive(),
+                'account_status' => $student->studentAccountStatus(),
+                'irregular_activity_count' => (int) ($student->irregular_activity_count ?? 0),
                 'access_tier_id' => $student->access_tier_id,
                 'access_tier' => $student->accessTier ? [
                     'id' => $student->accessTier->id,
@@ -232,8 +236,11 @@ class StudentController extends Controller
         unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
         $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
         $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
+        $nextAccountStatus = (string) ($validated['account_status'] ?? $student->studentAccountStatus());
+        unset($validated['account_status']);
 
         $student->fill($validated);
+        $student->setStudentAccountStatus($nextAccountStatus);
         $student->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $student->birth_date;
         $student->syncDisplayName();
 
@@ -260,12 +267,20 @@ class StudentController extends Controller
         $managementContext = $this->managementContext($request);
 
         $validated = $request->validate([
-            'is_active' => ['required', 'boolean'],
+            'account_status' => ['required', 'string', \Illuminate\Validation\Rule::in([
+                User::ACCOUNT_STATUS_AVAILABLE,
+                User::ACCOUNT_STATUS_INACTIVE,
+                User::ACCOUNT_STATUS_SUSPENDED,
+            ])],
         ]);
 
-        $student->forceFill([
-            'is_active' => (bool) $validated['is_active'],
-        ])->save();
+        $student->setStudentAccountStatus($validated['account_status']);
+
+        if ($validated['account_status'] === User::ACCOUNT_STATUS_AVAILABLE) {
+            $student->irregular_activity_count = 0;
+        }
+
+        $student->save();
 
         return redirect()
             ->route($this->studentDetailRouteNameForContext($managementContext), $student)

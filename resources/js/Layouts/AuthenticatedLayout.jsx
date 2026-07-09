@@ -222,6 +222,14 @@ const adminNavigationItems = [
                 match: ["admin.email-notifications.show"],
                 activeWhen: { notificationType: "workbook_sent" },
             },
+            {
+                label: "Irregular Activity Suspended",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "irregular_activity_suspended" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "irregular_activity_suspended" },
+            },
         ],
     },
 ];
@@ -250,6 +258,12 @@ const adminUtilityItems = [
         route: "admin.access-tiers.index",
         icon: FileSpreadsheet,
         match: ["admin.access-tiers.*"],
+    },
+    {
+        label: "Contact Support",
+        route: "admin.support-settings.show",
+        icon: Mail,
+        match: ["admin.support-settings.*"],
     },
 ];
 
@@ -335,6 +349,7 @@ const adminPageTitles = {
     "admin.email-notifications.index": "Email Notification",
     "admin.email-notifications.show": "Email Notification",
     "admin.email-branding.show": "Email Branding",
+    "admin.support-settings.show": "Contact Support",
     "admin.packages.index": "Packages",
     "admin.packages.create": "Create Package",
     "admin.packages.edit": "Edit Package",

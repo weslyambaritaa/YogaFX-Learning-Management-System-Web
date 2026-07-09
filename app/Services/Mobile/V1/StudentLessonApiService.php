@@ -9,6 +9,7 @@ use App\Models\Module;
 use App\Models\User;
 use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Services\BunnyStreamService;
+use App\Services\StudentIrregularActivityService;
 use App\Services\StudentLearningMilestoneEmailService;
 use App\Services\StudentWorkbookDeliveryService;
 use App\Support\MobileSignedUrl;
@@ -24,6 +25,7 @@ class StudentLessonApiService
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
         private readonly StudentWorkbookDeliveryService $studentWorkbookDeliveryService,
+        private readonly StudentIrregularActivityService $studentIrregularActivityService,
     ) {}
 
     /**
@@ -177,7 +179,13 @@ class StudentLessonApiService
     /**
      * @return array<string, mixed>|null
      */
-    public function updateProgressForUser(User $user, Lesson $lesson, float $incomingProgress): ?array
+    public function updateProgressForUser(
+        User $user,
+        Lesson $lesson,
+        float $incomingProgress,
+        int $watchTimeIncrementSeconds = 0,
+        ?int $videoDurationSeconds = null,
+    ): ?array
     {
         $detail = $this->lessonDetailForUser($user, $lesson);
 
@@ -186,12 +194,18 @@ class StudentLessonApiService
         }
 
         $incomingProgress = round($incomingProgress, 2);
+        $watchTimeIncrementSeconds = max(0, $watchTimeIncrementSeconds);
         $existingProgress = (float) LessonProgress::query()
             ->where('user_id', $user->id)
             ->where('lesson_id', $lesson->id)
             ->value('watch_progress');
+        $existingWatchTimeSeconds = (int) LessonProgress::query()
+            ->where('user_id', $user->id)
+            ->where('lesson_id', $lesson->id)
+            ->value('watch_time_seconds');
 
         $watchProgress = max($existingProgress, $incomingProgress);
+        $watchTimeSeconds = $existingWatchTimeSeconds + $watchTimeIncrementSeconds;
         $hasCompletedAssessment = $lesson->assessment_id !== null
             && $lesson->assessment?->status === 'live'
             && $lesson->assessment?->is_active
@@ -200,7 +214,11 @@ class StudentLessonApiService
                 ->where('user_id', $user->id)
                 ->where('status', AssessmentAttempt::STATUS_COMPLETED)
                 ->exists();
-        $isDone = $watchProgress >= 95 && (! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live');
+        $meetsAssessmentRequirement = ! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live';
+        $hasEnoughAuthenticWatchTime = $lesson->lesson_video_id === null
+            || ! $videoDurationSeconds
+            || $watchTimeSeconds >= $videoDurationSeconds;
+        $isDone = $watchProgress >= 95 && $meetsAssessmentRequirement && $hasEnoughAuthenticWatchTime;
 
         $lessonProgress = LessonProgress::query()->updateOrCreate(
             [
@@ -209,11 +227,31 @@ class StudentLessonApiService
             ],
             [
                 'watch_progress' => $watchProgress,
+                'watch_time_seconds' => $watchTimeSeconds,
                 'video_completed_at' => $isDone ? now() : null,
                 'is_done' => $isDone,
                 'completed_at' => $isDone ? now() : null,
             ],
         );
+
+        $irregularResult = [
+            'is_irregular' => false,
+            'irregular_activity_count' => (int) ($user->irregular_activity_count ?? 0),
+            'was_suspended' => false,
+        ];
+
+        if ($incomingProgress >= 95 && $existingProgress < 95 && ! $isDone) {
+            $irregularResult = $this->studentIrregularActivityService->evaluateCompletionAttempt(
+                $user,
+                $lesson,
+                $lessonProgress,
+                $videoDurationSeconds,
+            );
+        } elseif ($isDone && (int) ($user->irregular_activity_count ?? 0) > 0) {
+            $user->forceFill([
+                'irregular_activity_count' => 0,
+            ])->save();
+        }
 
         if ($isDone) {
             $this->studentLearningMilestoneEmailService->syncLessonMilestones($user, $lesson);
@@ -221,8 +259,13 @@ class StudentLessonApiService
 
         return [
             'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
+            'watch_time_seconds' => (int) ($lessonProgress->watch_time_seconds ?? 0),
             'is_done' => (bool) $lessonProgress->is_done,
             'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
+            'is_irregular' => (bool) ($irregularResult['is_irregular'] ?? false),
+            'irregular_activity_count' => (int) ($irregularResult['irregular_activity_count'] ?? 0),
+            'account_status' => $user->fresh()?->studentAccountStatus(),
+            'should_redirect_to_inactive' => (bool) ($irregularResult['was_suspended'] ?? false),
         ];
     }
 

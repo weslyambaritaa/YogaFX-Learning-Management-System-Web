@@ -287,6 +287,26 @@ class EmailNotificationTemplateDefaults
                 ]),
                 'auto_enable' => true,
             ],
+            EmailNotificationTypeRegistry::IRREGULAR_ACTIVITY_SUSPENDED => [
+                'subject_user' => 'Your YogaFX account has been temporarily suspended',
+                'body_user' => implode('', [
+                    '<p>Dear Student,</p>',
+                    '<p>Please be advised that we have detected irregular activity on the platform and for security purposes, the account is temporarily blocked.</p>',
+                    '<p>Please contact us for more support, information, and assistance.</p>',
+                    '<p>WhatsApp: <a href="{support_whatsapp_url}">{support_whatsapp}</a></p>',
+                    '<p>Email: <a href="{support_email_url}">{support_email}</a></p>',
+                    '<p>Thank you,<br>YogaFX IT Support</p>',
+                ]),
+                'subject_admin' => 'Student suspended for irregular activity: {user_email}',
+                'body_admin' => implode('', [
+                    '<p>A student account has been suspended after repeated irregular lesson activity.</p>',
+                    '<p>Student: <strong>{user_name}</strong> ({user_email})</p>',
+                    '<p>Latest lesson: <strong>{lesson_title}</strong></p>',
+                    '<p>Irregular activity count: <strong>{irregular_activity_count}</strong></p>',
+                    '<p>The student can contact support using the configured WhatsApp and email channels.</p>',
+                ]),
+                'auto_enable' => true,
+            ],
             default => [],
         };
     }

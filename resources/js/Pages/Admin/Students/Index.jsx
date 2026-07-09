@@ -42,6 +42,30 @@ function StatusMessage({ status }) {
     );
 }
 
+function statusBadgeVariant(accountStatus) {
+    if (accountStatus === 'available') {
+        return 'secondary';
+    }
+
+    if (accountStatus === 'suspended') {
+        return 'destructive';
+    }
+
+    return 'outline';
+}
+
+function statusLabel(accountStatus) {
+    if (accountStatus === 'available') {
+        return 'Available';
+    }
+
+    if (accountStatus === 'suspended') {
+        return 'Suspended';
+    }
+
+    return 'Inactive';
+}
+
 function Pagination({ paginator }) {
     return (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-4">
@@ -188,8 +212,9 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                                     className="h-10 rounded-[5px] border border-slate-300 bg-white px-3 text-sm text-slate-700"
                                 >
                                     <option value="all">All Status</option>
-                                    <option value="active">Active</option>
+                                    <option value="available">Available</option>
                                     <option value="inactive">Inactive</option>
+                                    <option value="suspended">Suspended</option>
                                 </select>
 
                                 <select
@@ -286,15 +311,13 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                                                 </td>
                                                 <td className="px-4 py-4">
                                                     <Badge
-                                                        variant={
-                                                            student.is_active
-                                                                ? 'secondary'
-                                                                : 'outline'
-                                                        }
+                                                        variant={statusBadgeVariant(
+                                                            student.account_status,
+                                                        )}
                                                     >
-                                                        {student.is_active
-                                                            ? 'Active'
-                                                            : 'Inactive'}
+                                                        {statusLabel(
+                                                            student.account_status,
+                                                        )}
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-4 text-slate-700">

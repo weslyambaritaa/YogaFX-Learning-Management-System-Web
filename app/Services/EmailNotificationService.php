@@ -998,6 +998,11 @@ class EmailNotificationService
             'next_due_at' => now()->addMonth()->format('Y-m-15'),
             'grace_deadline_at' => now()->addMonth()->addDays(3)->format('Y-m-d'),
             'payment_completed_at' => now()->format('Y-m-d H:i'),
+            'irregular_activity_count' => '3',
+            'support_whatsapp' => '6281234567890',
+            'support_whatsapp_url' => 'https://wa.me/6281234567890',
+            'support_email' => 'support@yogafx.com',
+            'support_email_url' => 'mailto:support@yogafx.com',
             'dashboard_url' => route('student.dashboard'),
             'login_url' => $this->studentLoginUrl(),
         ];

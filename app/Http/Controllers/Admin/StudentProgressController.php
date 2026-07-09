@@ -643,6 +643,8 @@ class StudentProgressController extends Controller
             'name' => $student->name,
             'role' => $student->role,
             'is_active' => $student->isStudentAccountActive(),
+            'account_status' => $student->studentAccountStatus(),
+            'irregular_activity_count' => (int) ($student->irregular_activity_count ?? 0),
             'access_tier_id' => $student->access_tier_id,
             'access_tier' => $student->accessTier ? [
                 'id' => $student->accessTier->id,

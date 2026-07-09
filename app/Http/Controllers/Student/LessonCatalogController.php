@@ -10,6 +10,7 @@ use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Services\BunnyStreamService;
+use App\Services\StudentIrregularActivityService;
 use App\Services\StudentLearningMilestoneEmailService;
 use App\Services\StudentSessionTrackingService;
 use App\Services\StudentWorkbookDeliveryService;
@@ -31,6 +32,7 @@ class LessonCatalogController extends Controller
         private readonly StudentSessionTrackingService $sessionTrackingService,
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
         private readonly StudentWorkbookDeliveryService $studentWorkbookDeliveryService,
+        private readonly StudentIrregularActivityService $studentIrregularActivityService,
     ) {}
 
     public function show(Request $request, Lesson $lesson): Response|JsonResponse
@@ -124,6 +126,7 @@ class LessonCatalogController extends Controller
                 ] : null,
                 'progress' => [
                     'watch_progress' => (int) round((float) ($currentProgress?->watch_progress ?? 0)),
+                    'watch_time_seconds' => (int) ($currentProgress?->watch_time_seconds ?? 0),
                     'is_workbook_downloaded' => (bool) ($currentProgress?->is_workbook_downloaded ?? false),
                     'workbook_downloaded_at' => $currentProgress?->workbook_downloaded_at?->toIso8601String(),
                     'is_done' => $this->isLessonFullyComplete(
@@ -248,15 +251,26 @@ class LessonCatalogController extends Controller
 
         $validated = $request->validate([
             'watch_progress' => ['required', 'numeric', 'min:0', 'max:100'],
+            'watch_time_increment_seconds' => ['nullable', 'integer', 'min:0', 'max:36000'],
+            'video_duration_seconds' => ['nullable', 'numeric', 'min:0', 'max:86400'],
         ]);
 
         $incomingProgress = round((float) $validated['watch_progress'], 2);
+        $watchTimeIncrementSeconds = max(0, (int) ($validated['watch_time_increment_seconds'] ?? 0));
+        $videoDurationSeconds = isset($validated['video_duration_seconds'])
+            ? max(0, (int) round((float) $validated['video_duration_seconds']))
+            : null;
         $existingProgress = (float) LessonProgress::query()
             ->where('user_id', $user?->id)
             ->where('lesson_id', $lesson->id)
             ->value('watch_progress');
+        $existingWatchTimeSeconds = (int) LessonProgress::query()
+            ->where('user_id', $user?->id)
+            ->where('lesson_id', $lesson->id)
+            ->value('watch_time_seconds');
 
         $watchProgress = max($existingProgress, $incomingProgress);
+        $watchTimeSeconds = $existingWatchTimeSeconds + $watchTimeIncrementSeconds;
         $hasCompletedAssessment = $lesson->assessment_id !== null
             && $lesson->assessment?->status === 'live'
             && $lesson->assessment?->is_active
@@ -265,7 +279,11 @@ class LessonCatalogController extends Controller
                 ->where('user_id', $user?->id)
                 ->where('status', AssessmentAttempt::STATUS_COMPLETED)
                 ->exists();
-        $isDone = $watchProgress >= 95 && (! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live');
+        $meetsAssessmentRequirement = ! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live';
+        $hasEnoughAuthenticWatchTime = $lesson->lesson_video_id === null
+            || ! $videoDurationSeconds
+            || $watchTimeSeconds >= $videoDurationSeconds;
+        $isDone = $watchProgress >= 95 && $meetsAssessmentRequirement && $hasEnoughAuthenticWatchTime;
 
         $lessonProgress = LessonProgress::query()->updateOrCreate(
             [
@@ -274,11 +292,31 @@ class LessonCatalogController extends Controller
             ],
             [
                 'watch_progress' => $watchProgress,
+                'watch_time_seconds' => $watchTimeSeconds,
                 'video_completed_at' => $isDone ? now() : null,
                 'is_done' => $isDone,
                 'completed_at' => $isDone ? now() : null,
             ],
         );
+
+        $irregularResult = [
+            'is_irregular' => false,
+            'irregular_activity_count' => (int) ($user?->irregular_activity_count ?? 0),
+            'was_suspended' => false,
+        ];
+
+        if ($user && $incomingProgress >= 95 && $existingProgress < 95 && ! $isDone) {
+            $irregularResult = $this->studentIrregularActivityService->evaluateCompletionAttempt(
+                $user,
+                $lesson,
+                $lessonProgress,
+                $videoDurationSeconds,
+            );
+        } elseif ($user && $isDone && (int) ($user->irregular_activity_count ?? 0) > 0) {
+            $user->forceFill([
+                'irregular_activity_count' => 0,
+            ])->save();
+        }
 
         if ($isDone && $user) {
             $this->studentLearningMilestoneEmailService->syncLessonMilestones($user, $lesson);
@@ -286,8 +324,13 @@ class LessonCatalogController extends Controller
 
         return response()->json([
             'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
+            'watch_time_seconds' => (int) ($lessonProgress->watch_time_seconds ?? 0),
             'is_done' => (bool) $lessonProgress->is_done,
             'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
+            'is_irregular' => (bool) ($irregularResult['is_irregular'] ?? false),
+            'irregular_activity_count' => (int) ($irregularResult['irregular_activity_count'] ?? 0),
+            'account_status' => $user?->fresh()?->studentAccountStatus(),
+            'should_redirect_to_inactive' => (bool) ($irregularResult['was_suspended'] ?? false),
         ]);
     }
 

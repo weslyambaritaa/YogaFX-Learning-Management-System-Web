@@ -21,6 +21,7 @@ class EmailNotificationTypeRegistry
     public const INSTALLMENT_PAYMENT_FAILED = 'installment_payment_failed';
     public const INSTALLMENT_OVERDUE_INACTIVE = 'installment_overdue_inactive';
     public const INSTALLMENT_PAYMENT_COMPLETED = 'installment_payment_completed';
+    public const IRREGULAR_ACTIVITY_SUSPENDED = 'irregular_activity_suspended';
 
     /**
      * @return array<int, array{
@@ -293,6 +294,23 @@ class EmailNotificationTypeRegistry
                     '{{ next_due_at }}',
                     '{{ grace_deadline_at }}',
                     '{{ payment_completed_at }}',
+                ],
+            ],
+            [
+                'value' => self::IRREGULAR_ACTIVITY_SUSPENDED,
+                'label' => 'Irregular Activity Suspended',
+                'description' => 'Notify the student and admins when the account is suspended after repeated irregular lesson completion attempts.',
+                'trigger' => 'Triggered after the system detects three irregular video completion attempts where watch progress reaches done but watch time is still shorter than the lesson video duration.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ lesson_title }}',
+                    '{{ irregular_activity_count }}',
+                    '{{ support_whatsapp }}',
+                    '{{ support_whatsapp_url }}',
+                    '{{ support_email }}',
+                    '{{ support_email_url }}',
+                    '{{ login_url }}',
                 ],
             ],
         ];

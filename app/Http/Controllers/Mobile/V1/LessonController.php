@@ -48,6 +48,8 @@ class LessonController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'watch_progress' => ['required', 'numeric', 'min:0', 'max:100'],
+            'watch_time_increment_seconds' => ['nullable', 'integer', 'min:0', 'max:36000'],
+            'video_duration_seconds' => ['nullable', 'numeric', 'min:0', 'max:86400'],
         ]);
 
         if ($validator->fails()) {
@@ -62,6 +64,10 @@ class LessonController extends Controller
             $request->user(),
             $lesson,
             (float) $validator->validated()['watch_progress'],
+            (int) ($validator->validated()['watch_time_increment_seconds'] ?? 0),
+            isset($validator->validated()['video_duration_seconds'])
+                ? (int) round((float) $validator->validated()['video_duration_seconds'])
+                : null,
         );
 
         if (! $result) {

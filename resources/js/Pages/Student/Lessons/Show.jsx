@@ -306,6 +306,11 @@ export default function StudentLessonShow({
         latestSent: Number(lesson.progress?.watch_progress ?? 0),
         pending: null,
     });
+    const watchMetricsRef = useRef({
+        lastCurrentTime: null,
+        pendingWatchSeconds: 0,
+        knownDuration: 0,
+    });
     const autoNextStartedRef = useRef(false);
     const autoNextNavigatingRef = useRef(false);
     const workbookTriggerAttemptedRef = useRef(false);
@@ -545,6 +550,11 @@ export default function StudentLessonShow({
             latestSent: Number(lesson.progress?.watch_progress ?? 0),
             pending: null,
         };
+        watchMetricsRef.current = {
+            lastCurrentTime: null,
+            pendingWatchSeconds: 0,
+            knownDuration: 0,
+        };
         setPlayerWarning(null);
         setIsLoadingNextLesson(false);
     }, [lesson]);
@@ -602,6 +612,14 @@ export default function StudentLessonShow({
         accessTimeSummaryState?.running_total_access_duration_seconds,
         accessTimeSummaryState?.total_access_duration_seconds,
     ]);
+
+    useEffect(() => {
+        if (isPlayerPlaying) {
+            return;
+        }
+
+        watchMetricsRef.current.lastCurrentTime = null;
+    }, [isPlayerPlaying]);
 
     useEffect(() => {
         const refreshLessonState = () => {
@@ -746,16 +764,33 @@ export default function StudentLessonShow({
         }
 
         const pendingProgress = progressRequestRef.current.pending;
+        const pendingWatchSeconds = Math.max(
+            0,
+            Math.round(watchMetricsRef.current.pendingWatchSeconds ?? 0),
+        );
+        const progressToPersist =
+            pendingProgress !== null
+                ? Math.max(
+                      Number(progressRequestRef.current.latestSent ?? 0),
+                      Number(pendingProgress ?? 0),
+                  )
+                : Number(progressRequestRef.current.latestSent ?? 0);
 
         if (
-            pendingProgress === null ||
-            pendingProgress <= progressRequestRef.current.latestSent
+            pendingWatchSeconds <= 0 &&
+            (pendingProgress === null ||
+                pendingProgress <= progressRequestRef.current.latestSent)
         ) {
             return;
         }
 
         progressRequestRef.current.inFlight = true;
         progressRequestRef.current.pending = null;
+        watchMetricsRef.current.pendingWatchSeconds = Math.max(
+            0,
+            Number(watchMetricsRef.current.pendingWatchSeconds ?? 0) -
+                pendingWatchSeconds,
+        );
 
         try {
             const response = await fetch(
@@ -770,7 +805,11 @@ export default function StudentLessonShow({
                     },
                     credentials: "same-origin",
                     body: JSON.stringify({
-                        watch_progress: pendingProgress,
+                        watch_progress: progressToPersist,
+                        watch_time_increment_seconds: pendingWatchSeconds,
+                        video_duration_seconds: Math.round(
+                            Number(watchMetricsRef.current.knownDuration ?? 0),
+                        ),
                     }),
                 },
             );
@@ -783,7 +822,7 @@ export default function StudentLessonShow({
 
             const result = await response.json();
             const persistedProgress = Number(
-                result?.watch_progress ?? pendingProgress,
+                result?.watch_progress ?? progressToPersist,
             );
             const completedNow = Boolean(result?.is_done);
 
@@ -811,6 +850,11 @@ export default function StudentLessonShow({
                         : item,
                 ),
             );
+
+            if (result?.should_redirect_to_inactive) {
+                router.visit(route("student.inactive"));
+                return;
+            }
 
             if (completedNow) {
                 setModuleState((current) => {
@@ -871,9 +915,12 @@ export default function StudentLessonShow({
         } catch (error) {
             console.error("Failed to persist lesson watch progress.", error);
             progressRequestRef.current.pending = Math.max(
-                pendingProgress,
+                progressToPersist,
                 progressRequestRef.current.pending ?? 0,
             );
+            watchMetricsRef.current.pendingWatchSeconds =
+                Number(watchMetricsRef.current.pendingWatchSeconds ?? 0) +
+                pendingWatchSeconds;
         } finally {
             progressRequestRef.current.inFlight = false;
 
@@ -915,7 +962,42 @@ export default function StudentLessonShow({
         void flushProgressUpdate();
     };
 
-    const handlePlayerTimeUpdate = ({ remainingSeconds, isEnded }) => {
+    const handlePlayerTimeUpdate = ({
+        currentTime,
+        duration,
+        remainingSeconds,
+        isEnded,
+    }) => {
+        const safeCurrentTime = Number(currentTime ?? 0);
+        const safeDuration = Number(duration ?? 0);
+
+        if (Number.isFinite(safeDuration) && safeDuration > 0) {
+            watchMetricsRef.current.knownDuration = safeDuration;
+        }
+
+        const previousCurrentTime = watchMetricsRef.current.lastCurrentTime;
+
+        if (
+            Number.isFinite(safeCurrentTime) &&
+            previousCurrentTime !== null &&
+            safeCurrentTime > previousCurrentTime
+        ) {
+            const delta = safeCurrentTime - previousCurrentTime;
+
+            // Ignore seek jumps so only real playback time is accumulated.
+            if (delta > 0 && delta <= 2) {
+                watchMetricsRef.current.pendingWatchSeconds += delta;
+            }
+        }
+
+        watchMetricsRef.current.lastCurrentTime = Number.isFinite(safeCurrentTime)
+            ? safeCurrentTime
+            : null;
+
+        if (watchMetricsRef.current.pendingWatchSeconds >= 5 || isEnded) {
+            void flushProgressUpdate();
+        }
+
         if (!canAutoAdvance) {
             setAutoNextCountdown(null);
             autoNextStartedRef.current = false;

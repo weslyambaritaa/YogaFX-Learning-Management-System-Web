@@ -21,6 +21,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'name',
     'role',
     'is_active',
+    'account_status',
+    'irregular_activity_count',
+    'irregular_activity_last_detected_at',
     'access_tier_id',
     'total_access_duration_seconds',
     'email',
@@ -52,6 +55,10 @@ class User extends Authenticatable
     public const ROLE_ADMIN = 'admin';
     public const ROLE_STUDENT = 'student';
 
+    public const ACCOUNT_STATUS_AVAILABLE = 'available';
+    public const ACCOUNT_STATUS_INACTIVE = 'inactive';
+    public const ACCOUNT_STATUS_SUSPENDED = 'suspended';
+
     public const STUDENT_PROFILE_COMPLETION_FIELDS = [
         'first_name',
         'last_name',
@@ -81,6 +88,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
             'is_active' => 'boolean',
+            'irregular_activity_count' => 'integer',
+            'irregular_activity_last_detected_at' => 'datetime',
             'total_access_duration_seconds' => 'integer',
             'password' => 'hashed',
         ];
@@ -172,11 +181,55 @@ class User extends Authenticatable
             return true;
         }
 
-        if (! array_key_exists('is_active', $this->getAttributes())) {
-            return true;
+        return $this->studentAccountStatus() === self::ACCOUNT_STATUS_AVAILABLE;
+    }
+
+    public function studentAccountStatus(): string
+    {
+        if (! $this->isStudent()) {
+            return self::ACCOUNT_STATUS_AVAILABLE;
         }
 
-        return (bool) $this->getAttribute('is_active');
+        $status = $this->getAttribute('account_status');
+
+        if (is_string($status) && in_array($status, [
+            self::ACCOUNT_STATUS_AVAILABLE,
+            self::ACCOUNT_STATUS_INACTIVE,
+            self::ACCOUNT_STATUS_SUSPENDED,
+        ], true)) {
+            return $status;
+        }
+
+        if (! array_key_exists('is_active', $this->getAttributes())) {
+            return self::ACCOUNT_STATUS_AVAILABLE;
+        }
+
+        return (bool) $this->getAttribute('is_active')
+            ? self::ACCOUNT_STATUS_AVAILABLE
+            : self::ACCOUNT_STATUS_INACTIVE;
+    }
+
+    public function isStudentSuspended(): bool
+    {
+        return $this->studentAccountStatus() === self::ACCOUNT_STATUS_SUSPENDED;
+    }
+
+    public function isStudentInactive(): bool
+    {
+        return $this->studentAccountStatus() === self::ACCOUNT_STATUS_INACTIVE;
+    }
+
+    public function setStudentAccountStatus(string $status): void
+    {
+        $this->account_status = $status;
+        $this->is_active = $status === self::ACCOUNT_STATUS_AVAILABLE;
+    }
+
+    public function studentBlockedMessage(): string
+    {
+        return $this->isStudentSuspended()
+            ? 'Your student account is suspended.'
+            : 'Your student account is inactive.';
     }
 
     public function hasRole(string ...$roles): bool

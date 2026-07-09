@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Validation\Rule;
 
 class AdminStudentUpdateRequest extends ProfileUpdateRequest
@@ -17,7 +18,11 @@ class AdminStudentUpdateRequest extends ProfileUpdateRequest
         return [
             ...parent::rules(),
             'access_tier_id' => ['nullable', Rule::exists('access_tiers', 'id')],
-            'is_active' => ['required', 'boolean'],
+            'account_status' => ['required', 'string', Rule::in([
+                User::ACCOUNT_STATUS_AVAILABLE,
+                User::ACCOUNT_STATUS_INACTIVE,
+                User::ACCOUNT_STATUS_SUSPENDED,
+            ])],
         ];
     }
 }

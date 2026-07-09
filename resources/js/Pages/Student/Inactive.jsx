@@ -1,8 +1,12 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 
 export default function StudentInactive() {
+    const { auth, supportContact } = usePage().props;
+    const accountStatus = auth?.user?.account_status ?? 'inactive';
+    const isSuspended = accountStatus === 'suspended';
+
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
@@ -16,16 +20,46 @@ export default function StudentInactive() {
                         !
                     </div>
                     <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-rose-200/90">
-                        Access Blocked
+                        {isSuspended ? 'Account Suspended' : 'Access Blocked'}
                     </p>
                     <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                        Your student access is currently inactive
+                        {isSuspended
+                            ? 'Your YogaFX account is temporarily suspended'
+                            : 'Your student access is currently inactive'}
                     </h1>
                     <p className="mt-4 text-base leading-8 text-white/72">
-                        Please contact the admin for further confirmation.
+                        {isSuspended
+                            ? 'Dear Student, Please be advised that we have detected irregular activity on the platform and for security purposes, the account is temporarily blocked. Please contact us for more support, information, and assistance. Thank you. YogaFX IT Support.'
+                            : 'Please contact the admin for further confirmation.'}
                     </p>
 
-                    <div className="mt-8 flex justify-center">
+                    <div className="mt-8 flex flex-wrap justify-center gap-3">
+                        {supportContact?.whatsapp_url ? (
+                            <Button
+                                asChild
+                                type="button"
+                                size="lg"
+                                className="bg-[#16a34a] text-white hover:bg-[#15803d]"
+                            >
+                                <a
+                                    href={supportContact.whatsapp_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    Chat WhatsApp
+                                </a>
+                            </Button>
+                        ) : null}
+                        {supportContact?.email_url ? (
+                            <Button
+                                asChild
+                                type="button"
+                                size="lg"
+                                className="bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+                            >
+                                <a href={supportContact.email_url}>Send Email</a>
+                            </Button>
+                        ) : null}
                         <Button
                             type="button"
                             size="lg"

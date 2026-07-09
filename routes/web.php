@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\InvoicePdfController;
 use App\Http\Controllers\Admin\PaymentIndexController;
 use App\Http\Controllers\Admin\StudentProgressController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\SupportSettingController;
 use App\Http\Controllers\ContentFileController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\LeadRegistrationController;
@@ -252,6 +253,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/email-notifications/{notificationType}', [EmailNotificationController::class, 'update'])->name('email-notifications.update');
         Route::post('/email-notifications/{notificationType}/media', [EmailNotificationController::class, 'uploadMedia'])->name('email-notifications.media');
         Route::post('/email-notifications/{notificationType}/send-test', [EmailNotificationController::class, 'sendTest'])->name('email-notifications.send-test');
+        Route::get('/support-settings', [SupportSettingController::class, 'show'])->name('support-settings.show');
+        Route::patch('/support-settings', [SupportSettingController::class, 'update'])->name('support-settings.update');
 
         Route::get('/students', [StudentController::class, 'studentsIndex'])->name('students.index');
         Route::get('/students/create', [StudentController::class, 'studentsCreate'])->name('students.create');

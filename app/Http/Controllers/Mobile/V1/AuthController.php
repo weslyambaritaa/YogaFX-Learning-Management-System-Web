@@ -35,7 +35,7 @@ class AuthController extends Controller
 
         if (! $user->isStudentAccountActive()) {
             return MobileApiResponse::error(
-                'Your student account is inactive.',
+                $user->studentBlockedMessage(),
                 Response::HTTP_FORBIDDEN,
             );
         }
@@ -78,7 +78,7 @@ class AuthController extends Controller
 
         if (! $user->isStudentAccountActive()) {
             return MobileApiResponse::error(
-                'Your student account is inactive.',
+                $user->studentBlockedMessage(),
                 Response::HTTP_FORBIDDEN,
             );
         }
@@ -118,7 +118,7 @@ class AuthController extends Controller
 
         if (! $user->isStudentAccountActive()) {
             return MobileApiResponse::error(
-                'Your student account is inactive.',
+                $user->studentBlockedMessage(),
                 Response::HTTP_FORBIDDEN,
             );
         }
