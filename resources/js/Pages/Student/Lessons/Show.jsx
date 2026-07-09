@@ -925,9 +925,10 @@ export default function StudentLessonShow({
             progressRequestRef.current.inFlight = false;
 
             if (
-                progressRequestRef.current.pending !== null &&
-                progressRequestRef.current.pending >
-                    progressRequestRef.current.latestSent
+                (progressRequestRef.current.pending !== null &&
+                    progressRequestRef.current.pending >
+                        progressRequestRef.current.latestSent) ||
+                Number(watchMetricsRef.current.pendingWatchSeconds ?? 0) > 0
             ) {
                 void flushProgressUpdate();
             }
@@ -996,6 +997,45 @@ export default function StudentLessonShow({
 
         if (watchMetricsRef.current.pendingWatchSeconds >= 5 || isEnded) {
             void flushProgressUpdate();
+        }
+
+        if (
+            remainingSeconds <= 10 &&
+            remainingSeconds > 0 &&
+            nextLesson &&
+            !nextLesson.is_unlocked &&
+            watchProgress >= 95
+        ) {
+            setNavigationItems((current) =>
+                current.map((item) =>
+                    item.id === nextLesson.id
+                        ? {
+                              ...item,
+                              is_locked: false,
+                              lock_reason: null,
+                              status:
+                                  item.status === "locked"
+                                      ? "available"
+                                      : item.status,
+                              url:
+                                  item.url ??
+                                  route("lessons.show", nextLesson.id),
+                          }
+                        : item,
+                ),
+            );
+            setNextLesson((current) =>
+                current
+                    ? {
+                          ...current,
+                          is_unlocked: true,
+                          lock_reason: null,
+                          url:
+                              current.url ??
+                              route("lessons.show", current.id),
+                      }
+                    : current,
+            );
         }
 
         if (!canAutoAdvance) {

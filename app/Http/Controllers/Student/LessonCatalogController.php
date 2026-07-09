@@ -27,6 +27,8 @@ class LessonCatalogController extends Controller
 {
     use BuildsProtectedMediaUrls;
 
+    private const AUTHENTIC_WATCH_TIME_TOLERANCE_SECONDS = 2;
+
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly StudentSessionTrackingService $sessionTrackingService,
@@ -282,7 +284,7 @@ class LessonCatalogController extends Controller
         $meetsAssessmentRequirement = ! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live';
         $hasEnoughAuthenticWatchTime = $lesson->lesson_video_id === null
             || ! $videoDurationSeconds
-            || $watchTimeSeconds >= $videoDurationSeconds;
+            || $watchTimeSeconds >= max(0, $videoDurationSeconds - self::AUTHENTIC_WATCH_TIME_TOLERANCE_SECONDS);
         $isDone = $watchProgress >= 95 && $meetsAssessmentRequirement && $hasEnoughAuthenticWatchTime;
 
         $lessonProgress = LessonProgress::query()->updateOrCreate(
