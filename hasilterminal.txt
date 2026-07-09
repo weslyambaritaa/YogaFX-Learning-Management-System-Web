@@ -1,0 +1,1313 @@
+PS D:\Semester6\Kerja\YogaFX-Learning-Management-System-Web> php artisan tinker
+Psy Shell v0.12.23 (PHP 8.4.13 — cli) by Justin Hileman
+New PHP manual is available (latest: 3.0.0). Update with `doc --update-manual`
+> use App\Models\PaymentSubscription;                                                                                              
+
+> PaymentSubscription::class;                                                                                                      
+
+= "App\\Models\\PaymentSubscription"
+
+> PaymentSubscription::query()                                                                                                     
+
+= Illuminate\Database\Eloquent\Builder {#8170
+    +pendingAttributes: [],
+  }
+
+>     ->latest('id')                                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ->take(10)                                                                                                                   
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ->get([                                                                                                                      
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'id',                                                                                                                    
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'user_id',                                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'invoice_id',                                                                                                            
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'provider',                                                                                                              
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'provider_subscription_id',                                                                                              
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'status',                                                                                                                
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'installment_count',                                                                                                     
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'installments_paid_count',                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'next_due_at',                                                                                                           
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'grace_deadline_at',                                                                                                     
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'currency_code',                                                                                                         
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ]);PaymentSubscription::query()                                                                                              
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ']' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ->latest('id')                                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ->take(10)                                                                                                                   
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ->get([                                                                                                                      
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'id',                                                                                                                    
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'user_id',                                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'invoice_id',                                                                                                            
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'provider',                                                                                                              
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'provider_subscription_id',                                                                                              
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'status',                                                                                                                
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'installment_count',                                                                                                     
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'installments_paid_count',                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'next_due_at',                                                                                                           
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'grace_deadline_at',                                                                                                     
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'currency_code',                                                                                                         
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ]);                                                                                                                          
+> c                                                                                                                                
+PS D:\Semester6\Kerja\YogaFX-Learning-Management-System-Web> php artisan tinker        
+Psy Shell v0.12.23 (PHP 8.4.13 — cli) by Justin Hileman
+New PHP manual is available (latest: 3.0.0). Update with `doc --update-manual`
+> PaymentSubscription::query()                                                                                                     
+
+   Error  Class "PaymentSubscription" not found.
+
+>     ->latest('id')                                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ->take(10)                                                                                                                   
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ->get([                                                                                                                      
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_OBJECT_OPERATOR in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'id',                                                                                                                    
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'user_id',                                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'invoice_id',                                                                                                            
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'provider',                                                                                                              
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'provider_subscription_id',                                                                                              
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'status',                                                                                                                
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'installment_count',                                                                                                     
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'installments_paid_count',                                                                                               
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'next_due_at',                                                                                                           
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'grace_deadline_at',                                                                                                     
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>         'currency_code',                                                                                                         
+
+   PARSE ERROR  PHP Parse error: Syntax error, unexpected ',' in vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.
+
+>     ]);                                                                                                                          
+PS D:\Semester6\Kerja\YogaFX-Learning-Management-System-Web> php artisan tinker
+Psy Shell v0.12.23 (PHP 8.4.13 — cli) by Justin Hileman
+New PHP manual is available (latest: 3.0.0). Update with `doc --update-manual`
+> use App\Models\PaymentSubscription;                                                                                              
+
+> PaymentSubscription::query()->latest('id')->take(10)->get(['id','user_id','invoice_id','provider','provider_subscription_id','sta
+tus','installment_count','installments_paid_count','next_due_at','grace_deadline_at','currency_code']);                            
+
+= Illuminate\Database\Eloquent\Collection {#8547
+    all: [
+      App\Models\PaymentSubscription {#8537
+        id: 54,
+        user_id: null,
+        invoice_id: 131,
+        provider: "paypal",
+        provider_subscription_id: null,
+        status: "draft",
+        installment_count: 9,
+        installments_paid_count: 0,
+        next_due_at: "2026-08-15 00:00:00",
+        grace_deadline_at: "2026-08-18 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8536
+        id: 53,
+        user_id: 30,
+        invoice_id: 130,
+        provider: "paypal",
+        provider_subscription_id: "I-WKT2WVWEYLAC",
+        status: "active",
+        installment_count: 9,
+        installments_paid_count: 1,
+        next_due_at: "2026-08-15 00:00:00",
+        grace_deadline_at: "2026-08-18 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8539
+        id: 52,
+        user_id: 29,
+        invoice_id: 129,
+        provider: "paypal",
+        provider_subscription_id: "I-1FU7HKNP0GFS",
+        status: "active",
+        installment_count: 10,
+        installments_paid_count: 1,
+        next_due_at: "2026-08-15 00:00:00",
+        grace_deadline_at: "2026-08-18 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8540
+        id: 51,
+        user_id: null,
+        invoice_id: 126,
+        provider: "paypal",
+        provider_subscription_id: null,
+        status: "draft",
+        installment_count: 13,
+        installments_paid_count: 0,
+        next_due_at: "2026-08-15 00:00:00",
+        grace_deadline_at: "2026-08-18 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8541
+        id: 50,
+        user_id: null,
+        invoice_id: 125,
+        provider: "paypal",
+        provider_subscription_id: null,
+        status: "draft",
+        installment_count: 11,
+        installments_paid_count: 0,
+        next_due_at: "2026-08-15 00:00:00",
+        grace_deadline_at: "2026-08-18 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8542
+        id: 49,
+        user_id: null,
+        invoice_id: 124,
+        provider: "paypal",
+        provider_subscription_id: null,
+        status: "draft",
+        installment_count: 15,
+        installments_paid_count: 0,
+        next_due_at: "2026-07-15 00:00:00",
+        grace_deadline_at: "2026-07-18 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8543
+        id: 40,
+        user_id: 26,
+        invoice_id: 104,
+        provider: "paypal",
+        provider_subscription_id: "I-SHVKKLC90GP3",
+        status: "active",
+        installment_count: 2,
+        installments_paid_count: 1,
+        next_due_at: "2026-08-01 00:00:00",
+        grace_deadline_at: "2026-08-04 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8544
+        id: 39,
+        user_id: 25,
+        invoice_id: 103,
+        provider: "paypal",
+        provider_subscription_id: "I-S14RF8HPHPFS",
+        status: "active",
+        installment_count: 2,
+        installments_paid_count: 1,
+        next_due_at: "2026-08-01 00:00:00",
+        grace_deadline_at: "2026-08-04 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8545
+        id: 38,
+        user_id: 24,
+        invoice_id: 102,
+        provider: "paypal",
+        provider_subscription_id: "I-7BNDDTVVVUT4",
+        status: "active",
+        installment_count: 2,
+        installments_paid_count: 1,
+        next_due_at: "2026-08-01 00:00:00",
+        grace_deadline_at: "2026-08-04 00:00:00",
+        currency_code: "USD",
+      },
+      App\Models\PaymentSubscription {#8546
+        id: 36,
+        user_id: 23,
+        invoice_id: 98,
+        provider: "paypal",
+        provider_subscription_id: "I-AGHVF7E687R5",
+        status: "active",
+        installment_count: 2,
+        installments_paid_count: 1,
+        next_due_at: "2026-08-01 00:00:00",
+        grace_deadline_at: "2026-08-04 00:00:00",
+        currency_code: "USD",
+      },
+    ],
+  }
+
+> $subscription = \App\Models\PaymentSubscription::query()->where('status','active')->whereNotNull('provider_subscription_id')->lat
+est('id')->first();                                                                                                                
+
+= App\Models\PaymentSubscription {#7833
+    id: 53,
+    invoice_id: 130,
+    package_id: 1,
+    pending_registration_id: 172,
+    user_id: 30,
+    access_tier_id: 2,
+    provider: "paypal",
+    provider_product_id: "PROD-2H829281KL834124X",
+    provider_plan_id: "P-1K2597917C3840208NJG7U6Q",
+    provider_subscription_id: "I-WKT2WVWEYLAC",
+    status: "active",
+    installment_count: 9,
+    installments_paid_count: 1,
+    currency_code: "USD",
+    total_amount: "2000.00",
+    monthly_base_amount: "222.22",
+    first_payment_amount: "222.24",
+    next_billing_amount: "222.22",
+    started_at: "2026-07-08 07:23:02",
+    first_payment_paid_at: "2026-07-08 07:22:58",
+    next_due_at: "2026-08-15 00:00:00",
+    final_due_at: "2027-03-15 00:00:00",
+    grace_deadline_at: "2026-08-18 00:00:00",
+    completed_at: null,
+    suspended_at: null,
+    cancelled_at: null,
+    last_payment_failed_at: null,
+    last_synced_at: "2026-07-08 07:23:20",
+    metadata: "{\"context\":\"initial\",\"installment_plan\":{\"total_amount\":\"2000.00\",\"currency_code\":\"USD\",\"installment_count\":9,\"maximum_installment_count\":28,\"installment_maximum_count\":28,\"first_payment_amount\":\"222.24\",\"monthly_base_amount\":\"222.22\",\"recurring_payment_amount\":\"222.22\",\"billing_day\":15,\"billing_interval_unit\":\"MONTH\",\"billing_interval_count\":1,\"first_payment_date\":\"2026-07-08\",\"recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\"],\"available_recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\",\"2027-04-15\",\"2027-05-15\",\"2027-06-15\",\"2027-07-15\",\"2027-08-15\",\"2027-09-15\",\"2027-10-15\",\"2027-11-15\",\"2027-12-15\",\"2028-01-15\",\"2028-02-15\",\"2028-03-15\",\"2028-04-15\",\"2028-05-15\",\"2028-06-15\",\"2028-07-15\",\"2028-08-15\",\"2028-09-15\",\"2028-10-15\"],\"deadline_date\":\"2028-10-18\",\"final_due_at\":\"2027-03-15\",\"grace_deadlines\":[\"2026-08-18\",\"2026-09-18\",\"2026-10-18\",\"2026-11-18\",\"2026-12-18\",\"2027-01-18\",\"2027-02-18\",\"2027-03-18\"],\"schedule_breakdown\":[{\"cycle_number\":1,\"type\":\"first_payment\",\"amount\":\"222.24\",\"due_at\":\"2026-07-08\",\"grace_deadline\":null},{\"cycle_number\":2,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-08-15\",\"grace_deadline\":\"2026-08-18\"},{\"cycle_number\":3,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-09-15\",\"grace_deadline\":\"2026-09-18\"},{\"cycle_number\":4,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-10-15\",\"grace_deadline\":\"2026-10-18\"},{\"cycle_number\":5,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-11-15\",\"grace_deadline\":\"2026-11-18\"},{\"cycle_number\":6,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-12-15\",\"grace_deadline\":\"2026-12-18\"},{\"cycle_number\":7,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-01-15\",\"grace_deadline\":\"2027-01-18\"},{\"cycle_number\":8,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-02-15\",\"grace_deadline\":\"2027-02-18\"},{\"cycle_number\":9,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-03-15\",\"grace_deadline\":\"2027-03-18\"}]},\"selected_billing_day\":15,\"selected_installment_count\":9,\"provider_plan_fingerprint\":\"v2_initial_pkg1_day15_9x_USD_total200000_first22224_rec22222_month1\",\"provider_prepare_stage\":\"plan_ready\",\"provider_return_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/return?expires=1784100088&signature=161299bf67ea3d35eec7ebb10955c5121fc18e978557722e136ee95f72844d10\",\"provider_cancel_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/cancel?expires=1784100088&signature=ffbef9228761852c5ae95fddb7e3dea772590941af454c291742321167b24891\",\"provider_plan_key\":\"15_9x\",\"provider_plan_cache_version\":\"v2\",\"approval_attached_at\":\"2026-07-08T07:22:59+00:00\",\"provider_status\":\"APPROVAL_PENDING\",\"activation_last_payment_processed_at\":\"2026-07-08T07:22:58+00:00\",\"activation_last_payment_reference\":\"subscription_activation:I-WKT2WVWEYLAC:20260708072258\"}",
+    created_at: "2026-07-08 07:21:28",
+    updated_at: "2026-07-08 07:23:20",
+    billing_day: 15,
+  }
+
+> $subscription;                                                                                                                   
+
+= App\Models\PaymentSubscription {#7833
+    id: 53,
+    invoice_id: 130,
+    package_id: 1,
+    pending_registration_id: 172,
+    user_id: 30,
+    access_tier_id: 2,
+    provider: "paypal",
+    provider_product_id: "PROD-2H829281KL834124X",
+    provider_plan_id: "P-1K2597917C3840208NJG7U6Q",
+    provider_subscription_id: "I-WKT2WVWEYLAC",
+    status: "active",
+    installment_count: 9,
+    installments_paid_count: 1,
+    currency_code: "USD",
+    total_amount: "2000.00",
+    monthly_base_amount: "222.22",
+    first_payment_amount: "222.24",
+    next_billing_amount: "222.22",
+    started_at: "2026-07-08 07:23:02",
+    first_payment_paid_at: "2026-07-08 07:22:58",
+    next_due_at: "2026-08-15 00:00:00",
+    final_due_at: "2027-03-15 00:00:00",
+    grace_deadline_at: "2026-08-18 00:00:00",
+    completed_at: null,
+    suspended_at: null,
+    cancelled_at: null,
+    last_payment_failed_at: null,
+    last_synced_at: "2026-07-08 07:23:20",
+    metadata: "{\"context\":\"initial\",\"installment_plan\":{\"total_amount\":\"2000.00\",\"currency_code\":\"USD\",\"installment_count\":9,\"maximum_installment_count\":28,\"installment_maximum_count\":28,\"first_payment_amount\":\"222.24\",\"monthly_base_amount\":\"222.22\",\"recurring_payment_amount\":\"222.22\",\"billing_day\":15,\"billing_interval_unit\":\"MONTH\",\"billing_interval_count\":1,\"first_payment_date\":\"2026-07-08\",\"recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\"],\"available_recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\",\"2027-04-15\",\"2027-05-15\",\"2027-06-15\",\"2027-07-15\",\"2027-08-15\",\"2027-09-15\",\"2027-10-15\",\"2027-11-15\",\"2027-12-15\",\"2028-01-15\",\"2028-02-15\",\"2028-03-15\",\"2028-04-15\",\"2028-05-15\",\"2028-06-15\",\"2028-07-15\",\"2028-08-15\",\"2028-09-15\",\"2028-10-15\"],\"deadline_date\":\"2028-10-18\",\"final_due_at\":\"2027-03-15\",\"grace_deadlines\":[\"2026-08-18\",\"2026-09-18\",\"2026-10-18\",\"2026-11-18\",\"2026-12-18\",\"2027-01-18\",\"2027-02-18\",\"2027-03-18\"],\"schedule_breakdown\":[{\"cycle_number\":1,\"type\":\"first_payment\",\"amount\":\"222.24\",\"due_at\":\"2026-07-08\",\"grace_deadline\":null},{\"cycle_number\":2,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-08-15\",\"grace_deadline\":\"2026-08-18\"},{\"cycle_number\":3,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-09-15\",\"grace_deadline\":\"2026-09-18\"},{\"cycle_number\":4,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-10-15\",\"grace_deadline\":\"2026-10-18\"},{\"cycle_number\":5,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-11-15\",\"grace_deadline\":\"2026-11-18\"},{\"cycle_number\":6,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-12-15\",\"grace_deadline\":\"2026-12-18\"},{\"cycle_number\":7,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-01-15\",\"grace_deadline\":\"2027-01-18\"},{\"cycle_number\":8,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-02-15\",\"grace_deadline\":\"2027-02-18\"},{\"cycle_number\":9,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-03-15\",\"grace_deadline\":\"2027-03-18\"}]},\"selected_billing_day\":15,\"selected_installment_count\":9,\"provider_plan_fingerprint\":\"v2_initial_pkg1_day15_9x_USD_total200000_first22224_rec22222_month1\",\"provider_prepare_stage\":\"plan_ready\",\"provider_return_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/return?expires=1784100088&signature=161299bf67ea3d35eec7ebb10955c5121fc18e978557722e136ee95f72844d10\",\"provider_cancel_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/cancel?expires=1784100088&signature=ffbef9228761852c5ae95fddb7e3dea772590941af454c291742321167b24891\",\"provider_plan_key\":\"15_9x\",\"provider_plan_cache_version\":\"v2\",\"approval_attached_at\":\"2026-07-08T07:22:59+00:00\",\"provider_status\":\"APPROVAL_PENDING\",\"activation_last_payment_processed_at\":\"2026-07-08T07:22:58+00:00\",\"activation_last_payment_reference\":\"subscription_activation:I-WKT2WVWEYLAC:20260708072258\"}",
+    created_at: "2026-07-08 07:21:28",
+    updated_at: "2026-07-08 07:23:20",
+    billing_day: 15,
+  }
+
+> $subscription->only(['id','user_id','invoice_id','provider','provider_subscription_id','status','installment_count','installments
+_paid_count','next_due_at','grace_deadline_at','currency_code']);                                                                  
+
+= [
+    "id" => 53,
+    "user_id" => 30,
+    "invoice_id" => 130,
+    "provider" => "paypal",
+    "provider_subscription_id" => "I-WKT2WVWEYLAC",
+    "status" => "active",
+    "installment_count" => 9,
+    "installments_paid_count" => 1,
+    "next_due_at" => Illuminate\Support\Carbon @1786752000 {#8532
+      date: 2026-08-15 00:00:00.0 UTC (+00:00),
+    },
+    "grace_deadline_at" => Illuminate\Support\Carbon @1787011200 {#8549
+      date: 2026-08-18 00:00:00.0 UTC (+00:00),
+    },
+    "currency_code" => "USD",
+  ]
+
+> $subscription->only(['id','user_id','invoice_id','provider','provider_subscription_id','status','installment_count','installments
+_paid_count','next_due_at','grace_deadline_at','currency_code','last_payment_failed_at']);                                         
+
+= [
+    "id" => 53,
+    "user_id" => 30,
+    "invoice_id" => 130,
+    "provider" => "paypal",
+    "provider_subscription_id" => "I-WKT2WVWEYLAC",
+    "status" => "active",
+    "installment_count" => 9,
+    "installments_paid_count" => 1,
+    "next_due_at" => Illuminate\Support\Carbon @1786752000 {#7750
+      date: 2026-08-15 00:00:00.0 UTC (+00:00),
+    },
+    "grace_deadline_at" => Illuminate\Support\Carbon @1787011200 {#7751
+      date: 2026-08-18 00:00:00.0 UTC (+00:00),
+    },
+    "currency_code" => "USD",
+    "last_payment_failed_at" => null,
+  ]
+
+> $before = $subscription->fresh();                                                                                                
+
+= App\Models\PaymentSubscription {#8595
+    id: 53,
+    invoice_id: 130,
+    package_id: 1,
+    pending_registration_id: 172,
+    user_id: 30,
+    access_tier_id: 2,
+    provider: "paypal",
+    provider_product_id: "PROD-2H829281KL834124X",
+    provider_plan_id: "P-1K2597917C3840208NJG7U6Q",
+    provider_subscription_id: "I-WKT2WVWEYLAC",
+    status: "active",
+    installment_count: 9,
+    installments_paid_count: 1,
+    currency_code: "USD",
+    total_amount: "2000.00",
+    monthly_base_amount: "222.22",
+    first_payment_amount: "222.24",
+    next_billing_amount: "222.22",
+    started_at: "2026-07-08 07:23:02",
+    first_payment_paid_at: "2026-07-08 07:22:58",
+    next_due_at: "2026-08-15 00:00:00",
+    final_due_at: "2027-03-15 00:00:00",
+    grace_deadline_at: "2026-08-18 00:00:00",
+    completed_at: null,
+    suspended_at: null,
+    cancelled_at: null,
+    last_payment_failed_at: null,
+    last_synced_at: "2026-07-08 07:23:20",
+    metadata: "{\"context\":\"initial\",\"installment_plan\":{\"total_amount\":\"2000.00\",\"currency_code\":\"USD\",\"installment_count\":9,\"maximum_installment_count\":28,\"installment_maximum_count\":28,\"first_payment_amount\":\"222.24\",\"monthly_base_amount\":\"222.22\",\"recurring_payment_amount\":\"222.22\",\"billing_day\":15,\"billing_interval_unit\":\"MONTH\",\"billing_interval_count\":1,\"first_payment_date\":\"2026-07-08\",\"recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\"],\"available_recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\",\"2027-04-15\",\"2027-05-15\",\"2027-06-15\",\"2027-07-15\",\"2027-08-15\",\"2027-09-15\",\"2027-10-15\",\"2027-11-15\",\"2027-12-15\",\"2028-01-15\",\"2028-02-15\",\"2028-03-15\",\"2028-04-15\",\"2028-05-15\",\"2028-06-15\",\"2028-07-15\",\"2028-08-15\",\"2028-09-15\",\"2028-10-15\"],\"deadline_date\":\"2028-10-18\",\"final_due_at\":\"2027-03-15\",\"grace_deadlines\":[\"2026-08-18\",\"2026-09-18\",\"2026-10-18\",\"2026-11-18\",\"2026-12-18\",\"2027-01-18\",\"2027-02-18\",\"2027-03-18\"],\"schedule_breakdown\":[{\"cycle_number\":1,\"type\":\"first_payment\",\"amount\":\"222.24\",\"due_at\":\"2026-07-08\",\"grace_deadline\":null},{\"cycle_number\":2,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-08-15\",\"grace_deadline\":\"2026-08-18\"},{\"cycle_number\":3,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-09-15\",\"grace_deadline\":\"2026-09-18\"},{\"cycle_number\":4,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-10-15\",\"grace_deadline\":\"2026-10-18\"},{\"cycle_number\":5,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-11-15\",\"grace_deadline\":\"2026-11-18\"},{\"cycle_number\":6,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-12-15\",\"grace_deadline\":\"2026-12-18\"},{\"cycle_number\":7,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-01-15\",\"grace_deadline\":\"2027-01-18\"},{\"cycle_number\":8,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-02-15\",\"grace_deadline\":\"2027-02-18\"},{\"cycle_number\":9,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-03-15\",\"grace_deadline\":\"2027-03-18\"}]},\"selected_billing_day\":15,\"selected_installment_count\":9,\"provider_plan_fingerprint\":\"v2_initial_pkg1_day15_9x_USD_total200000_first22224_rec22222_month1\",\"provider_prepare_stage\":\"plan_ready\",\"provider_return_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/return?expires=1784100088&signature=161299bf67ea3d35eec7ebb10955c5121fc18e978557722e136ee95f72844d10\",\"provider_cancel_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/cancel?expires=1784100088&signature=ffbef9228761852c5ae95fddb7e3dea772590941af454c291742321167b24891\",\"provider_plan_key\":\"15_9x\",\"provider_plan_cache_version\":\"v2\",\"approval_attached_at\":\"2026-07-08T07:22:59+00:00\",\"provider_status\":\"APPROVAL_PENDING\",\"activation_last_payment_processed_at\":\"2026-07-08T07:22:58+00:00\",\"activation_last_payment_reference\":\"subscription_activation:I-WKT2WVWEYLAC:20260708072258\"}",
+    created_at: "2026-07-08 07:21:28",
+    updated_at: "2026-07-08 07:23:20",
+    billing_day: 15,
+  }
+
+> $before->only(['id','user_id','invoice_id','provider_subscription_id','status','next_due_at','grace_deadline_at','last_payment_fa
+iled_at','currency_code']);                                                                                                        
+
+= [
+    "id" => 53,
+    "user_id" => 30,
+    "invoice_id" => 130,
+    "provider_subscription_id" => "I-WKT2WVWEYLAC",
+    "status" => "active",
+    "next_due_at" => Illuminate\Support\Carbon @1786752000 {#8542
+      date: 2026-08-15 00:00:00.0 UTC (+00:00),
+    },
+    "grace_deadline_at" => Illuminate\Support\Carbon @1787011200 {#8545
+      date: 2026-08-18 00:00:00.0 UTC (+00:00),
+    },
+    "last_payment_failed_at" => null,
+    "currency_code" => "USD",
+  ]
+
+> use App\Models\PaymentSubscriptionEvent;                                                                                         
+
+> use App\Models\PaymentSubscriptionEvent;                                                                                         
+
+   FATAL ERROR  Cannot use App\Models\PaymentSubscriptionEvent as PaymentSubscriptionEvent because the name is already in use in.
+
+> use App\Services\Payments\InstallmentWebhookHandler;                                                                             
+
+> PaymentSubscriptionEvent::class;                                                                                                 
+
+= "App\\Models\\PaymentSubscriptionEvent"
+
+> InstallmentWebhookHandler::class;                                                                                                
+
+= "App\\Services\\Payments\\InstallmentWebhookHandler"
+
+> $providerEventId = 'WH-MANUAL-PAYMENT-FAILED-' . now()->timestamp;                                                               
+
+= "WH-MANUAL-PAYMENT-FAILED-1783564359"
+
+> $payload = ['id'=>$providerEventId,'event_type'=>'BILLING.SUBSCRIPTION.PAYMENT.FAILED','create_time'=>now()->toIso8601String(),'r
+esource_type'=>'subscription','resource'=>['id'=>$subscription->provider_subscription_id,'status'=>'ACTIVE','billing_info'=>['faile
+d_payments_count'=>1,'outstanding_balance'=>['currency_code'=>$subscription->currency_code ?: 'USD','value'=>'181.81']]]];         
+
+= [
+    "id" => "WH-MANUAL-PAYMENT-FAILED-1783564359",
+    "event_type" => "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+    "create_time" => "2026-07-09T02:32:48+00:00",
+    "resource_type" => "subscription",
+    "resource" => [
+      "id" => "I-WKT2WVWEYLAC",
+      "status" => "ACTIVE",
+      "billing_info" => [
+        "failed_payments_count" => 1,
+        "outstanding_balance" => [
+          "currency_code" => "USD",
+          "value" => "181.81",
+        ],
+      ],
+    ],
+  ]
+
+> $payload;                                                                                                                        
+
+= [
+    "id" => "WH-MANUAL-PAYMENT-FAILED-1783564359",
+    "event_type" => "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+    "create_time" => "2026-07-09T02:32:48+00:00",
+    "resource_type" => "subscription",
+    "resource" => [
+      "id" => "I-WKT2WVWEYLAC",
+      "status" => "ACTIVE",
+      "billing_info" => [
+        "failed_payments_count" => 1,
+        "outstanding_balance" => [
+          "currency_code" => "USD",
+          "value" => "181.81",
+        ],
+      ],
+    ],
+  ]
+
+> $event = PaymentSubscriptionEvent::query()->create(['payment_subscription_id'=>$subscription->id,'invoice_id'=>$subscription->inv
+oice_id,'payment_activity_id'=>null,'provider'=>'paypal','provider_event_id'=>$providerEventId,'provider_event_type'=>'BILLING.SUBS
+CRIPTION.PAYMENT.FAILED','provider_subscription_id'=>$subscription->provider_subscription_id,'provider_order_id'=>null,'provider_ca
+pture_id'=>null,'occurred_at'=>now(),'processed_at'=>null,'status'=>'received','payload'=>$payload,'notes'=>'Manual local/dev simul
+ation for failed installment payment.']);                                                                                          
+
+= App\Models\PaymentSubscriptionEvent {#9182
+    payment_subscription_id: 53,
+    invoice_id: 130,
+    payment_activity_id: null,
+    provider: "paypal",
+    provider_event_id: "WH-MANUAL-PAYMENT-FAILED-1783564359",
+    provider_event_type: "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+    provider_subscription_id: "I-WKT2WVWEYLAC",
+    provider_order_id: null,
+    provider_capture_id: null,
+    occurred_at: "2026-07-09 02:33:12",
+    processed_at: null,
+    status: "received",
+    payload: "{\"id\":\"WH-MANUAL-PAYMENT-FAILED-1783564359\",\"event_type\":\"BILLING.SUBSCRIPTION.PAYMENT.FAILED\",\"create_time\":\"2026-07-09T02:32:48+00:00\",\"resource_type\":\"subscription\",\"resource\":{\"id\":\"I-WKT2WVWEYLAC\",\"status\":\"ACTIVE\",\"billing_info\":{\"failed_payments_count\":1,\"outstanding_balance\":{\"currency_code\":\"USD\",\"value\":\"181.81\"}}}}",
+    notes: "Manual local/dev simulation for failed installment payment.",
+    updated_at: "2026-07-09 02:33:12",
+    created_at: "2026-07-09 02:33:12",
+    id: 72,
+  }
+
+> $event->only(['id','payment_subscription_id','provider_event_id','provider_event_type','provider_subscription_id','status','proce
+ssed_at','notes']);                                                                                                                
+
+= [
+    "id" => 72,
+    "payment_subscription_id" => 53,
+    "provider_event_id" => "WH-MANUAL-PAYMENT-FAILED-1783564359",
+    "provider_event_type" => "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+    "provider_subscription_id" => "I-WKT2WVWEYLAC",
+    "status" => "received",
+    "processed_at" => null,
+    "notes" => "Manual local/dev simulation for failed installment payment.",
+  ]
+
+> $result = app(InstallmentWebhookHandler::class)->handle($event);                                                                 
+
+= App\Models\PaymentSubscriptionEvent {#9209
+    id: 72,
+    payment_subscription_id: 53,
+    invoice_id: 130,
+    payment_activity_id: null,
+    provider: "paypal",
+    provider_event_id: "WH-MANUAL-PAYMENT-FAILED-1783564359",
+    provider_event_type: "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+    provider_subscription_id: "I-WKT2WVWEYLAC",
+    provider_order_id: null,
+    provider_capture_id: null,
+    occurred_at: "2026-07-09 02:33:12",
+    processed_at: "2026-07-09 02:33:37",
+    status: "processed",
+    payload: "{\"id\":\"WH-MANUAL-PAYMENT-FAILED-1783564359\",\"event_type\":\"BILLING.SUBSCRIPTION.PAYMENT.FAILED\",\"create_time\":\"2026-07-09T02:32:48+00:00\",\"resource_type\":\"subscription\",\"resource\":{\"id\":\"I-WKT2WVWEYLAC\",\"status\":\"ACTIVE\",\"billing_info\":{\"failed_payments_count\":1,\"outstanding_balance\":{\"currency_code\":\"USD\",\"value\":\"181.81\"}}}}",
+    notes: "Manual local/dev simulation for failed installment payment.",
+    created_at: "2026-07-09 02:33:12",
+    updated_at: "2026-07-09 02:33:37",
+  }
+
+> $result->fresh()->only(['id','provider_event_type','status','processed_at','notes']);                                            
+
+= [
+    "id" => 72,
+    "provider_event_type" => "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+    "status" => "processed",
+    "processed_at" => Illuminate\Support\Carbon @1783564417 {#8604
+      date: 2026-07-09 02:33:37.0 UTC (+00:00),
+    },
+    "notes" => "Manual local/dev simulation for failed installment payment.",
+  ]
+
+> $after = $subscription->fresh();                                                                                                 
+
+= App\Models\PaymentSubscription {#7798
+    id: 53,
+    invoice_id: 130,
+    package_id: 1,
+    pending_registration_id: 172,
+    user_id: 30,
+    access_tier_id: 2,
+    provider: "paypal",
+    provider_product_id: "PROD-2H829281KL834124X",
+    provider_plan_id: "P-1K2597917C3840208NJG7U6Q",
+    provider_subscription_id: "I-WKT2WVWEYLAC",
+    status: "past_due",
+    installment_count: 9,
+    installments_paid_count: 1,
+    currency_code: "USD",
+    total_amount: "2000.00",
+    monthly_base_amount: "222.22",
+    first_payment_amount: "222.24",
+    next_billing_amount: "222.22",
+    started_at: "2026-07-08 07:23:02",
+    first_payment_paid_at: "2026-07-08 07:22:58",
+    next_due_at: "2026-08-15 00:00:00",
+    final_due_at: "2027-03-15 00:00:00",
+    grace_deadline_at: "2026-08-18 00:00:00",
+    completed_at: null,
+    suspended_at: null,
+    cancelled_at: null,
+    last_payment_failed_at: "2026-07-09 02:33:12",
+    last_synced_at: "2026-07-09 02:33:36",
+    metadata: "{\"context\":\"initial\",\"installment_plan\":{\"total_amount\":\"2000.00\",\"currency_code\":\"USD\",\"installment_count\":9,\"maximum_installment_count\":28,\"installment_maximum_count\":28,\"first_payment_amount\":\"222.24\",\"monthly_base_amount\":\"222.22\",\"recurring_payment_amount\":\"222.22\",\"billing_day\":15,\"billing_interval_unit\":\"MONTH\",\"billing_interval_count\":1,\"first_payment_date\":\"2026-07-08\",\"recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\"],\"available_recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\",\"2027-04-15\",\"2027-05-15\",\"2027-06-15\",\"2027-07-15\",\"2027-08-15\",\"2027-09-15\",\"2027-10-15\",\"2027-11-15\",\"2027-12-15\",\"2028-01-15\",\"2028-02-15\",\"2028-03-15\",\"2028-04-15\",\"2028-05-15\",\"2028-06-15\",\"2028-07-15\",\"2028-08-15\",\"2028-09-15\",\"2028-10-15\"],\"deadline_date\":\"2028-10-18\",\"final_due_at\":\"2027-03-15\",\"grace_deadlines\":[\"2026-08-18\",\"2026-09-18\",\"2026-10-18\",\"2026-11-18\",\"2026-12-18\",\"2027-01-18\",\"2027-02-18\",\"2027-03-18\"],\"schedule_breakdown\":[{\"cycle_number\":1,\"type\":\"first_payment\",\"amount\":\"222.24\",\"due_at\":\"2026-07-08\",\"grace_deadline\":null},{\"cycle_number\":2,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-08-15\",\"grace_deadline\":\"2026-08-18\"},{\"cycle_number\":3,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-09-15\",\"grace_deadline\":\"2026-09-18\"},{\"cycle_number\":4,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-10-15\",\"grace_deadline\":\"2026-10-18\"},{\"cycle_number\":5,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-11-15\",\"grace_deadline\":\"2026-11-18\"},{\"cycle_number\":6,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-12-15\",\"grace_deadline\":\"2026-12-18\"},{\"cycle_number\":7,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-01-15\",\"grace_deadline\":\"2027-01-18\"},{\"cycle_number\":8,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-02-15\",\"grace_deadline\":\"2027-02-18\"},{\"cycle_number\":9,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-03-15\",\"grace_deadline\":\"2027-03-18\"}]},\"selected_billing_day\":15,\"selected_installment_count\":9,\"provider_plan_fingerprint\":\"v2_initial_pkg1_day15_9x_USD_total200000_first22224_rec22222_month1\",\"provider_prepare_stage\":\"plan_ready\",\"provider_return_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/return?expires=1784100088&signature=161299bf67ea3d35eec7ebb10955c5121fc18e978557722e136ee95f72844d10\",\"provider_cancel_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/cancel?expires=1784100088&signature=ffbef9228761852c5ae95fddb7e3dea772590941af454c291742321167b24891\",\"provider_plan_key\":\"15_9x\",\"provider_plan_cache_version\":\"v2\",\"approval_attached_at\":\"2026-07-08T07:22:59+00:00\",\"provider_status\":\"APPROVAL_PENDING\",\"activation_last_payment_processed_at\":\"2026-07-08T07:22:58+00:00\",\"activation_last_payment_reference\":\"subscription_activation:I-WKT2WVWEYLAC:20260708072258\"}",
+    created_at: "2026-07-08 07:21:28",
+    updated_at: "2026-07-09 02:33:36",
+    billing_day: 15,
+  }
+
+> $after->only(['id','provider_subscription_id','status','next_due_at','grace_deadline_at','last_payment_failed_at','last_synced_at
+','currency_code']);                                                                                                               
+
+= [
+    "id" => 53,
+    "provider_subscription_id" => "I-WKT2WVWEYLAC",
+    "status" => "past_due",
+    "next_due_at" => Illuminate\Support\Carbon @1786752000 {#9214
+      date: 2026-08-15 00:00:00.0 UTC (+00:00),
+    },
+    "grace_deadline_at" => Illuminate\Support\Carbon @1787011200 {#9215
+      date: 2026-08-18 00:00:00.0 UTC (+00:00),
+    },
+    "last_payment_failed_at" => Illuminate\Support\Carbon @1783564392 {#8551
+      date: 2026-07-09 02:33:12.0 UTC (+00:00),
+    },
+    "last_synced_at" => Illuminate\Support\Carbon @1783564416 {#9205
+      date: 2026-07-09 02:33:36.0 UTC (+00:00),
+    },
+    "currency_code" => "USD",
+  ]
+
+> PaymentSubscriptionEvent::query()->where('payment_subscription_id',$subscription->id)->latest('id')->take(5)->get(['id','provider
+_event_id','provider_event_type','status','processed_at','notes']);                                                                
+
+= Illuminate\Database\Eloquent\Collection {#8715
+    all: [
+      App\Models\PaymentSubscriptionEvent {#8746
+        id: 72,
+        provider_event_id: "WH-MANUAL-PAYMENT-FAILED-1783564359",
+        provider_event_type: "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+        status: "processed",
+        processed_at: "2026-07-09 02:33:37",
+        notes: "Manual local/dev simulation for failed installment payment.",
+      },
+      App\Models\PaymentSubscriptionEvent {#8713
+        id: 70,
+        provider_event_id: "WH-1HB55295W25251522-8BH75230WX494851K",
+        provider_event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+        status: "processed",
+        processed_at: "2026-07-08 07:23:20",
+        notes: null,
+      },
+    ],
+  }
+
+> use App\Models\EmailLog;                                                                                                         
+
+> EmailLog::query()->latest('id')->take(10)->get(['id','notification_type','reference_type','reference_id','recipient_type','recipi
+ent_email','subject','status','sent_at','error_message']);                                                                         
+
+= Illuminate\Database\Eloquent\Collection {#9201
+    all: [
+      App\Models\EmailLog {#8748
+        id: 264,
+        notification_type: "installment_payment_failed",
+        reference_type: "payment_subscription",
+        reference_id: 53,
+        recipient_type: "user",
+        recipient_email: "sfasansongmoses21@gmail.com",
+        subject: "Your YogaFX installment payment needs attention",
+        status: "sent",
+        sent_at: "2026-07-09 02:33:37",
+        error_message: null,
+      },
+      App\Models\EmailLog {#9208
+        id: 263,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 90,
+        recipient_type: "admin",
+        recipient_email: "simangunsongmoses21@gmail.com",
+        subject: "YogaFX payment successful: sfasansongmoses21@gmail.com",
+        status: "sent",
+        sent_at: "2026-07-08 07:23:24",
+        error_message: null,
+      },
+      App\Models\EmailLog {#9122
+        id: 262,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 90,
+        recipient_type: "user",
+        recipient_email: "sfasansongmoses21@gmail.com",
+        subject: "Payment successful: welcome to YogaFX, Moses Simangunsong",
+        status: "sent",
+        sent_at: "2026-07-08 07:23:23",
+        error_message: null,
+      },
+      App\Models\EmailLog {#9121
+        id: 261,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 89,
+        recipient_type: "admin",
+        recipient_email: "simangunsongmoses21@gmail.com",
+        subject: "YogaFX payment successful: simadsfsoses21@gmail.com",
+        status: "sent",
+        sent_at: "2026-07-08 06:01:26",
+        error_message: null,
+      },
+      App\Models\EmailLog {#9123
+        id: 260,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 89,
+        recipient_type: "user",
+        recipient_email: "simadsfsoses21@gmail.com",
+        subject: "Payment successful: welcome to YogaFX, Moses Simangunsong",
+        status: "sent",
+        sent_at: "2026-07-08 06:01:25",
+        error_message: null,
+      },
+      App\Models\EmailLog {#9124
+        id: 259,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 85,
+        recipient_type: "admin",
+        recipient_email: "simangunsongmoses21@gmail.com",
+        subject: "YogaFX payment successful: safdgmoses21@gmail.com",
+        status: "sent",
+        sent_at: "2026-07-08 03:02:48",
+        error_message: null,
+      },
+      App\Models\EmailLog {#9125
+        id: 258,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 85,
+        recipient_type: "user",
+        recipient_email: "safdgmoses21@gmail.com",
+        subject: "Payment successful: welcome to YogaFX, Moses Simangunsong",
+        status: "sent",
+        sent_at: "2026-07-08 03:02:47",
+        error_message: null,
+      },
+      App\Models\EmailLog {#9126
+        id: 257,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 84,
+        recipient_type: "admin",
+        recipient_email: "simangunsongmoses21@gmail.com",
+        subject: "YogaFX payment successful: sdfasagmoses21@gmail.com",
+        status: "sent",
+        sent_at: "2026-07-08 02:51:29",
+        error_message: null,
+      },
+      App\Models\EmailLog {#8693
+        id: 256,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 84,
+        recipient_type: "user",
+        recipient_email: "sdfasagmoses21@gmail.com",
+        subject: "Payment successful: welcome to YogaFX, Moses Simangunsong",
+        status: "sent",
+        sent_at: "2026-07-08 02:51:29",
+        error_message: null,
+      },
+      App\Models\EmailLog {#9199
+        id: 255,
+        notification_type: "payment_success",
+        reference_type: "payment_activity",
+        reference_id: 75,
+        recipient_type: "admin",
+        recipient_email: "simangunsongmoses21@gmail.com",
+        subject: "YogaFX payment successful: safsngmoses21@gmail.com",
+        status: "sent",
+        sent_at: "2026-07-08 01:03:33",
+        error_message: null,
+      },
+    ],
+  }
+
+> EmailLog::query()->where('reference_type','payment_subscription')->where('reference_id',$subscription->id)->latest('id')->take(10
+)->get(['id','notification_type','recipient_type','recipient_email','subject','status','sent_at','error_message']);                
+
+= Illuminate\Database\Eloquent\Collection {#8809
+    all: [
+      App\Models\EmailLog {#8796
+        id: 264,
+        notification_type: "installment_payment_failed",
+        recipient_type: "user",
+        recipient_email: "sfasansongmoses21@gmail.com",
+        subject: "Your YogaFX installment payment needs attention",
+        status: "sent",
+        sent_at: "2026-07-09 02:33:37",
+        error_message: null,
+      },
+    ],
+  }
+
+>   
+
+
+> EmailLog::query()->where('reference_type','payment_subscription')->where('reference_id',$subscription->id)->latest('id')->take(10
+)->get(['id','notification_type','recipient_type','recipient_email','subject','status','sent_at','error_message']);                
+
+= Illuminate\Database\Eloquent\Collection {#8809
+    all: [
+      App\Models\EmailLog {#8796
+        id: 264,
+        notification_type: "installment_payment_failed",
+        recipient_type: "user",
+        recipient_email: "sfasansongmoses21@gmail.com",
+        subject: "Your YogaFX installment payment needs attention",
+        status: "sent",
+        sent_at: "2026-07-09 02:33:37",
+        error_message: null,
+      },
+    ],
+  }
+
+> EmailLog::query()->where('reference_type','payment_subscription')->where('reference_id',$subscription->id)->latest('id')->take(10
+)->get(['id','notification_type','recipient_type','recipient_email','subject','status','sent_at','error_message']);                
+
+= Illuminate\Database\Eloquent\Collection {#8720
+    all: [
+      App\Models\EmailLog {#9116
+        id: 264,
+        notification_type: "installment_payment_failed",
+        recipient_type: "user",
+        recipient_email: "sfasansongmoses21@gmail.com",
+        subject: "Your YogaFX installment payment needs attention",
+        status: "sent",
+        sent_at: "2026-07-09 02:33:37",
+        error_message: null,
+      },
+    ],
+  }
+
+> exit                                                                                                                             
+
+   INFO  Goodbye.
+
+PS D:\Semester6\Kerja\YogaFX-Learning-Management-System-Web> 
+
+
+PS D:\Semester6\Kerja\YogaFX-Learning-Management-System-Web> Get-Content storage\logs\laravel.log -Tail 100
+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
+y31N7u61HWrt7i+mfy47ZA5CBoW5UoNpDRAnAGVIHPWs6w+OfwouELT3UsBwTsubKVyMkkgYDDqT
++Z9ay9e/aH+HNlCv9l2OoalPGoSLyYTAAF6DexBA/A0Ae86ZcW89iLi3J8psne427ueTXyR+1B8Y
+IfETt4S8L3Il0qJwb66jPy3DqeEU90B5J7kDHA54b4ifGzxH4vsZNKslTRNBfObO1kZmkBPR5DyR
+/sjC+1eWgY6UALRRRQIQoz8IpJ9qT7PL/wA82/KnUUAN+zy/882/Kj7PL/zzb8qdRQFz0nwz47sd
+N8EwaXqOhT3mp6cL0adL5i+QPtSKjmVCpLFduVwRzWL8NtfsvDlxrketafe3djqumSadItpIsUih
+nRtwLAj+D071yFFAXOi0TU7TQviFput6dY3h02w1GK7jt5pFaUokgbaWAAycdcVp+PfFx8U6Ho9k
+LG4ilsLu/n8yR9+5LiUSKo9NvPtzXFUUBc6W510zfDmx8NCzlE1vqc1+Z8/KQ8aIFx1yNmc+9Fvr
+pi+HN74aNnKZrjU4b8T5+UBInTbjrk7859q5qigLnTNr7H4aReF1tJlmTVn1EzhvlKtCsezHXPy5
+z70eDte/sDTPE9rLZSzNq+mmxRlOPLJkR9x9R8mMe9czRQFztvh/4h0zRtE8SaP4i0zUrux1lLdW
+NlMsUieVIXHLKw5OO1UfAeuw+E/iHp2vx2NzNZWV0ZkgLjzCnIALYxnBHOK5eigLnW/ELxBbeIBo
+tno2m3VlpWkWf2O3W5lEsr5dnZmYKB1boB2rkPs8v/PNvyp1FAXG/Z5f+ebflR9nl/55t+VOooC4
+YI4PWiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoo
+ooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiii
+gAooooAKKKKACiiigAooooAKKKKADFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUU
+AFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQA
+UUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABR
+RRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFF
+FABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAH/2Q==
+--SUt4iroS--
+  
+PS D:\Semester6\Kerja\YogaFX-Learning-Management-System-Web> php artisan tinker
+Psy Shell v0.12.23 (PHP 8.4.13 — cli) by Justin Hileman
+New PHP manual is available (latest: 3.0.0). Update with `doc --update-manual`
+> $subscription = \App\Models\PaymentSubscription::query()->where('provider_event_id','')->first();                                
+
+   Illuminate\Database\QueryException  SQLSTATE[42703]: Undefined column: 7 ERROR:  kolom « provider_event_id » tidak ada
+LINE 1: select * from "payment_subscriptions" where "provider_event_...
+                                                    ^ (Connection: pgsql, Host: 127.0.0.1, Port: 5432, Database: yogafx_lms, SQL: select * from "payment_subscriptions" where "provider_event_id" =  limit 1).
+
+> $subscription = \App\Models\PaymentSubscription::query()->where('provider_event_id','')->first();                                
+
+   Illuminate\Database\QueryException  SQLSTATE[42703]: Undefined column: 7 ERROR:  kolom « provider_event_id » tidak ada
+LINE 1: select * from "payment_subscriptions" where "provider_event_...
+                                                    ^ (Connection: pgsql, Host: 127.0.0.1, Port: 5432, Database: yogafx_lms, SQL: select * from "payment_subscriptions" where "provider_event_id" =  limit 1).
+
+> use App\Models\PaymentSubscription;                                                                                              
+
+> $subscription = \App\Models\PaymentSubscription::query()->where('provider_event_id','')->first();                                
+
+   Illuminate\Database\QueryException  SQLSTATE[42703]: Undefined column: 7 ERROR:  kolom « provider_event_id » tidak ada
+LINE 1: select * from "payment_subscriptions" where "provider_event_...
+                                                    ^ (Connection: pgsql, Host: 127.0.0.1, Port: 5432, Database: yogafx_lms, SQL: select * from "payment_subscriptions" where "provider_event_id" =  limit 1).
+
+> $subscription = \App\Models\PaymentSubscription::query()->where('status','past_due')->latest('id')->first();                     
+
+= App\Models\PaymentSubscription {#8453
+    id: 53,
+    invoice_id: 130,
+    package_id: 1,
+    pending_registration_id: 172,
+    user_id: 30,
+    access_tier_id: 2,
+    provider: "paypal",
+    provider_product_id: "PROD-2H829281KL834124X",
+    provider_plan_id: "P-1K2597917C3840208NJG7U6Q",
+    provider_subscription_id: "I-WKT2WVWEYLAC",
+    status: "past_due",
+    installment_count: 9,
+    installments_paid_count: 1,
+    currency_code: "USD",
+    total_amount: "2000.00",
+    monthly_base_amount: "222.22",
+    first_payment_amount: "222.24",
+    next_billing_amount: "222.22",
+    started_at: "2026-07-08 07:23:02",
+    first_payment_paid_at: "2026-07-08 07:22:58",
+    next_due_at: "2026-08-15 00:00:00",
+    final_due_at: "2027-03-15 00:00:00",
+    grace_deadline_at: "2026-08-18 00:00:00",
+    completed_at: null,
+    suspended_at: null,
+    cancelled_at: null,
+    last_payment_failed_at: "2026-07-09 02:33:12",
+    last_synced_at: "2026-07-09 02:33:36",
+    metadata: "{\"context\":\"initial\",\"installment_plan\":{\"total_amount\":\"2000.00\",\"currency_code\":\"USD\",\"installment_count\":9,\"maximum_installment_count\":28,\"installment_maximum_count\":28,\"first_payment_amount\":\"222.24\",\"monthly_base_amount\":\"222.22\",\"recurring_payment_amount\":\"222.22\",\"billing_day\":15,\"billing_interval_unit\":\"MONTH\",\"billing_interval_count\":1,\"first_payment_date\":\"2026-07-08\",\"recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\"],\"available_recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\",\"2027-04-15\",\"2027-05-15\",\"2027-06-15\",\"2027-07-15\",\"2027-08-15\",\"2027-09-15\",\"2027-10-15\",\"2027-11-15\",\"2027-12-15\",\"2028-01-15\",\"2028-02-15\",\"2028-03-15\",\"2028-04-15\",\"2028-05-15\",\"2028-06-15\",\"2028-07-15\",\"2028-08-15\",\"2028-09-15\",\"2028-10-15\"],\"deadline_date\":\"2028-10-18\",\"final_due_at\":\"2027-03-15\",\"grace_deadlines\":[\"2026-08-18\",\"2026-09-18\",\"2026-10-18\",\"2026-11-18\",\"2026-12-18\",\"2027-01-18\",\"2027-02-18\",\"2027-03-18\"],\"schedule_breakdown\":[{\"cycle_number\":1,\"type\":\"first_payment\",\"amount\":\"222.24\",\"due_at\":\"2026-07-08\",\"grace_deadline\":null},{\"cycle_number\":2,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-08-15\",\"grace_deadline\":\"2026-08-18\"},{\"cycle_number\":3,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-09-15\",\"grace_deadline\":\"2026-09-18\"},{\"cycle_number\":4,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-10-15\",\"grace_deadline\":\"2026-10-18\"},{\"cycle_number\":5,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-11-15\",\"grace_deadline\":\"2026-11-18\"},{\"cycle_number\":6,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-12-15\",\"grace_deadline\":\"2026-12-18\"},{\"cycle_number\":7,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-01-15\",\"grace_deadline\":\"2027-01-18\"},{\"cycle_number\":8,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-02-15\",\"grace_deadline\":\"2027-02-18\"},{\"cycle_number\":9,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-03-15\",\"grace_deadline\":\"2027-03-18\"}]},\"selected_billing_day\":15,\"selected_installment_count\":9,\"provider_plan_fingerprint\":\"v2_initial_pkg1_day15_9x_USD_total200000_first22224_rec22222_month1\",\"provider_prepare_stage\":\"plan_ready\",\"provider_return_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/return?expires=1784100088&signature=161299bf67ea3d35eec7ebb10955c5121fc18e978557722e136ee95f72844d10\",\"provider_cancel_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/cancel?expires=1784100088&signature=ffbef9228761852c5ae95fddb7e3dea772590941af454c291742321167b24891\",\"provider_plan_key\":\"15_9x\",\"provider_plan_cache_version\":\"v2\",\"approval_attached_at\":\"2026-07-08T07:22:59+00:00\",\"provider_status\":\"APPROVAL_PENDING\",\"activation_last_payment_processed_at\":\"2026-07-08T07:22:58+00:00\",\"activation_last_payment_reference\":\"subscription_activation:I-WKT2WVWEYLAC:20260708072258\"}",
+    created_at: "2026-07-08 07:21:28",
+    updated_at: "2026-07-09 02:33:36",
+    billing_day: 15,
+  }
+
+> \App\Models\PaymentSubscriptionEvent::query()->latest('id')->take(10)->get(['id','payment_subscription_id','provider_event_id','p
+rovider_event_type','provider_subscription_id','status','processed_at','notes']);                                                  
+
+= Illuminate\Database\Eloquent\Collection {#9003
+    all: [
+      App\Models\PaymentSubscriptionEvent {#9013
+        id: 72,
+        payment_subscription_id: 53,
+        provider_event_id: "WH-MANUAL-PAYMENT-FAILED-1783564359",
+        provider_event_type: "BILLING.SUBSCRIPTION.PAYMENT.FAILED",
+        provider_subscription_id: "I-WKT2WVWEYLAC",
+        status: "processed",
+        processed_at: "2026-07-09 02:33:37",
+        notes: "Manual local/dev simulation for failed installment payment.",
+      },
+      App\Models\PaymentSubscriptionEvent {#9014
+        id: 71,
+        payment_subscription_id: null,
+        provider_event_id: "WH-6UF27071VL324514N-25092541G50955904",
+        provider_event_type: "BILLING.SUBSCRIPTION.CREATED",
+        provider_subscription_id: "I-91KC1RRYV679",
+        status: "ignored",
+        processed_at: "2026-07-08 07:26:19",
+        notes: "No matching payment subscription was found for this event.",
+      },
+      App\Models\PaymentSubscriptionEvent {#9011
+        id: 70,
+        payment_subscription_id: 53,
+        provider_event_id: "WH-1HB55295W25251522-8BH75230WX494851K",
+        provider_event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+        provider_subscription_id: "I-WKT2WVWEYLAC",
+        status: "processed",
+        processed_at: "2026-07-08 07:23:20",
+        notes: null,
+      },
+      App\Models\PaymentSubscriptionEvent {#9010
+        id: 69,
+        payment_subscription_id: null,
+        provider_event_id: "WH-1UV31651WW177420U-9AL749317Y700431V",
+        provider_event_type: "BILLING.SUBSCRIPTION.CREATED",
+        provider_subscription_id: "I-WKT2WVWEYLAC",
+        status: "ignored",
+        processed_at: "2026-07-08 07:21:48",
+        notes: "No matching payment subscription was found for this event.",
+      },
+      App\Models\PaymentSubscriptionEvent {#9009
+        id: 68,
+        payment_subscription_id: 52,
+        provider_event_id: "WH-34J50693KB9140318-08D55165G2212804D",
+        provider_event_type: "BILLING.SUBSCRIPTION.ACTIVATED",
+        provider_subscription_id: "I-1FU7HKNP0GFS",
+        status: "processed",
+        processed_at: "2026-07-08 06:01:22",
+        notes: null,
+      },
+      App\Models\PaymentSubscriptionEvent {#9008
+        id: 67,
+        payment_subscription_id: null,
+        provider_event_id: "WH-4AP20518XX868673P-4YW52649FB9564228",
+        provider_event_type: "BILLING.SUBSCRIPTION.CREATED",
+        provider_subscription_id: "I-1FU7HKNP0GFS",
+        status: "ignored",
+        processed_at: "2026-07-08 06:00:39",
+        notes: "No matching payment subscription was found for this event.",
+      },
+      App\Models\PaymentSubscriptionEvent {#9007
+        id: 66,
+        payment_subscription_id: null,
+        provider_event_id: "WH-6G16685433586792J-4D434200JU392082F",
+        provider_event_type: "BILLING.SUBSCRIPTION.CREATED",
+        provider_subscription_id: "I-DYCB1CGA8APH",
+        status: "ignored",
+        processed_at: "2026-07-08 05:49:08",
+        notes: "No matching payment subscription was found for this event.",
+      },
+      App\Models\PaymentSubscriptionEvent {#9006
+        id: 65,
+        payment_subscription_id: null,
+        provider_event_id: "WH-42983543WP740343E-9WW16159ER9997923",
+        provider_event_type: "BILLING.SUBSCRIPTION.CREATED",
+        provider_subscription_id: "I-V6KEV2U10L8V",
+        status: "ignored",
+        processed_at: "2026-07-08 05:48:18",
+        notes: "No matching payment subscription was found for this event.",
+      },
+      App\Models\PaymentSubscriptionEvent {#9005
+        id: 64,
+        payment_subscription_id: null,
+        provider_event_id: "WH-38L981628T919920W-5KR876713G1111929",
+        provider_event_type: "BILLING.SUBSCRIPTION.CREATED",
+        provider_subscription_id: "I-C96AA26TLTD3",
+        status: "ignored",
+        processed_at: "2026-07-08 05:47:58",
+        notes: "No matching payment subscription was found for this event.",
+      },
+      App\Models\PaymentSubscriptionEvent {#9004
+        id: 63,
+        payment_subscription_id: null,
+        provider_event_id: "WH-9EE07148PY1081335-9FS04202JM2040046",
+        provider_event_type: "BILLING.SUBSCRIPTION.CREATED",
+        provider_subscription_id: "I-G51B62B0V109",
+        status: "ignored",
+        processed_at: "2026-07-08 05:28:18",
+        notes: "No matching payment subscription was found for this event.",
+      },
+    ],
+  }
+
+> $subscription = \App\Models\PaymentSubscription::find(51);                                                                       
+
+= App\Models\PaymentSubscription {#7700
+    id: 51,
+    invoice_id: 126,
+    package_id: 1,
+    pending_registration_id: 169,
+    user_id: null,
+    access_tier_id: 2,
+    provider: "paypal",
+    provider_product_id: "PROD-2H829281KL834124X",
+    provider_plan_id: "P-9WE09472TG315882WNJG6JEY",
+    provider_subscription_id: null,
+    status: "draft",
+    installment_count: 13,
+    installments_paid_count: 0,
+    currency_code: "USD",
+    total_amount: "2000.00",
+    monthly_base_amount: "153.84",
+    first_payment_amount: "153.92",
+    next_billing_amount: "153.84",
+    started_at: null,
+    first_payment_paid_at: null,
+    next_due_at: "2026-08-15 00:00:00",
+    final_due_at: "2027-07-15 00:00:00",
+    grace_deadline_at: "2026-08-18 00:00:00",
+    completed_at: null,
+    suspended_at: null,
+    cancelled_at: null,
+    last_payment_failed_at: null,
+    last_synced_at: null,
+    metadata: "{\"context\":\"initial\",\"installment_plan\":{\"total_amount\":\"2000.00\",\"currency_code\":\"USD\",\"installment_count\":13,\"maximum_installment_count\":28,\"installment_maximum_count\":28,\"first_payment_amount\":\"153.92\",\"monthly_base_amount\":\"153.84\",\"recurring_payment_amount\":\"153.84\",\"billing_day\":15,\"billing_interval_unit\":\"MONTH\",\"billing_interval_count\":1,\"first_payment_date\":\"2026-07-08\",\"recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\",\"2027-04-15\",\"2027-05-15\",\"2027-06-15\",\"2027-07-15\"],\"available_recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\",\"2027-04-15\",\"2027-05-15\",\"2027-06-15\",\"2027-07-15\",\"2027-08-15\",\"2027-09-15\",\"2027-10-15\",\"2027-11-15\",\"2027-12-15\",\"2028-01-15\",\"2028-02-15\",\"2028-03-15\",\"2028-04-15\",\"2028-05-15\",\"2028-06-15\",\"2028-07-15\",\"2028-08-15\",\"2028-09-15\",\"2028-10-15\"],\"deadline_date\":\"2028-10-18\",\"final_due_at\":\"2027-07-15\",\"grace_deadlines\":[\"2026-08-18\",\"2026-09-18\",\"2026-10-18\",\"2026-11-18\",\"2026-12-18\",\"2027-01-18\",\"2027-02-18\",\"2027-03-18\",\"2027-04-18\",\"2027-05-18\",\"2027-06-18\",\"2027-07-18\"],\"schedule_breakdown\":[{\"cycle_number\":1,\"type\":\"first_payment\",\"amount\":\"153.92\",\"due_at\":\"2026-07-08\",\"grace_deadline\":null},{\"cycle_number\":2,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2026-08-15\",\"grace_deadline\":\"2026-08-18\"},{\"cycle_number\":3,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2026-09-15\",\"grace_deadline\":\"2026-09-18\"},{\"cycle_number\":4,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2026-10-15\",\"grace_deadline\":\"2026-10-18\"},{\"cycle_number\":5,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2026-11-15\",\"grace_deadline\":\"2026-11-18\"},{\"cycle_number\":6,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2026-12-15\",\"grace_deadline\":\"2026-12-18\"},{\"cycle_number\":7,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2027-01-15\",\"grace_deadline\":\"2027-01-18\"},{\"cycle_number\":8,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2027-02-15\",\"grace_deadline\":\"2027-02-18\"},{\"cycle_number\":9,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2027-03-15\",\"grace_deadline\":\"2027-03-18\"},{\"cycle_number\":10,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2027-04-15\",\"grace_deadline\":\"2027-04-18\"},{\"cycle_number\":11,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2027-05-15\",\"grace_deadline\":\"2027-05-18\"},{\"cycle_number\":12,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2027-06-15\",\"grace_deadline\":\"2027-06-18\"},{\"cycle_number\":13,\"type\":\"recurring\",\"amount\":\"153.84\",\"due_at\":\"2027-07-15\",\"grace_deadline\":\"2027-07-18\"}]},\"selected_billing_day\":15,\"selected_installment_count\":13,\"provider_plan_fingerprint\":\"v2_initial_pkg1_day15_13x_USD_total200000_first15392_rec15384_month1\",\"provider_prepare_stage\":\"plan_ready\",\"provider_return_url\":\"http:\\/\\/127.0.0.1:8000\\/checkout\\/169\\/master_class\\/installments\\/return?expires=1784094480&signature=bb3cce8ed3ae181cf28de758ccd481acf9ebfdaec0c85a6c29dd0c7fe3436390\",\"provider_cancel_url\":\"http:\\/\\/127.0.0.1:8000\\/checkout\\/169\\/master_class\\/installments\\/cancel?expires=1784094480&signature=95e8cea201abbff1ce0fd9b3dc82a5068e8d658b245201f4d7b90c7a44e22dd2\",\"provider_plan_key\":\"15_13x\",\"provider_plan_cache_version\":\"v2\"}",
+    created_at: "2026-07-08 05:47:41",
+    updated_at: "2026-07-08 05:48:03",
+    billing_day: 15,
+  }
+
+> $user = $subscription->user ?? $subscription->invoice?->user;                                                                    
+
+= null
+
+> $user = $subscription->user ?? $subscription->invoice?->user;                                                                    
+
+= null
+
+> $subscription = \App\Models\PaymentSubscription::find(53);                                                                       
+
+= App\Models\PaymentSubscription {#7741
+    id: 53,
+    invoice_id: 130,
+    package_id: 1,
+    pending_registration_id: 172,
+    user_id: 30,
+    access_tier_id: 2,
+    provider: "paypal",
+    provider_product_id: "PROD-2H829281KL834124X",
+    provider_plan_id: "P-1K2597917C3840208NJG7U6Q",
+    provider_subscription_id: "I-WKT2WVWEYLAC",
+    status: "past_due",
+    installment_count: 9,
+    installments_paid_count: 1,
+    currency_code: "USD",
+    total_amount: "2000.00",
+    monthly_base_amount: "222.22",
+    first_payment_amount: "222.24",
+    next_billing_amount: "222.22",
+    started_at: "2026-07-08 07:23:02",
+    first_payment_paid_at: "2026-07-08 07:22:58",
+    next_due_at: "2026-08-15 00:00:00",
+    final_due_at: "2027-03-15 00:00:00",
+    grace_deadline_at: "2026-08-18 00:00:00",
+    completed_at: null,
+    suspended_at: null,
+    cancelled_at: null,
+    last_payment_failed_at: "2026-07-09 02:33:12",
+    last_synced_at: "2026-07-09 02:33:36",
+    metadata: "{\"context\":\"initial\",\"installment_plan\":{\"total_amount\":\"2000.00\",\"currency_code\":\"USD\",\"installment_count\":9,\"maximum_installment_count\":28,\"installment_maximum_count\":28,\"first_payment_amount\":\"222.24\",\"monthly_base_amount\":\"222.22\",\"recurring_payment_amount\":\"222.22\",\"billing_day\":15,\"billing_interval_unit\":\"MONTH\",\"billing_interval_count\":1,\"first_payment_date\":\"2026-07-08\",\"recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\"],\"available_recurring_due_dates\":[\"2026-08-15\",\"2026-09-15\",\"2026-10-15\",\"2026-11-15\",\"2026-12-15\",\"2027-01-15\",\"2027-02-15\",\"2027-03-15\",\"2027-04-15\",\"2027-05-15\",\"2027-06-15\",\"2027-07-15\",\"2027-08-15\",\"2027-09-15\",\"2027-10-15\",\"2027-11-15\",\"2027-12-15\",\"2028-01-15\",\"2028-02-15\",\"2028-03-15\",\"2028-04-15\",\"2028-05-15\",\"2028-06-15\",\"2028-07-15\",\"2028-08-15\",\"2028-09-15\",\"2028-10-15\"],\"deadline_date\":\"2028-10-18\",\"final_due_at\":\"2027-03-15\",\"grace_deadlines\":[\"2026-08-18\",\"2026-09-18\",\"2026-10-18\",\"2026-11-18\",\"2026-12-18\",\"2027-01-18\",\"2027-02-18\",\"2027-03-18\"],\"schedule_breakdown\":[{\"cycle_number\":1,\"type\":\"first_payment\",\"amount\":\"222.24\",\"due_at\":\"2026-07-08\",\"grace_deadline\":null},{\"cycle_number\":2,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-08-15\",\"grace_deadline\":\"2026-08-18\"},{\"cycle_number\":3,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-09-15\",\"grace_deadline\":\"2026-09-18\"},{\"cycle_number\":4,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-10-15\",\"grace_deadline\":\"2026-10-18\"},{\"cycle_number\":5,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-11-15\",\"grace_deadline\":\"2026-11-18\"},{\"cycle_number\":6,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2026-12-15\",\"grace_deadline\":\"2026-12-18\"},{\"cycle_number\":7,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-01-15\",\"grace_deadline\":\"2027-01-18\"},{\"cycle_number\":8,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-02-15\",\"grace_deadline\":\"2027-02-18\"},{\"cycle_number\":9,\"type\":\"recurring\",\"amount\":\"222.22\",\"due_at\":\"2027-03-15\",\"grace_deadline\":\"2027-03-18\"}]},\"selected_billing_day\":15,\"selected_installment_count\":9,\"provider_plan_fingerprint\":\"v2_initial_pkg1_day15_9x_USD_total200000_first22224_rec22222_month1\",\"provider_prepare_stage\":\"plan_ready\",\"provider_return_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/return?expires=1784100088&signature=161299bf67ea3d35eec7ebb10955c5121fc18e978557722e136ee95f72844d10\",\"provider_cancel_url\":\"https:\\/\\/nikola-exorcismal-insuppressibly.ngrok-free.dev\\/checkout\\/172\\/master_class\\/installments\\/cancel?expires=1784100088&signature=ffbef9228761852c5ae95fddb7e3dea772590941af454c291742321167b24891\",\"provider_plan_key\":\"15_9x\",\"provider_plan_cache_version\":\"v2\",\"approval_attached_at\":\"2026-07-08T07:22:59+00:00\",\"provider_status\":\"APPROVAL_PENDING\",\"activation_last_payment_processed_at\":\"2026-07-08T07:22:58+00:00\",\"activation_last_payment_reference\":\"subscription_activation:I-WKT2WVWEYLAC:20260708072258\"}",
+    created_at: "2026-07-08 07:21:28",
+    updated_at: "2026-07-09 02:33:36",
+    billing_day: 15,
+  }
+
+> $user = $subscription->user ?? $subscription->invoice?->user;                                                                    
+
+= App\Models\User {#9011
+    id: 30,
+    name: "Moses Simangunsong",
+    role: "student",
+    email: "sfasansongmoses21@gmail.com",
+    email_verified_at: null,
+    #password: "\$2y\$12\$0qGJymKe5oBfpwymh9H2jepoUgPIu6NyMYjVisHBHvyqh5TioP8P2",
+    #remember_token: null,
+    created_at: "2026-07-08 07:23:20",
+    updated_at: "2026-07-08 07:23:20",
+    first_name: "Moses",
+    last_name: "Simangunsong",
+    whatsapp: "+62 23456345545",
+    preferred_certificate_picture: null,
+    instagram: null,
+    country: "Brazil",
+    birth_date: null,
+    gender: null,
+    practicing_yoga_for: null,
+    yoga_sequence_experience: null,
+    hours_per_week: null,
+    current_fitness_level: null,
+    flexibility_rating: null,
+    motivation: null,
+    why_yogafx: null,
+    how_did_you_find_us: null,
+    access_tier_id: 2,
+    profile_photo: null,
+    total_access_duration_seconds: 0,
+    is_active: false,
+  }
+
+>    

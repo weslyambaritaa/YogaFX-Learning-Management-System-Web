@@ -1278,24 +1278,9 @@ export default function StudentProfileForm({
                                 value={data.country}
                                 selectedOption={selectedCountryOption}
                                 options={countryOptions}
-                                onChange={(option) => {
-                                    setData("country", option.value);
-                                    const matchedDialCode =
-                                        phoneCountryCodeOptions.find((entry) =>
-                                            entry.label.startsWith(
-                                                `${option.label} (`,
-                                            ),
-                                        );
-                                    if (
-                                        matchedDialCode &&
-                                        !data.whatsapp_number
-                                    ) {
-                                        setData(
-                                            "whatsapp_country_code",
-                                            matchedDialCode.value,
-                                        );
-                                    }
-                                }}
+                                onChange={(option) =>
+                                    setData("country", option.value)
+                                }
                                 placeholder="Select a country"
                                 buttonClassName={theme.selectClassName}
                                 buttonTextClassName="text-sm font-normal text-white"
