@@ -3,7 +3,7 @@ import TransientStatusBanner from "@/Components/TransientStatusBanner";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function buildProfileFormData(user) {
     return {
@@ -64,6 +64,23 @@ export default function Edit({ status, upgradeOptions = [] }) {
         });
     };
 
+    useEffect(() => {
+        if (window.location.hash !== "#upgrade-class") {
+            return;
+        }
+
+        const upgradeSection = document.getElementById("upgrade-class");
+
+        if (upgradeSection && typeof upgradeSection.scrollIntoView === "function") {
+            window.requestAnimationFrame(() => {
+                upgradeSection.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                });
+            });
+        }
+    }, []);
+
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
@@ -116,7 +133,10 @@ export default function Edit({ status, upgradeOptions = [] }) {
                 </div>
 
                 {upgradeOptions.length > 0 ? (
-                    <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
+                    <div
+                        id="upgrade-class"
+                        className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5"
+                    >
                         <div className="flex flex-col gap-4">
                             <div>
                                 <h2 className="font-['Montserrat'] text-lg font-semibold text-white">

@@ -281,6 +281,12 @@ const studentNavigationItems = [
     },
 ];
 
+function studentCanUpgrade(user) {
+    const accessTierSlug = user?.access_tier?.slug;
+
+    return ["starter_kit", "online"].includes(String(accessTierSlug ?? ""));
+}
+
 function studentInstantAccessItemsForUser(user) {
     const accessTier = user?.access_tier;
     const items = [];
@@ -753,6 +759,8 @@ function StudentTopNavigation({
     const flashMessage = flash.success ?? flash.error ?? null;
     const flashTone = flash.error ? "error" : "success";
     const studentInstantAccessItems = studentInstantAccessItemsForUser(user);
+    const showUpgradeButton = studentCanUpgrade(user);
+    const profileUpgradeHref = `${route("profile.edit")}#upgrade-class`;
     const [instantAccessOpen, setInstantAccessOpen] = useState(false);
     const mobileStudentNavItems = [
         {
@@ -919,6 +927,14 @@ function StudentTopNavigation({
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {showUpgradeButton ? (
+                            <Button
+                                asChild
+                                className="rounded-[10px] bg-[#DB202C] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#c31c28]"
+                            >
+                                <Link href={profileUpgradeHref}>Upgrade</Link>
+                            </Button>
+                        ) : null}
                         <UserMenu user={user} isImmersive={isImmersive} />
                     </div>
                 </div>
