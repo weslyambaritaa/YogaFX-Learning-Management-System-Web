@@ -216,7 +216,7 @@ export default function FlagOptionSelect({
                                         <div className="flex items-center justify-between gap-3">
                                             <span className="flex min-w-0 flex-1 items-center gap-2">
                                                 <FlagVisual
-                                                    option={currentOption}
+                                                    option={option}
                                                     fallbackClassName={
                                                         fallbackClassName
                                                     }
@@ -227,17 +227,13 @@ export default function FlagOptionSelect({
                                                         "phone-code"
                                                             ? "block shrink-0 whitespace-nowrap"
                                                             : "block truncate",
-                                                        currentOption
-                                                            ? buttonTextClassName
-                                                            : placeholderClassName,
+                                                        optionTextClassName,
                                                     ].join(" ")}
                                                 >
-                                                    {currentOption
-                                                        ? formatOptionLabel(
-                                                              currentOption,
-                                                              displayMode,
-                                                          )
-                                                        : placeholder}
+                                                    {formatOptionLabel(
+                                                        option,
+                                                        displayMode,
+                                                    )}
                                                 </span>
                                             </span>
                                             {selected ? (

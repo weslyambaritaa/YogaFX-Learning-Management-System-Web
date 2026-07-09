@@ -1001,27 +1001,9 @@ export default function Scoreboard({
                                     value={data.country}
                                     selectedOption={selectedCountryOption}
                                     options={countryOptions}
-                                    onChange={(option) => {
-                                        setFieldValue("country", option.value);
-
-                                        const matchedDialCode =
-                                            phoneCountryCodeOptions.find(
-                                                (entry) =>
-                                                    entry.label.startsWith(
-                                                        `${option.label} (`,
-                                                    ),
-                                            );
-
-                                        if (
-                                            matchedDialCode &&
-                                            !dataRef.current.phone_number
-                                        ) {
-                                            setFieldValue(
-                                                "phone_country_code",
-                                                matchedDialCode.value,
-                                            );
-                                        }
-                                    }}
+                                    onChange={(option) =>
+                                        setFieldValue("country", option.value)
+                                    }
                                     placeholder="Select a country"
                                     disabled={isIdentityLocked}
                                     buttonClassName="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
