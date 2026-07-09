@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 const toneClasses = {
-    success: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    success: "border-emerald-200 bg-emerald-50 text-slate-900",
     error: "border-rose-200 bg-rose-50 text-rose-900",
 };
 
