@@ -1,4 +1,5 @@
 import { Button } from "@/Components/ui/button";
+import StudentAppDownloadDialog from "@/Components/student/StudentAppDownloadDialog";
 import TransientStatusBanner from "@/Components/TransientStatusBanner";
 import {
     DropdownMenu,
@@ -34,6 +35,7 @@ import {
     Menu,
     MessageSquareText,
     PlaySquare,
+    Smartphone,
     Shield,
     UserRound,
     Wallet,
@@ -260,6 +262,12 @@ const adminUtilityItems = [
         match: ["admin.access-tiers.*"],
     },
     {
+        label: "Link Control",
+        route: "admin.link-control.show",
+        icon: Smartphone,
+        match: ["admin.link-control.*"],
+    },
+    {
         label: "Contact Support",
         route: "admin.support-settings.show",
         icon: Mail,
@@ -355,6 +363,7 @@ const adminPageTitles = {
     "admin.email-notifications.index": "Email Notification",
     "admin.email-notifications.show": "Email Notification",
     "admin.email-branding.show": "Email Branding",
+    "admin.link-control.show": "Link Control",
     "admin.support-settings.show": "Contact Support",
     "admin.packages.index": "Packages",
     "admin.packages.create": "Create Package",
@@ -385,6 +394,31 @@ function getUserInitials(user) {
 }
 
 function UserMenu({ user, isImmersive = false }) {
+    const { appDownload } = usePage().props;
+    const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+    const [isStudentDesktop, setIsStudentDesktop] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return undefined;
+        }
+
+        const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
+        const syncMatch = () => setIsStudentDesktop(mediaQuery.matches);
+
+        syncMatch();
+
+        if (typeof mediaQuery.addEventListener === "function") {
+            mediaQuery.addEventListener("change", syncMatch);
+
+            return () => mediaQuery.removeEventListener("change", syncMatch);
+        }
+
+        mediaQuery.addListener(syncMatch);
+
+        return () => mediaQuery.removeListener(syncMatch);
+    }, []);
+
     const handleLogout = () => {
         router.post(route("logout"));
     };
@@ -402,94 +436,117 @@ function UserMenu({ user, isImmersive = false }) {
 
     const isStudent = user?.role === "student";
     const isAdmin = ["admin", "super_admin"].includes(user?.role);
+    const showDownloadApplication =
+        isStudent &&
+        isStudentDesktop &&
+        appDownload?.qr_image_url;
     const displayName = user?.first_name || user?.name || "Student";
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    variant="outline"
-                    className={[
-                        "gap-2 rounded-lg",
-                        isImmersive
-                            ? "border-transparent bg-transparent px-3 text-white hover:bg-transparent hover:text-white"
-                            : "",
-                        isImmersive
-                            ? "max-md:h-11 max-md:w-11 max-md:rounded-[10px] max-md:border-transparent max-md:bg-transparent max-md:px-0 max-md:hover:bg-transparent"
-                            : "",
-                    ].join(" ")}
-                >
-                    <span
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="outline"
                         className={[
-                            "flex size-8 items-center justify-center overflow-hidden bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current",
+                            "gap-2 rounded-lg",
                             isImmersive
-                                ? "rounded-[8px] max-md:size-9 max-md:border-0 max-md:bg-transparent"
-                                : "rounded-full",
+                                ? "border-transparent bg-transparent px-3 text-white hover:bg-transparent hover:text-white"
+                                : "",
+                            isImmersive
+                                ? "max-md:h-11 max-md:w-11 max-md:rounded-[10px] max-md:border-transparent max-md:bg-transparent max-md:px-0 max-md:hover:bg-transparent"
+                                : "",
                         ].join(" ")}
                     >
-                        {user?.profile_photo ? (
-                            <img
-                                src={user.profile_photo}
-                                alt={displayName}
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
-                            getUserInitials(user) || (
-                                <UserRound className="size-4" />
-                            )
-                        )}
-                    </span>
-                    <span className="hidden max-w-32 truncate md:inline">
-                        {displayName}
-                    </span>
-                    <ChevronDown className="hidden size-4 opacity-70 md:inline" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-                align="end"
-                className="w-56 bg-white text-gray-900 border-gray-200"
-            >
-                <DropdownMenuLabel>
-                    <div className="flex flex-col">
-                        <span className="font-medium text-foreground">
-                            {user.name}
+                        <span
+                            className={[
+                                "flex size-8 items-center justify-center overflow-hidden bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current",
+                                isImmersive
+                                    ? "rounded-[8px] max-md:size-9 max-md:border-0 max-md:bg-transparent"
+                                    : "rounded-full",
+                            ].join(" ")}
+                        >
+                            {user?.profile_photo ? (
+                                <img
+                                    src={user.profile_photo}
+                                    alt={displayName}
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                getUserInitials(user) || (
+                                    <UserRound className="size-4" />
+                                )
+                            )}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                            {user.email}
+                        <span className="hidden max-w-32 truncate md:inline">
+                            {displayName}
                         </span>
-                    </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {isStudent && (
-                    <DropdownMenuItem
-                        onSelect={(event) => {
-                            event.preventDefault();
-                            handleProfileNavigation();
-                        }}
-                    >
-                        Profile
-                    </DropdownMenuItem>
-                )}
-                {isAdmin && (
-                    <DropdownMenuItem
-                        onSelect={(event) => {
-                            event.preventDefault();
-                            handleProfileNavigation();
-                        }}
-                    >
-                        Profile
-                    </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                    onSelect={(event) => {
-                        event.preventDefault();
-                        handleLogout();
-                    }}
+                        <ChevronDown className="hidden size-4 opacity-70 md:inline" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    align="end"
+                    className="w-56 border-gray-200 bg-white text-gray-900"
                 >
-                    Log Out
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+                    <DropdownMenuLabel>
+                        <div className="flex flex-col">
+                            <span className="font-medium text-foreground">
+                                {user.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                                {user.email}
+                            </span>
+                        </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {isStudent && (
+                        <DropdownMenuItem
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                handleProfileNavigation();
+                            }}
+                        >
+                            Profile
+                        </DropdownMenuItem>
+                    )}
+                    {isAdmin && (
+                        <DropdownMenuItem
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                handleProfileNavigation();
+                            }}
+                        >
+                            Profile
+                        </DropdownMenuItem>
+                    )}
+                    {showDownloadApplication ? (
+                        <DropdownMenuItem
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                setDownloadDialogOpen(true);
+                            }}
+                        >
+                            Download Application
+                        </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuItem
+                        onSelect={(event) => {
+                            event.preventDefault();
+                            handleLogout();
+                        }}
+                    >
+                        Log Out
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <StudentAppDownloadDialog
+                open={downloadDialogOpen}
+                onOpenChange={setDownloadDialogOpen}
+                qrImageUrl={appDownload?.qr_image_url ?? null}
+                maxWidthClassName="sm:max-w-lg"
+            />
+        </>
     );
 }
 
@@ -932,7 +989,7 @@ function StudentTopNavigation({
                                 asChild
                                 className="rounded-[10px] bg-[#DB202C] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#c31c28]"
                             >
-                                <Link href={profileUpgradeHref}>Upgrade</Link>
+                                <Link href={profileUpgradeHref}>Upgrade Account</Link>
                             </Button>
                         ) : null}
                         <UserMenu user={user} isImmersive={isImmersive} />

@@ -105,6 +105,18 @@ Flow yang belum tertulis di sini tidak boleh dianggap sebagai source of truth im
    - access time summary
 3. Student menggunakan CTA utama untuk melanjutkan lesson terakhir atau memulai lesson pertama.
 
+### Desktop First-Open Welcome
+1. Student membuka `Home` dari desktop untuk pertama kali.
+2. Sistem menampilkan welcome popup multi-slide.
+3. Salah satu slide menampilkan QR image dari `Link Control`.
+4. Student dapat next, skip, atau close popup lalu masuk ke Home normal.
+
+### Mobile App Download CTA
+1. Student membuka `Home` dari mobile.
+2. Student scroll ke bagian bawah halaman.
+3. Jika `Link Control` sudah berisi store links, sistem menampilkan tombol Google Play dan App Store.
+4. Student menekan salah satu tombol lalu diarahkan ke store link terkait.
+
 ### Important Notes
 - Home adalah dashboard student aktif saat ini
 - Home sengaja fokus pada guidance, bukan tabel atau statistik admin-like
@@ -248,6 +260,13 @@ Lesson berikutnya dapat terkunci sampai lesson sebelumnya memenuhi rule aktif:
 - user menu
 - logout
 
+### User Menu Extension
+- di student desktop, user menu dapat menampilkan:
+  - Profile
+  - Download Application
+  - Logout
+- `Download Application` membuka popup QR berbasis `Link Control`
+
 ### 8.1 Admin Account Profile
 1. Admin menekan user menu di kanan atas.
 2. Admin memilih `Profile`.
@@ -305,6 +324,11 @@ Lesson berikutnya dapat terkunci sampai lesson sebelumnya memenuhi rule aktif:
    - design
    - result ranges
 4. Admin dapat preview assessment dari sisi admin.
+
+### 12.3 Link Control
+1. Admin membuka `Supporting Pages -> Link Control`.
+2. Admin mengunggah QR image dan mengisi link Google Play / App Store.
+3. Setelah save, student home memakai data terbaru tersebut.
 
 ---
 

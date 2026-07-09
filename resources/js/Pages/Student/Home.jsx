@@ -6,10 +6,14 @@ import { Head, Link, usePage } from "@inertiajs/react";
 import { ChevronRight, Play, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-const ONBOARDING_KEY = "yogafx_onboarding_done";
+const ONBOARDING_KEY = "yogafx_onboarding_done_v2";
 const FONT_FAMILY = "'Montserrat', sans-serif";
+const GOOGLE_PLAY_BADGE_URL =
+    "https://yogafx.b-cdn.net/content/vecteezy_google-play-store-download-button-in-white-colors-download_12871364.png";
+const APP_STORE_BADGE_URL =
+    "https://yogafx.b-cdn.net/content/vecteezy_app-store-download-button-in-white-colors-download-on-the_12871374.png";
 
-const SLIDES = [
+const BASE_SLIDES = [
     {
         title: "Welcome to YogaFX",
         body: "A premium learning platform built for focus with a cleaner module flow across desktop and mobile.",
@@ -33,10 +37,63 @@ function formatDurationParts(totalSeconds) {
     };
 }
 
-function OnboardingOverlay({ onDone }) {
+function AppStoreBadges({ googlePlayUrl, appStoreUrl, className = "" }) {
+    const items = [
+        {
+            key: "google-play",
+            href: googlePlayUrl,
+            src: GOOGLE_PLAY_BADGE_URL,
+            alt: "Download on Google Play",
+        },
+        {
+            key: "app-store",
+            href: appStoreUrl,
+            src: APP_STORE_BADGE_URL,
+            alt: "Download on the App Store",
+        },
+    ].filter((item) => item.href);
+
+    if (!items.length) {
+        return null;
+    }
+
+    return (
+        <div className={`flex flex-wrap items-center justify-center gap-3 ${className}`}>
+            {items.map((item) => (
+                <a
+                    key={item.key}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-transform hover:scale-[1.02]"
+                >
+                    <img
+                        src={item.src}
+                        alt={item.alt}
+                        className="h-11 w-auto object-contain"
+                    />
+                </a>
+            ))}
+        </div>
+    );
+}
+
+function OnboardingOverlay({ onDone, appDownload }) {
     const [slide, setSlide] = useState(0);
-    const current = SLIDES[slide];
-    const isLast = slide === SLIDES.length - 1;
+    const slides = [
+        ...BASE_SLIDES,
+        ...(appDownload?.qr_image_url
+            ? [
+                  {
+                      title: "Get it on your mobile!",
+                      body: "Scan the QR code from your phone to open the YogaFX mobile experience anytime.",
+                      type: "app-download",
+                  },
+              ]
+            : []),
+    ];
+    const current = slides[slide];
+    const isLast = slide === slides.length - 1;
 
     const finish = () => {
         localStorage.setItem(ONBOARDING_KEY, "1");
@@ -57,7 +114,7 @@ function OnboardingOverlay({ onDone }) {
                     <X className="size-4" />
                 </button>
                 <div className="mb-8 flex gap-2">
-                    {SLIDES.map((_, index) => (
+                    {slides.map((_, index) => (
                         <div
                             key={index}
                             className={[
@@ -70,10 +127,38 @@ function OnboardingOverlay({ onDone }) {
                     ))}
                 </div>
                 <div className="space-y-3 text-center">
-                    <h2 className="text-2xl font-semibold">{current.title}</h2>
-                    <p className="text-sm leading-7 text-white/60">
-                        {current.body}
-                    </p>
+                    {current.type === "app-download" ? (
+                        <div className="space-y-5">
+                            <div className="mx-auto overflow-hidden rounded-[18px] border border-white/10 bg-white p-3 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+                                {appDownload?.qr_image_url ? (
+                                    <img
+                                        src={appDownload.qr_image_url}
+                                        alt="YogaFX mobile app QR code"
+                                        className="h-48 w-48 object-contain"
+                                    />
+                                ) : (
+                                    <div className="flex h-48 w-48 items-center justify-center rounded-[12px] border border-dashed border-slate-300 text-center text-sm text-slate-500">
+                                        QR code is not available yet.
+                                    </div>
+                                )}
+                            </div>
+                            <div className="space-y-3">
+                                <h2 className="text-2xl font-semibold">
+                                    {current.title}
+                                </h2>
+                                <p className="text-sm leading-7 text-white/60">
+                                    {current.body}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <h2 className="text-2xl font-semibold">{current.title}</h2>
+                            <p className="text-sm leading-7 text-white/60">
+                                {current.body}
+                            </p>
+                        </>
+                    )}
                 </div>
                 <div className="mt-8 flex items-center justify-between">
                     <button
@@ -609,7 +694,8 @@ export default function StudentHome({
     const bootedRef = useRef(false);
     const rawModules = availableModulesSection?.items ?? [];
     const studentName = studentContext?.display_name ?? "Student";
-    const authUser = usePage().props.auth.user;
+    const { auth, appDownload } = usePage().props;
+    const authUser = auth.user;
     const accessTierLabel =
         studentContext?.access_tier?.name ??
         authUser?.access_tier?.name ??
@@ -629,7 +715,12 @@ export default function StudentHome({
         .join(" - ");
 
     useEffect(() => {
-        if (!bootedRef.current && !localStorage.getItem(ONBOARDING_KEY)) {
+        if (
+            !bootedRef.current &&
+            typeof window !== "undefined" &&
+            window.matchMedia("(min-width: 768px)").matches &&
+            !localStorage.getItem(ONBOARDING_KEY)
+        ) {
             setShowOnboarding(true);
         }
         bootedRef.current = true;
@@ -643,7 +734,10 @@ export default function StudentHome({
             <Head title="Home" />
 
             {showOnboarding ? (
-                <OnboardingOverlay onDone={() => setShowOnboarding(false)} />
+                <OnboardingOverlay
+                    onDone={() => setShowOnboarding(false)}
+                    appDownload={appDownload}
+                />
             ) : null}
             <LockedContentDialog
                 open={lockedModuleOpen}
@@ -884,6 +978,28 @@ export default function StudentHome({
                         </div>
                     ) : null}
                 </section>
+
+                {appDownload?.has_any_link ? (
+                    <section className="pb-4 sm:hidden">
+                        <div
+                            className="space-y-4 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-5 text-center text-white"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
+                            <div className="space-y-1.5">
+                                <h2 className="text-base font-semibold">
+                                    Get it on your mobile!
+                                </h2>
+                                <p className="text-sm leading-6 text-white/60">
+                                    Open YogaFX faster from your phone with the store links below.
+                                </p>
+                            </div>
+                            <AppStoreBadges
+                                googlePlayUrl={appDownload.google_play_url}
+                                appStoreUrl={appDownload.app_store_url}
+                            />
+                        </div>
+                    </section>
+                ) : null}
 
             </div>
         </AuthenticatedLayout>

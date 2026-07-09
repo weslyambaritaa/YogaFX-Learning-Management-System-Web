@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Services\LinkControlSettingService;
 use App\Support\CountryDirectory;
 use App\Support\StudentProfileValue;
 use App\Services\SupportSettingService;
@@ -36,7 +37,9 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $linkControlSettingService = app(LinkControlSettingService::class);
         $supportSettingService = app(SupportSettingService::class);
+        $linkControlSetting = $linkControlSettingService->current();
 
         return [
             ...parent::share($request),
@@ -97,6 +100,16 @@ class HandleInertiaRequests extends Middleware
                 'phone_country_codes' => CountryDirectory::phoneCountryCodeOptions(),
             ],
             'supportContact' => $supportSettingService->publicPayload(),
+            'appDownload' => [
+                ...$linkControlSettingService->publicPayload(),
+                'qr_image_url' => $this->protectedMediaUrl(
+                    'link-control-setting',
+                    $linkControlSetting->id,
+                    'qr_image',
+                    $linkControlSetting->qr_image,
+                    versionSeed: $linkControlSetting->updated_at,
+                ),
+            ],
         ];
     }
 }
