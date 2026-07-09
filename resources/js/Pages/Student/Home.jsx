@@ -58,7 +58,9 @@ function AppStoreBadges({ googlePlayUrl, appStoreUrl, className = "" }) {
     }
 
     return (
-        <div className={`flex flex-wrap items-center justify-center gap-3 ${className}`}>
+        <div
+            className={`flex flex-wrap items-center justify-center gap-3 ${className}`}
+        >
             {items.map((item) => (
                 <a
                     key={item.key}
@@ -153,7 +155,9 @@ function OnboardingOverlay({ onDone, appDownload }) {
                         </div>
                     ) : (
                         <>
-                            <h2 className="text-2xl font-semibold">{current.title}</h2>
+                            <h2 className="text-2xl font-semibold">
+                                {current.title}
+                            </h2>
                             <p className="text-sm leading-7 text-white/60">
                                 {current.body}
                             </p>
@@ -231,12 +235,8 @@ function AccessTimeCard({ accessTimeSummary }) {
         >
             <div>
                 {/* Hapus uppercase dan tracking */}
-                <div className="text-xs text-white/45">
-                    Running Total
-                </div>
-                <div className="text-xs text-white/45">
-                    Login Time
-                </div>
+                <div className="text-xs text-white/45">Running Total</div>
+                <div className="text-xs text-white/45">Login Time</div>
             </div>
             <div className="text-3xl font-semibold tracking-[0.08em]">
                 {parts.hours}:{parts.minutes}:{parts.seconds}
@@ -488,19 +488,21 @@ function ModuleCard({ module, onLockedClick }) {
                                 ? "available"
                                 : module.status
                         }
-                        label={module.status === "in_progress" ? "Available" : null}
+                        label={
+                            module.status === "in_progress" ? "Available" : null
+                        }
                     />
                 </div>
             </div>
 
-                <div className="space-y-1.5">
-                    <div className="space-y-1">
-                        <div className="text-sm font-semibold text-white/82 sm:text-base">
-                            Module {module.sort_order}
-                        </div>
-                        <div className="line-clamp-2 text-sm font-semibold leading-5 text-white sm:text-base">
-                            {module.title}
-                        </div>
+            <div className="space-y-1.5">
+                <div className="space-y-1">
+                    <div className="text-sm font-semibold text-white/82 sm:text-base">
+                        Module {module.sort_order}
+                    </div>
+                    <div className="line-clamp-2 text-sm font-semibold leading-5 text-white sm:text-base">
+                        {module.title}
+                    </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-white/62 sm:text-xs">
@@ -557,7 +559,9 @@ function ModuleCard({ module, onLockedClick }) {
                                 ? "available"
                                 : module.status
                         }
-                        label={module.status === "in_progress" ? "Available" : null}
+                        label={
+                            module.status === "in_progress" ? "Available" : null
+                        }
                     />
                 </div>
             </div>
@@ -843,7 +847,6 @@ export default function StudentHome({
                             </div>
                         </div>
                     </div>
-
                 </div>
             </section>
 
@@ -982,16 +985,13 @@ export default function StudentHome({
                 {appDownload?.has_any_link ? (
                     <section className="pb-4 sm:hidden">
                         <div
-                            className="space-y-4 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-5 text-center text-white"
+                            className=" px-4 py-5 text-center text-white"
                             style={{ fontFamily: FONT_FAMILY }}
                         >
                             <div className="space-y-1.5">
                                 <h2 className="text-base font-semibold">
                                     Get it on your mobile!
                                 </h2>
-                                <p className="text-sm leading-6 text-white/60">
-                                    Open YogaFX faster from your phone with the store links below.
-                                </p>
                             </div>
                             <AppStoreBadges
                                 googlePlayUrl={appDownload.google_play_url}
@@ -1000,7 +1000,6 @@ export default function StudentHome({
                         </div>
                     </section>
                 ) : null}
-
             </div>
         </AuthenticatedLayout>
     );
