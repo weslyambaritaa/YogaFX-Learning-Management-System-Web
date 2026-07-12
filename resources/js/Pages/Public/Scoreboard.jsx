@@ -722,7 +722,7 @@ export default function Scoreboard({
 
     return (
         <PublicFlowLayout
-            title="Scoreboard"
+            title={packageTitle}
             showBackButton={!is_package_locked}
             heading={
                 <span
