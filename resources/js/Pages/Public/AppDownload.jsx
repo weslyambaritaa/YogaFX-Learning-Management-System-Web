@@ -24,7 +24,7 @@ export default function AppDownload({ appDownload }) {
             }
         >
             <div
-                className="rounded-[5px] border border-white/10 bg-white/[0.04] p-6 text-center text-white sm:p-8"
+                className="text-center text-white"
                 style={{ fontFamily: FONT_FAMILY }}
             >
                 <div className="space-y-5">
