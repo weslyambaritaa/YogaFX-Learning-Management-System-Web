@@ -1,3 +1,4 @@
+import AppStoreBadges from "@/Components/public/AppStoreBadges";
 import LockedContentDialog from "@/Components/student/LockedContentDialog";
 import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
@@ -8,11 +9,6 @@ import { useEffect, useRef, useState } from "react";
 
 const ONBOARDING_KEY = "yogafx_onboarding_done_v2";
 const FONT_FAMILY = "'Montserrat', sans-serif";
-const GOOGLE_PLAY_BADGE_URL =
-    "https://yogafx.b-cdn.net/content/vecteezy_google-play-store-download-button-in-white-colors-download_12871364.png";
-const APP_STORE_BADGE_URL =
-    "https://yogafx.b-cdn.net/content/vecteezy_app-store-download-button-in-white-colors-download-on-the_12871374.png";
-
 const BASE_SLIDES = [
     {
         title: "Welcome to YogaFX",
@@ -37,54 +33,11 @@ function formatDurationParts(totalSeconds) {
     };
 }
 
-function AppStoreBadges({ googlePlayUrl, appStoreUrl, className = "" }) {
-    const items = [
-        {
-            key: "google-play",
-            href: googlePlayUrl,
-            src: GOOGLE_PLAY_BADGE_URL,
-            alt: "Download on Google Play",
-        },
-        {
-            key: "app-store",
-            href: appStoreUrl,
-            src: APP_STORE_BADGE_URL,
-            alt: "Download on the App Store",
-        },
-    ].filter((item) => item.href);
-
-    if (!items.length) {
-        return null;
-    }
-
-    return (
-        <div
-            className={`flex flex-wrap items-center justify-center gap-3 ${className}`}
-        >
-            {items.map((item) => (
-                <a
-                    key={item.key}
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="transition-transform hover:scale-[1.02]"
-                >
-                    <img
-                        src={item.src}
-                        alt={item.alt}
-                        className="h-14 w-auto object-contain"
-                    />
-                </a>
-            ))}
-        </div>
-    );
-}
-
 function OnboardingOverlay({ onDone, appDownload }) {
     const [slide, setSlide] = useState(0);
     const slides = [
         ...BASE_SLIDES,
-        ...(appDownload?.qr_image_url
+        ...(appDownload?.has_any_link && appDownload?.qr_image_url
             ? [
                   {
                       title: "Get it on your mobile!",

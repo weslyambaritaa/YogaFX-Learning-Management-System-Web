@@ -117,6 +117,12 @@ Flow yang belum tertulis di sini tidak boleh dianggap sebagai source of truth im
 3. Jika `Link Control` sudah berisi store links, sistem menampilkan tombol Google Play dan App Store.
 4. Student menekan salah satu tombol lalu diarahkan ke store link terkait.
 
+### Public App Download Page
+1. Visitor atau student scan QR dari YogaFX.
+2. QR selalu mengarah ke satu public page download app.
+3. Halaman menampilkan tombol App Store dan Google Play berdasarkan link terbaru dari `Link Control`.
+4. Jika salah satu link kosong, tombol store tersebut tampil disabled.
+
 ### Important Notes
 - Home adalah dashboard student aktif saat ini
 - Home sengaja fokus pada guidance, bukan tabel atau statistik admin-like
@@ -327,8 +333,9 @@ Lesson berikutnya dapat terkunci sampai lesson sebelumnya memenuhi rule aktif:
 
 ### 12.3 Link Control
 1. Admin membuka `Supporting Pages -> Link Control`.
-2. Admin mengunggah QR image dan mengisi link Google Play / App Store.
-3. Setelah save, student home memakai data terbaru tersebut.
+2. Admin mengisi link Google Play / App Store.
+3. Saat save, sistem mengenerate ulang QR image otomatis untuk public download app page.
+4. Setelah save, student home memakai data terbaru tersebut.
 
 ---
 

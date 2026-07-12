@@ -14,7 +14,6 @@ class LinkControlSettingUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'qr_image' => ['nullable', 'image', 'max:10240'],
             'google_play_url' => ['nullable', 'url', 'max:2048'],
             'app_store_url' => ['nullable', 'url', 'max:2048'],
         ];

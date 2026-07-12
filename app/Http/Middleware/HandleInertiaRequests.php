@@ -40,6 +40,7 @@ class HandleInertiaRequests extends Middleware
         $linkControlSettingService = app(LinkControlSettingService::class);
         $supportSettingService = app(SupportSettingService::class);
         $linkControlSetting = $linkControlSettingService->current();
+        $appDownloadPayload = $linkControlSettingService->publicPayload();
 
         return [
             ...parent::share($request),
@@ -101,14 +102,16 @@ class HandleInertiaRequests extends Middleware
             ],
             'supportContact' => $supportSettingService->publicPayload(),
             'appDownload' => [
-                ...$linkControlSettingService->publicPayload(),
-                'qr_image_url' => $this->protectedMediaUrl(
-                    'link-control-setting',
-                    $linkControlSetting->id,
-                    'qr_image',
-                    $linkControlSetting->qr_image,
-                    versionSeed: $linkControlSetting->updated_at,
-                ),
+                ...$appDownloadPayload,
+                'qr_image_url' => $appDownloadPayload['has_any_link']
+                    ? $this->protectedMediaUrl(
+                        'link-control-setting',
+                        $linkControlSetting->id,
+                        'qr_image',
+                        $linkControlSetting->qr_image,
+                        versionSeed: $linkControlSetting->updated_at,
+                    )
+                    : null,
             ],
         ];
     }

@@ -3,9 +3,14 @@
 namespace App\Services;
 
 use App\Models\LinkControlSetting;
+use App\Services\AppDownloadQrService;
 
 class LinkControlSettingService
 {
+    public function __construct(
+        private readonly AppDownloadQrService $appDownloadQrService,
+    ) {}
+
     public function current(): LinkControlSetting
     {
         return LinkControlSetting::query()->firstOrCreate(
@@ -22,7 +27,8 @@ class LinkControlSettingService
      * @return array{
      *     google_play_url: string|null,
      *     app_store_url: string|null,
-     *     has_any_link: bool
+     *     has_any_link: bool,
+     *     download_page_url: string
      * }
      */
     public function publicPayload(): array
@@ -35,6 +41,7 @@ class LinkControlSettingService
             'google_play_url' => $googlePlayUrl,
             'app_store_url' => $appStoreUrl,
             'has_any_link' => filled($googlePlayUrl) || filled($appStoreUrl),
+            'download_page_url' => $this->appDownloadQrService->publicUrl(),
         ];
     }
 

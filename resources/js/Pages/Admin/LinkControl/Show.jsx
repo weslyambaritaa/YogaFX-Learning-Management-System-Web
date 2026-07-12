@@ -1,18 +1,19 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, useForm } from "@inertiajs/react";
 
-export default function LinkControlShow({ linkControlSetting, status }) {
+export default function LinkControlShow({
+    linkControlSetting,
+    status,
+    warning,
+}) {
     const { data, setData, patch, processing, errors } = useForm({
-        qr_image: null,
         google_play_url: linkControlSetting.google_play_url ?? "",
         app_store_url: linkControlSetting.app_store_url ?? "",
     });
 
     const submit = (event) => {
         event.preventDefault();
-        patch(route("admin.link-control.update"), {
-            forceFormData: true,
-        });
+        patch(route("admin.link-control.update"));
     };
 
     return (
@@ -37,6 +38,16 @@ export default function LinkControlShow({ linkControlSetting, status }) {
                             Link Control has been updated.
                         </div>
                     ) : null}
+                    {status === "link-control-updated-with-warning" ? (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            Link Control has been updated with a QR fallback.
+                        </div>
+                    ) : null}
+                    {warning ? (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            {warning}
+                        </div>
+                    ) : null}
 
                     <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
                         <div className="rounded-[5px] bg-white p-6 shadow-sm">
@@ -52,40 +63,28 @@ export default function LinkControlShow({ linkControlSetting, status }) {
                                     />
                                 ) : (
                                     <div className="flex h-60 w-60 items-center justify-center rounded-[5px] border border-dashed border-slate-300 text-center text-sm text-slate-500">
-                                        No QR code uploaded yet.
+                                        QR code will appear after you save the store links.
                                     </div>
                                 )}
+                            </div>
+                            <div className="mt-4 space-y-2 text-sm text-slate-600">
+                                <p>
+                                    The QR code always points to one public
+                                    YogaFX download page.
+                                </p>
+                                <a
+                                    href={linkControlSetting.download_page_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex text-sm font-medium text-slate-900 underline underline-offset-4"
+                                >
+                                    Open public download page
+                                </a>
                             </div>
                         </div>
 
                         <div className="rounded-[5px] bg-white p-6 shadow-sm">
                             <form onSubmit={submit} className="space-y-6">
-                                <div>
-                                    <label
-                                        htmlFor="qr_image"
-                                        className="text-sm font-medium text-gray-700"
-                                    >
-                                        QR Image
-                                    </label>
-                                    <input
-                                        id="qr_image"
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(event) =>
-                                            setData("qr_image", event.target.files?.[0] ?? null)
-                                        }
-                                        className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    />
-                                    <p className="mt-1 text-xs text-slate-500">
-                                        Upload a square QR image. Maximum file size is 10 MB.
-                                    </p>
-                                    {errors.qr_image ? (
-                                        <div className="mt-2 text-sm text-rose-600">
-                                            {errors.qr_image}
-                                        </div>
-                                    ) : null}
-                                </div>
-
                                 <div>
                                     <label
                                         htmlFor="google_play_url"
@@ -103,6 +102,10 @@ export default function LinkControlShow({ linkControlSetting, status }) {
                                         placeholder="https://play.google.com/store/apps/details?id=..."
                                         className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     />
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        When saved, YogaFX regenerates the QR
+                                        automatically.
+                                    </p>
                                     {errors.google_play_url ? (
                                         <div className="mt-2 text-sm text-rose-600">
                                             {errors.google_play_url}

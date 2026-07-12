@@ -308,11 +308,12 @@ Catatan aktif:
 
 ### 2.14 Link Control
 - admin dapat mengelola satu set global:
-  - QR image
   - Google Play link
   - App Store link
+- QR image digenerate otomatis dari link control dan mengarah ke satu public page download app
 - QR image dipakai di welcome popup desktop student dan popup `Download Application`
 - store links dipakai di bagian bawah `Home` student mobile
+- public page download app menampilkan pilihan App Store dan Google Play dari link terbaru yang tersimpan
 
 ### 2.14 Installment Lifecycle
 - `InstallmentPlanCalculator` aktif di backend

@@ -301,7 +301,8 @@ Aturan implementasi saat ini:
 - automated email harus tercatat ke email logs
 
 ### 6.14 Link Control
-- admin harus dapat mengelola satu set global QR image, Google Play link, dan App Store link
+- admin harus dapat mengelola satu set global Google Play link dan App Store link
+- sistem harus mengenerate QR image otomatis yang mengarah ke public download app page
 - home student mobile harus dapat menampilkan tombol store berdasarkan link control aktif
 - welcome popup pertama di student home desktop harus dapat menampilkan QR image dari link control
 

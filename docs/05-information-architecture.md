@@ -38,6 +38,8 @@ Catatan:
   - `/masterclass`
 - Direct package public page:
   - `/p/{package_slug}`
+- App Download:
+  - `/download-app`
 - Checkout
 - Checkout Status
 - Payment Success Continuation
