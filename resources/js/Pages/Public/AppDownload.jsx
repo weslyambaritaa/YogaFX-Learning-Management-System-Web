@@ -22,19 +22,6 @@ export default function AppDownload({ appDownload }) {
                     Download the YogaFX app
                 </span>
             }
-            description={
-                <span
-                    className="block text-balance"
-                    style={{
-                        fontFamily: FONT_FAMILY,
-                        fontSize: "18px",
-                        fontWeight: 500,
-                        lineHeight: 1.6,
-                    }}
-                >
-                    Choose your store below.
-                </span>
-            }
         >
             <div
                 className="rounded-[5px] border border-white/10 bg-white/[0.04] p-6 text-center text-white sm:p-8"
@@ -46,11 +33,7 @@ export default function AppDownload({ appDownload }) {
                         appStoreUrl={appDownload?.app_store_url ?? null}
                         imageClassName="h-16 w-auto object-contain"
                     />
-                    <p className="text-sm leading-7 text-white/65">
-                        {hasAnyLink
-                            ? "Open the store that matches your device."
-                            : "Store links are not available yet."}
-                    </p>
+
                 </div>
             </div>
         </PublicFlowLayout>
