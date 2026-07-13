@@ -88,6 +88,12 @@ Flow yang belum tertulis di sini tidak boleh dianggap sebagai source of truth im
 5. Student menyelesaikan payment.
 6. Setelah payment sukses, student diarahkan ke halaman success lalu kembali ke dashboard.
 
+### 4.3 Mobile Upgrade Handoff
+1. Mobile app memuat student identity / profile payload.
+2. Backend mobile mengirim `upgrade_options` dinamis berdasarkan tier aktif student.
+3. Setiap option membawa `upgrade_url` web yang siap dibuka mobile app.
+4. Mobile app membuka web upgrade flow tanpa hardcode tier id.
+
 ---
 
 ## 5. Student Home Flow

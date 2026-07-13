@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Mobile\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\Mobile\V1\MobileUpgradeOptionService;
 use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Support\StudentProfileValue;
 use App\Support\MobileApiResponse;
@@ -18,6 +19,10 @@ class ProfileController extends Controller
 {
     use BuildsMobileSignedContentImageUrls;
     use HandlesLocalUploads;
+
+    public function __construct(
+        private readonly MobileUpgradeOptionService $mobileUpgradeOptionService,
+    ) {}
 
     public function show(Request $request)
     {
@@ -140,6 +145,7 @@ class ProfileController extends Controller
                     'slug' => $user->accessTier->slug,
                 ]
                 : null,
+            'upgrade_options' => $this->mobileUpgradeOptionService->optionsForStudent($user),
         ];
     }
 }

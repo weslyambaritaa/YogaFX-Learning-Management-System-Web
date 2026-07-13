@@ -125,6 +125,7 @@ Dokumen ini mencerminkan scope produk yang sudah aktif di repository saat ini.
 
 ### 3.11 Mobile Backend Support
 - mobile student API untuk auth, content, assessment, assignment, certificate, dan profile
+- mobile profile/student payload dapat membawa dynamic upgrade options untuk membuka web upgrade flow
 
 ---
 

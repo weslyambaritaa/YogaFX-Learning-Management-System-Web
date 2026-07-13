@@ -341,6 +341,7 @@ Catatan aktif:
 - assignments
 - certificates
 - profile
+- dynamic upgrade options in student identity/profile payload with web upgrade URLs for mobile handoff
 
 Catatan:
 - dokumen inti ini tetap memprioritaskan web product model; mobile API dicatat sebagai domain aktif backend

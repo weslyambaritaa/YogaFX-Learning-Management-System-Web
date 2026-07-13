@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Mobile\V1;
 
+use App\Services\Mobile\V1\MobileUpgradeOptionService;
 use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -39,6 +40,7 @@ class CurrentStudentResource extends JsonResource
                     'slug' => $this->accessTier->slug,
                 ]
                 : null,
+            'upgrade_options' => app(MobileUpgradeOptionService::class)->optionsForStudent($this->resource),
         ];
     }
 }
