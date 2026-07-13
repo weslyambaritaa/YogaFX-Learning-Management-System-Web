@@ -292,9 +292,7 @@ class EmailNotificationTemplateDefaults
                 'body_user' => implode('', [
                     '<p>Dear Student,</p>',
                     '<p>Please be advised that we have detected irregular activity on the platform and for security purposes, the account is temporarily blocked.</p>',
-                    '<p>Please contact us for more support, information, and assistance.</p>',
-                    '<p>WhatsApp: <a href="{support_whatsapp_url}">{support_whatsapp}</a></p>',
-                    '<p>Email: <a href="{support_email_url}">{support_email}</a></p>',
+                    '<p>Please contact us some more support for more information and assistance.</p>',
                     '<p>Thank you,<br>YogaFX IT Support</p>',
                 ]),
                 'subject_admin' => 'Student suspended for irregular activity: {user_email}',

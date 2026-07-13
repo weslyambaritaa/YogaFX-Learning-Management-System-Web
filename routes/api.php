@@ -67,6 +67,7 @@ Route::prefix('mobile/v1')
             Route::get('/lessons/{lesson}', [LessonController::class, 'show'])->name('lessons.show');
             Route::post('/lessons/{lesson}/workbook/trigger', [LessonController::class, 'triggerWorkbook'])->name('lessons.workbook.trigger');
             Route::post('/lessons/{lesson}/progress', [LessonController::class, 'updateProgress'])->name('lessons.progress.update');
+            Route::post('/lessons/{lesson}/irregular-activity', [LessonController::class, 'recordIrregularActivity'])->name('lessons.irregular-activity.store');
             Route::get('/lessons/{lesson}/assessment', [AssessmentController::class, 'intro'])->name('assessments.intro');
             Route::post('/lessons/{lesson}/assessment/start', [AssessmentController::class, 'start'])->name('assessments.start');
             Route::get('/lessons/{lesson}/assessment/attempts/{attempt}', [AssessmentController::class, 'show'])->name('assessments.show');

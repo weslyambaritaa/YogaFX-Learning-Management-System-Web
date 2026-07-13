@@ -3,97 +3,148 @@
 namespace App\Services;
 
 use App\Models\Lesson;
-use App\Models\LessonProgress;
+use App\Models\LessonIrregularActivity;
 use App\Models\User;
 use App\Support\EmailNotificationTypeRegistry;
-use App\Support\PublicUrl;
+use Illuminate\Support\Facades\DB;
 
 class StudentIrregularActivityService
 {
     public function __construct(
         private readonly EmailNotificationService $emailNotificationService,
-        private readonly SupportSettingService $supportSettingService,
     ) {}
 
     /**
      * @return array{
-     *     is_irregular: bool,
-     *     total_watch_time_seconds: int,
-     *     required_watch_time_seconds: int,
-     *     irregular_activity_count: int,
-     *     was_suspended: bool
+     *     blocked: bool,
+     *     violation_count: int,
+     *     lesson_id: int,
+     *     user_id: int,
+     *     message: string,
      * }
      */
-    public function evaluateCompletionAttempt(
+    public function recordLessonExitAttempt(
         User $user,
         Lesson $lesson,
-        LessonProgress $lessonProgress,
-        ?int $videoDurationSeconds,
+        float $watchProgress,
+        int $watchTimeSeconds,
+        int $videoDurationSeconds,
+        bool $lessonCompleted,
     ): array {
-        $requiredWatchTimeSeconds = max(0, (int) $videoDurationSeconds);
-        $totalWatchTimeSeconds = max(0, (int) ($lessonProgress->watch_time_seconds ?? 0));
-        $isIrregular = $lesson->lesson_video_id !== null
-            && $requiredWatchTimeSeconds > 0
-            && $totalWatchTimeSeconds < $requiredWatchTimeSeconds;
+        if (! $user->isStudent() || in_array($user->role, ['admin', 'tester'], true)) {
+            return $this->ignoredResponse($user, $lesson);
+        }
 
-        if (! $isIrregular) {
-            if ($user->irregular_activity_count !== 0) {
-                $user->forceFill([
-                    'irregular_activity_count' => 0,
-                ])->save();
-            }
-
+        if ($user->isStudentSuspended()) {
             return [
-                'is_irregular' => false,
-                'total_watch_time_seconds' => $totalWatchTimeSeconds,
-                'required_watch_time_seconds' => $requiredWatchTimeSeconds,
-                'irregular_activity_count' => (int) ($user->irregular_activity_count ?? 0),
-                'was_suspended' => false,
+                'blocked' => true,
+                'violation_count' => (int) ($user->irregular_activity_count ?? 0),
+                'lesson_id' => $lesson->id,
+                'user_id' => $user->id,
+                'message' => 'Your student account is temporarily blocked.',
             ];
         }
 
-        $nextCount = (int) ($user->irregular_activity_count ?? 0) + 1;
-        $wasSuspended = false;
+        $isValidProgress = $lessonCompleted
+            || $watchProgress >= 95
+            || ($lesson->lesson_video_id === null)
+            || ($videoDurationSeconds > 0 && $watchTimeSeconds >= $videoDurationSeconds);
 
-        $user->forceFill([
-            'irregular_activity_count' => $nextCount,
-            'irregular_activity_last_detected_at' => now(),
-        ]);
+        return DB::transaction(function () use ($user, $lesson, $isValidProgress, $watchProgress, $watchTimeSeconds, $videoDurationSeconds): array {
+            $activity = LessonIrregularActivity::query()->firstOrNew([
+                'user_id' => $user->id,
+                'lesson_id' => $lesson->id,
+            ]);
 
-        if ($nextCount >= 3) {
-            $user->setStudentAccountStatus(User::ACCOUNT_STATUS_SUSPENDED);
-            $wasSuspended = true;
-        }
+            if ($isValidProgress) {
+                $activity->forceFill([
+                    'violation_count' => 0,
+                    'last_violation_at' => null,
+                    'blocked_at' => null,
+                    'blocked_reason' => null,
+                    'reset_at' => now(),
+                ])->save();
 
-        $user->save();
+                if ((int) ($user->irregular_activity_count ?? 0) !== 0) {
+                    $user->forceFill([
+                        'irregular_activity_count' => 0,
+                        'irregular_activity_last_detected_at' => null,
+                    ])->save();
+                }
 
-        if ($wasSuspended) {
-            $support = $this->supportSettingService->publicPayload();
+                return [
+                    'blocked' => false,
+                    'violation_count' => 0,
+                    'lesson_id' => $lesson->id,
+                    'user_id' => $user->id,
+                    'message' => 'Lesson exit event recorded successfully.',
+                ];
+            }
 
-            $this->emailNotificationService->sendAutomated(
-                EmailNotificationTypeRegistry::IRREGULAR_ACTIVITY_SUSPENDED,
-                [
-                    'user_name' => $user->name,
-                    'user_email' => $user->email,
-                    'lesson_title' => $lesson->title,
-                    'irregular_activity_count' => (string) $nextCount,
-                    'support_whatsapp' => $support['whatsapp'] ?? '',
-                    'support_whatsapp_url' => $support['whatsapp_url'] ?? '',
-                    'support_email' => $support['email'] ?? '',
-                    'support_email_url' => $support['email_url'] ?? '',
-                    'login_url' => PublicUrl::studentLogin(),
-                ],
-                'user',
-                $user->id,
-            );
-        }
+            $violationCount = ((int) $activity->violation_count) + 1;
+            $blocked = $violationCount >= 3;
 
+            $activity->forceFill([
+                'violation_count' => $violationCount,
+                'last_violation_at' => now(),
+                'blocked_at' => $blocked ? now() : null,
+                'blocked_reason' => $blocked ? 'irregular_activity_detected' : null,
+            ])->save();
+
+            $user->forceFill([
+                'irregular_activity_count' => $violationCount,
+                'irregular_activity_last_detected_at' => now(),
+            ]);
+
+            if ($blocked) {
+                $user->setStudentAccountStatus(User::ACCOUNT_STATUS_SUSPENDED);
+            }
+
+            $user->save();
+
+            if ($blocked) {
+                $this->emailNotificationService->sendAutomated(
+                    EmailNotificationTypeRegistry::IRREGULAR_ACTIVITY_SUSPENDED,
+                    [
+                        'user_name' => $user->name,
+                        'user_email' => $user->email,
+                        'lesson_title' => $lesson->title,
+                        'irregular_activity_count' => (string) $violationCount,
+                    ],
+                    'user',
+                    $user->id,
+                );
+            }
+
+            return [
+                'blocked' => $blocked,
+                'violation_count' => $violationCount,
+                'lesson_id' => $lesson->id,
+                'user_id' => $user->id,
+                'message' => $blocked
+                    ? 'Your student account has been temporarily blocked.'
+                    : 'Irregular activity recorded.',
+            ];
+        });
+    }
+
+    /**
+     * @return array{
+     *     blocked: bool,
+     *     violation_count: int,
+     *     lesson_id: int,
+     *     user_id: int,
+     *     message: string
+     * }
+     */
+    private function ignoredResponse(User $user, Lesson $lesson): array
+    {
         return [
-            'is_irregular' => true,
-            'total_watch_time_seconds' => $totalWatchTimeSeconds,
-            'required_watch_time_seconds' => $requiredWatchTimeSeconds,
-            'irregular_activity_count' => $nextCount,
-            'was_suspended' => $wasSuspended,
+            'blocked' => false,
+            'violation_count' => 0,
+            'lesson_id' => $lesson->id,
+            'user_id' => $user->id,
+            'message' => 'Irregular activity monitoring is not applied for this account.',
         ];
     }
 }
