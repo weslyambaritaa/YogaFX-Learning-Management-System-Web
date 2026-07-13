@@ -282,7 +282,8 @@ class LessonCatalogController extends Controller
                 ->where('status', AssessmentAttempt::STATUS_COMPLETED)
                 ->exists();
         $meetsAssessmentRequirement = ! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live';
-        $hasEnoughAuthenticWatchTime = $lesson->lesson_video_id === null
+        $hasEnoughAuthenticWatchTime = $user?->isTesterStudent()
+            || $lesson->lesson_video_id === null
             || ! $videoDurationSeconds
             || $watchTimeSeconds >= max(0, $videoDurationSeconds - self::AUTHENTIC_WATCH_TIME_TOLERANCE_SECONDS);
         $isDone = $watchProgress >= 95 && $meetsAssessmentRequirement && $hasEnoughAuthenticWatchTime;
