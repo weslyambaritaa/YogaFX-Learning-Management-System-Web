@@ -73,6 +73,7 @@ export default function VideoJsPlayer({
     poster = null,
     className = "",
     autoplay = false,
+    forcePause = false,
     restoreFullscreenOnAutoplay = false,
     hideProgressHandle = false,
     overlay = null,
@@ -358,6 +359,21 @@ export default function VideoJsPlayer({
         onTimeUpdate,
         onPlaybackStateChange,
     ]);
+
+    useEffect(() => {
+        if (!forcePause) {
+            return;
+        }
+
+        const player = playerRef.current;
+
+        if (!player || player.paused()) {
+            return;
+        }
+
+        player.pause();
+        syncPlayerState();
+    }, [forcePause]);
 
     useEffect(() => {
         if (typeof window === "undefined" || !window.matchMedia) {

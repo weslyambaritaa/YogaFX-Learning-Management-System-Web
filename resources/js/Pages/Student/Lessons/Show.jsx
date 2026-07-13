@@ -1158,6 +1158,9 @@ export default function StudentLessonShow({
                                             poster={lesson.thumbnail_url}
                                             className="h-full w-full overflow-hidden"
                                             autoplay={shouldAutoplayLesson}
+                                            forcePause={
+                                                irregularWarningDialog.open
+                                            }
                                             restoreFullscreenOnAutoplay={
                                                 shouldAutoplayLesson
                                             }
