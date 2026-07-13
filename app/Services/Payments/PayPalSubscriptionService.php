@@ -79,7 +79,10 @@ class PayPalSubscriptionService
         array $installmentPlan,
         string $productId,
     ): array {
-        $installmentCount = max(2, (int) ($installmentPlan['installment_count'] ?? 2));
+        $installmentCount = min(
+            Package::MAX_PROVIDER_INSTALLMENT_COUNT,
+            max(Package::MIN_INSTALLMENT_COUNT, (int) ($installmentPlan['installment_count'] ?? Package::MIN_INSTALLMENT_COUNT)),
+        );
         $regularCycles = max(1, $installmentCount - 1);
 
         /*
@@ -464,14 +467,12 @@ class PayPalSubscriptionService
         $installmentCount = (int) ($installmentPlan['installment_count'] ?? 0);
         $billingDay = $installmentPlan['billing_day'] ?? null;
         $finalDueAt = (string) ($installmentPlan['final_due_at'] ?? '');
-        $deadlineDate = (string) ($installmentPlan['deadline_date'] ?? '');
 
         $description = sprintf(
-            '%d installments%s%s%s.',
+            '%d installments%s%s.',
             $installmentCount,
             $billingDay !== null ? sprintf(' on day %s', $billingDay) : '',
             $finalDueAt !== '' ? sprintf(' until %s', $finalDueAt) : '',
-            $deadlineDate !== '' ? sprintf(' deadline %s', $deadlineDate) : '',
         );
 
         return mb_substr($description, 0, self::PLAN_DESCRIPTION_MAX_LENGTH);

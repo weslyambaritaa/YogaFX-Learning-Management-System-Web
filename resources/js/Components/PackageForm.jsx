@@ -14,6 +14,9 @@ export default function PackageForm({
         currency_code: "IDR",
         is_active: true,
         installment_enabled: false,
+        installment_calculation_method: "date",
+        installment_count_mode: "",
+        installment_count: "",
         installment_deadline_date: "",
         allowed_billing_days: [],
         access_tier_id: "",
@@ -35,6 +38,11 @@ export default function PackageForm({
     const allowedBillingDays = Array.isArray(data.allowed_billing_days)
         ? data.allowed_billing_days.map((day) => Number(day))
         : [];
+    const installmentEnabled = Boolean(data.installment_enabled);
+    const isDateMethod =
+        String(data.installment_calculation_method ?? "date") === "date";
+    const isNumberMethod = !isDateMethod;
+    const isFixedMode = String(data.installment_count_mode ?? "") === "fixed";
 
     const copyPackageLink = async () => {
         if (packagePublicLink === '') {
@@ -68,13 +76,45 @@ export default function PackageForm({
         setData((currentData) => ({
             ...currentData,
             installment_enabled: enabled,
+            installment_calculation_method: enabled
+                ? currentData.installment_calculation_method ?? "date"
+                : "date",
+            installment_count_mode: enabled
+                ? currentData.installment_count_mode ?? ""
+                : "",
+            installment_count: enabled
+                ? currentData.installment_count ?? ""
+                : "",
             installment_deadline_date: enabled
-                ? currentData.installment_deadline_date ?? ''
-                : '',
+                ? currentData.installment_deadline_date ?? ""
+                : "",
             allowed_billing_days: enabled
                 ? currentData.allowed_billing_days ?? []
                 : [],
         }));
+    };
+
+    const handleInstallmentMethodChange = (event) => {
+        const method = event.target.value === "number" ? "number" : "date";
+
+        setData((currentData) => ({
+            ...currentData,
+            installment_calculation_method: method,
+            installment_deadline_date:
+                method === "date"
+                    ? currentData.installment_deadline_date ?? ""
+                    : "",
+            installment_count_mode:
+                method === "number"
+                    ? currentData.installment_count_mode ?? ""
+                    : "",
+            installment_count:
+                method === "number" ? currentData.installment_count ?? "" : "",
+        }));
+    };
+
+    const handleInstallmentCountModeChange = (event) => {
+        setData("installment_count_mode", event.target.value);
     };
 
     return (
@@ -226,30 +266,95 @@ export default function PackageForm({
                     </select>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2">
-                    <div>
-                        <InputLabel
-                            htmlFor="installment_deadline_date"
-                            value="Installment Deadline Date"
-                        />
-                        <TextInput
-                            id="installment_deadline_date"
-                            type="date"
-                            className="mt-1 block w-full"
-                            value={data.installment_deadline_date ?? ''}
-                            onChange={(event) => setData('installment_deadline_date', event.target.value)}
-                            disabled={!data.installment_enabled}
-                        />
-                        <p className="mt-2 text-xs text-gray-500">
-                            The final date used to calculate the maximum installment count.
-                        </p>
-                        <InputError
-                            className="mt-2"
-                            message={errors.installment_deadline_date}
-                        />
-                    </div>
+                {installmentEnabled && (
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div>
+                            <InputLabel
+                                htmlFor="installment_calculation_method"
+                                value="Installment Calculation Method"
+                            />
+                            <select
+                                id="installment_calculation_method"
+                                value={data.installment_calculation_method ?? "date"}
+                                onChange={handleInstallmentMethodChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                            >
+                                <option value="date">Date</option>
+                                <option value="number">Number</option>
+                            </select>
+                            <InputError
+                                className="mt-2"
+                                message={errors.installment_calculation_method}
+                            />
+                        </div>
 
-                    <div>
+                        {isNumberMethod && (
+                            <div>
+                                <InputLabel
+                                    htmlFor="installment_count_mode"
+                                    value="Installment Count Mode"
+                                />
+                                <select
+                                    id="installment_count_mode"
+                                    value={data.installment_count_mode ?? ""}
+                                    onChange={handleInstallmentCountModeChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                                >
+                                    <option value="">Select mode</option>
+                                    <option value="flex">Flex</option>
+                                    <option value="fixed">Fixed</option>
+                                </select>
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.installment_count_mode}
+                                />
+                            </div>
+                        )}
+
+                        {isDateMethod ? (
+                            <div>
+                                <InputLabel
+                                    htmlFor="installment_deadline_date"
+                                    value="Installment Deadline Date"
+                                />
+                                <TextInput
+                                    id="installment_deadline_date"
+                                    type="date"
+                                    className="mt-1 block w-full"
+                                    value={data.installment_deadline_date ?? ""}
+                                    onChange={(event) => setData("installment_deadline_date", event.target.value)}
+                                />
+                                <p className="mt-2 text-xs text-gray-500">
+                                    The final date used to calculate the maximum installment count.
+                                </p>
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.installment_deadline_date}
+                                />
+                            </div>
+                        ) : (
+                            <div>
+                                <InputLabel htmlFor="installment_count" value="Installment Count" />
+                                <TextInput
+                                    id="installment_count"
+                                    type="number"
+                                    min="2"
+                                    max="99"
+                                    step="1"
+                                    className="mt-1 block w-full"
+                                    value={data.installment_count ?? ""}
+                                    onChange={(event) => setData("installment_count", event.target.value)}
+                                />
+                                <p className="mt-2 text-xs text-gray-500">
+                                    {isFixedMode
+                                        ? "Exact number of installments that will be applied to every customer."
+                                        : "Maximum number of installments the customer can select."}
+                                </p>
+                                <InputError className="mt-2" message={errors.installment_count} />
+                            </div>
+                        )}
+
+                        <div>
                         <InputLabel value="Allowed Billing Days" />
                         <div className="mt-2 space-y-3 rounded-md border border-gray-200 bg-white p-4">
                             <label className="flex items-start gap-3">
@@ -257,7 +362,7 @@ export default function PackageForm({
                                     type="checkbox"
                                     checked={allowedBillingDays.includes(1)}
                                     onChange={() => toggleAllowedBillingDay(1)}
-                                    disabled={!data.installment_enabled}
+                                    disabled={!installmentEnabled}
                                     className="mt-1 rounded border-gray-300 text-black shadow-sm focus:ring-black disabled:cursor-not-allowed disabled:opacity-50"
                                 />
                                 <span>
@@ -275,7 +380,7 @@ export default function PackageForm({
                                     type="checkbox"
                                     checked={allowedBillingDays.includes(15)}
                                     onChange={() => toggleAllowedBillingDay(15)}
-                                    disabled={!data.installment_enabled}
+                                    disabled={!installmentEnabled}
                                     className="mt-1 rounded border-gray-300 text-black shadow-sm focus:ring-black disabled:cursor-not-allowed disabled:opacity-50"
                                 />
                                 <span>
@@ -307,7 +412,8 @@ export default function PackageForm({
                             message={errors['allowed_billing_days.1']}
                         />
                     </div>
-                </div>
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center gap-4">

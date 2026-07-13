@@ -87,6 +87,16 @@ function normalizeInstallmentMaximumCount(value) {
     return Math.trunc(numericValue);
 }
 
+function normalizeInstallmentMinimumCount(value, fallback = 2) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue) || numericValue < 2) {
+        return fallback;
+    }
+
+    return Math.trunc(numericValue);
+}
+
 function amountToCents(value) {
     return Math.round(Number(value ?? 0) * 100);
 }
@@ -170,12 +180,22 @@ function buildRecurringDueDates({
 
 function buildPreviewInstallmentSummary({
     amount,
+    installmentCount,
     maximumInstallmentCount,
+    minimumInstallmentCount = 2,
     billingDay,
+    installmentCalculationMethod = "date",
+    installmentCountMode = null,
+    installmentCountSelectable = true,
+    configuredInstallmentCount = null,
+    fixedInstallmentCount = null,
 }) {
     const normalizedAmount = Number(amount ?? 0);
     const normalizedMaximumInstallmentCount = normalizeInstallmentMaximumCount(
         maximumInstallmentCount,
+    );
+    const normalizedInstallmentCount = normalizeInstallmentMaximumCount(
+        installmentCount ?? normalizedMaximumInstallmentCount,
     );
 
     if (!normalizedAmount || normalizedAmount <= 0) {
@@ -184,18 +204,18 @@ function buildPreviewInstallmentSummary({
 
     const totalAmountCents = amountToCents(normalizedAmount);
     const recurringAmountCents = Math.floor(
-        totalAmountCents / normalizedMaximumInstallmentCount,
+        totalAmountCents / normalizedInstallmentCount,
     );
     const firstPaymentAmountCents =
         totalAmountCents -
-        recurringAmountCents * (normalizedMaximumInstallmentCount - 1);
+        recurringAmountCents * (normalizedInstallmentCount - 1);
 
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
     const recurringAmount = centsToAmount(recurringAmountCents);
     const firstPaymentDate = toDateString(new Date());
     const recurringDueDates = buildRecurringDueDates({
         billingDay,
-        recurringCount: normalizedMaximumInstallmentCount - 1,
+        recurringCount: normalizedInstallmentCount - 1,
     });
     const finalDueAt =
         recurringDueDates[recurringDueDates.length - 1] ?? firstPaymentDate;
@@ -206,9 +226,15 @@ function buildPreviewInstallmentSummary({
         first_payment_date: firstPaymentDate,
         recurring_payment_amount: recurringAmount.toFixed(2),
         monthly_base_amount: recurringAmount.toFixed(2),
-        installment_count: normalizedMaximumInstallmentCount,
+        installment_calculation_method: installmentCalculationMethod,
+        installment_count_mode: installmentCountMode,
+        installment_count: normalizedInstallmentCount,
         maximum_installment_count: normalizedMaximumInstallmentCount,
         installment_maximum_count: normalizedMaximumInstallmentCount,
+        minimum_installment_count: minimumInstallmentCount,
+        installment_count_selectable: installmentCountSelectable,
+        configured_installment_count: configuredInstallmentCount,
+        fixed_installment_count: fixedInstallmentCount,
         billing_day: billingDay,
         recurring_due_dates: recurringDueDates,
         available_recurring_due_dates: recurringDueDates,
@@ -221,7 +247,7 @@ function buildPreviewInstallmentSummary({
                 grace_deadline: null,
             },
             ...Array.from(
-                { length: normalizedMaximumInstallmentCount - 1 },
+                { length: normalizedInstallmentCount - 1 },
                 (_, index) => ({
                     cycle_number: index + 2,
                     type: "recurring",
@@ -339,6 +365,26 @@ export default function Scoreboard({
         );
     }, [selectedPackage]);
 
+    const selectedPackageMinimumInstallmentCount = useMemo(() => {
+        return normalizeInstallmentMinimumCount(
+            selectedPackage?.minimum_installment_count,
+            2,
+        );
+    }, [selectedPackage]);
+
+    const selectedPackageInstallmentCalculationMethod =
+        selectedPackage?.installment_calculation_method ?? "date";
+    const selectedPackageInstallmentCountMode =
+        selectedPackage?.installment_count_mode ?? null;
+    const selectedPackageInstallmentCountSelectable =
+        selectedPackage?.installment_count_selectable ?? true;
+    const selectedPackageConfiguredInstallmentCount =
+        selectedPackage?.configured_installment_count ??
+        selectedPackage?.installment_count ??
+        null;
+    const selectedPackageFixedInstallmentCount =
+        selectedPackage?.fixed_installment_count ?? null;
+
     const selectedPackageInstallmentEnabled = Boolean(
         selectedPackage?.installment_enabled &&
         selectedPackageAllowedBillingDays.length > 0 &&
@@ -351,11 +397,29 @@ export default function Scoreboard({
             selectedPackage?.currency_code ?? paypal?.currency_code ?? "USD";
         const billingDay = selectedPackageAllowedBillingDays[0] ?? 15;
         const maximumInstallmentCount = selectedPackageMaximumInstallmentCount;
+        const previewInstallmentCount =
+            selectedPackageInstallmentCountSelectable === false
+                ? normalizeInstallmentMaximumCount(
+                      selectedPackageFixedInstallmentCount ??
+                          selectedPackageConfiguredInstallmentCount ??
+                          maximumInstallmentCount,
+                  )
+                : maximumInstallmentCount;
 
         const previewInstallmentSummary = buildPreviewInstallmentSummary({
             amount,
+            installmentCount: previewInstallmentCount,
             maximumInstallmentCount,
+            minimumInstallmentCount: selectedPackageMinimumInstallmentCount,
             billingDay,
+            installmentCalculationMethod:
+                selectedPackageInstallmentCalculationMethod,
+            installmentCountMode: selectedPackageInstallmentCountMode,
+            installmentCountSelectable:
+                selectedPackageInstallmentCountSelectable,
+            configuredInstallmentCount:
+                selectedPackageConfiguredInstallmentCount,
+            fixedInstallmentCount: selectedPackageFixedInstallmentCount,
         });
 
         const paymentOptions = [
@@ -377,9 +441,21 @@ export default function Scoreboard({
                 currency_code: currencyCode,
                 billing_day: billingDay,
                 allowed_billing_days: selectedPackageAllowedBillingDays,
-                installment_count: maximumInstallmentCount,
+                installment_count: previewInstallmentCount,
                 maximum_installment_count: maximumInstallmentCount,
                 installment_maximum_count: maximumInstallmentCount,
+                minimum_installment_count:
+                    selectedPackageMinimumInstallmentCount,
+                installment_count_selectable:
+                    selectedPackageInstallmentCountSelectable,
+                configured_installment_count:
+                    selectedPackageConfiguredInstallmentCount,
+                fixed_installment_count:
+                    selectedPackageFixedInstallmentCount,
+                installment_calculation_method:
+                    selectedPackageInstallmentCalculationMethod,
+                installment_count_mode:
+                    selectedPackageInstallmentCountMode,
                 summary: previewInstallmentSummary,
             });
         }
@@ -398,6 +474,20 @@ export default function Scoreboard({
                       price: amount,
                       currency_code: currencyCode,
                       installment_enabled: selectedPackageInstallmentEnabled,
+                      installment_calculation_method:
+                          selectedPackageInstallmentCalculationMethod,
+                      installment_count_mode:
+                          selectedPackageInstallmentCountMode,
+                      installment_count:
+                          selectedPackageConfiguredInstallmentCount,
+                      installment_count_selectable:
+                          selectedPackageInstallmentCountSelectable,
+                      configured_installment_count:
+                          selectedPackageConfiguredInstallmentCount,
+                      minimum_installment_count:
+                          selectedPackageMinimumInstallmentCount,
+                      fixed_installment_count:
+                          selectedPackageFixedInstallmentCount,
                       allowed_billing_days: selectedPackageAllowedBillingDays,
                       checkout_billing_day_options:
                           selectedPackageAllowedBillingDays,
@@ -431,9 +521,20 @@ export default function Scoreboard({
             installment_billing_day_options: selectedPackageAllowedBillingDays,
             installment_billing_interval_unit: "MONTH",
             installment_billing_interval_count: 1,
+            installment_calculation_method:
+                selectedPackageInstallmentCalculationMethod,
+            installment_count_mode: selectedPackageInstallmentCountMode,
+            installment_count_selectable:
+                selectedPackageInstallmentCountSelectable,
+            configured_installment_count:
+                selectedPackageConfiguredInstallmentCount,
+            minimum_installment_count:
+                selectedPackageMinimumInstallmentCount,
+            fixed_installment_count:
+                selectedPackageFixedInstallmentCount,
             installment_count:
                 previewInstallmentSummary?.installment_count ??
-                maximumInstallmentCount,
+                previewInstallmentCount,
             total_amount:
                 previewInstallmentSummary?.total_amount ?? amount.toFixed(2),
             first_payment_amount:
@@ -480,7 +581,13 @@ export default function Scoreboard({
         selectedPackage,
         selectedPackageAllowedBillingDays,
         selectedPackageInstallmentEnabled,
+        selectedPackageInstallmentCalculationMethod,
+        selectedPackageInstallmentCountMode,
+        selectedPackageInstallmentCountSelectable,
+        selectedPackageConfiguredInstallmentCount,
+        selectedPackageMinimumInstallmentCount,
         selectedPackageMaximumInstallmentCount,
+        selectedPackageFixedInstallmentCount,
         paypal,
     ]);
 

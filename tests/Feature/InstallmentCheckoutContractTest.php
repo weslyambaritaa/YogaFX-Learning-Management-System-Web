@@ -559,6 +559,163 @@ class InstallmentCheckoutContractTest extends TestCase
                 ->where('checkout.installment_summary.schedule_breakdown.1.due_at', '2026-08-15'));
     }
 
+    public function test_checkout_payload_uses_number_fixed_policy_without_stale_date_maximum(): void
+    {
+        Carbon::setTestNow('2026-07-10 09:00:00');
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Masterclass Fixed 6',
+            'slug' => 'masterclass-fixed-6',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_NUMBER,
+            'installment_count_mode' => Package::INSTALLMENT_COUNT_MODE_FIXED,
+            'installment_count' => 6,
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
+            'fixed_billing_day' => 15,
+            'allowed_billing_days' => [15],
+            'installment_deadline_date' => null,
+            'installment_deadline_month' => 4,
+            'installment_deadline_day' => 15,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Ava',
+            'last_name' => 'Stone',
+            'email' => 'ava@example.com',
+            'phone' => '+6281234567890',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CREATED,
+        ]);
+
+        $this->mock(PayPalService::class, function ($mock): void {
+            $mock->shouldReceive('clientId')
+                ->once()
+                ->andReturn('PAYPAL-CLIENT-ID-FIXED-006');
+            $mock->shouldReceive('environment')
+                ->once()
+                ->andReturn('sandbox');
+        });
+
+        $this->get(URL::temporarySignedRoute('checkout.show', now()->addDay(), [
+            'pendingRegistration' => $pendingRegistration->id,
+            'accessTierSlug' => $tier->slug,
+        ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/Checkout')
+                ->where('checkout.installment_calculation_method', 'number')
+                ->where('checkout.installment_count_mode', 'fixed')
+                ->where('checkout.configured_installment_count', 6)
+                ->where('checkout.installment_count_selectable', false)
+                ->where('checkout.minimum_installment_count', 6)
+                ->where('checkout.maximum_installment_count', 6)
+                ->where('checkout.fixed_installment_count', 6)
+                ->where('checkout.installment_count', 6)
+                ->where('checkout.installment_deadline_date', null)
+                ->where('checkout.package.installment_calculation_method', 'number')
+                ->where('checkout.package.installment_count_mode', 'fixed')
+                ->where('checkout.package.configured_installment_count', 6)
+                ->where('checkout.package.installment_count_selectable', false)
+                ->where('checkout.package.minimum_installment_count', 6)
+                ->where('checkout.package.maximum_installment_count', 6)
+                ->where('checkout.package.fixed_installment_count', 6)
+                ->where('checkout.package.installment_deadline_date', null)
+                ->where('checkout.payment_options.1.installment_count', 6)
+                ->where('checkout.payment_options.1.maximum_installment_count', 6)
+                ->where('checkout.payment_options.1.minimum_installment_count', 6)
+                ->where('checkout.payment_options.1.fixed_installment_count', 6)
+                ->where('checkout.payment_options.1.installment_count_selectable', false)
+                ->where('checkout.payment_options.1.summary.installment_count', 6)
+                ->where('checkout.payment_options.1.summary.maximum_installment_count', 6)
+                ->where('checkout.payment_options.1.summary.fixed_installment_count', 6)
+                ->where('checkout.payment_options.1.summary.deadline_date', null));
+    }
+
+    public function test_manipulated_fixed_installment_request_is_forced_to_configured_count(): void
+    {
+        Carbon::setTestNow('2026-07-10 09:00:00');
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+        ]);
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'slug' => 'masterclass-fixed-six',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_NUMBER,
+            'installment_count_mode' => Package::INSTALLMENT_COUNT_MODE_FIXED,
+            'installment_count' => 6,
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
+            'fixed_billing_day' => 15,
+            'allowed_billing_days' => [15],
+            'installment_deadline_date' => null,
+            'installment_deadline_month' => 5,
+            'installment_deadline_day' => 15,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Ava',
+            'last_name' => 'Stone',
+            'email' => 'ava@example.com',
+            'phone' => '+6281234567890',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+            'checkout_opened_at' => now(),
+        ]);
+
+        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
+            $mock->shouldReceive('createProduct')
+                ->once()
+                ->andReturn(['id' => 'PROD-FIXED-SIX', 'status' => 'ACTIVE']);
+            $mock->shouldReceive('createPlan')
+                ->once()
+                ->andReturn(['id' => 'P-FIXED-SIX', 'status' => 'ACTIVE']);
+        });
+
+        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
+            'pendingRegistration' => $pendingRegistration->id,
+            'accessTierSlug' => $tier->slug,
+        ]), [
+            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+            'payment_method' => 'paypal',
+            'checkout_mode' => 'paypal',
+            'billing_day' => 15,
+            'installment_count' => 3,
+            'terms_accepted' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('status', 'prepared')
+            ->assertJsonPath('installment_count', 6)
+            ->assertJsonPath('installment_plan.installment_count', 6)
+            ->assertJsonPath('installment_plan.maximum_installment_count', 6)
+            ->assertJsonPath('installment_plan.fixed_installment_count', 6);
+
+        $this->assertDatabaseHas('payment_subscriptions', [
+            'pending_registration_id' => $pendingRegistration->id,
+            'installment_count' => 6,
+            'billing_day' => 15,
+        ]);
+    }
+
     public function test_backend_prepares_monthly_installment_checkout_with_required_billing_day_and_installment_count(): void
     {
         Carbon::setTestNow('2026-07-10 09:00:00');

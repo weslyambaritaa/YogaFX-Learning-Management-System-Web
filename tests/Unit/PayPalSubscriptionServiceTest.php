@@ -233,7 +233,7 @@ class PayPalSubscriptionServiceTest extends TestCase
             return $data['product_id'] === 'PROD-DAILY-123'
                 && $data['billing_cycles'][0]['frequency']['interval_unit'] === 'DAY'
                 && $data['billing_cycles'][0]['frequency']['interval_count'] === 1
-                && $data['billing_cycles'][0]['total_cycles'] === 318
+                && $data['billing_cycles'][0]['total_cycles'] === 14
                 && $data['billing_cycles'][0]['pricing_scheme']['fixed_price']['value'] === '0.09'
                 && $data['payment_preferences']['setup_fee']['value'] === '1.37';
         });

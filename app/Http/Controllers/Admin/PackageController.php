@@ -54,9 +54,14 @@ class PackageController extends Controller
                     |--------------------------------------------------------------------------
                     */
                     'installment_enabled' => $package->installment_enabled,
+                    'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
+                    'installment_count_mode' => $package->normalizedInstallmentCountMode(),
+                    'installment_count' => $package->configuredInstallmentCount(),
+                    'installment_count_selectable' => $package->installmentCountSelectable(),
                     'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                     'allowed_billing_days' => $package->resolvedAllowedBillingDays(),
                     'checkout_billing_day_options' => $package->checkoutBillingDayOptions(),
+                    'installment_policy_summary' => $this->installmentPolicySummary($package),
 
                     /*
                     |--------------------------------------------------------------------------
@@ -108,6 +113,7 @@ class PackageController extends Controller
 
         $data['allowed_billing_days'] = $allowedBillingDays;
         $data['fixed_billing_day'] = $fixedBillingDay;
+        $data = $this->sanitizeInstallmentPolicyData($data);
 
         /*
         |--------------------------------------------------------------------------
@@ -170,6 +176,10 @@ class PackageController extends Controller
                 |--------------------------------------------------------------------------
                 */
                 'installment_enabled' => $package->installment_enabled,
+                'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
+                'installment_count_mode' => $package->normalizedInstallmentCountMode(),
+                'installment_count' => $package->configuredInstallmentCount(),
+                'installment_count_selectable' => $package->installmentCountSelectable(),
                 'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                 'allowed_billing_days' => $package->resolvedAllowedBillingDays(),
                 'checkout_billing_day_options' => $package->checkoutBillingDayOptions(),
@@ -214,6 +224,7 @@ class PackageController extends Controller
 
         $data['allowed_billing_days'] = $allowedBillingDays;
         $data['fixed_billing_day'] = $fixedBillingDay;
+        $data = $this->sanitizeInstallmentPolicyData($data);
 
         if (! ($data['installment_enabled'] ?? false)) {
             $data['installment_deadline_date'] = null;
@@ -332,5 +343,71 @@ class PackageController extends Controller
             'allowed_billing_days' => $resolvedBillingDays,
             'fixed_billing_day' => $resolvedBillingDays[0] ?? null,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function sanitizeInstallmentPolicyData(array $data): array
+    {
+        $installmentEnabled = (bool) ($data['installment_enabled'] ?? false);
+        $method = strtolower(trim((string) ($data['installment_calculation_method'] ?? Package::INSTALLMENT_CALCULATION_DATE)));
+
+        if (! $installmentEnabled) {
+            $data['installment_calculation_method'] = Package::INSTALLMENT_CALCULATION_DATE;
+            $data['installment_count_mode'] = null;
+            $data['installment_count'] = null;
+            $data['installment_deadline_date'] = null;
+            $data['allowed_billing_days'] = null;
+            $data['fixed_billing_day'] = null;
+
+            return $data;
+        }
+
+        $data['installment_calculation_method'] = $method === Package::INSTALLMENT_CALCULATION_NUMBER
+            ? Package::INSTALLMENT_CALCULATION_NUMBER
+            : Package::INSTALLMENT_CALCULATION_DATE;
+
+        if ($data['installment_calculation_method'] === Package::INSTALLMENT_CALCULATION_DATE) {
+            $data['installment_count_mode'] = null;
+            $data['installment_count'] = null;
+
+            return $data;
+        }
+
+        $mode = strtolower(trim((string) ($data['installment_count_mode'] ?? '')));
+
+        $data['installment_count_mode'] = $mode === Package::INSTALLMENT_COUNT_MODE_FIXED
+            ? Package::INSTALLMENT_COUNT_MODE_FIXED
+            : Package::INSTALLMENT_COUNT_MODE_FLEX;
+        $data['installment_count'] = min(
+            max((int) ($data['installment_count'] ?? Package::MIN_INSTALLMENT_COUNT), Package::MIN_INSTALLMENT_COUNT),
+            Package::MAX_INSTALLMENT_COUNT,
+        );
+        $data['installment_deadline_date'] = null;
+
+        return $data;
+    }
+
+    private function installmentPolicySummary(Package $package): string
+    {
+        if (! $package->installment_enabled) {
+            return 'One-time only';
+        }
+
+        if ($package->usesDateBasedInstallment()) {
+            $deadline = $package->installment_deadline_date?->format('d M Y') ?? '-';
+
+            return "Date-based · Deadline {$deadline}";
+        }
+
+        $count = $package->configuredInstallmentCount() ?? Package::MIN_INSTALLMENT_COUNT;
+
+        if ($package->usesFixedInstallmentCount()) {
+            return "Number · Fixed · Exactly {$count} payments";
+        }
+
+        return "Number · Flex · Up to {$count} payments";
     }
 }

@@ -35,6 +35,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     */
     'installment_deadline_date',
     'allowed_billing_days',
+    'installment_calculation_method',
+    'installment_count_mode',
+    'installment_count',
 
     /*
     |--------------------------------------------------------------------------
@@ -62,6 +65,16 @@ class Package extends Model
     /** @use HasFactory<PackageFactory> */
     use HasFactory;
 
+    public const INSTALLMENT_CALCULATION_DATE = 'date';
+    public const INSTALLMENT_CALCULATION_NUMBER = 'number';
+
+    public const INSTALLMENT_COUNT_MODE_FLEX = 'flex';
+    public const INSTALLMENT_COUNT_MODE_FIXED = 'fixed';
+
+    public const MIN_INSTALLMENT_COUNT = 2;
+    public const MAX_INSTALLMENT_COUNT = 99;
+    public const MAX_PROVIDER_INSTALLMENT_COUNT = 15;
+
     public const CUSTOMER_BILLING_DAY_OPTIONS = [1, 15];
 
     protected function casts(): array
@@ -70,6 +83,7 @@ class Package extends Model
             'price' => 'decimal:2',
             'is_active' => 'boolean',
             'installment_enabled' => 'boolean',
+            'installment_count' => 'integer',
 
             /*
             |--------------------------------------------------------------------------
@@ -78,6 +92,8 @@ class Package extends Model
             */
             'installment_deadline_date' => 'date',
             'allowed_billing_days' => 'array',
+            'installment_calculation_method' => 'string',
+            'installment_count_mode' => 'string',
 
             /*
             |--------------------------------------------------------------------------
@@ -153,6 +169,103 @@ class Package extends Model
     public function hasInstallmentDeadlineDate(): bool
     {
         return $this->installment_deadline_date !== null;
+    }
+
+    public function normalizedInstallmentCalculationMethod(): string
+    {
+        $method = strtolower(trim((string) ($this->installment_calculation_method ?? '')));
+
+        return in_array($method, [
+            self::INSTALLMENT_CALCULATION_DATE,
+            self::INSTALLMENT_CALCULATION_NUMBER,
+        ], true)
+            ? $method
+            : self::INSTALLMENT_CALCULATION_DATE;
+    }
+
+    public function usesDateBasedInstallment(): bool
+    {
+        return $this->normalizedInstallmentCalculationMethod() === self::INSTALLMENT_CALCULATION_DATE;
+    }
+
+    public function usesNumberBasedInstallment(): bool
+    {
+        return $this->normalizedInstallmentCalculationMethod() === self::INSTALLMENT_CALCULATION_NUMBER;
+    }
+
+    public function normalizedInstallmentCountMode(): ?string
+    {
+        if (! $this->usesNumberBasedInstallment()) {
+            return null;
+        }
+
+        $mode = strtolower(trim((string) ($this->installment_count_mode ?? '')));
+
+        return in_array($mode, [
+            self::INSTALLMENT_COUNT_MODE_FLEX,
+            self::INSTALLMENT_COUNT_MODE_FIXED,
+        ], true)
+            ? $mode
+            : null;
+    }
+
+    public function usesFlexibleInstallmentCount(): bool
+    {
+        return $this->normalizedInstallmentCountMode() === self::INSTALLMENT_COUNT_MODE_FLEX;
+    }
+
+    public function usesFixedInstallmentCount(): bool
+    {
+        return $this->normalizedInstallmentCountMode() === self::INSTALLMENT_COUNT_MODE_FIXED;
+    }
+
+    public function configuredInstallmentCount(): ?int
+    {
+        if (! $this->usesNumberBasedInstallment()) {
+            return null;
+        }
+
+        $count = (int) ($this->installment_count ?? 0);
+
+        if ($count < self::MIN_INSTALLMENT_COUNT) {
+            return null;
+        }
+
+        return min($count, self::MAX_INSTALLMENT_COUNT);
+    }
+
+    public function customerCanChooseInstallmentCount(): bool
+    {
+        if (! $this->installment_enabled) {
+            return false;
+        }
+
+        if ($this->usesFixedInstallmentCount()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function installmentCountSelectable(): bool
+    {
+        return $this->customerCanChooseInstallmentCount();
+    }
+
+    public function minimumInstallmentCount(): int
+    {
+        if ($this->usesFixedInstallmentCount()) {
+            return $this->configuredInstallmentCount() ?? self::MIN_INSTALLMENT_COUNT;
+        }
+
+        return self::MIN_INSTALLMENT_COUNT;
+    }
+
+    public function fixedInstallmentCount(): ?int
+    {
+        return $this->usesFixedInstallmentCount()
+            ? $this->configuredInstallmentCount()
+            : null;
     }
 
     /*

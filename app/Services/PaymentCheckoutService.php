@@ -88,9 +88,10 @@ class PaymentCheckoutService
         $pendingRegistration->loadMissing('package', 'accessTier');
 
         $normalizedBillingDay = null;
-        $installmentCount = isset($attributes['installment_count']) && $attributes['installment_count'] !== null
+        $requestedInstallmentCount = isset($attributes['installment_count']) && $attributes['installment_count'] !== null
             ? (int) $attributes['installment_count']
             : null;
+        $installmentCount = $requestedInstallmentCount;
 
         if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
             try {
@@ -101,6 +102,11 @@ class PaymentCheckoutService
             } catch (\InvalidArgumentException) {
                 abort(422, 'The selected billing day is not available for this package.');
             }
+
+            $installmentCount = $this->resolveRequestedInstallmentCount(
+                $pendingRegistration->package,
+                $requestedInstallmentCount,
+            );
         }
 
         $this->assertInitialCheckoutPaymentTypeSupported(
@@ -242,9 +248,10 @@ class PaymentCheckoutService
         $targetPackage = $this->activeUpgradePackage($targetTier);
 
         $normalizedBillingDay = null;
-        $installmentCount = isset($attributes['installment_count']) && $attributes['installment_count'] !== null
+        $requestedInstallmentCount = isset($attributes['installment_count']) && $attributes['installment_count'] !== null
             ? (int) $attributes['installment_count']
             : null;
+        $installmentCount = $requestedInstallmentCount;
 
         if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
             try {
@@ -255,6 +262,11 @@ class PaymentCheckoutService
             } catch (\InvalidArgumentException) {
                 abort(422, 'The selected billing day is not available for this package.');
             }
+
+            $installmentCount = $this->resolveRequestedInstallmentCount(
+                $targetPackage,
+                $requestedInstallmentCount,
+            );
         }
 
         $this->assertUpgradePaymentTypeSupported(
@@ -512,6 +524,13 @@ class PaymentCheckoutService
                 'price' => (float) $package->price,
                 'currency_code' => $package->currency_code,
                 'installment_enabled' => (bool) $package->installment_enabled,
+                'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
+                'installment_count_mode' => $package->normalizedInstallmentCountMode(),
+                'installment_count' => $package->configuredInstallmentCount(),
+                'installment_count_selectable' => $installmentSummary['installment_count_selectable'] ?? $package->installmentCountSelectable(),
+                'configured_installment_count' => $installmentSummary['configured_installment_count'] ?? $package->configuredInstallmentCount(),
+                'minimum_installment_count' => $installmentSummary['minimum_installment_count'] ?? $package->minimumInstallmentCount(),
+                'fixed_installment_count' => $installmentSummary['fixed_installment_count'] ?? $package->fixedInstallmentCount(),
                 'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                 'allowed_billing_days' => $package->checkoutBillingDayOptions(),
                 'checkout_billing_day_options' => $checkoutBillingDayOptions,
@@ -528,6 +547,12 @@ class PaymentCheckoutService
             'installment_billing_day_options' => $checkoutBillingDayOptions,
             'installment_billing_interval_unit' => 'MONTH',
             'installment_billing_interval_count' => 1,
+            'installment_calculation_method' => $installmentSummary['installment_calculation_method'] ?? $package?->normalizedInstallmentCalculationMethod(),
+            'installment_count_mode' => $installmentSummary['installment_count_mode'] ?? $package?->normalizedInstallmentCountMode(),
+            'installment_count_selectable' => $installmentSummary['installment_count_selectable'] ?? $package?->installmentCountSelectable(),
+            'configured_installment_count' => $installmentSummary['configured_installment_count'] ?? $package?->configuredInstallmentCount(),
+            'minimum_installment_count' => $installmentSummary['minimum_installment_count'] ?? $package?->minimumInstallmentCount(),
+            'fixed_installment_count' => $installmentSummary['fixed_installment_count'] ?? $package?->fixedInstallmentCount(),
             'installment_count' => $installmentSummary['installment_count'] ?? null,
             'total_amount' => $installmentSummary['total_amount'] ?? null,
             'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
@@ -770,6 +795,12 @@ class PaymentCheckoutService
             'installment_billing_day_options' => $installmentData['visible_billing_day_options'],
             'installment_billing_interval_unit' => 'MONTH',
             'installment_billing_interval_count' => 1,
+            'installment_calculation_method' => $installmentSummary['installment_calculation_method'] ?? ($installmentData['package']['installment_calculation_method'] ?? null),
+            'installment_count_mode' => $installmentSummary['installment_count_mode'] ?? ($installmentData['package']['installment_count_mode'] ?? null),
+            'installment_count_selectable' => $installmentSummary['installment_count_selectable'] ?? ($installmentData['package']['installment_count_selectable'] ?? null),
+            'configured_installment_count' => $installmentSummary['configured_installment_count'] ?? ($installmentData['package']['configured_installment_count'] ?? null),
+            'minimum_installment_count' => $installmentSummary['minimum_installment_count'] ?? ($installmentData['package']['minimum_installment_count'] ?? null),
+            'fixed_installment_count' => $installmentSummary['fixed_installment_count'] ?? ($installmentData['package']['fixed_installment_count'] ?? null),
             'installment_count' => $installmentSummary['installment_count'] ?? null,
             'total_amount' => $installmentSummary['total_amount'] ?? null,
             'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
@@ -886,7 +917,7 @@ class PaymentCheckoutService
             abort(422, 'The selected billing day is not available for this package.');
         }
 
-        if ($installmentCount === null) {
+        if ($installmentCount === null && ! $package->usesFixedInstallmentCount()) {
             abort(422, 'Installment count is required for installment checkout.');
         }
 
@@ -961,7 +992,7 @@ class PaymentCheckoutService
             abort(422, 'The selected billing day is not available for this package.');
         }
 
-        if ($installmentCount === null) {
+        if ($installmentCount === null && ! $package->usesFixedInstallmentCount()) {
             abort(422, 'Installment count is required for installment checkout.');
         }
 
@@ -1100,6 +1131,13 @@ class PaymentCheckoutService
                     'title' => $package->title,
                     'slug' => $package->slug,
                     'installment_enabled' => (bool) $package->installment_enabled,
+                    'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
+                    'installment_count_mode' => $package->normalizedInstallmentCountMode(),
+                    'installment_count' => $package->configuredInstallmentCount(),
+                    'installment_count_selectable' => $package->installmentCountSelectable(),
+                    'configured_installment_count' => $package->configuredInstallmentCount(),
+                    'minimum_installment_count' => $package->minimumInstallmentCount(),
+                    'fixed_installment_count' => $package->fixedInstallmentCount(),
                     'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                     'allowed_billing_days' => [],
                     'checkout_billing_day_options' => [],
@@ -1148,6 +1186,13 @@ class PaymentCheckoutService
                     'title' => $package->title,
                     'slug' => $package->slug,
                     'installment_enabled' => (bool) $package->installment_enabled,
+                    'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
+                    'installment_count_mode' => $package->normalizedInstallmentCountMode(),
+                    'installment_count' => $package->configuredInstallmentCount(),
+                    'installment_count_selectable' => $package->installmentCountSelectable(),
+                    'configured_installment_count' => $package->configuredInstallmentCount(),
+                    'minimum_installment_count' => $package->minimumInstallmentCount(),
+                    'fixed_installment_count' => $package->fixedInstallmentCount(),
                     'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                     'allowed_billing_days' => $visibleBillingDayOptions,
                     'checkout_billing_day_options' => $visibleBillingDayOptions,
@@ -1184,6 +1229,13 @@ class PaymentCheckoutService
                 'title' => $package->title,
                 'slug' => $package->slug,
                 'installment_enabled' => (bool) $package->installment_enabled,
+                'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
+                'installment_count_mode' => $package->normalizedInstallmentCountMode(),
+                'installment_count' => $package->configuredInstallmentCount(),
+                'installment_count_selectable' => $package->installmentCountSelectable(),
+                'configured_installment_count' => $package->configuredInstallmentCount(),
+                'minimum_installment_count' => $summaries[$selectedSummaryKey]['minimum_installment_count'] ?? $package->minimumInstallmentCount(),
+                'fixed_installment_count' => $package->fixedInstallmentCount(),
                 'installment_deadline_date' => $package->installment_deadline_date?->toDateString(),
                 'allowed_billing_days' => $visibleBillingDayOptions,
                 'checkout_billing_day_options' => $visibleBillingDayOptions,
@@ -1230,6 +1282,12 @@ class PaymentCheckoutService
                 'installment_count' => $installmentSummary['installment_count'],
                 'maximum_installment_count' => $installmentSummary['maximum_installment_count'] ?? $installmentSummary['installment_count'],
                 'installment_maximum_count' => $installmentSummary['installment_maximum_count'] ?? $installmentSummary['maximum_installment_count'] ?? $installmentSummary['installment_count'],
+                'minimum_installment_count' => $installmentSummary['minimum_installment_count'] ?? Package::MIN_INSTALLMENT_COUNT,
+                'installment_count_selectable' => $installmentSummary['installment_count_selectable'] ?? true,
+                'configured_installment_count' => $installmentSummary['configured_installment_count'] ?? null,
+                'fixed_installment_count' => $installmentSummary['fixed_installment_count'] ?? null,
+                'installment_calculation_method' => $installmentSummary['installment_calculation_method'] ?? Package::INSTALLMENT_CALCULATION_DATE,
+                'installment_count_mode' => $installmentSummary['installment_count_mode'] ?? null,
                 'total_amount' => $installmentSummary['total_amount'] ?? null,
                 'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
                 'recurring_amount' => $installmentSummary['recurring_payment_amount'],
@@ -1253,7 +1311,7 @@ class PaymentCheckoutService
     private function initialPaymentAmount(float $totalAmount, string $paymentType): float
     {
         if ($paymentType === Invoice::PAYMENT_TYPE_INSTALLMENT) {
-            return round($totalAmount / 4, 2);
+            return round($totalAmount, 2);
         }
 
         return round($totalAmount, 2);
@@ -1316,10 +1374,44 @@ class PaymentCheckoutService
             return null;
         }
 
-        $maximumInstallmentCount = $installmentSummary['maximum_installment_count']
-            ?? $installmentSummary['installment_maximum_count']
-            ?? $installmentSummary['installment_count']
-            ?? null;
+        $calculationMethod = $installmentSummary['installment_calculation_method'] ?? Package::INSTALLMENT_CALCULATION_DATE;
+        $countMode = $installmentSummary['installment_count_mode'] ?? null;
+        $configuredInstallmentCount = isset($installmentSummary['configured_installment_count'])
+            ? (int) $installmentSummary['configured_installment_count']
+            : null;
+        $fixedInstallmentCount = isset($installmentSummary['fixed_installment_count'])
+            ? (int) $installmentSummary['fixed_installment_count']
+            : null;
+        $installmentCountSelectable = $installmentSummary['installment_count_selectable'] ?? true;
+
+        if (
+            $calculationMethod === Package::INSTALLMENT_CALCULATION_NUMBER
+            && $countMode === Package::INSTALLMENT_COUNT_MODE_FIXED
+            && $fixedInstallmentCount !== null
+            && $fixedInstallmentCount >= Package::MIN_INSTALLMENT_COUNT
+        ) {
+            $maximumInstallmentCount = $fixedInstallmentCount;
+            $minimumInstallmentCount = $fixedInstallmentCount;
+            $normalizedInstallmentCount = $fixedInstallmentCount;
+            $installmentCountSelectable = false;
+        } elseif (
+            $calculationMethod === Package::INSTALLMENT_CALCULATION_NUMBER
+            && $configuredInstallmentCount !== null
+            && $configuredInstallmentCount >= Package::MIN_INSTALLMENT_COUNT
+        ) {
+            $maximumInstallmentCount = $configuredInstallmentCount;
+            $minimumInstallmentCount = Package::MIN_INSTALLMENT_COUNT;
+            $normalizedInstallmentCount = isset($installmentSummary['installment_count'])
+                ? (int) $installmentSummary['installment_count']
+                : $configuredInstallmentCount;
+        } else {
+            $maximumInstallmentCount = $installmentSummary['maximum_installment_count']
+                ?? $installmentSummary['installment_maximum_count']
+                ?? $installmentSummary['installment_count']
+                ?? null;
+            $minimumInstallmentCount = $installmentSummary['minimum_installment_count'] ?? Package::MIN_INSTALLMENT_COUNT;
+            $normalizedInstallmentCount = $installmentSummary['installment_count'] ?? null;
+        }
 
         return [
             ...$installmentSummary,
@@ -1327,9 +1419,15 @@ class PaymentCheckoutService
             'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
             'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
             'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
-            'installment_count' => $installmentSummary['installment_count'] ?? null,
+            'installment_count' => $normalizedInstallmentCount,
             'maximum_installment_count' => $maximumInstallmentCount,
             'installment_maximum_count' => $maximumInstallmentCount,
+            'minimum_installment_count' => $minimumInstallmentCount,
+            'installment_count_selectable' => $installmentCountSelectable,
+            'configured_installment_count' => $configuredInstallmentCount,
+            'fixed_installment_count' => $fixedInstallmentCount,
+            'installment_calculation_method' => $calculationMethod,
+            'installment_count_mode' => $countMode,
             'recurring_due_dates' => $installmentSummary['recurring_due_dates'] ?? [],
             'available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
             'schedule_breakdown' => $installmentSummary['schedule_breakdown'] ?? [],
@@ -1353,5 +1451,18 @@ class PaymentCheckoutService
         }
 
         return $normalized;
+    }
+
+    private function resolveRequestedInstallmentCount(?Package $package, ?int $requestedInstallmentCount): ?int
+    {
+        if (! $package instanceof Package) {
+            return $requestedInstallmentCount;
+        }
+
+        if ($package->usesFixedInstallmentCount()) {
+            return $package->configuredInstallmentCount();
+        }
+
+        return $requestedInstallmentCount;
     }
 }

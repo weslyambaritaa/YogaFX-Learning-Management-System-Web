@@ -171,6 +171,13 @@ class LeadRegistrationController extends Controller
             |
             */
             'installment_enabled' => $installmentEnabled,
+            'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
+            'installment_count_mode' => $package->normalizedInstallmentCountMode(),
+            'installment_count' => $package->configuredInstallmentCount(),
+            'installment_count_selectable' => $package->installmentCountSelectable(),
+            'configured_installment_count' => $package->configuredInstallmentCount(),
+            'minimum_installment_count' => $package->minimumInstallmentCount(),
+            'fixed_installment_count' => $package->fixedInstallmentCount(),
             'installment_deadline_date' => $this->formatDateValue($package->installment_deadline_date ?? null),
             'allowed_billing_days' => $allowedBillingDays,
             'checkout_billing_day_options' => $allowedBillingDays,
@@ -239,11 +246,23 @@ class LeadRegistrationController extends Controller
      */
     private function resolveMaximumInstallmentCount(Package $package, array $allowedBillingDays): int
     {
+        if ($package->usesNumberBasedInstallment()) {
+            return min(
+                Package::MAX_INSTALLMENT_COUNT,
+                max(
+                    $package->usesFixedInstallmentCount()
+                        ? ($package->fixedInstallmentCount() ?? Package::MIN_INSTALLMENT_COUNT)
+                        : Package::MIN_INSTALLMENT_COUNT,
+                    $package->configuredInstallmentCount() ?? Package::MIN_INSTALLMENT_COUNT,
+                ),
+            );
+        }
+
         if (method_exists($package, 'resolvedMaximumInstallmentCount')) {
             $resolvedMaximumInstallmentCount = (int) $package->resolvedMaximumInstallmentCount();
 
             if ($resolvedMaximumInstallmentCount >= 2) {
-                return $resolvedMaximumInstallmentCount;
+                return min($resolvedMaximumInstallmentCount, Package::MAX_PROVIDER_INSTALLMENT_COUNT);
             }
         }
 
@@ -256,21 +275,21 @@ class LeadRegistrationController extends Controller
             $value = $package->{$attribute} ?? null;
 
             if (is_numeric($value) && (int) $value >= 2) {
-                return (int) $value;
+                return min((int) $value, Package::MAX_PROVIDER_INSTALLMENT_COUNT);
             }
         }
 
         $deadline = $this->parseDateValue($package->installment_deadline_date ?? null);
 
         if (! $deadline || count($allowedBillingDays) === 0) {
-            return 2;
+            return Package::MIN_INSTALLMENT_COUNT;
         }
 
         $today = CarbonImmutable::today();
         $deadline = $deadline->endOfDay();
 
         if ($deadline->lessThanOrEqualTo($today)) {
-            return 2;
+            return Package::MIN_INSTALLMENT_COUNT;
         }
 
         $recurringPaymentDates = $this->countRecurringInstallmentDatesUntilDeadline(
@@ -296,7 +315,7 @@ class LeadRegistrationController extends Controller
         | Maka total installment count = 1 + jumlah recurring dates.
         |
         */
-        return max(2, 1 + $recurringPaymentDates);
+        return min(Package::MAX_PROVIDER_INSTALLMENT_COUNT, max(Package::MIN_INSTALLMENT_COUNT, 1 + $recurringPaymentDates));
     }
 
     /**

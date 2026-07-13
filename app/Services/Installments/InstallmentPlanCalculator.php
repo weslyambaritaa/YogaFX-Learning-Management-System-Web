@@ -49,25 +49,58 @@ class InstallmentPlanCalculator
 
         $checkoutDate = $this->normalizeDate($checkoutAt);
         $billingDay = $this->resolveBillingDay($package, $billingDay);
+
+        if ($package->usesNumberBasedInstallment()) {
+            return $this->calculateNumberBasedPlan(
+                $package,
+                $totalAmountOverride,
+                $checkoutDate,
+                $billingDay,
+                $installmentCount,
+            );
+        }
+
+        return $this->calculateDateBasedPlan(
+            $package,
+            $totalAmountOverride,
+            $checkoutDate,
+            $billingDay,
+            $installmentCount,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function calculateDateBasedPlan(
+        Package $package,
+        float|int|string $totalAmountOverride,
+        CarbonImmutable $checkoutDate,
+        int $billingDay,
+        ?int $installmentCount,
+    ): array {
         $deadlineDate = $this->resolveDeadlineDate($package);
 
-        if ($checkoutDate->greaterThanOrEqualTo($deadlineDate)) {
+        if ($checkoutDate->greaterThan($deadlineDate)) {
             throw new DomainException('The installment window has already closed for this checkout date.');
         }
 
-        $maximumRecurringDueDates = $this->buildMonthlyRecurringDueDates(
+        $maximumRecurringDueDates = $this->buildMonthlyRecurringDueDatesUntilDeadline(
             checkoutDate: $checkoutDate,
             deadlineDate: $deadlineDate,
             billingDay: $billingDay,
         );
 
-        $maximumInstallmentCount = 1 + count($maximumRecurringDueDates);
+        $maximumInstallmentCount = min(
+            1 + count($maximumRecurringDueDates),
+            Package::MAX_PROVIDER_INSTALLMENT_COUNT,
+        );
 
-        if ($maximumInstallmentCount < 2) {
+        if ($maximumInstallmentCount < Package::MIN_INSTALLMENT_COUNT) {
             throw new DomainException('This package does not have enough billing dates for installment checkout.');
         }
 
-        $selectedInstallmentCount = $this->resolveInstallmentCount(
+        $selectedInstallmentCount = $this->resolveFlexibleInstallmentCount(
             selectedInstallmentCount: $installmentCount,
             maximumInstallmentCount: $maximumInstallmentCount,
         );
@@ -78,8 +111,120 @@ class InstallmentPlanCalculator
             max(0, $selectedInstallmentCount - 1),
         );
 
-        $finalDueAt = $selectedRecurringDueDates !== []
-            ? end($selectedRecurringDueDates)
+        return $this->buildPlanPayload(
+            package: $package,
+            totalAmountOverride: $totalAmountOverride,
+            checkoutDate: $checkoutDate,
+            billingDay: $billingDay,
+            selectedInstallmentCount: $selectedInstallmentCount,
+            minimumInstallmentCount: Package::MIN_INSTALLMENT_COUNT,
+            maximumInstallmentCount: $maximumInstallmentCount,
+            recurringDueDates: $selectedRecurringDueDates,
+            availableRecurringDueDates: array_slice(
+                $maximumRecurringDueDates,
+                0,
+                max(0, $maximumInstallmentCount - 1),
+            ),
+            deadlineDate: $deadlineDate,
+            configuredInstallmentCount: null,
+            selectable: true,
+            fixedInstallmentCount: null,
+            calculationMethod: Package::INSTALLMENT_CALCULATION_DATE,
+            countMode: null,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function calculateNumberBasedPlan(
+        Package $package,
+        float|int|string $totalAmountOverride,
+        CarbonImmutable $checkoutDate,
+        int $billingDay,
+        ?int $installmentCount,
+    ): array {
+        $configuredInstallmentCount = $package->configuredInstallmentCount();
+
+        if ($configuredInstallmentCount === null) {
+            throw new InvalidArgumentException('Package installment count is required for number-based installment.');
+        }
+
+        if ($package->usesFixedInstallmentCount()) {
+            $selectedInstallmentCount = $this->resolveFixedInstallmentCount(
+                configuredInstallmentCount: $configuredInstallmentCount,
+                selectedInstallmentCount: $installmentCount,
+            );
+            $minimumInstallmentCount = $configuredInstallmentCount;
+            $maximumInstallmentCount = $configuredInstallmentCount;
+            $selectable = false;
+            $fixedInstallmentCount = $configuredInstallmentCount;
+        } else {
+            $selectedInstallmentCount = $this->resolveFlexibleInstallmentCount(
+                selectedInstallmentCount: $installmentCount,
+                maximumInstallmentCount: $configuredInstallmentCount,
+            );
+            $minimumInstallmentCount = Package::MIN_INSTALLMENT_COUNT;
+            $maximumInstallmentCount = $configuredInstallmentCount;
+            $selectable = true;
+            $fixedInstallmentCount = null;
+        }
+
+        $selectedRecurringDueDates = $this->buildMonthlyRecurringDueDatesByCount(
+            checkoutDate: $checkoutDate,
+            billingDay: $billingDay,
+            recurringCount: max(0, $selectedInstallmentCount - 1),
+        );
+
+        $availableRecurringDueDates = $this->buildMonthlyRecurringDueDatesByCount(
+            checkoutDate: $checkoutDate,
+            billingDay: $billingDay,
+            recurringCount: max(0, $maximumInstallmentCount - 1),
+        );
+
+        return $this->buildPlanPayload(
+            package: $package,
+            totalAmountOverride: $totalAmountOverride,
+            checkoutDate: $checkoutDate,
+            billingDay: $billingDay,
+            selectedInstallmentCount: $selectedInstallmentCount,
+            minimumInstallmentCount: $minimumInstallmentCount,
+            maximumInstallmentCount: $maximumInstallmentCount,
+            recurringDueDates: $selectedRecurringDueDates,
+            availableRecurringDueDates: $availableRecurringDueDates,
+            deadlineDate: null,
+            configuredInstallmentCount: $configuredInstallmentCount,
+            selectable: $selectable,
+            fixedInstallmentCount: $fixedInstallmentCount,
+            calculationMethod: Package::INSTALLMENT_CALCULATION_NUMBER,
+            countMode: $package->normalizedInstallmentCountMode(),
+        );
+    }
+
+    /**
+     * @param  array<int, CarbonImmutable>  $recurringDueDates
+     * @param  array<int, CarbonImmutable>  $availableRecurringDueDates
+     * @return array<string, mixed>
+     */
+    private function buildPlanPayload(
+        Package $package,
+        float|int|string $totalAmountOverride,
+        CarbonImmutable $checkoutDate,
+        int $billingDay,
+        int $selectedInstallmentCount,
+        int $minimumInstallmentCount,
+        int $maximumInstallmentCount,
+        array $recurringDueDates,
+        array $availableRecurringDueDates,
+        ?CarbonImmutable $deadlineDate,
+        ?int $configuredInstallmentCount,
+        bool $selectable,
+        ?int $fixedInstallmentCount,
+        string $calculationMethod,
+        ?string $countMode,
+    ): array {
+        $finalDueAt = $recurringDueDates !== []
+            ? end($recurringDueDates)
             : $checkoutDate;
 
         if (! $finalDueAt instanceof CarbonImmutable) {
@@ -96,7 +241,7 @@ class InstallmentPlanCalculator
 
         $graceDeadlines = array_map(
             fn (CarbonImmutable $dueDate) => $dueDate->addDays(3)->format('Y-m-d'),
-            $selectedRecurringDueDates,
+            $recurringDueDates,
         );
 
         $scheduleBreakdown = [[
@@ -107,7 +252,7 @@ class InstallmentPlanCalculator
             'grace_deadline' => null,
         ]];
 
-        foreach ($selectedRecurringDueDates as $index => $dueDate) {
+        foreach ($recurringDueDates as $index => $dueDate) {
             $scheduleBreakdown[] = [
                 'cycle_number' => $index + 2,
                 'type' => 'recurring',
@@ -123,34 +268,28 @@ class InstallmentPlanCalculator
             'installment_count' => $selectedInstallmentCount,
             'maximum_installment_count' => $maximumInstallmentCount,
             'installment_maximum_count' => $maximumInstallmentCount,
+            'minimum_installment_count' => $minimumInstallmentCount,
+            'installment_count_selectable' => $selectable,
+            'configured_installment_count' => $configuredInstallmentCount,
+            'fixed_installment_count' => $fixedInstallmentCount,
+            'installment_calculation_method' => $calculationMethod,
+            'installment_count_mode' => $countMode,
             'first_payment_amount' => $this->formatAmount($firstPaymentAmount),
             'monthly_base_amount' => $this->formatAmount($recurringAmount),
             'recurring_payment_amount' => $this->formatAmount($recurringAmount),
             'billing_day' => $billingDay,
-
-            /*
-            |--------------------------------------------------------------------------
-            | Compatibility fields
-            |--------------------------------------------------------------------------
-            |
-            | Flow baru selalu monthly dengan billing day 1/15.
-            | Field ini tetap dikembalikan supaya service lama yang masih membaca
-            | billing_interval_unit/count tidak langsung rusak.
-            |
-            */
             'billing_interval_unit' => 'MONTH',
             'billing_interval_count' => 1,
-
             'first_payment_date' => $checkoutDate->format('Y-m-d'),
             'recurring_due_dates' => array_map(
                 fn (CarbonImmutable $date) => $date->format('Y-m-d'),
-                $selectedRecurringDueDates,
+                $recurringDueDates,
             ),
             'available_recurring_due_dates' => array_map(
                 fn (CarbonImmutable $date) => $date->format('Y-m-d'),
-                $maximumRecurringDueDates,
+                $availableRecurringDueDates,
             ),
-            'deadline_date' => $deadlineDate->format('Y-m-d'),
+            'deadline_date' => $deadlineDate?->format('Y-m-d'),
             'final_due_at' => $finalDueAt->format('Y-m-d'),
             'grace_deadlines' => $graceDeadlines,
             'schedule_breakdown' => $scheduleBreakdown,
@@ -172,11 +311,7 @@ class InstallmentPlanCalculator
 
     private function resolveBillingDay(Package $package, ?int $selectedBillingDay = null): int
     {
-        try {
-            return $package->resolveInstallmentBillingDay($selectedBillingDay);
-        } catch (InvalidArgumentException $exception) {
-            throw $exception;
-        }
+        return $package->resolveInstallmentBillingDay($selectedBillingDay);
     }
 
     private function resolveDeadlineDate(Package $package): CarbonImmutable
@@ -192,7 +327,7 @@ class InstallmentPlanCalculator
         return CarbonImmutable::parse((string) $package->installment_deadline_date)->startOfDay();
     }
 
-    private function resolveInstallmentCount(
+    private function resolveFlexibleInstallmentCount(
         ?int $selectedInstallmentCount,
         int $maximumInstallmentCount,
     ): int {
@@ -200,7 +335,7 @@ class InstallmentPlanCalculator
             return $maximumInstallmentCount;
         }
 
-        if ($selectedInstallmentCount < 2) {
+        if ($selectedInstallmentCount < Package::MIN_INSTALLMENT_COUNT) {
             throw new InvalidArgumentException('Installment count must be at least 2.');
         }
 
@@ -211,10 +346,25 @@ class InstallmentPlanCalculator
         return $selectedInstallmentCount;
     }
 
+    private function resolveFixedInstallmentCount(
+        int $configuredInstallmentCount,
+        ?int $selectedInstallmentCount,
+    ): int {
+        if ($selectedInstallmentCount === null) {
+            return $configuredInstallmentCount;
+        }
+
+        if ($selectedInstallmentCount !== $configuredInstallmentCount) {
+            throw new InvalidArgumentException('Installment count must match the configured fixed installment count.');
+        }
+
+        return $configuredInstallmentCount;
+    }
+
     /**
      * @return array<int, CarbonImmutable>
      */
-    private function buildMonthlyRecurringDueDates(
+    private function buildMonthlyRecurringDueDatesUntilDeadline(
         CarbonImmutable $checkoutDate,
         CarbonImmutable $deadlineDate,
         int $billingDay,
@@ -229,7 +379,7 @@ class InstallmentPlanCalculator
 
         $dates = [];
 
-        while ($cursor->lessThanOrEqualTo($deadlineDate)) {
+        while ($cursor->lessThanOrEqualTo($deadlineDate) && count($dates) < (Package::MAX_PROVIDER_INSTALLMENT_COUNT - 1)) {
             $dates[] = $cursor;
 
             $nextMonth = $cursor->startOfMonth()->addMonth();
@@ -239,6 +389,34 @@ class InstallmentPlanCalculator
                 month: $nextMonth->month,
                 billingDay: $billingDay,
             );
+        }
+
+        return $dates;
+    }
+
+    /**
+     * @return array<int, CarbonImmutable>
+     */
+    private function buildMonthlyRecurringDueDatesByCount(
+        CarbonImmutable $checkoutDate,
+        int $billingDay,
+        int $recurringCount,
+    ): array {
+        if ($recurringCount <= 0) {
+            return [];
+        }
+
+        $dates = [];
+        $cursorMonth = $checkoutDate->startOfMonth()->addMonth();
+
+        while (count($dates) < $recurringCount) {
+            $dates[] = $this->safeMonthlyBillingDate(
+                year: $cursorMonth->year,
+                month: $cursorMonth->month,
+                billingDay: $billingDay,
+            );
+
+            $cursorMonth = $cursorMonth->addMonth();
         }
 
         return $dates;

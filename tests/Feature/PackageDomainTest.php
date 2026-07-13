@@ -10,6 +10,7 @@ use App\Services\PackageAssignmentService;
 use Database\Seeders\AccessTierSeeder;
 use Database\Seeders\PackageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class PackageDomainTest extends TestCase
@@ -84,10 +85,14 @@ class PackageDomainTest extends TestCase
             'currency_code' => AccessTier::CURRENCY_GBP,
             'is_active' => true,
             'installment_enabled' => false,
+            'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_DATE,
+            'installment_count_mode' => '',
+            'installment_count' => '',
             'billing_interval_unit' => '',
             'billing_interval_count' => '',
             'fixed_billing_day' => '',
             'allowed_billing_days' => [],
+            'installment_deadline_date' => '',
             'installment_deadline_month' => '',
             'installment_deadline_day' => '',
             'access_tier_id' => $tier->id,
@@ -159,6 +164,10 @@ class PackageDomainTest extends TestCase
             'currency_code' => AccessTier::CURRENCY_GBP,
             'is_active' => true,
             'installment_enabled' => true,
+            'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_DATE,
+            'installment_count_mode' => '',
+            'installment_count' => '',
+            'installment_deadline_date' => '2027-01-15',
             'billing_interval_unit' => 'MONTH',
             'billing_interval_count' => 1,
             'fixed_billing_day' => '',
@@ -172,6 +181,46 @@ class PackageDomainTest extends TestCase
         $this->assertSame($tier->id, $promo->fresh()->access_tier_id);
         $this->assertTrue((bool) $promo->fresh()->installment_enabled);
         $this->assertSame([1, 15], $promo->fresh()->allowed_billing_days);
+    }
+
+    public function test_public_package_payload_uses_number_fixed_policy_without_stale_deadline_maximum(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
+
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Masterclass Fixed Six',
+            'slug' => 'masterclass-fixed-six-public',
+            'price' => 300,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_NUMBER,
+            'installment_count_mode' => Package::INSTALLMENT_COUNT_MODE_FIXED,
+            'installment_count' => 6,
+            'allowed_billing_days' => [15],
+            'fixed_billing_day' => 15,
+            'installment_deadline_date' => null,
+            'installment_deadline_month' => 4,
+            'installment_deadline_day' => 15,
+        ]);
+
+        $this->get(route('lead-registration.packages.show', ['packageSlug' => $package->slug]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Public/Scoreboard')
+                ->where('packages.0.slug', 'masterclass-fixed-six-public')
+                ->where('packages.0.installment_calculation_method', 'number')
+                ->where('packages.0.installment_count_mode', 'fixed')
+                ->where('packages.0.configured_installment_count', 6)
+                ->where('packages.0.installment_count_selectable', false)
+                ->where('packages.0.minimum_installment_count', 6)
+                ->where('packages.0.maximum_installment_count', 6)
+                ->where('packages.0.installment_maximum_count', 6)
+                ->where('packages.0.fixed_installment_count', 6)
+                ->where('packages.0.installment_deadline_date', null));
     }
 
     public function test_non_admin_cannot_access_package_admin_routes(): void

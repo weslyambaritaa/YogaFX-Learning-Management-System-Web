@@ -93,6 +93,16 @@ function normalizeMaximumInstallmentCount(value) {
     return Math.trunc(numericValue);
 }
 
+function normalizeMinimumInstallmentCount(value, fallback = 2) {
+    const numericValue = Number(value);
+
+    if (!Number.isFinite(numericValue) || numericValue < 2) {
+        return fallback;
+    }
+
+    return Math.trunc(numericValue);
+}
+
 function toDateString(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -199,6 +209,56 @@ function resolveMaximumInstallmentCount(
     checkout,
     selectedPaymentOption,
 ) {
+    const installmentCalculationMethod =
+        summary?.installment_calculation_method ??
+        checkout?.installment_calculation_method ??
+        checkout?.package?.installment_calculation_method ??
+        selectedPaymentOption?.installment_calculation_method ??
+        "date";
+    const installmentCountMode =
+        summary?.installment_count_mode ??
+        checkout?.installment_count_mode ??
+        checkout?.package?.installment_count_mode ??
+        selectedPaymentOption?.installment_count_mode ??
+        null;
+    const installmentCountSelectable =
+        summary?.installment_count_selectable ??
+        checkout?.installment_count_selectable ??
+        checkout?.package?.installment_count_selectable ??
+        selectedPaymentOption?.installment_count_selectable ??
+        true;
+    const fixedInstallmentCount = normalizeInstallmentCount(
+        summary?.fixed_installment_count ??
+            checkout?.fixed_installment_count ??
+            checkout?.package?.fixed_installment_count ??
+            selectedPaymentOption?.fixed_installment_count,
+    );
+    const configuredInstallmentCount = normalizeInstallmentCount(
+        summary?.configured_installment_count ??
+            checkout?.configured_installment_count ??
+            checkout?.package?.configured_installment_count ??
+            selectedPaymentOption?.configured_installment_count ??
+            selectedPaymentOption?.installment_count,
+    );
+
+    if (
+        installmentCalculationMethod === "number" &&
+        installmentCountMode === "fixed" &&
+        installmentCountSelectable === false &&
+        fixedInstallmentCount &&
+        fixedInstallmentCount >= 2
+    ) {
+        return fixedInstallmentCount;
+    }
+
+    if (
+        installmentCalculationMethod === "number" &&
+        configuredInstallmentCount &&
+        configuredInstallmentCount >= 2
+    ) {
+        return configuredInstallmentCount;
+    }
+
     const candidates = [
         summary?.maximum_installment_count,
         summary?.installment_maximum_count,
@@ -234,10 +294,125 @@ function buildInstallmentCountOptions(
         selectedPaymentOption,
     );
 
-    return Array.from(
-        { length: maximumInstallmentCount - 1 },
-        (_, index) => index + 2,
+    const minimumInstallmentCount = normalizeMinimumInstallmentCount(
+        summary?.minimum_installment_count ??
+            checkout?.minimum_installment_count ??
+            checkout?.package?.minimum_installment_count ??
+            selectedPaymentOption?.minimum_installment_count,
+        2,
     );
+    const installmentCountSelectable =
+        summary?.installment_count_selectable ??
+        checkout?.installment_count_selectable ??
+        checkout?.package?.installment_count_selectable ??
+        selectedPaymentOption?.installment_count_selectable ??
+        true;
+
+    if (installmentCountSelectable === false) {
+        const fixedCount = normalizeInstallmentCount(
+            summary?.fixed_installment_count ??
+                checkout?.fixed_installment_count ??
+                checkout?.package?.fixed_installment_count ??
+                selectedPaymentOption?.fixed_installment_count ??
+                maximumInstallmentCount,
+        );
+
+        return fixedCount ? [fixedCount] : [];
+    }
+
+    return Array.from(
+        {
+            length: Math.max(
+                0,
+                maximumInstallmentCount - minimumInstallmentCount + 1,
+            ),
+        },
+        (_, index) => index + minimumInstallmentCount,
+    );
+}
+
+function resolveDefaultInstallmentCount(
+    summary,
+    checkout,
+    selectedPaymentOption,
+    availableInstallmentCounts = [],
+) {
+    const installmentCountSelectable =
+        summary?.installment_count_selectable ??
+        checkout?.installment_count_selectable ??
+        checkout?.package?.installment_count_selectable ??
+        selectedPaymentOption?.installment_count_selectable ??
+        true;
+    const fixedInstallmentCount = normalizeInstallmentCount(
+        summary?.fixed_installment_count ??
+            checkout?.fixed_installment_count ??
+            checkout?.package?.fixed_installment_count ??
+            selectedPaymentOption?.fixed_installment_count,
+    );
+
+    if (
+        installmentCountSelectable === false &&
+        fixedInstallmentCount &&
+        fixedInstallmentCount >= 2
+    ) {
+        return fixedInstallmentCount;
+    }
+
+    return availableInstallmentCounts[0] ?? 2;
+}
+
+function buildInstallmentPolicySignature(
+    summary,
+    checkout,
+    selectedPaymentOption,
+    billingDay,
+    availableInstallmentCounts = [],
+) {
+    return JSON.stringify({
+        billing_day: Number(billingDay ?? 0),
+        installment_calculation_method:
+            summary?.installment_calculation_method ??
+            checkout?.installment_calculation_method ??
+            checkout?.package?.installment_calculation_method ??
+            selectedPaymentOption?.installment_calculation_method ??
+            null,
+        installment_count_mode:
+            summary?.installment_count_mode ??
+            checkout?.installment_count_mode ??
+            checkout?.package?.installment_count_mode ??
+            selectedPaymentOption?.installment_count_mode ??
+            null,
+        installment_count_selectable:
+            summary?.installment_count_selectable ??
+            checkout?.installment_count_selectable ??
+            checkout?.package?.installment_count_selectable ??
+            selectedPaymentOption?.installment_count_selectable ??
+            true,
+        configured_installment_count:
+            summary?.configured_installment_count ??
+            checkout?.configured_installment_count ??
+            checkout?.package?.configured_installment_count ??
+            selectedPaymentOption?.configured_installment_count ??
+            null,
+        fixed_installment_count:
+            summary?.fixed_installment_count ??
+            checkout?.fixed_installment_count ??
+            checkout?.package?.fixed_installment_count ??
+            selectedPaymentOption?.fixed_installment_count ??
+            null,
+        minimum_installment_count:
+            summary?.minimum_installment_count ??
+            checkout?.minimum_installment_count ??
+            checkout?.package?.minimum_installment_count ??
+            selectedPaymentOption?.minimum_installment_count ??
+            null,
+        maximum_installment_count: resolveMaximumInstallmentCount(
+            summary,
+            checkout,
+            selectedPaymentOption,
+        ),
+        available_installment_counts: availableInstallmentCounts,
+    });
 }
 
 function buildInstallmentSummaryForCount(
@@ -260,30 +435,46 @@ function buildInstallmentSummaryForCount(
     const normalizedInstallmentCount = normalizeInstallmentCount(
         selectedInstallmentCount,
     );
+    const minimumInstallmentCount = normalizeMinimumInstallmentCount(
+        summary?.minimum_installment_count ??
+            checkout?.minimum_installment_count ??
+            checkout?.package?.minimum_installment_count,
+        2,
+    );
+    const installmentCountSelectable =
+        summary?.installment_count_selectable ?? true;
+    const fixedInstallmentCount = normalizeInstallmentCount(
+        summary?.fixed_installment_count,
+    );
+    const effectiveInstallmentCount =
+        installmentCountSelectable === false && fixedInstallmentCount
+            ? fixedInstallmentCount
+            : normalizedInstallmentCount;
 
     if (
-        !normalizedInstallmentCount ||
-        normalizedInstallmentCount < 2 ||
-        normalizedInstallmentCount > maximumInstallmentCount
+        !effectiveInstallmentCount ||
+        effectiveInstallmentCount < minimumInstallmentCount ||
+        effectiveInstallmentCount > maximumInstallmentCount
     ) {
         return {
             ...summary,
             maximum_installment_count: maximumInstallmentCount,
             installment_maximum_count: maximumInstallmentCount,
+            minimum_installment_count: minimumInstallmentCount,
         };
     }
 
     const totalAmountCents = amountToCents(summary.total_amount ?? 0);
     const recurringAmountCents = Math.floor(
-        totalAmountCents / normalizedInstallmentCount,
+        totalAmountCents / effectiveInstallmentCount,
     );
     const firstPaymentAmountCents =
         totalAmountCents -
-        recurringAmountCents * (normalizedInstallmentCount - 1);
+        recurringAmountCents * (effectiveInstallmentCount - 1);
 
     const recurringAmount = centsToAmount(recurringAmountCents);
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
-    const requiredRecurringCount = normalizedInstallmentCount - 1;
+    const requiredRecurringCount = effectiveInstallmentCount - 1;
 
     const existingRecurringDueDates = Array.isArray(
         summary.available_recurring_due_dates,
@@ -352,9 +543,10 @@ function buildInstallmentSummaryForCount(
     return {
         ...summary,
         billing_day: billingDay,
-        installment_count: normalizedInstallmentCount,
+        installment_count: effectiveInstallmentCount,
         maximum_installment_count: maximumInstallmentCount,
         installment_maximum_count: maximumInstallmentCount,
+        minimum_installment_count: minimumInstallmentCount,
         first_payment_amount: firstPaymentAmount.toFixed(2),
         monthly_base_amount: recurringAmount.toFixed(2),
         recurring_payment_amount: recurringAmount.toFixed(2),
@@ -404,6 +596,30 @@ function buildPreviewInstallmentSummary(checkout, selectedPaymentOption) {
         installment_count: maximumInstallmentCount,
         maximum_installment_count: maximumInstallmentCount,
         installment_maximum_count: maximumInstallmentCount,
+        minimum_installment_count:
+            checkout.minimum_installment_count ??
+            checkout.package?.minimum_installment_count ??
+            2,
+        installment_count_selectable:
+            checkout.installment_count_selectable ??
+            checkout.package?.installment_count_selectable ??
+            true,
+        configured_installment_count:
+            checkout.configured_installment_count ??
+            checkout.package?.configured_installment_count ??
+            null,
+        fixed_installment_count:
+            checkout.fixed_installment_count ??
+            checkout.package?.fixed_installment_count ??
+            null,
+        installment_calculation_method:
+            checkout.installment_calculation_method ??
+            checkout.package?.installment_calculation_method ??
+            "date",
+        installment_count_mode:
+            checkout.installment_count_mode ??
+            checkout.package?.installment_count_mode ??
+            null,
         recurring_due_dates: recurringDueDates,
         available_recurring_due_dates: recurringDueDates,
         schedule_breakdown: [
@@ -524,6 +740,12 @@ export default function PublicCheckoutPanel({
         checkout,
         null,
     );
+    const initialSelectedInstallmentCount = resolveDefaultInstallmentCount(
+        initialInstallmentSummary,
+        checkout,
+        null,
+        initialInstallmentOptions,
+    );
 
     const [paymentType, setPaymentType] = useState(
         paymentOptions[0]?.type ?? "pay_full",
@@ -532,7 +754,7 @@ export default function PublicCheckoutPanel({
     const [billingDay, setBillingDay] = useState(initialBillingDay);
 
     const [selectedInstallmentCount, setSelectedInstallmentCount] = useState(
-        initialInstallmentOptions[0] ?? 2,
+        initialSelectedInstallmentCount,
     );
 
     const [formData, setFormData] = useState({
@@ -585,11 +807,30 @@ export default function PublicCheckoutPanel({
         checkout,
         selectedPaymentOption,
     );
+    const installmentCountSelectable =
+        baseInstallmentSummary?.installment_count_selectable ??
+        checkout.installment_count_selectable ??
+        checkout.package?.installment_count_selectable ??
+        selectedPaymentOption?.installment_count_selectable ??
+        true;
 
     const minimumInstallmentCount = availableInstallmentCounts[0] ?? 2;
 
     const maximumInstallmentCount =
         availableInstallmentCounts[availableInstallmentCounts.length - 1] ?? 2;
+    const defaultInstallmentCount = resolveDefaultInstallmentCount(
+        baseInstallmentSummary,
+        checkout,
+        selectedPaymentOption,
+        availableInstallmentCounts,
+    );
+    const installmentPolicySignature = buildInstallmentPolicySignature(
+        baseInstallmentSummary,
+        checkout,
+        selectedPaymentOption,
+        billingDay,
+        availableInstallmentCounts,
+    );
 
     const sliderProgressPercent =
         maximumInstallmentCount > minimumInstallmentCount
@@ -799,24 +1040,12 @@ export default function PublicCheckoutPanel({
             return;
         }
 
-        setSelectedInstallmentCount((current) => {
-            const normalizedCurrent = normalizeInstallmentCount(current);
-
-            if (
-                normalizedCurrent &&
-                availableInstallmentCounts.includes(normalizedCurrent)
-            ) {
-                return normalizedCurrent;
-            }
-
-            return availableInstallmentCounts[0];
-        });
-    }, [
-        isInstallmentSelected,
-        billingDay,
-        baseInstallmentSummary,
-        availableInstallmentCounts.join(","),
-    ]);
+        setSelectedInstallmentCount(defaultInstallmentCount);
+        setFieldErrors((current) => ({
+            ...current,
+            installment_count: "",
+        }));
+    }, [isInstallmentSelected, installmentPolicySignature, defaultInstallmentCount]);
 
     useEffect(() => {
         if (!isInstallmentSelected) {
@@ -1886,7 +2115,8 @@ export default function PublicCheckoutPanel({
                         </div>
                     )}
 
-                    {availableInstallmentCounts.length > 0 && (
+                    {installmentCountSelectable !== false &&
+                        availableInstallmentCounts.length > 0 && (
                         <div className="space-y-4">
                             <div className="flex items-center justify-between gap-4">
                                 <p className="text-xs uppercase tracking-[0.16em] text-white/45">
@@ -1937,6 +2167,17 @@ export default function PublicCheckoutPanel({
                                 style={{ fontFamily: FONT_FAMILY }}
                                 message={fieldErrors.installment_count}
                             />
+                        </div>
+                    )}
+
+                    {installmentCountSelectable === false && (
+                        <div className="space-y-2">
+                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                Number of installments
+                            </p>
+                            <div className="rounded-[8px] border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-white">
+                                {selectedInstallmentCount} payments
+                            </div>
                         </div>
                     )}
 

@@ -177,6 +177,11 @@ export default function PackagesIndex({ packages, status }) {
                                                     <span className={pkg.installment_enabled ? 'rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700' : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700'}>
                                                         {pkg.installment_enabled ? 'Installment Ready' : 'One-time Only'}
                                                     </span>
+                                                    {pkg.installment_enabled && (
+                                                        <span className="text-xs text-gray-500">
+                                                            {pkg.installment_policy_summary}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-gray-700">

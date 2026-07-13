@@ -124,6 +124,12 @@ class UpgradePaymentRequest extends FormRequest
 
         $package = $this->targetPackage();
 
+        if ($package instanceof Package && $package->usesFixedInstallmentCount()) {
+            $this->merge([
+                'installment_count' => $package->configuredInstallmentCount(),
+            ]);
+        }
+
         /*
         |--------------------------------------------------------------------------
         | If package does not expose billing day, force billing_day to null
@@ -232,6 +238,10 @@ class UpgradePaymentRequest extends FormRequest
                 |--------------------------------------------------------------------------
                 */
                 if (! $hasInstallmentCount) {
+                    if ($package->usesFixedInstallmentCount()) {
+                        return;
+                    }
+
                     $validator->errors()->add(
                         'installment_count',
                         'Installment count is required for installment upgrade checkout.'
@@ -242,10 +252,10 @@ class UpgradePaymentRequest extends FormRequest
 
                 $installmentCount = (int) $installmentCount;
 
-                if ($installmentCount < 2) {
+                if (! $package->usesFixedInstallmentCount() && $installmentCount < Package::MIN_INSTALLMENT_COUNT) {
                     $validator->errors()->add(
                         'installment_count',
-                        'Installment count must be at least 2.'
+                        'Installment count must be at least '.Package::MIN_INSTALLMENT_COUNT.'.'
                     );
 
                     return;
@@ -275,8 +285,18 @@ class UpgradePaymentRequest extends FormRequest
                     );
 
                     $maximumInstallmentCount = (int) ($summary['maximum_installment_count'] ?? 0);
+                    $fixedInstallmentCount = $summary['fixed_installment_count'] ?? null;
 
-                    if ($maximumInstallmentCount < 2) {
+                    if ($fixedInstallmentCount !== null && $installmentCount !== (int) $fixedInstallmentCount) {
+                        $validator->errors()->add(
+                            'installment_count',
+                            "Installment count must match the configured fixed installment count of {$fixedInstallmentCount}."
+                        );
+
+                        return;
+                    }
+
+                    if ($maximumInstallmentCount < Package::MIN_INSTALLMENT_COUNT) {
                         $validator->errors()->add(
                             'installment_count',
                             'This package does not have enough available billing dates for installment upgrade checkout.'

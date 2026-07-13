@@ -61,6 +61,11 @@ function formatAmount(value) {
 }
 
 function buildInstallmentCountOptions(summary) {
+    const installmentCountSelectable =
+        summary?.installment_count_selectable ?? true;
+    const minimumInstallmentCount = Number(
+        summary?.minimum_installment_count ?? 2,
+    );
     const maximumInstallmentCount = Number(
         summary?.maximum_installment_count ??
             summary?.installment_count ??
@@ -71,9 +76,26 @@ function buildInstallmentCountOptions(summary) {
         return [];
     }
 
+    if (installmentCountSelectable === false) {
+        const fixedInstallmentCount = Number(
+            summary?.fixed_installment_count ??
+                summary?.configured_installment_count ??
+                maximumInstallmentCount,
+        );
+
+        return Number.isFinite(fixedInstallmentCount)
+            ? [fixedInstallmentCount]
+            : [];
+    }
+
     return Array.from(
-        { length: maximumInstallmentCount - 1 },
-        (_, index) => index + 2,
+        {
+            length: Math.max(
+                0,
+                maximumInstallmentCount - minimumInstallmentCount + 1,
+            ),
+        },
+        (_, index) => index + minimumInstallmentCount,
     );
 }
 
@@ -83,24 +105,38 @@ function buildSelectedInstallmentSummary(summary, selectedInstallmentCount, tota
     }
 
     const installmentCount = Number(selectedInstallmentCount);
+    const installmentCountSelectable =
+        summary.installment_count_selectable ?? true;
+    const fixedInstallmentCount = Number(
+        summary.fixed_installment_count ??
+            summary.configured_installment_count ??
+            installmentCount,
+    );
     const maximumInstallmentCount = Number(
         summary.maximum_installment_count ??
             summary.installment_count ??
             installmentCount,
     );
+    const minimumInstallmentCount = Number(
+        summary.minimum_installment_count ?? 2,
+    );
+    const effectiveInstallmentCount =
+        installmentCountSelectable === false
+            ? fixedInstallmentCount
+            : installmentCount;
 
     if (
-        !Number.isFinite(installmentCount) ||
-        installmentCount < 2 ||
-        installmentCount > maximumInstallmentCount
+        !Number.isFinite(effectiveInstallmentCount) ||
+        effectiveInstallmentCount < minimumInstallmentCount ||
+        effectiveInstallmentCount > maximumInstallmentCount
     ) {
         return summary;
     }
 
     const totalAmountCents = toCents(summary.total_amount ?? totalAmount ?? 0);
-    const recurringAmountCents = Math.floor(totalAmountCents / installmentCount);
+    const recurringAmountCents = Math.floor(totalAmountCents / effectiveInstallmentCount);
     const firstPaymentAmountCents =
-        totalAmountCents - recurringAmountCents * (installmentCount - 1);
+        totalAmountCents - recurringAmountCents * (effectiveInstallmentCount - 1);
 
     const recurringAmount = centsToAmount(recurringAmountCents);
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
@@ -115,7 +151,7 @@ function buildSelectedInstallmentSummary(summary, selectedInstallmentCount, tota
 
     const selectedRecurringDueDates = availableRecurringDueDates.slice(
         0,
-        installmentCount - 1,
+        effectiveInstallmentCount - 1,
     );
 
     const finalDueAt =
@@ -142,8 +178,9 @@ function buildSelectedInstallmentSummary(summary, selectedInstallmentCount, tota
 
     return {
         ...summary,
-        installment_count: installmentCount,
+        installment_count: effectiveInstallmentCount,
         maximum_installment_count: maximumInstallmentCount,
+        minimum_installment_count: minimumInstallmentCount,
         first_payment_amount: formatAmount(firstPaymentAmount),
         monthly_base_amount: formatAmount(recurringAmount),
         recurring_payment_amount: formatAmount(recurringAmount),
@@ -241,7 +278,9 @@ export default function UpgradeCheckout({ upgrade }) {
         installmentBillingDayOptions.length > 1;
 
     const showInstallmentCountSelector =
-        isInstallmentSelected && installmentCountOptions.length > 0;
+        isInstallmentSelected &&
+        (baseInstallmentSummary?.installment_count_selectable ?? true) &&
+        installmentCountOptions.length > 0;
 
     const amountDueToday = Number(
         isInstallmentSelected

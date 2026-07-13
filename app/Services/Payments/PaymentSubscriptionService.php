@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class PaymentSubscriptionService
 {
-    private const PLAN_CACHE_VERSION = 'v2';
+    private const PLAN_CACHE_VERSION = 'v3';
 
     private const CONTEXT_INITIAL = 'initial';
 
@@ -177,6 +177,10 @@ class PaymentSubscriptionService
                         'context' => self::CONTEXT_INITIAL,
                         'installment_plan' => $installmentPlan,
                         'selected_billing_day' => $billingDay,
+                        'installment_calculation_method' => $installmentPlan['installment_calculation_method'] ?? $package->normalizedInstallmentCalculationMethod(),
+                        'installment_count_mode' => $installmentPlan['installment_count_mode'] ?? $package->normalizedInstallmentCountMode(),
+                        'configured_installment_count' => $installmentPlan['configured_installment_count'] ?? $package->configuredInstallmentCount(),
+                        'installment_count_selectable' => $installmentPlan['installment_count_selectable'] ?? $package->installmentCountSelectable(),
                         'selected_installment_count' => $installmentPlan['installment_count'],
                         'provider_plan_fingerprint' => $planFingerprint,
                     ],
@@ -226,6 +230,10 @@ class PaymentSubscriptionService
                     'context' => self::CONTEXT_INITIAL,
                     'installment_plan' => $installmentPlan,
                     'selected_billing_day' => $billingDay,
+                    'installment_calculation_method' => $installmentPlan['installment_calculation_method'] ?? $package->normalizedInstallmentCalculationMethod(),
+                    'installment_count_mode' => $installmentPlan['installment_count_mode'] ?? $package->normalizedInstallmentCountMode(),
+                    'configured_installment_count' => $installmentPlan['configured_installment_count'] ?? $package->configuredInstallmentCount(),
+                    'installment_count_selectable' => $installmentPlan['installment_count_selectable'] ?? $package->installmentCountSelectable(),
                     'selected_installment_count' => $installmentPlan['installment_count'],
                     'provider_plan_fingerprint' => $planFingerprint,
                 ],
@@ -399,6 +407,10 @@ class PaymentSubscriptionService
                         'context' => self::CONTEXT_UPGRADE,
                         'installment_plan' => $installmentPlan,
                         'selected_billing_day' => $billingDay,
+                        'installment_calculation_method' => $installmentPlan['installment_calculation_method'] ?? $package->normalizedInstallmentCalculationMethod(),
+                        'installment_count_mode' => $installmentPlan['installment_count_mode'] ?? $package->normalizedInstallmentCountMode(),
+                        'configured_installment_count' => $installmentPlan['configured_installment_count'] ?? $package->configuredInstallmentCount(),
+                        'installment_count_selectable' => $installmentPlan['installment_count_selectable'] ?? $package->installmentCountSelectable(),
                         'selected_installment_count' => $installmentPlan['installment_count'],
                         'provider_plan_fingerprint' => $planFingerprint,
                     ],
@@ -448,6 +460,10 @@ class PaymentSubscriptionService
                     'context' => self::CONTEXT_UPGRADE,
                     'installment_plan' => $installmentPlan,
                     'selected_billing_day' => $billingDay,
+                    'installment_calculation_method' => $installmentPlan['installment_calculation_method'] ?? $package->normalizedInstallmentCalculationMethod(),
+                    'installment_count_mode' => $installmentPlan['installment_count_mode'] ?? $package->normalizedInstallmentCountMode(),
+                    'configured_installment_count' => $installmentPlan['configured_installment_count'] ?? $package->configuredInstallmentCount(),
+                    'installment_count_selectable' => $installmentPlan['installment_count_selectable'] ?? $package->installmentCountSelectable(),
                     'selected_installment_count' => $installmentPlan['installment_count'],
                     'provider_plan_fingerprint' => $planFingerprint,
                 ],
@@ -623,6 +639,10 @@ class PaymentSubscriptionService
                     'provider_return_url' => $urls['return_url'],
                     'provider_cancel_url' => $urls['cancel_url'],
                     'selected_billing_day' => $billingDay,
+                    'installment_calculation_method' => $installmentPlan['installment_calculation_method'] ?? $package->normalizedInstallmentCalculationMethod(),
+                    'installment_count_mode' => $installmentPlan['installment_count_mode'] ?? $package->normalizedInstallmentCountMode(),
+                    'configured_installment_count' => $installmentPlan['configured_installment_count'] ?? $package->configuredInstallmentCount(),
+                    'installment_count_selectable' => $installmentPlan['installment_count_selectable'] ?? $package->installmentCountSelectable(),
                     'selected_installment_count' => (int) $installmentPlan['installment_count'],
                     'provider_plan_key' => $this->providerPlanKeyForInstallmentConfig(
                         billingDay: $billingDay,
