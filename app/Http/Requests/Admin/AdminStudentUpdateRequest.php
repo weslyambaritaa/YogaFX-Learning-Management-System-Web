@@ -18,6 +18,10 @@ class AdminStudentUpdateRequest extends ProfileUpdateRequest
         return [
             ...parent::rules(),
             'access_tier_id' => ['nullable', Rule::exists('access_tiers', 'id')],
+            'student_tag' => ['required', 'string', Rule::in([
+                User::STUDENT_TAG_NORMAL,
+                User::STUDENT_TAG_TESTER,
+            ])],
             'account_status' => ['required', 'string', Rule::in([
                 User::ACCOUNT_STATUS_AVAILABLE,
                 User::ACCOUNT_STATUS_INACTIVE,

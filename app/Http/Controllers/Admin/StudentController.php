@@ -153,6 +153,7 @@ class StudentController extends Controller
             'access_tier_id' => $validated['access_tier_id'],
             'is_active' => true,
             'account_status' => User::ACCOUNT_STATUS_AVAILABLE,
+            'student_tag' => User::STUDENT_TAG_NORMAL,
             'email_verified_at' => now(),
         ]);
 
@@ -173,6 +174,7 @@ class StudentController extends Controller
                 'role' => $student->role,
                 'is_active' => $student->isStudentAccountActive(),
                 'account_status' => $student->studentAccountStatus(),
+                'student_tag' => $student->studentTag(),
                 'irregular_activity_count' => (int) ($student->irregular_activity_count ?? 0),
                 'access_tier_id' => $student->access_tier_id,
                 'access_tier' => $student->accessTier ? [
@@ -272,9 +274,14 @@ class StudentController extends Controller
                 User::ACCOUNT_STATUS_INACTIVE,
                 User::ACCOUNT_STATUS_SUSPENDED,
             ])],
+            'student_tag' => ['required', 'string', \Illuminate\Validation\Rule::in([
+                User::STUDENT_TAG_NORMAL,
+                User::STUDENT_TAG_TESTER,
+            ])],
         ]);
 
         $student->setStudentAccountStatus($validated['account_status']);
+        $student->student_tag = $validated['student_tag'];
 
         if ($validated['account_status'] === User::ACCOUNT_STATUS_AVAILABLE) {
             $student->irregular_activity_count = 0;

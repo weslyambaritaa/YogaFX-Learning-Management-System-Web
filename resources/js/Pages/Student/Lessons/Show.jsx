@@ -1,6 +1,13 @@
 import LockedContentDialog from "@/Components/student/LockedContentDialog";
 import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
 import { Button } from "@/Components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/Components/ui/dialog";
 import VideoJsPlayer from "@/Components/VideoJsPlayer";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, router } from "@inertiajs/react";
@@ -301,6 +308,10 @@ export default function StudentLessonShow({
     );
     const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
     const [isLoadingNextLesson, setIsLoadingNextLesson] = useState(false);
+    const [irregularWarningDialog, setIrregularWarningDialog] = useState({
+        open: false,
+        count: 0,
+    });
     const progressRequestRef = useRef({
         inFlight: false,
         latestSent: Number(lesson.progress?.watch_progress ?? 0),
@@ -856,6 +867,13 @@ export default function StudentLessonShow({
                 return;
             }
 
+            if (result?.show_irregular_warning) {
+                setIrregularWarningDialog({
+                    open: true,
+                    count: Number(result?.irregular_activity_count ?? 0),
+                });
+            }
+
             if (completedNow) {
                 setModuleState((current) => {
                     if (!current || isLessonDone) {
@@ -1085,6 +1103,44 @@ export default function StudentLessonShow({
                 kind="lesson"
                 reason={lockedReason}
             />
+            <Dialog
+                open={irregularWarningDialog.open}
+                onOpenChange={(open) =>
+                    setIrregularWarningDialog((current) => ({
+                        ...current,
+                        open,
+                    }))
+                }
+            >
+                <DialogContent
+                    className="max-w-md rounded-[5px] border border-white/10 bg-[#171211] p-0 text-white shadow-[0_24px_90px_rgba(0,0,0,0.35)]"
+                    showCloseButton={false}
+                    overlayClassName="bg-black/70 backdrop-blur-sm"
+                >
+                    <DialogHeader className="px-6 pt-6">
+                        <DialogTitle className="font-['Montserrat'] text-lg font-semibold text-white">
+                            {`Warning ${irregularWarningDialog.count}`}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="px-6 pb-6 font-['Montserrat'] text-sm text-white/80">
+                        Please do not speed up or skip the lesson video.
+                    </div>
+                    <DialogFooter className="mx-0 mb-0 rounded-b-[5px] border-white/10 bg-white/[0.04] px-6 py-4">
+                        <Button
+                            type="button"
+                            onClick={() =>
+                                setIrregularWarningDialog({
+                                    open: false,
+                                    count: irregularWarningDialog.count,
+                                })
+                            }
+                            className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                        >
+                            I Agree
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
                 <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(320px,1fr)] lg:items-start">

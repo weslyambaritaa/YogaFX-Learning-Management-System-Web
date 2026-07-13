@@ -20,7 +20,7 @@ class StudentIrregularActivityService
      *     violation_count: int,
      *     lesson_id: int,
      *     user_id: int,
-     *     message: string,
+     *     message: string
      * }
      */
     public function recordLessonExitAttempt(
@@ -31,10 +31,23 @@ class StudentIrregularActivityService
         int $videoDurationSeconds,
         bool $lessonCompleted,
     ): array {
-        if (! $user->isStudent() || in_array($user->role, ['admin', 'tester'], true)) {
+        /*
+         * Irregular activity monitoring hanya berlaku untuk student biasa.
+         *
+         * Admin, tester, tester student, dan akun non-student tidak akan
+         * mendapatkan violation atau suspension.
+         */
+        if (
+            ! $user->isStudent()
+            || in_array($user->role, ['admin', 'tester'], true)
+            || $user->isTesterStudent()
+        ) {
             return $this->ignoredResponse($user, $lesson);
         }
 
+        /*
+         * Apabila akun sudah suspended, jangan menambahkan violation baru.
+         */
         if ($user->isStudentSuspended()) {
             return [
                 'blocked' => true,
@@ -45,17 +58,38 @@ class StudentIrregularActivityService
             ];
         }
 
+        /*
+         * Progress dianggap valid apabila:
+         * - lesson sudah completed;
+         * - watch progress minimal 95%;
+         * - lesson tidak mempunyai video;
+         * - atau waktu menonton sudah mencapai durasi video.
+         */
         $isValidProgress = $lessonCompleted
             || $watchProgress >= 95
-            || ($lesson->lesson_video_id === null)
-            || ($videoDurationSeconds > 0 && $watchTimeSeconds >= $videoDurationSeconds);
+            || $lesson->lesson_video_id === null
+            || (
+                $videoDurationSeconds > 0
+                && $watchTimeSeconds >= $videoDurationSeconds
+            );
 
-        return DB::transaction(function () use ($user, $lesson, $isValidProgress, $watchProgress, $watchTimeSeconds, $videoDurationSeconds): array {
+        return DB::transaction(function () use (
+            $user,
+            $lesson,
+            $isValidProgress
+        ): array {
+            /*
+             * Satu record irregular activity disimpan untuk setiap kombinasi
+             * user dan lesson.
+             */
             $activity = LessonIrregularActivity::query()->firstOrNew([
                 'user_id' => $user->id,
                 'lesson_id' => $lesson->id,
             ]);
 
+            /*
+             * Jika progress valid, reset violation untuk lesson dan user.
+             */
             if ($isValidProgress) {
                 $activity->forceFill([
                     'violation_count' => 0,
@@ -81,14 +115,20 @@ class StudentIrregularActivityService
                 ];
             }
 
-            $violationCount = ((int) $activity->violation_count) + 1;
+            /*
+             * Progress tidak valid, sehingga violation ditambahkan.
+             */
+            $violationCount = ((int) ($activity->violation_count ?? 0)) + 1;
             $blocked = $violationCount >= 3;
 
             $activity->forceFill([
                 'violation_count' => $violationCount,
                 'last_violation_at' => now(),
                 'blocked_at' => $blocked ? now() : null,
-                'blocked_reason' => $blocked ? 'irregular_activity_detected' : null,
+                'blocked_reason' => $blocked
+                    ? 'irregular_activity_detected'
+                    : null,
+                'reset_at' => null,
             ])->save();
 
             $user->forceFill([
@@ -96,12 +136,20 @@ class StudentIrregularActivityService
                 'irregular_activity_last_detected_at' => now(),
             ]);
 
+            /*
+             * Suspend student setelah mencapai tiga violation.
+             */
             if ($blocked) {
-                $user->setStudentAccountStatus(User::ACCOUNT_STATUS_SUSPENDED);
+                $user->setStudentAccountStatus(
+                    User::ACCOUNT_STATUS_SUSPENDED
+                );
             }
 
             $user->save();
 
+            /*
+             * Email suspension hanya dikirim saat akun baru saja diblokir.
+             */
             if ($blocked) {
                 $this->emailNotificationService->sendAutomated(
                     EmailNotificationTypeRegistry::IRREGULAR_ACTIVITY_SUSPENDED,

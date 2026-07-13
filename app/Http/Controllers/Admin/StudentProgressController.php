@@ -417,6 +417,7 @@ class StudentProgressController extends Controller
             'email' => $student->email,
             'role' => $student->role,
             'is_active' => $student->isStudentAccountActive(),
+            'student_tag' => $student->studentTag(),
             'access_tier' => $student->accessTier ? [
                 'id' => $student->accessTier->id,
                 'name' => $student->accessTier->name,
@@ -644,6 +645,7 @@ class StudentProgressController extends Controller
             'role' => $student->role,
             'is_active' => $student->isStudentAccountActive(),
             'account_status' => $student->studentAccountStatus(),
+            'student_tag' => $student->studentTag(),
             'irregular_activity_count' => (int) ($student->irregular_activity_count ?? 0),
             'access_tier_id' => $student->access_tier_id,
             'access_tier' => $student->accessTier ? [

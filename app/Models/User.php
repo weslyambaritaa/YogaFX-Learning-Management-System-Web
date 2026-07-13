@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'role',
     'is_active',
     'account_status',
+    'student_tag',
     'irregular_activity_count',
     'irregular_activity_last_detected_at',
     'access_tier_id',
@@ -58,6 +59,8 @@ class User extends Authenticatable
     public const ACCOUNT_STATUS_AVAILABLE = 'available';
     public const ACCOUNT_STATUS_INACTIVE = 'inactive';
     public const ACCOUNT_STATUS_SUSPENDED = 'suspended';
+    public const STUDENT_TAG_NORMAL = 'normal';
+    public const STUDENT_TAG_TESTER = 'tester';
 
     public const STUDENT_PROFILE_COMPLETION_FIELDS = [
         'first_name',
@@ -217,6 +220,29 @@ class User extends Authenticatable
     public function isStudentInactive(): bool
     {
         return $this->studentAccountStatus() === self::ACCOUNT_STATUS_INACTIVE;
+    }
+
+    public function studentTag(): string
+    {
+        if (! $this->isStudent()) {
+            return self::STUDENT_TAG_NORMAL;
+        }
+
+        $tag = $this->getAttribute('student_tag');
+
+        if (is_string($tag) && in_array($tag, [
+            self::STUDENT_TAG_NORMAL,
+            self::STUDENT_TAG_TESTER,
+        ], true)) {
+            return $tag;
+        }
+
+        return self::STUDENT_TAG_NORMAL;
+    }
+
+    public function isTesterStudent(): bool
+    {
+        return $this->isStudent() && $this->studentTag() === self::STUDENT_TAG_TESTER;
     }
 
     public function setStudentAccountStatus(string $status): void

@@ -18,6 +18,7 @@ export default function EditStudent({
         _method: 'patch',
         management_context: managementContext,
         account_status: student.account_status ?? 'available',
+        student_tag: student.student_tag ?? 'normal',
         access_tier_id: student.access_tier_id ?? '',
         first_name: student.first_name ?? '',
         last_name: student.last_name ?? '',
@@ -51,6 +52,7 @@ export default function EditStudent({
         router.patch(route('admin.students.status', student.id), {
             management_context: managementContext,
             account_status: data.account_status,
+            student_tag: data.student_tag,
         });
     };
 
@@ -196,6 +198,34 @@ export default function EditStudent({
                             <p className="mt-1 text-sm text-gray-600">
                                 Irregular activity count: {student.irregular_activity_count ?? 0}
                             </p>
+                        </div>
+
+                        <div>
+                            <label
+                                htmlFor="student_tag"
+                                className="text-sm font-medium text-gray-700"
+                            >
+                                Student Tag
+                            </label>
+                            <select
+                                id="student_tag"
+                                value={data.student_tag}
+                                onChange={(event) =>
+                                    setData('student_tag', event.target.value)
+                                }
+                                className="mt-1 block w-full rounded-md border border-slate-400 bg-white text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="normal">Normal</option>
+                                <option value="tester">Tester</option>
+                            </select>
+                            <p className="mt-1 text-sm text-gray-600">
+                                Tester accounts bypass video violation warning and auto-block behavior for manual QA.
+                            </p>
+                            {errors.student_tag && (
+                                <div className="mt-2 text-sm text-rose-600">
+                                    {errors.student_tag}
+                                </div>
+                            )}
                         </div>
 
                         <div>
