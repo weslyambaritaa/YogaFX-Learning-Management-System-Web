@@ -249,10 +249,6 @@ class StudentLessonApiService
                 $lessonProgress,
                 $videoDurationSeconds,
             );
-        } elseif ($isDone && (int) ($user->irregular_activity_count ?? 0) > 0) {
-            $user->forceFill([
-                'irregular_activity_count' => 0,
-            ])->save();
         }
 
         if ($isDone) {
@@ -266,6 +262,7 @@ class StudentLessonApiService
             'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
             'is_irregular' => (bool) ($irregularResult['is_irregular'] ?? false),
             'irregular_activity_count' => (int) ($irregularResult['irregular_activity_count'] ?? 0),
+            'show_irregular_warning' => (bool) ($irregularResult['warning_required'] ?? false),
             'account_status' => $user->fresh()?->studentAccountStatus(),
             'should_redirect_to_inactive' => (bool) ($irregularResult['was_suspended'] ?? false),
         ];

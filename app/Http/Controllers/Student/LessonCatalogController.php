@@ -314,10 +314,6 @@ class LessonCatalogController extends Controller
                 $lessonProgress,
                 $videoDurationSeconds,
             );
-        } elseif ($user && $isDone && (int) ($user->irregular_activity_count ?? 0) > 0) {
-            $user->forceFill([
-                'irregular_activity_count' => 0,
-            ])->save();
         }
 
         if ($isDone && $user) {

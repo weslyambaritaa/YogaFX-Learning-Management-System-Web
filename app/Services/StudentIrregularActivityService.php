@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Lesson;
 use App\Models\LessonIrregularActivity;
+use App\Models\LessonProgress;
 use App\Models\User;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,118 @@ class StudentIrregularActivityService
     public function __construct(
         private readonly EmailNotificationService $emailNotificationService,
     ) {}
+
+    /**
+     * Web lesson flow uses watch progress updates instead of a dedicated
+     * "lesson exit" endpoint, so we evaluate the completion attempt here.
+     *
+     * @return array{
+     *     is_irregular: bool,
+     *     total_watch_time_seconds: int,
+     *     required_watch_time_seconds: int,
+     *     irregular_activity_count: int,
+     *     was_suspended: bool,
+     *     warning_required: bool
+     * }
+     */
+    public function evaluateCompletionAttempt(
+        User $user,
+        Lesson $lesson,
+        LessonProgress $lessonProgress,
+        ?int $videoDurationSeconds,
+    ): array {
+        if (! $user->isStudent() || $user->isTesterStudent()) {
+            return [
+                'is_irregular' => false,
+                'total_watch_time_seconds' => max(0, (int) ($lessonProgress->watch_time_seconds ?? 0)),
+                'required_watch_time_seconds' => max(0, (int) $videoDurationSeconds),
+                'irregular_activity_count' => (int) ($user->irregular_activity_count ?? 0),
+                'was_suspended' => false,
+                'warning_required' => false,
+            ];
+        }
+
+        if ($user->isStudentSuspended()) {
+            return [
+                'is_irregular' => true,
+                'total_watch_time_seconds' => max(0, (int) ($lessonProgress->watch_time_seconds ?? 0)),
+                'required_watch_time_seconds' => max(0, (int) $videoDurationSeconds),
+                'irregular_activity_count' => (int) ($user->irregular_activity_count ?? 0),
+                'was_suspended' => true,
+                'warning_required' => false,
+            ];
+        }
+
+        $requiredWatchTimeSeconds = max(0, (int) $videoDurationSeconds);
+        $totalWatchTimeSeconds = max(0, (int) ($lessonProgress->watch_time_seconds ?? 0));
+        $isIrregular = $lesson->lesson_video_id !== null
+            && $requiredWatchTimeSeconds > 0
+            && $totalWatchTimeSeconds < $requiredWatchTimeSeconds;
+
+        if (! $isIrregular) {
+            return [
+                'is_irregular' => false,
+                'total_watch_time_seconds' => $totalWatchTimeSeconds,
+                'required_watch_time_seconds' => $requiredWatchTimeSeconds,
+                'irregular_activity_count' => (int) ($user->irregular_activity_count ?? 0),
+                'was_suspended' => false,
+                'warning_required' => false,
+            ];
+        }
+
+        return DB::transaction(function () use ($user, $lesson, $requiredWatchTimeSeconds, $totalWatchTimeSeconds): array {
+            $activity = LessonIrregularActivity::query()->firstOrNew([
+                'user_id' => $user->id,
+                'lesson_id' => $lesson->id,
+            ]);
+
+            $lessonViolationCount = (int) ($activity->violation_count ?? 0) + 1;
+            $globalViolationCount = (int) ($user->irregular_activity_count ?? 0) + 1;
+            $wasSuspended = $globalViolationCount >= 3;
+
+            $activity->forceFill([
+                'violation_count' => $lessonViolationCount,
+                'last_violation_at' => now(),
+                'blocked_at' => $wasSuspended ? now() : null,
+                'blocked_reason' => $wasSuspended ? 'irregular_activity_detected' : null,
+                'reset_at' => null,
+            ])->save();
+
+            $user->forceFill([
+                'irregular_activity_count' => $globalViolationCount,
+                'irregular_activity_last_detected_at' => now(),
+            ]);
+
+            if ($wasSuspended) {
+                $user->setStudentAccountStatus(User::ACCOUNT_STATUS_SUSPENDED);
+            }
+
+            $user->save();
+
+            if ($wasSuspended) {
+                $this->emailNotificationService->sendAutomated(
+                    EmailNotificationTypeRegistry::IRREGULAR_ACTIVITY_SUSPENDED,
+                    [
+                        'user_name' => $user->name,
+                        'user_email' => $user->email,
+                        'lesson_title' => $lesson->title,
+                        'irregular_activity_count' => (string) $globalViolationCount,
+                    ],
+                    'user',
+                    $user->id,
+                );
+            }
+
+            return [
+                'is_irregular' => true,
+                'total_watch_time_seconds' => $totalWatchTimeSeconds,
+                'required_watch_time_seconds' => $requiredWatchTimeSeconds,
+                'irregular_activity_count' => $globalViolationCount,
+                'was_suspended' => $wasSuspended,
+                'warning_required' => ! $wasSuspended && $globalViolationCount < 3,
+            ];
+        });
+    }
 
     /**
      * @return array{
