@@ -17,6 +17,7 @@ use App\Http\Controllers\Mobile\V1\MeController;
 use App\Http\Controllers\Mobile\V1\ModuleController;
 use App\Http\Controllers\Mobile\V1\PasswordRecoveryController;
 use App\Http\Controllers\Mobile\V1\ProfileController;
+use App\Http\Controllers\Mobile\V1\SupportContactController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('mobile/v1')
@@ -28,6 +29,7 @@ Route::prefix('mobile/v1')
         Route::post('/auth/login/resend-otp', [AuthController::class, 'resendOtp'])->name('auth.login.resend-otp');
         Route::post('/auth/forgot-password', [PasswordRecoveryController::class, 'forgot'])->name('auth.password.forgot');
         Route::post('/auth/reset-password', [PasswordRecoveryController::class, 'reset'])->name('auth.password.reset');
+        Route::get('/support-contact', SupportContactController::class)->name('support-contact.show');
         Route::get('/media/lessons/{lesson}/audio', [LessonMediaController::class, 'audio'])
             ->middleware('mobile.signed')
             ->name('lesson-media.audio');
