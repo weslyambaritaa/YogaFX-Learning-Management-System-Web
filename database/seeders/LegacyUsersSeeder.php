@@ -99,35 +99,14 @@ CSV;
         $created = 0;
         $skipped = 0;
 
-        $pilotLines = array_values(array_filter(
-    $lines,
-    static function (string $line) use ($headers): bool {
-        if (trim($line) === '') {
-            return false;
-        }
-
-        $values = str_getcsv($line, ';', '"', '\\');
-
-        if (count($headers) !== count($values)) {
-            return false;
-        }
-
-        $row = array_combine($headers, $values);
-
-        return $row !== false
-            && ($row['role'] ?? null) === 'student';
-    }
-));
-
-$pilotLines = array_slice($pilotLines, 0, 3);
 
 DB::transaction(function () use (
-    $pilotLines,
+    $lines,
     $headers,
     &$created,
     &$skipped
 ): void {
-    foreach ($pilotLines as $line) {
+    foreach ($lines as $line) {
                 if (trim($line) === '') {
                     continue;
                 }
