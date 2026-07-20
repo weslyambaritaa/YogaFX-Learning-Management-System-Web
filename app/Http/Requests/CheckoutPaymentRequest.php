@@ -39,23 +39,26 @@ class CheckoutPaymentRequest extends FormRequest
                 Rule::in([
                     Payment::METHOD_PAYPAL,
                     Payment::METHOD_MOCK,
+                    Payment::METHOD_INTERNAL,
                 ]),
             ],
             'checkout_mode' => [
-                'nullable',
-                'string',
-                Rule::in([
-                    'card',
-                    'paypal',
-                    'mock',
-                ]),
-            ],
+    'nullable',
+    'string',
+    Rule::in([
+        'card',
+        'paypal',
+        'mock',
+        'internal',
+    ]),
+],
             'first_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
             'billing_postcode' => ['nullable', 'string', 'max:50'],
             'billing_country' => ['nullable', 'string', 'max:120'],
             'billing_address_line_1' => ['nullable', 'string', 'max:255'],
             'billing_address_line_2' => ['nullable', 'string', 'max:255'],
+            'donation_amount' => ['nullable', 'numeric', 'min:0'],
 
             /*
             |--------------------------------------------------------------------------
@@ -94,6 +97,16 @@ class CheckoutPaymentRequest extends FormRequest
 
         $paymentType = (string) $this->input('payment_type');
 
+        if ($this->has('donation_amount')) {
+            $donationAmount = $this->input('donation_amount');
+
+            $this->merge([
+                'donation_amount' => $donationAmount === null || $donationAmount === ''
+                    ? null
+                    : (float) $donationAmount,
+            ]);
+        }
+
         /*
         |--------------------------------------------------------------------------
         | Normalize installment_count
@@ -130,6 +143,12 @@ class CheckoutPaymentRequest extends FormRequest
         |--------------------------------------------------------------------------
         */
         if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            if ($package instanceof Package && $package->isFreePackage()) {
+                $this->merge([
+                    'payment_method' => Payment::METHOD_INTERNAL,
+                ]);
+            }
+
             return;
         }
 
@@ -167,6 +186,7 @@ class CheckoutPaymentRequest extends FormRequest
                 }
 
                 $paymentType = (string) $this->input('payment_type');
+                $donationAmount = $this->input('donation_amount');
 
                 $billingDay = $this->input('billing_day');
                 $installmentCount = $this->input('installment_count');
@@ -193,6 +213,40 @@ class CheckoutPaymentRequest extends FormRequest
                             'Installment count is only available for installment checkout.'
                         );
                     }
+
+                    if ($package->isFreePackage() && (string) $this->input('payment_method') !== Payment::METHOD_INTERNAL) {
+                        $validator->errors()->add(
+                            'payment_method',
+                            'Free packages must continue without PayPal.'
+                        );
+                    }
+
+                    if ($package->isDonationPackage()) {
+                        if ($donationAmount === null || $donationAmount === '') {
+                            $validator->errors()->add(
+                                'donation_amount',
+                                'Donation amount is required for this package.'
+                            );
+
+                            return;
+                        }
+
+                        if ((float) $donationAmount < $package->minimumDonationAmount()) {
+                            $validator->errors()->add(
+                                'donation_amount',
+                                'Donation amount must be at least '.number_format($package->minimumDonationAmount(), 2, '.', '').'.'
+                            );
+                        }
+                    }
+
+                    return;
+                }
+
+                if (! $package->isPaidPackage()) {
+                    $validator->errors()->add(
+                        'payment_type',
+                        'Installment checkout is only available for paid packages.'
+                    );
 
                     return;
                 }

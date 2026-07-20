@@ -191,6 +191,7 @@ function buildSelectedInstallmentSummary(summary, selectedInstallmentCount, tota
 }
 
 export default function UpgradeCheckout({ upgrade }) {
+    const packages = Array.isArray(upgrade.packages) ? upgrade.packages : [];
     const paymentOptions = Array.isArray(upgrade.payment_options)
         ? upgrade.payment_options
         : [];
@@ -227,13 +228,21 @@ export default function UpgradeCheckout({ upgrade }) {
                 upgrade.installment_maximum_count ??
                 2,
         ) || 2;
+    const defaultPackageId = packages[0]?.id ?? "";
+    const defaultDonationAmount =
+        packages[0]?.suggested_donation_amount ??
+        paymentOptions[0]?.suggested_donation_amount ??
+        upgrade.amount_due ??
+        "";
 
     const { data, setData, processing, errors, clearErrors, setError } =
         useForm({
+            package_id: defaultPackageId,
             payment_type: defaultPaymentType,
             payment_method: defaultPaymentMethod,
             billing_day: defaultBillingDay,
             installment_count: defaultInstallmentCount,
+            donation_amount: defaultDonationAmount,
             terms_accepted: false,
         });
 
@@ -252,6 +261,16 @@ export default function UpgradeCheckout({ upgrade }) {
         paymentOptions.find((option) => option.type === data.payment_type) ??
         paymentOptions[0] ??
         null;
+    const selectedPackage =
+        packages.find((item) => String(item.id) === String(data.package_id)) ??
+        packages[0] ??
+        null;
+    const selectedCheckoutVariant =
+        selectedPaymentOption?.checkout_variant ??
+        selectedPackage?.payment_type ??
+        "paid";
+    const isFreeCheckout = selectedCheckoutVariant === "free";
+    const isDonationCheckout = selectedCheckoutVariant === "donation";
 
     const isInstallmentSelected = data.payment_type === "installment";
 
@@ -322,6 +341,22 @@ export default function UpgradeCheckout({ upgrade }) {
     useEffect(() => {
         installmentSessionRef.current = installmentSession;
     }, [installmentSession]);
+
+    useEffect(() => {
+        if (!isDonationCheckout) {
+            return;
+        }
+
+        setData((current) => ({
+            ...current,
+            donation_amount:
+                current.donation_amount === "" || current.donation_amount == null
+                    ? (selectedPackage?.suggested_donation_amount ??
+                        upgrade.amount_due ??
+                        "")
+                    : current.donation_amount,
+        }));
+    }, [isDonationCheckout, selectedPackage?.suggested_donation_amount, setData, upgrade.amount_due]);
 
     useEffect(() => {
         if (!isInstallmentSelected || !baseInstallmentSummary) {
@@ -607,13 +642,32 @@ export default function UpgradeCheckout({ upgrade }) {
             return;
         }
 
+        if (
+            isDonationCheckout &&
+            Number(data.donation_amount ?? 0) <
+                Number(selectedPackage?.minimum_donation_amount ?? 0)
+        ) {
+            setError(
+                "donation_amount",
+                `Please enter at least ${formatCurrency(
+                    Number(selectedPackage?.minimum_donation_amount ?? 0),
+                    upgrade.target_tier.currency_code,
+                )}.`,
+            );
+            return;
+        }
+
         router.post(
             upgrade.submit_url,
             {
+                package_id: data.package_id,
                 payment_type: data.payment_type,
                 payment_method: data.payment_method,
                 billing_day: null,
                 installment_count: null,
+                donation_amount: isDonationCheckout
+                    ? Number(data.donation_amount ?? 0)
+                    : null,
                 terms_accepted: data.terms_accepted,
             },
             {
@@ -628,6 +682,21 @@ export default function UpgradeCheckout({ upgrade }) {
 
         if (!data.terms_accepted) {
             setError("terms_accepted", "Please confirm before continuing.");
+            return;
+        }
+
+        if (
+            isDonationCheckout &&
+            Number(data.donation_amount ?? 0) <
+                Number(selectedPackage?.minimum_donation_amount ?? 0)
+        ) {
+            setError(
+                "donation_amount",
+                `Please enter at least ${formatCurrency(
+                    Number(selectedPackage?.minimum_donation_amount ?? 0),
+                    upgrade.target_tier.currency_code,
+                )}.`,
+            );
             return;
         }
 
@@ -651,6 +720,7 @@ export default function UpgradeCheckout({ upgrade }) {
                 "X-Requested-With": "XMLHttpRequest",
             },
             body: JSON.stringify({
+                package_id: data.package_id,
                 payment_type: "installment",
                 payment_method: "paypal",
                 checkout_mode: "paypal",
@@ -659,6 +729,9 @@ export default function UpgradeCheckout({ upgrade }) {
                         ? data.billing_day
                         : null,
                 installment_count: Number(data.installment_count),
+                donation_amount: isDonationCheckout
+                    ? Number(data.donation_amount ?? 0)
+                    : null,
                 terms_accepted: data.terms_accepted,
             }),
         });
@@ -772,6 +845,36 @@ export default function UpgradeCheckout({ upgrade }) {
                                 className="space-y-4 rounded-[16px] border border-white/10 bg-white/[0.04] p-5"
                             >
                                 <div className="grid gap-4 md:grid-cols-2">
+                                    {packages.length > 1 ? (
+                                        <div className="md:col-span-2">
+                                            <label className="text-xs uppercase tracking-[0.16em] text-white/58">
+                                                Target Package
+                                            </label>
+                                            <select
+                                                value={data.package_id}
+                                                onChange={(event) => {
+                                                    const nextPackageId = event.target.value;
+                                                    setData("package_id", nextPackageId);
+                                                    router.get(
+                                                        route("student.upgrades.show", upgrade.target_tier.id),
+                                                        { package_id: nextPackageId },
+                                                        {
+                                                            preserveScroll: true,
+                                                            preserveState: false,
+                                                        },
+                                                    );
+                                                }}
+                                                className="mt-2 block w-full rounded-[5px] border border-white/12 bg-[#171311] px-4 py-3 text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                            >
+                                                {packages.map((pkg) => (
+                                                    <option key={pkg.id} value={pkg.id}>
+                                                        {pkg.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    ) : null}
+
                                     <div>
                                         <label className="text-xs uppercase tracking-[0.16em] text-white/58">
                                             Payment Type
@@ -933,6 +1036,42 @@ export default function UpgradeCheckout({ upgrade }) {
                                     ) : null}
                                 </div>
 
+                                {isDonationCheckout ? (
+                                    <div>
+                                        <label className="text-xs uppercase tracking-[0.16em] text-white/58">
+                                            Donation Amount
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min={Number(
+                                                selectedPackage?.minimum_donation_amount ??
+                                                    0,
+                                            )}
+                                            step="0.01"
+                                            value={data.donation_amount ?? ""}
+                                            onChange={(event) =>
+                                                setData("donation_amount", event.target.value)
+                                            }
+                                            className="mt-2 block w-full rounded-[5px] border border-white/12 bg-[#171311] px-4 py-3 text-sm text-white focus:border-[#d5462f] focus:ring-[#d5462f]"
+                                        />
+                                        <p className="mt-2 text-xs text-white/45">
+                                            Minimum donation:{" "}
+                                            {formatCurrency(
+                                                Number(
+                                                    selectedPackage?.minimum_donation_amount ??
+                                                        0,
+                                                ),
+                                                upgrade.target_tier.currency_code,
+                                            )}
+                                            . You may donate more if you wish.
+                                        </p>
+                                        <InputError
+                                            message={errors.donation_amount}
+                                            className="mt-2 text-sm text-[#ffb4a8]"
+                                        />
+                                    </div>
+                                ) : null}
+
                                 <label className="flex items-start gap-3 rounded-[5px] border border-white/10 bg-black/20 px-4 py-4 text-sm text-white/75">
                                     <input
                                         type="checkbox"
@@ -1019,7 +1158,11 @@ export default function UpgradeCheckout({ upgrade }) {
                                     >
                                         {processing
                                             ? "Processing..."
-                                            : "Pay Upgrade Now"}
+                                            : isFreeCheckout
+                                              ? "Continue to Upgrade"
+                                              : isDonationCheckout
+                                                ? "Continue with PayPal"
+                                                : "Pay Upgrade Now"}
                                     </Button>
                                 )}
                             </form>

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'access_tier_id',
     'type',
     'payment_type',
+    'package_payment_type',
     'total_amount',
     'balance_due',
     'currency_code',

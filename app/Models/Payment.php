@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'invoice_id',
     'payment_method',
     'payment_type',
+    'package_payment_type',
     'amount_paid',
     'currency_code',
     'status',
@@ -30,6 +31,7 @@ class Payment extends Model
     public const METHOD_PAYPAL = 'paypal';
     public const METHOD_BANK_TRANSFER = 'bank_transfer';
     public const METHOD_MOCK = 'mock';
+    public const METHOD_INTERNAL = 'internal';
 
     protected $table = 'payment_activities';
 

@@ -37,6 +37,7 @@ class PackageController extends Controller
                     'slug' => $package->slug,
                     'public_link' => route('lead-registration.packages.show', ['packageSlug' => $package->slug]),
                     'description' => $package->description,
+                    'payment_type' => $package->normalizedPaymentType(),
                     'image_url' => $this->protectedMediaUrl(
                         'package',
                         $package->id,
@@ -45,6 +46,8 @@ class PackageController extends Controller
                         versionSeed: $package->updated_at,
                     ),
                     'price' => (float) $package->price,
+                    'minimum_donation_amount' => $package->minimumDonationAmount(),
+                    'suggested_donation_amount' => $package->suggestedDonationAmount(),
                     'currency_code' => $package->currency_code,
                     'is_active' => $package->is_active,
 
@@ -94,7 +97,7 @@ class PackageController extends Controller
     {
         return Inertia::render('Admin/Packages/Create', [
             'accessTiers' => $this->accessTierOptions(),
-            'packagePublicBaseUrl' => url('/'),
+            'packagePublicBaseUrl' => url('/p'),
         ]);
     }
 
@@ -159,6 +162,7 @@ class PackageController extends Controller
                 'slug' => $package->slug,
                 'public_link' => route('lead-registration.packages.show', ['packageSlug' => $package->slug]),
                 'description' => $package->description,
+                'payment_type' => $package->normalizedPaymentType(),
                 'image_url' => $this->protectedMediaUrl(
                     'package',
                     $package->id,
@@ -167,6 +171,8 @@ class PackageController extends Controller
                     versionSeed: $package->updated_at,
                 ),
                 'price' => (float) $package->price,
+                'minimum_donation_amount' => $package->minimumDonationAmount(),
+                'suggested_donation_amount' => $package->suggestedDonationAmount(),
                 'currency_code' => $package->currency_code,
                 'is_active' => $package->is_active,
 
@@ -204,7 +210,7 @@ class PackageController extends Controller
                 'invoices_count' => $package->invoices_count,
             ],
             'accessTiers' => $this->accessTierOptions(),
-            'packagePublicBaseUrl' => url('/'),
+            'packagePublicBaseUrl' => url('/p'),
             'status' => session('status'),
         ]);
     }

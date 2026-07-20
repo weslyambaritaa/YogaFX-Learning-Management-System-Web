@@ -300,9 +300,15 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 
-Route::get('/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
+Route::get('/p/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
     ->where('packageSlug', '[A-Za-z0-9\-]+')
     ->name('lead-registration.packages.show');
-Route::post('/{packageSlug}', [LeadRegistrationController::class, 'store'])
+Route::post('/p/{packageSlug}', [LeadRegistrationController::class, 'store'])
     ->where('packageSlug', '[A-Za-z0-9\-]+')
     ->name('lead-registration.packages.store');
+Route::get('/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
+    ->where('packageSlug', '[A-Za-z0-9\-]+')
+    ->name('lead-registration.packages.legacy-show');
+Route::post('/{packageSlug}', [LeadRegistrationController::class, 'store'])
+    ->where('packageSlug', '[A-Za-z0-9\-]+')
+    ->name('lead-registration.packages.legacy-store');

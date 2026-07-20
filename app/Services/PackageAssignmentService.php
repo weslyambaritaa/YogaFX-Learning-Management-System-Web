@@ -22,11 +22,6 @@ class PackageAssignmentService
                 return $package->fresh('accessTier');
             }
 
-            Package::query()
-                ->whereKeyNot($package->id)
-                ->where('access_tier_id', $accessTier->id)
-                ->update(['access_tier_id' => null]);
-
             $package->forceFill([
                 'access_tier_id' => $accessTier->id,
             ])->save();

@@ -28,7 +28,7 @@ class PackageDomainTest extends TestCase
         $this->assertNull($package->accessTier);
     }
 
-    public function test_assigning_package_to_tier_auto_unassigns_previous_package(): void
+    public function test_multiple_packages_can_share_the_same_access_tier(): void
     {
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
@@ -47,7 +47,7 @@ class PackageDomainTest extends TestCase
 
         app(PackageAssignmentService::class)->assignToTier($promo, $tier);
 
-        $this->assertNull($standard->fresh()->access_tier_id);
+        $this->assertSame($tier->id, $standard->fresh()->access_tier_id);
         $this->assertSame($tier->id, $promo->fresh()->access_tier_id);
     }
 
@@ -81,6 +81,7 @@ class PackageDomainTest extends TestCase
             'title' => 'Online Standard',
             'slug' => 'online-standard',
             'description' => 'Main online offer.',
+            'payment_type' => Package::PAYMENT_TYPE_PAID,
             'price' => 299,
             'currency_code' => AccessTier::CURRENCY_GBP,
             'is_active' => true,
@@ -140,7 +141,7 @@ class PackageDomainTest extends TestCase
         $this->assertFalse($activeUnassigned->isCheckoutAvailable());
     }
 
-    public function test_admin_package_update_reassigns_tier_and_unassigns_previous_package(): void
+    public function test_admin_package_update_can_assign_same_tier_without_unassigning_previous_package(): void
     {
         $admin = User::factory()->admin()->create();
         $tier = AccessTier::factory()->create([
@@ -160,6 +161,7 @@ class PackageDomainTest extends TestCase
             'title' => 'Online Easter',
             'slug' => 'online-easter',
             'description' => 'Promo package.',
+            'payment_type' => Package::PAYMENT_TYPE_PAID,
             'price' => 249,
             'currency_code' => AccessTier::CURRENCY_GBP,
             'is_active' => true,
@@ -177,10 +179,84 @@ class PackageDomainTest extends TestCase
             'access_tier_id' => $tier->id,
         ])->assertRedirect(route('admin.packages.index'));
 
-        $this->assertNull($standard->fresh()->access_tier_id);
+        $this->assertSame($tier->id, $standard->fresh()->access_tier_id);
         $this->assertSame($tier->id, $promo->fresh()->access_tier_id);
         $this->assertTrue((bool) $promo->fresh()->installment_enabled);
         $this->assertSame([1, 15], $promo->fresh()->allowed_billing_days);
+    }
+
+    public function test_admin_can_create_free_package(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.packages.store'), [
+            'title' => 'Starter Kit Free',
+            'slug' => 'starter-kit-free',
+            'description' => 'Free onboarding offer.',
+            'payment_type' => Package::PAYMENT_TYPE_FREE,
+            'price' => 0,
+            'minimum_donation_amount' => '',
+            'suggested_donation_amount' => '',
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'is_active' => true,
+            'installment_enabled' => false,
+            'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_DATE,
+            'installment_count_mode' => '',
+            'installment_count' => '',
+            'billing_interval_unit' => '',
+            'billing_interval_count' => '',
+            'fixed_billing_day' => '',
+            'allowed_billing_days' => [],
+            'installment_deadline_date' => '',
+            'installment_deadline_month' => '',
+            'installment_deadline_day' => '',
+            'access_tier_id' => $tier->id,
+        ])->assertRedirect(route('admin.packages.index'));
+
+        $this->assertDatabaseHas('packages', [
+            'slug' => 'starter-kit-free',
+            'payment_type' => Package::PAYMENT_TYPE_FREE,
+            'price' => 0,
+            'access_tier_id' => $tier->id,
+        ]);
+    }
+
+    public function test_admin_can_create_donation_package(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.packages.store'), [
+            'title' => 'Online Donation',
+            'slug' => 'online-donation',
+            'description' => 'Donation access.',
+            'payment_type' => Package::PAYMENT_TYPE_DONATION,
+            'price' => 0,
+            'minimum_donation_amount' => 25,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'is_active' => true,
+            'installment_enabled' => false,
+            'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_DATE,
+            'installment_count_mode' => '',
+            'installment_count' => '',
+            'billing_interval_unit' => '',
+            'billing_interval_count' => '',
+            'fixed_billing_day' => '',
+            'allowed_billing_days' => [],
+            'installment_deadline_date' => '',
+            'installment_deadline_month' => '',
+            'installment_deadline_day' => '',
+            'access_tier_id' => $tier->id,
+        ])->assertRedirect(route('admin.packages.index'));
+
+        $this->assertDatabaseHas('packages', [
+    'slug' => 'online-donation',
+    'payment_type' => Package::PAYMENT_TYPE_DONATION,
+    'price' => 0,
+    'minimum_donation_amount' => 25,
+    'suggested_donation_amount' => 25,
+]);
     }
 
     public function test_public_package_payload_uses_number_fixed_policy_without_stale_deadline_maximum(): void

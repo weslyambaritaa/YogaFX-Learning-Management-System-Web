@@ -313,13 +313,26 @@ export default function Scoreboard({
         data.country,
     );
 
-    const selectedPackageHasPrice = Number(selectedPackage?.price ?? 0) > 0;
+    const selectedPackagePaymentType = String(
+        selectedPackage?.payment_type ?? "paid",
+    );
+    const selectedPackageHasPrice =
+        selectedPackagePaymentType !== "paid" ||
+        Number(selectedPackage?.price ?? 0) > 0;
     const isIdentityLocked = checkout !== null;
     const packageTitle = selectedPackage?.title ?? "YogaFX Package";
 
-    const packagePrice = selectedPackageHasPrice
-        ? formatCurrency(selectedPackage.price, selectedPackage.currency_code)
-        : "Price not set yet";
+    const packagePrice =
+        selectedPackagePaymentType === "free"
+            ? "Free"
+            : selectedPackagePaymentType === "donation"
+              ? `Minimum ${formatCurrency(
+                    Number(selectedPackage?.minimum_donation_amount ?? 0),
+                    selectedPackage?.currency_code ?? "USD",
+                )}`
+              : selectedPackageHasPrice
+                ? formatCurrency(selectedPackage.price, selectedPackage.currency_code)
+                : "Price not set yet";
 
     const normalizedEmail = (data.email ?? "").trim().toLowerCase();
 
@@ -392,7 +405,17 @@ export default function Scoreboard({
     );
 
     const previewCheckout = useMemo(() => {
-        const amount = Number(selectedPackage?.price ?? 0);
+        const paymentType = String(selectedPackage?.payment_type ?? "paid");
+        const amount =
+            paymentType === "donation"
+                ? Number(
+                      selectedPackage?.suggested_donation_amount ??
+                          selectedPackage?.minimum_donation_amount ??
+                          0,
+                  )
+                : paymentType === "free"
+                  ? 0
+                  : Number(selectedPackage?.price ?? 0);
         const currencyCode =
             selectedPackage?.currency_code ?? paypal?.currency_code ?? "USD";
         const billingDay = selectedPackageAllowedBillingDays[0] ?? 15;
@@ -422,16 +445,42 @@ export default function Scoreboard({
             fixedInstallmentCount: selectedPackageFixedInstallmentCount,
         });
 
-        const paymentOptions = [
-            {
-                type: "pay_full",
-                label: "Pay in full",
-                amount_due_today: amount.toFixed(2),
-                currency_code: currencyCode,
-            },
-        ];
+        const paymentOptions =
+            paymentType === "free"
+                ? [
+                      {
+                          type: "pay_full",
+                          label: "Continue to Enrollment",
+                          amount_due_today: amount.toFixed(2),
+                          currency_code: currencyCode,
+                          checkout_variant: "free",
+                      },
+                  ]
+                : paymentType === "donation"
+                  ? [
+                        {
+                            type: "pay_full",
+                            label: "Donate with PayPal",
+                            amount_due_today: amount.toFixed(2),
+                            currency_code: currencyCode,
+                            checkout_variant: "donation",
+                            minimum_donation_amount: Number(
+                                selectedPackage?.minimum_donation_amount ?? 0,
+                            ).toFixed(2),
+                            suggested_donation_amount: amount.toFixed(2),
+                        },
+                    ]
+                  : [
+                        {
+                            type: "pay_full",
+                            label: "Pay in full",
+                            amount_due_today: amount.toFixed(2),
+                            currency_code: currencyCode,
+                            checkout_variant: "paid",
+                        },
+                    ];
 
-        if (selectedPackageInstallmentEnabled) {
+        if (paymentType === "paid" && selectedPackageInstallmentEnabled) {
             paymentOptions.push({
                 type: "installment",
                 label: "Pay in installment",
@@ -457,6 +506,7 @@ export default function Scoreboard({
                 installment_count_mode:
                     selectedPackageInstallmentCountMode,
                 summary: previewInstallmentSummary,
+                checkout_variant: "paid",
             });
         }
 
@@ -471,7 +521,14 @@ export default function Scoreboard({
                       title: selectedPackage.title,
                       slug: selectedPackage.slug,
                       description: selectedPackage.description,
+                      payment_type: paymentType,
                       price: amount,
+                      minimum_donation_amount: Number(
+                          selectedPackage.minimum_donation_amount ?? 0,
+                      ),
+                      suggested_donation_amount: Number(
+                          selectedPackage.suggested_donation_amount ?? amount,
+                      ),
                       currency_code: currencyCode,
                       installment_enabled: selectedPackageInstallmentEnabled,
                       installment_calculation_method:
@@ -502,10 +559,9 @@ export default function Scoreboard({
             access_tier: selectedPackage?.access_tier ?? null,
             payment_options: paymentOptions,
             payment_method_options: [
-                {
-                    value: "paypal",
-                    label: "PayPal",
-                },
+                ...(paymentType === "free"
+                    ? [{ value: "internal", label: "Continue" }]
+                    : [{ value: "paypal", label: "PayPal" }]),
             ],
             installment_summary: previewInstallmentSummary,
             installment_summaries: billingDay
@@ -662,7 +718,10 @@ export default function Scoreboard({
 
         if (String(values.package_id ?? "") === "") {
             nextErrors.package_id = "Package is required.";
-        } else if (!selectedPackageHasPrice) {
+        } else if (
+            selectedPackagePaymentType === "paid" &&
+            !selectedPackageHasPrice
+        ) {
             nextErrors.package_id =
                 "This package is not ready for checkout yet.";
         }
@@ -1169,12 +1228,24 @@ export default function Scoreboard({
                                                 fontWeight: 500,
                                             }}
                                         >
-                                            {Number(selectedPackage.price) > 0
-                                                ? formatCurrency(
-                                                      selectedPackage.price,
-                                                      selectedPackage.currency_code,
-                                                  )
-                                                : "Price not set yet"}
+                                            {selectedPackage.payment_type ===
+                                            "free"
+                                                ? "Free"
+                                                : selectedPackage.payment_type ===
+                                                    "donation"
+                                                  ? `Minimum ${formatCurrency(
+                                                        Number(
+                                                            selectedPackage.minimum_donation_amount ??
+                                                                0,
+                                                        ),
+                                                        selectedPackage.currency_code,
+                                                    )}`
+                                                  : Number(selectedPackage.price) > 0
+                                                    ? formatCurrency(
+                                                          selectedPackage.price,
+                                                          selectedPackage.currency_code,
+                                                      )
+                                                    : "Price not set yet"}
                                         </div>
                                     </div>
                                 </div>
@@ -1209,12 +1280,23 @@ export default function Scoreboard({
                                                 ? ` (${pkg.access_tier.name})`
                                                 : ""}{" "}
                                             -{" "}
-                                            {Number(pkg.price) > 0
-                                                ? formatCurrency(
-                                                      pkg.price,
-                                                      pkg.currency_code,
-                                                  )
-                                                : "Price not set yet"}
+                                            {pkg.payment_type === "free"
+                                                ? "Free"
+                                                : pkg.payment_type ===
+                                                    "donation"
+                                                  ? `Minimum ${formatCurrency(
+                                                        Number(
+                                                            pkg.minimum_donation_amount ??
+                                                                0,
+                                                        ),
+                                                        pkg.currency_code,
+                                                    )}`
+                                                  : Number(pkg.price) > 0
+                                                    ? formatCurrency(
+                                                          pkg.price,
+                                                          pkg.currency_code,
+                                                      )
+                                                    : "Price not set yet"}
                                         </option>
                                     ))}
                                 </select>
