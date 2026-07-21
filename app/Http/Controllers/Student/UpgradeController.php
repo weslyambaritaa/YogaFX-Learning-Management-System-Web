@@ -32,7 +32,11 @@ class UpgradeController extends Controller
         abort_if(! $accessTier->is_active || (int) $accessTier->level <= $currentLevel, 404);
 
         return Inertia::render('Student/Upgrade/Checkout', [
-            'upgrade' => $this->paymentFlow->upgradePayload($user, $accessTier),
+            'upgrade' => $this->paymentFlow->upgradePayload(
+                $user,
+                $accessTier,
+                request()->integer('package_id') ?: null,
+            ),
         ]);
     }
 

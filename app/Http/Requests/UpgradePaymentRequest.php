@@ -6,10 +6,10 @@ use App\Models\AccessTier;
 use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
+use Illuminate\Validation\Rule;
 use App\Services\Installments\InstallmentPlanCalculator;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Throwable;
 
 class UpgradePaymentRequest extends FormRequest
@@ -39,8 +39,11 @@ class UpgradePaymentRequest extends FormRequest
                 Rule::in([
                     Payment::METHOD_PAYPAL,
                     Payment::METHOD_MOCK,
+                    Payment::METHOD_INTERNAL,
                 ]),
             ],
+            'package_id' => ['nullable', 'integer'],
+            'donation_amount' => ['nullable', 'numeric', 'min:0'],
             'checkout_mode' => [
                 'nullable',
                 'string',
@@ -113,12 +116,28 @@ class UpgradePaymentRequest extends FormRequest
             ]);
         }
 
+        if ($this->has('donation_amount')) {
+            $donationAmount = $this->input('donation_amount');
+
+            $this->merge([
+                'donation_amount' => $donationAmount === null || $donationAmount === ''
+                    ? null
+                    : (float) $donationAmount,
+            ]);
+        }
+
         /*
         |--------------------------------------------------------------------------
         | Non-installment upgrade should not carry installment-only fields
         |--------------------------------------------------------------------------
         */
         if ($paymentType !== Invoice::PAYMENT_TYPE_INSTALLMENT) {
+            if ($package instanceof Package && $package->isFreePackage()) {
+                $this->merge([
+                    'payment_method' => Payment::METHOD_INTERNAL,
+                ]);
+            }
+
             return;
         }
 
@@ -162,6 +181,7 @@ class UpgradePaymentRequest extends FormRequest
 
                 $hasBillingDay = $billingDay !== null && $billingDay !== '';
                 $hasInstallmentCount = $installmentCount !== null && $installmentCount !== '';
+                $donationAmount = $this->input('donation_amount');
 
                 /*
                 |--------------------------------------------------------------------------
@@ -182,6 +202,40 @@ class UpgradePaymentRequest extends FormRequest
                             'Installment count is only available for installment upgrade checkout.'
                         );
                     }
+
+                    if ($package->isFreePackage() && (string) $this->input('payment_method') !== Payment::METHOD_INTERNAL) {
+                        $validator->errors()->add(
+                            'payment_method',
+                            'Free upgrades continue internally without PayPal.'
+                        );
+                    }
+
+                    if ($package->isDonationPackage()) {
+                        if ($donationAmount === null || $donationAmount === '') {
+                            $validator->errors()->add(
+                                'donation_amount',
+                                'Donation amount is required for this package.'
+                            );
+
+                            return;
+                        }
+
+                        if ((float) $donationAmount < $package->minimumDonationAmount()) {
+                            $validator->errors()->add(
+                                'donation_amount',
+                                'Donation amount must be at least '.number_format($package->minimumDonationAmount(), 2, '.', '').'.'
+                            );
+                        }
+                    }
+
+                    return;
+                }
+
+                if (! $package->isPaidPackage()) {
+                    $validator->errors()->add(
+                        'payment_type',
+                        'Installment upgrade checkout is only available for paid packages.'
+                    );
 
                     return;
                 }
@@ -330,8 +384,11 @@ class UpgradePaymentRequest extends FormRequest
             return null;
         }
 
+        $packageId = $this->input('package_id');
+
         return $accessTier->packages()
             ->where('is_active', true)
+            ->when($packageId, fn ($query) => $query->whereKey((int) $packageId))
             ->latest('id')
             ->first();
     }

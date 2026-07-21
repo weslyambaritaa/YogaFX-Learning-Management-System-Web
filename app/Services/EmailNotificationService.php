@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\OnboardingState;
+use App\Models\Package;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\UserSession;
@@ -330,6 +331,27 @@ class EmailNotificationService
             ?? $invoice->accessTier;
         $userName = $user?->name ?: $pendingRegistration?->fullName() ?: 'Student';
         $userEmail = $user?->email ?: ($pendingRegistration?->email ?: '');
+        $packagePaymentType = $invoice->package_payment_type
+            ?? $invoice->package?->normalizedPaymentType()
+            ?? Package::PAYMENT_TYPE_PAID;
+
+        [$paymentSuccessSubject, $paymentSuccessMessage, $paymentSuccessAdminMessage] = match ($packagePaymentType) {
+            Package::PAYMENT_TYPE_FREE => [
+                'Registration ready',
+                'Congratulations. Your free registration for <strong>'.$accessTier?->name.'</strong> is ready.',
+                'A new YogaFX free registration is ready for onboarding.',
+            ],
+            Package::PAYMENT_TYPE_DONATION => [
+                'Donation received',
+                'Thank you for your donation. Your access for <strong>'.$accessTier?->name.'</strong> is ready.',
+                'A new YogaFX donation payment has been completed successfully.',
+            ],
+            default => [
+                'Payment successful',
+                'Congratulations. Your payment for <strong>'.$accessTier?->name.'</strong> was successful.',
+                'A new YogaFX onboarding payment has been completed successfully.',
+            ],
+        };
 
         $this->sendAutomated(
             EmailNotificationTypeRegistry::PAYMENT_SUCCESS,
@@ -343,6 +365,9 @@ class EmailNotificationService
                 'payment_reference' => (string) ($paymentActivity->payment_reference ?? ''),
                 'amount' => number_format((float) $paymentActivity->amount_paid, 2, '.', ''),
                 'currency_code' => (string) $paymentActivity->currency_code,
+                'payment_success_subject' => $paymentSuccessSubject,
+                'payment_success_message' => $paymentSuccessMessage,
+                'payment_success_admin_message' => $paymentSuccessAdminMessage,
                 'invoice_pdf_file_name' => isset($attachments[0]['name']) ? (string) $attachments[0]['name'] : '',
                 'enrollment_url' => $this->paymentSuccessUrl($invoice, $onboardingState),
             ],

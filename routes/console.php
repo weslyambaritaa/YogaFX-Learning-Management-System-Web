@@ -17,4 +17,4 @@ Artisan::command('email-notifications:send-reminders', function (EmailNotificati
 })->purpose('Send reminder email notifications to inactive students');
 
 Schedule::command('email-notifications:send-reminders')->everyTenMinutes();
-Schedule::command('installments:sync-overdue-status')->daily();
+Schedule::command('installments:sync-overdue-status')->hourly();

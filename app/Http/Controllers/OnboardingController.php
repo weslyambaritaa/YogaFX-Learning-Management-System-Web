@@ -27,7 +27,7 @@ class OnboardingController extends Controller
 
     public function showPaymentSuccess(OnboardingState $onboardingState): Response|RedirectResponse
     {
-        $onboardingState->loadMissing('user', 'pendingRegistration.accessTier');
+        $onboardingState->loadMissing('user', 'pendingRegistration.accessTier', 'pendingRegistration.invoices');
 
         if ($onboardingState->status === OnboardingState::STATUS_COMPLETED) {
             return redirect()->route('login')->with('status', 'Your YogaFX account is ready. Please sign in.');
@@ -37,11 +37,43 @@ class OnboardingController extends Controller
             return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
         }
 
+        $latestInvoice = $onboardingState->pendingRegistration->invoices()
+            ->latest('id')
+            ->first();
+        $packagePaymentType = $latestInvoice?->package_payment_type
+            ?? $latestInvoice?->package?->normalizedPaymentType()
+            ?? 'paid';
+
+        [$title, $eyebrow, $heading, $message] = match ($packagePaymentType) {
+            'free' => [
+                'Registration Ready',
+                'Free Access Ready',
+                'Your free access is ready.',
+                'Continue to enrollment to complete your YogaFX account.',
+            ],
+            'donation' => [
+                'Donation Received',
+                'Donation Approved',
+                'Thank you for your donation. Your payment was received.',
+                'Continue to enrollment to complete your YogaFX account.',
+            ],
+            default => [
+                'Payment Success',
+                'Payment Approved',
+                'Your payment was received.',
+                'Continue to enrollment to complete your YogaFX account.',
+            ],
+        };
+
         return Inertia::render('Public/PaymentSuccess', [
             'onboarding' => [
                 'id' => $onboardingState->id,
                 'status' => $onboardingState->status,
                 'continue_url' => $this->paymentFlow->enrollmentUrl($onboardingState),
+                'title' => $title,
+                'eyebrow' => $eyebrow,
+                'heading' => $heading,
+                'message' => $message,
                 'access_tier' => [
                     'name' => $onboardingState->pendingRegistration->accessTier->name,
                     'slug' => $onboardingState->pendingRegistration->accessTier->slug,

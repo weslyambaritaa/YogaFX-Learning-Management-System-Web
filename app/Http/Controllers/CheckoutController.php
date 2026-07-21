@@ -120,7 +120,10 @@ class CheckoutController extends Controller
 
         $result = $this->paymentFlow->startInitialCheckout($pendingRegistration, $validated);
 
-        if (($validated['payment_method'] ?? null) === Payment::METHOD_MOCK) {
+        if (
+            in_array(($validated['payment_method'] ?? null), [Payment::METHOD_MOCK, Payment::METHOD_INTERNAL], true)
+            && isset($result['redirect_url'])
+        ) {
             return response()->json([
                 'status' => 'success',
                 'redirect_url' => $result['redirect_url'],

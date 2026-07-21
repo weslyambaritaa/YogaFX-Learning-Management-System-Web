@@ -1,16 +1,19 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import { formatCurrency } from '@/lib/currency';
+import InputError from "@/Components/InputError";
+import InputLabel from "@/Components/InputLabel";
+import PrimaryButton from "@/Components/PrimaryButton";
+import TextInput from "@/Components/TextInput";
+import { formatCurrency } from "@/lib/currency";
 
 export default function PackageForm({
     data = {
         title: "",
         slug: "",
         description: "",
+        payment_type: "paid",
         image: null,
         price: "",
+        minimum_donation_amount: "",
+        suggested_donation_amount: "",
         currency_code: "IDR",
         is_active: true,
         installment_enabled: false,
@@ -30,22 +33,27 @@ export default function PackageForm({
     currentImageUrl = null,
     packagePublicBaseUrl = "",
 }) {
-    const normalizedSlug = String(data.slug ?? '').trim();
-    const packagePublicLink = normalizedSlug !== ''
-        ? `${String(packagePublicBaseUrl).replace(/\/$/, '')}/${normalizedSlug}`
-        : '';
+    const normalizedSlug = String(data.slug ?? "").trim();
+    const packagePublicLink =
+        normalizedSlug !== ""
+            ? `${String(packagePublicBaseUrl).replace(/\/$/, "")}/${normalizedSlug}`
+            : "";
 
     const allowedBillingDays = Array.isArray(data.allowed_billing_days)
         ? data.allowed_billing_days.map((day) => Number(day))
         : [];
     const installmentEnabled = Boolean(data.installment_enabled);
+    const paymentType = String(data.payment_type ?? "paid");
+    const isPaidPackage = paymentType === "paid";
+    const isFreePackage = paymentType === "free";
+    const isDonationPackage = paymentType === "donation";
     const isDateMethod =
         String(data.installment_calculation_method ?? "date") === "date";
     const isNumberMethod = !isDateMethod;
     const isFixedMode = String(data.installment_count_mode ?? "") === "fixed";
 
     const copyPackageLink = async () => {
-        if (packagePublicLink === '') {
+        if (packagePublicLink === "") {
             return;
         }
 
@@ -63,7 +71,7 @@ export default function PackageForm({
             : [...currentDays, numericDay];
 
         setData(
-            'allowed_billing_days',
+            "allowed_billing_days",
             [...new Set(nextDays)]
                 .filter((value) => [1, 15].includes(value))
                 .sort((a, b) => a - b),
@@ -71,25 +79,29 @@ export default function PackageForm({
     };
 
     const handleInstallmentEnabledChange = (event) => {
-        const enabled = event.target.value === '1';
+        if (!isPaidPackage) {
+            return;
+        }
+
+        const enabled = event.target.value === "1";
 
         setData((currentData) => ({
             ...currentData,
             installment_enabled: enabled,
             installment_calculation_method: enabled
-                ? currentData.installment_calculation_method ?? "date"
+                ? (currentData.installment_calculation_method ?? "date")
                 : "date",
             installment_count_mode: enabled
-                ? currentData.installment_count_mode ?? ""
+                ? (currentData.installment_count_mode ?? "")
                 : "",
             installment_count: enabled
-                ? currentData.installment_count ?? ""
+                ? (currentData.installment_count ?? "")
                 : "",
             installment_deadline_date: enabled
-                ? currentData.installment_deadline_date ?? ""
+                ? (currentData.installment_deadline_date ?? "")
                 : "",
             allowed_billing_days: enabled
-                ? currentData.allowed_billing_days ?? []
+                ? (currentData.allowed_billing_days ?? [])
                 : [],
         }));
     };
@@ -102,19 +114,77 @@ export default function PackageForm({
             installment_calculation_method: method,
             installment_deadline_date:
                 method === "date"
-                    ? currentData.installment_deadline_date ?? ""
+                    ? (currentData.installment_deadline_date ?? "")
                     : "",
             installment_count_mode:
                 method === "number"
-                    ? currentData.installment_count_mode ?? ""
+                    ? (currentData.installment_count_mode ?? "")
                     : "",
             installment_count:
-                method === "number" ? currentData.installment_count ?? "" : "",
+                method === "number"
+                    ? (currentData.installment_count ?? "")
+                    : "",
         }));
     };
 
     const handleInstallmentCountModeChange = (event) => {
         setData("installment_count_mode", event.target.value);
+    };
+
+    const handlePaymentTypeChange = (event) => {
+        const nextPaymentType = event.target.value;
+
+        setData((currentData) => {
+            const minimumDonationAmount =
+                nextPaymentType === "donation"
+                    ? (currentData.minimum_donation_amount ?? "")
+                    : "";
+
+            return {
+                ...currentData,
+                payment_type: nextPaymentType,
+
+                // Only paid packages use a fixed package price.
+                price: nextPaymentType === "paid" ? currentData.price : 0,
+
+                minimum_donation_amount: minimumDonationAmount,
+
+                // Internal compatibility value.
+                // Admin no longer enters this field manually.
+                suggested_donation_amount:
+                    nextPaymentType === "donation" ? minimumDonationAmount : "",
+
+                installment_enabled:
+                    nextPaymentType === "paid"
+                        ? currentData.installment_enabled
+                        : false,
+
+                installment_calculation_method:
+                    nextPaymentType === "paid"
+                        ? (currentData.installment_calculation_method ?? "date")
+                        : "date",
+
+                installment_count_mode:
+                    nextPaymentType === "paid"
+                        ? (currentData.installment_count_mode ?? "")
+                        : "",
+
+                installment_count:
+                    nextPaymentType === "paid"
+                        ? (currentData.installment_count ?? "")
+                        : "",
+
+                installment_deadline_date:
+                    nextPaymentType === "paid"
+                        ? (currentData.installment_deadline_date ?? "")
+                        : "",
+
+                allowed_billing_days:
+                    nextPaymentType === "paid"
+                        ? (currentData.allowed_billing_days ?? [])
+                        : [],
+            };
+        });
     };
 
     return (
@@ -126,7 +196,9 @@ export default function PackageForm({
                         id="title"
                         className="mt-1 block w-full"
                         value={data.title}
-                        onChange={(event) => setData('title', event.target.value)}
+                        onChange={(event) =>
+                            setData("title", event.target.value)
+                        }
                         isFocused
                     />
                     <InputError className="mt-2" message={errors.title} />
@@ -138,34 +210,60 @@ export default function PackageForm({
                         id="slug"
                         className="mt-1 block w-full"
                         value={data.slug}
-                        onChange={(event) => setData('slug', event.target.value)}
+                        onChange={(event) =>
+                            setData("slug", event.target.value)
+                        }
                     />
                     <InputError className="mt-2" message={errors.slug} />
                     <p className="mt-2 text-xs text-gray-500">
-                        Direct package route uses `/{'{package_slug}'}`.
+                        Direct package route uses `/{"{package_slug}"}`.
                     </p>
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="price" value="Package Price" />
-                    <TextInput
-                        id="price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className="mt-1 block w-full"
-                        value={data.price}
-                        onChange={(event) => setData('price', event.target.value)}
+                    <InputLabel htmlFor="payment_type" value="Payment Type" />
+                    <select
+                        id="payment_type"
+                        value={paymentType}
+                        onChange={handlePaymentTypeChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                    >
+                        <option value="paid">Paid</option>
+                        <option value="free">Free</option>
+                        <option value="donation">By Donation</option>
+                    </select>
+                    <InputError
+                        className="mt-2"
+                        message={errors.payment_type}
                     />
-                    <InputError className="mt-2" message={errors.price} />
                 </div>
+
+                {isPaidPackage && (
+                    <div>
+                        <InputLabel htmlFor="price" value="Package Price" />
+                        <TextInput
+                            id="price"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            className="mt-1 block w-full"
+                            value={data.price}
+                            onChange={(event) =>
+                                setData("price", event.target.value)
+                            }
+                        />
+                        <InputError className="mt-2" message={errors.price} />
+                    </div>
+                )}
 
                 <div>
                     <InputLabel htmlFor="currency_code" value="Currency" />
                     <select
                         id="currency_code"
                         value={data.currency_code}
-                        onChange={(event) => setData('currency_code', event.target.value)}
+                        onChange={(event) =>
+                            setData("currency_code", event.target.value)
+                        }
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     >
                         <option value="IDR">Indonesian Rupiah (IDR)</option>
@@ -173,37 +271,95 @@ export default function PackageForm({
                         <option value="GBP">British Pound (GBP)</option>
                         <option value="EUR">Euro (EUR)</option>
                     </select>
-                    <InputError className="mt-2" message={errors.currency_code} />
+                    <InputError
+                        className="mt-2"
+                        message={errors.currency_code}
+                    />
                 </div>
 
+                {isDonationPackage && (
+                    <div>
+                        <InputLabel
+                            htmlFor="minimum_donation_amount"
+                            value="Minimum Donation Amount"
+                        />
+
+                        <TextInput
+                            id="minimum_donation_amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="mt-1 block w-full"
+                            value={data.minimum_donation_amount ?? ""}
+                            onChange={(event) => {
+                                const minimumDonationAmount =
+                                    event.target.value;
+
+                                setData((currentData) => ({
+                                    ...currentData,
+                                    minimum_donation_amount:
+                                        minimumDonationAmount,
+
+                                    // Keep the internal compatibility field synchronized.
+                                    suggested_donation_amount:
+                                        minimumDonationAmount,
+                                }));
+                            }}
+                        />
+
+                        <p className="mt-2 text-xs text-gray-500">
+                            Students must donate at least this amount. They may
+                            enter a higher amount during checkout.
+                        </p>
+
+                        <InputError
+                            className="mt-2"
+                            message={errors.minimum_donation_amount}
+                        />
+                    </div>
+                )}
+
                 <div>
-                    <InputLabel htmlFor="access_tier_id" value="Assign to Access Tier" />
+                    <InputLabel
+                        htmlFor="access_tier_id"
+                        value="Assign to Access Tier"
+                    />
                     <select
                         id="access_tier_id"
-                        value={data.access_tier_id ?? ''}
-                        onChange={(event) => setData('access_tier_id', event.target.value || null)}
+                        value={data.access_tier_id ?? ""}
+                        onChange={(event) =>
+                            setData(
+                                "access_tier_id",
+                                event.target.value || null,
+                            )
+                        }
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     >
                         <option value="">None</option>
                         {accessTiers.map((accessTier) => (
                             <option key={accessTier.id} value={accessTier.id}>
                                 {accessTier.name}
-                                {!accessTier.is_active ? ' (Inactive)' : ''}
+                                {!accessTier.is_active ? " (Inactive)" : ""}
                             </option>
                         ))}
                     </select>
                     <p className="mt-2 text-xs text-gray-500">
-                        Assigning this package to a tier will automatically unassign any other package currently attached to that tier.
+                        Multiple packages may point to the same access tier.
                     </p>
-                    <InputError className="mt-2" message={errors.access_tier_id} />
+                    <InputError
+                        className="mt-2"
+                        message={errors.access_tier_id}
+                    />
                 </div>
 
                 <div>
                     <InputLabel htmlFor="is_active" value="Status" />
                     <select
                         id="is_active"
-                        value={data.is_active ? '1' : '0'}
-                        onChange={(event) => setData('is_active', event.target.value === '1')}
+                        value={data.is_active ? "1" : "0"}
+                        onChange={(event) =>
+                            setData("is_active", event.target.value === "1")
+                        }
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     >
                         <option value="1">Active</option>
@@ -219,7 +375,9 @@ export default function PackageForm({
                     id="description"
                     rows="4"
                     value={data.description}
-                    onChange={(event) => setData('description', event.target.value)}
+                    onChange={(event) =>
+                        setData("description", event.target.value)
+                    }
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
                 <InputError className="mt-2" message={errors.description} />
@@ -231,7 +389,9 @@ export default function PackageForm({
                     id="image"
                     type="file"
                     accept="image/*"
-                    onChange={(event) => setData('image', event.target.files?.[0] ?? null)}
+                    onChange={(event) =>
+                        setData("image", event.target.files?.[0] ?? null)
+                    }
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
                 <InputError className="mt-2" message={errors.image} />
@@ -250,15 +410,20 @@ export default function PackageForm({
             <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <InputLabel htmlFor="installment_enabled" value="Installment Ready" />
+                        <InputLabel
+                            htmlFor="installment_enabled"
+                            value="Installment Ready"
+                        />
                         <p className="mt-1 text-xs text-gray-500">
-                            Enable this when the package should expose installment checkout.
+                            Enable this when the package should expose
+                            installment checkout.
                         </p>
                     </div>
                     <select
                         id="installment_enabled"
-                        value={data.installment_enabled ? '1' : '0'}
+                        value={data.installment_enabled ? "1" : "0"}
                         onChange={handleInstallmentEnabledChange}
+                        disabled={!isPaidPackage}
                         className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                     >
                         <option value="0">Disabled</option>
@@ -266,7 +431,13 @@ export default function PackageForm({
                     </select>
                 </div>
 
-                {installmentEnabled && (
+                {!isPaidPackage && (
+                    <p className="text-xs text-gray-500">
+                        Installment is only available for paid packages.
+                    </p>
+                )}
+
+                {isPaidPackage && installmentEnabled && (
                     <div className="grid gap-6 md:grid-cols-2">
                         <div>
                             <InputLabel
@@ -275,7 +446,10 @@ export default function PackageForm({
                             />
                             <select
                                 id="installment_calculation_method"
-                                value={data.installment_calculation_method ?? "date"}
+                                value={
+                                    data.installment_calculation_method ??
+                                    "date"
+                                }
                                 onChange={handleInstallmentMethodChange}
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                             >
@@ -322,10 +496,16 @@ export default function PackageForm({
                                     type="date"
                                     className="mt-1 block w-full"
                                     value={data.installment_deadline_date ?? ""}
-                                    onChange={(event) => setData("installment_deadline_date", event.target.value)}
+                                    onChange={(event) =>
+                                        setData(
+                                            "installment_deadline_date",
+                                            event.target.value,
+                                        )
+                                    }
                                 />
                                 <p className="mt-2 text-xs text-gray-500">
-                                    The final date used to calculate the maximum installment count.
+                                    The final date used to calculate the maximum
+                                    installment count.
                                 </p>
                                 <InputError
                                     className="mt-2"
@@ -334,7 +514,10 @@ export default function PackageForm({
                             </div>
                         ) : (
                             <div>
-                                <InputLabel htmlFor="installment_count" value="Installment Count" />
+                                <InputLabel
+                                    htmlFor="installment_count"
+                                    value="Installment Count"
+                                />
                                 <TextInput
                                     id="installment_count"
                                     type="number"
@@ -343,83 +526,113 @@ export default function PackageForm({
                                     step="1"
                                     className="mt-1 block w-full"
                                     value={data.installment_count ?? ""}
-                                    onChange={(event) => setData("installment_count", event.target.value)}
+                                    onChange={(event) =>
+                                        setData(
+                                            "installment_count",
+                                            event.target.value,
+                                        )
+                                    }
                                 />
                                 <p className="mt-2 text-xs text-gray-500">
                                     {isFixedMode
                                         ? "Exact number of installments that will be applied to every customer."
                                         : "Maximum number of installments the customer can select."}
                                 </p>
-                                <InputError className="mt-2" message={errors.installment_count} />
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.installment_count}
+                                />
                             </div>
                         )}
 
                         <div>
-                        <InputLabel value="Allowed Billing Days" />
-                        <div className="mt-2 space-y-3 rounded-md border border-gray-200 bg-white p-4">
-                            <label className="flex items-start gap-3">
-                                <input
-                                    type="checkbox"
-                                    checked={allowedBillingDays.includes(1)}
-                                    onChange={() => toggleAllowedBillingDay(1)}
-                                    disabled={!installmentEnabled}
-                                    className="mt-1 rounded border-gray-300 text-black shadow-sm focus:ring-black disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                                <span>
-                                    <span className="block text-sm font-medium text-gray-900">
-                                        Enable billing on day 1
+                            <InputLabel value="Allowed Billing Days" />
+                            <div className="mt-2 space-y-3 rounded-md border border-gray-200 bg-white p-4">
+                                <label className="flex items-start gap-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={allowedBillingDays.includes(1)}
+                                        onChange={() =>
+                                            toggleAllowedBillingDay(1)
+                                        }
+                                        disabled={!installmentEnabled}
+                                        className="mt-1 rounded border-gray-300 text-black shadow-sm focus:ring-black disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                    <span>
+                                        <span className="block text-sm font-medium text-gray-900">
+                                            Enable billing on day 1
+                                        </span>
+                                        <span className="block text-xs text-gray-500">
+                                            Student can choose the 1st day of
+                                            the month.
+                                        </span>
                                     </span>
-                                    <span className="block text-xs text-gray-500">
-                                        Student can choose the 1st day of the month.
-                                    </span>
-                                </span>
-                            </label>
+                                </label>
 
-                            <label className="flex items-start gap-3">
-                                <input
-                                    type="checkbox"
-                                    checked={allowedBillingDays.includes(15)}
-                                    onChange={() => toggleAllowedBillingDay(15)}
-                                    disabled={!installmentEnabled}
-                                    className="mt-1 rounded border-gray-300 text-black shadow-sm focus:ring-black disabled:cursor-not-allowed disabled:opacity-50"
-                                />
-                                <span>
-                                    <span className="block text-sm font-medium text-gray-900">
-                                        Enable billing on day 15
+                                <label className="flex items-start gap-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={allowedBillingDays.includes(
+                                            15,
+                                        )}
+                                        onChange={() =>
+                                            toggleAllowedBillingDay(15)
+                                        }
+                                        disabled={!installmentEnabled}
+                                        className="mt-1 rounded border-gray-300 text-black shadow-sm focus:ring-black disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                    <span>
+                                        <span className="block text-sm font-medium text-gray-900">
+                                            Enable billing on day 15
+                                        </span>
+                                        <span className="block text-xs text-gray-500">
+                                            Student can choose the 15th day of
+                                            the month.
+                                        </span>
                                     </span>
-                                    <span className="block text-xs text-gray-500">
-                                        Student can choose the 15th day of the month.
-                                    </span>
-                                </span>
-                            </label>
+                                </label>
+                            </div>
+
+                            <p className="mt-2 text-xs text-gray-500">
+                                Admin may enable day 1, day 15, or both. During
+                                checkout, the student can select only one
+                                billing day.
+                            </p>
+
+                            <InputError
+                                className="mt-2"
+                                message={errors.allowed_billing_days}
+                            />
+                            <InputError
+                                className="mt-2"
+                                message={errors["allowed_billing_days.0"]}
+                            />
+                            <InputError
+                                className="mt-2"
+                                message={errors["allowed_billing_days.1"]}
+                            />
                         </div>
-
-                        <p className="mt-2 text-xs text-gray-500">
-                            Admin may enable day 1, day 15, or both. During checkout,
-                            the student can select only one billing day.
-                        </p>
-
-                        <InputError
-                            className="mt-2"
-                            message={errors.allowed_billing_days}
-                        />
-                        <InputError
-                            className="mt-2"
-                            message={errors['allowed_billing_days.0']}
-                        />
-                        <InputError
-                            className="mt-2"
-                            message={errors['allowed_billing_days.1']}
-                        />
-                    </div>
                     </div>
                 )}
             </div>
 
             <div className="flex items-center gap-4">
-                <PrimaryButton disabled={processing}>{submitLabel}</PrimaryButton>
+                <PrimaryButton disabled={processing}>
+                    {submitLabel}
+                </PrimaryButton>
                 <p className="text-sm text-gray-500">
-                    Preview: {formatCurrency(data.price || 0, data.currency_code || 'IDR')}
+                    Preview:{" "}
+                    {isFreePackage
+                        ? "Free"
+                        : isDonationPackage
+                          ? `Minimum ${formatCurrency(
+                                data.minimum_donation_amount || 0,
+                                data.currency_code || "IDR",
+                            )}`
+                          : formatCurrency(
+                                data.price || 0,
+                                data.currency_code || "IDR",
+                            )}
                 </p>
             </div>
         </form>

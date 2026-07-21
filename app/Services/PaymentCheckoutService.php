@@ -48,7 +48,7 @@ class PaymentCheckoutService
             'email' => Str::lower((string) $attributes['email']),
             'phone' => $attributes['phone'],
             'country' => $attributes['country'],
-            'amount_snapshot' => $package->price,
+            'amount_snapshot' => $package->checkoutBaseAmount(),
             'currency_code' => $package->currency_code,
             'status' => PendingRegistration::STATUS_CREATED,
         ]);
@@ -77,6 +77,7 @@ class PaymentCheckoutService
      *     payment_method: string,
      *     billing_day?: int|null,
      *     installment_count?: int|null
+     *     donation_amount?: float|null
      * }  $attributes
      *
      * @return array<string, mixed>
@@ -117,6 +118,13 @@ class PaymentCheckoutService
             $installmentCount,
         );
 
+        if (
+            ($attributes['payment_method'] ?? null) === Payment::METHOD_INTERNAL
+            && ! ($pendingRegistration->package?->isFreePackage() ?? false)
+        ) {
+            abort(422, 'Internal checkout is only available for free packages.');
+        }
+
         if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
             return $this->paymentSubscriptionService->startInitialCheckout(
                 $pendingRegistration,
@@ -148,8 +156,9 @@ class PaymentCheckoutService
 
             $accessTier = $pendingRegistration->accessTier()->firstOrFail();
             $package = $pendingRegistration->package;
-            $amount = (float) ($package?->price ?? $accessTier->price);
+            $amount = $this->resolveInitialCheckoutAmount($pendingRegistration, $attributes);
             $currencyCode = (string) ($package?->currency_code ?? $accessTier->currency_code);
+            $packagePaymentType = $package?->normalizedPaymentType() ?? Package::PAYMENT_TYPE_PAID;
 
             if ($pendingRegistration->status === PendingRegistration::STATUS_COMPLETED) {
                 abort(409, 'This registration flow is already completed.');
@@ -162,6 +171,7 @@ class PaymentCheckoutService
                 'access_tier_id' => $pendingRegistration->access_tier_id,
                 'type' => Invoice::TYPE_INITIAL,
                 'payment_type' => $attributes['payment_type'],
+                'package_payment_type' => $packagePaymentType,
                 'total_amount' => $amount,
                 'balance_due' => $amount,
                 'currency_code' => $currencyCode,
@@ -173,15 +183,18 @@ class PaymentCheckoutService
                 'invoice_id' => $invoice->id,
                 'payment_method' => $attributes['payment_method'],
                 'payment_type' => $attributes['payment_type'],
+                'package_payment_type' => $packagePaymentType,
                 'amount_paid' => $this->initialPaymentAmount(
                     totalAmount: $amount,
                     paymentType: $attributes['payment_type'],
                 ),
                 'currency_code' => $currencyCode,
                 'status' => Payment::STATUS_PENDING,
-                'notes' => $attributes['payment_method'] === Payment::METHOD_MOCK
-                    ? 'Mock checkout initialized.'
-                    : 'PayPal checkout initialized.',
+                'notes' => $this->initialPaymentNotes(
+                    paymentMethod: (string) $attributes['payment_method'],
+                    packagePaymentType: $packagePaymentType,
+                    isUpgrade: false,
+                ),
             ]);
 
             return [
@@ -190,10 +203,15 @@ class PaymentCheckoutService
             ];
         });
 
-        if ($attributes['payment_method'] === Payment::METHOD_MOCK) {
+        if (
+            in_array($attributes['payment_method'], [Payment::METHOD_MOCK, Payment::METHOD_INTERNAL], true)
+            || (float) $created['invoice']->total_amount <= 0
+        ) {
             $finalized = $this->paymentFinalizer->finalizeSuccessfulPayment(
                 $created['payment_activity'],
-                'MOCK-'.$created['invoice']->id.'-'.$created['payment_activity']->id,
+                $attributes['payment_method'] === Payment::METHOD_MOCK
+                    ? 'MOCK-'.$created['invoice']->id.'-'.$created['payment_activity']->id
+                    : 'INTERNAL-'.$created['invoice']->id.'-'.$created['payment_activity']->id,
             );
 
             /** @var OnboardingState $onboardingState */
@@ -233,6 +251,8 @@ class PaymentCheckoutService
      *     payment_method: string,
      *     billing_day?: int|null,
      *     installment_count?: int|null
+     *     donation_amount?: float|null,
+     *     package_id?: int|null
      * }  $attributes
      *
      * @return array{invoice: Invoice, payment_activity: Payment, redirect_url: string, amount_due: float}
@@ -241,11 +261,15 @@ class PaymentCheckoutService
     {
         $this->assertSupportedPaymentMethod($attributes['payment_method']);
 
-        $amountDue = $this->relevantUpgradeAmountDue($user, $targetTier);
+        $targetPackage = $this->resolveUpgradePackage(
+            $targetTier,
+            isset($attributes['package_id']) ? (int) $attributes['package_id'] : null,
+        );
 
-        abort_if($amountDue <= 0, 422, 'No additional upgrade payment is required for this tier.');
+        abort_unless($targetPackage instanceof Package, 422, 'This upgrade target package is unavailable.');
 
-        $targetPackage = $this->activeUpgradePackage($targetTier);
+        $minimumAmountDue = $this->relevantUpgradeAmountDueForPackage($user, $targetTier, $targetPackage);
+        $chargeAmount = $this->resolveUpgradeChargeAmount($user, $targetTier, $targetPackage, $attributes);
 
         $normalizedBillingDay = null;
         $requestedInstallmentCount = isset($attributes['installment_count']) && $attributes['installment_count'] !== null
@@ -274,18 +298,23 @@ class PaymentCheckoutService
             $attributes['payment_type'],
             $attributes['payment_method'],
             $normalizedBillingDay,
-            $amountDue,
+            $chargeAmount,
             $installmentCount,
         );
 
-        if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
-            abort_unless($targetPackage instanceof Package, 422, 'This upgrade target is not ready for installment checkout.');
+        if (
+            ($attributes['payment_method'] ?? null) === Payment::METHOD_INTERNAL
+            && $chargeAmount > 0
+        ) {
+            abort(422, 'Internal upgrade checkout is only available when no additional payment is required.');
+        }
 
+        if ($attributes['payment_type'] === Invoice::PAYMENT_TYPE_INSTALLMENT) {
             return $this->paymentSubscriptionService->startUpgradeCheckout(
                 $user,
                 $targetTier,
                 $targetPackage,
-                $amountDue,
+                $chargeAmount,
                 [
                     'return_url' => $this->upgradeSubscriptionReturnUrl($targetTier),
                     'cancel_url' => $this->upgradeSubscriptionCancelUrl($targetTier),
@@ -296,15 +325,17 @@ class PaymentCheckoutService
         }
 
         /** @var array{invoice: Invoice, payment_activity: Payment} $created */
-        $created = DB::transaction(function () use ($user, $targetTier, $attributes, $amountDue): array {
+        $created = DB::transaction(function () use ($user, $targetTier, $targetPackage, $attributes, $chargeAmount): array {
             $invoice = Invoice::query()->create([
                 'invoice_number' => $this->invoiceNumbers->nextNumber(),
                 'user_id' => $user->id,
+                'package_id' => $targetPackage->id,
                 'access_tier_id' => $targetTier->id,
                 'type' => Invoice::TYPE_UPGRADE,
                 'payment_type' => $attributes['payment_type'],
-                'total_amount' => $amountDue,
-                'balance_due' => $amountDue,
+                'package_payment_type' => $targetPackage->normalizedPaymentType(),
+                'total_amount' => $chargeAmount,
+                'balance_due' => $chargeAmount,
                 'currency_code' => $targetTier->currency_code,
                 'status' => Invoice::STATUS_UNPAID,
                 'issued_at' => now(),
@@ -314,15 +345,18 @@ class PaymentCheckoutService
                 'invoice_id' => $invoice->id,
                 'payment_method' => $attributes['payment_method'],
                 'payment_type' => $attributes['payment_type'],
+                'package_payment_type' => $targetPackage->normalizedPaymentType(),
                 'amount_paid' => $this->initialPaymentAmount(
-                    totalAmount: $amountDue,
+                    totalAmount: $chargeAmount,
                     paymentType: $attributes['payment_type'],
                 ),
                 'currency_code' => $targetTier->currency_code,
                 'status' => Payment::STATUS_PENDING,
-                'notes' => $attributes['payment_method'] === Payment::METHOD_MOCK
-                    ? 'Mock upgrade checkout initialized.'
-                    : 'PayPal upgrade checkout initialized.',
+                'notes' => $this->initialPaymentNotes(
+                    paymentMethod: (string) $attributes['payment_method'],
+                    packagePaymentType: $targetPackage->normalizedPaymentType(),
+                    isUpgrade: true,
+                ),
             ]);
 
             return [
@@ -331,17 +365,22 @@ class PaymentCheckoutService
             ];
         });
 
-        if ($attributes['payment_method'] === Payment::METHOD_MOCK) {
+        if (
+            in_array($attributes['payment_method'], [Payment::METHOD_MOCK, Payment::METHOD_INTERNAL], true)
+            || $chargeAmount <= 0
+        ) {
             $finalized = $this->paymentFinalizer->finalizeSuccessfulPayment(
                 $created['payment_activity'],
-                'MOCK-UPGRADE-'.$created['invoice']->id.'-'.$created['payment_activity']->id,
+                $attributes['payment_method'] === Payment::METHOD_MOCK
+                    ? 'MOCK-UPGRADE-'.$created['invoice']->id.'-'.$created['payment_activity']->id
+                    : 'INTERNAL-UPGRADE-'.$created['invoice']->id.'-'.$created['payment_activity']->id,
             );
 
             return [
                 'invoice' => $finalized['invoice'],
                 'payment_activity' => $finalized['payment_activity'],
                 'redirect_url' => $this->upgradePaymentSuccessUrl($finalized['invoice']),
-                'amount_due' => $amountDue,
+                'amount_due' => $minimumAmountDue,
             ];
         }
 
@@ -361,7 +400,7 @@ class PaymentCheckoutService
             'invoice' => $created['invoice']->fresh(),
             'payment_activity' => $created['payment_activity']->fresh(),
             'redirect_url' => $approval['approval_url'],
-            'amount_due' => $amountDue,
+            'amount_due' => $minimumAmountDue,
         ];
     }
 
@@ -492,7 +531,8 @@ class PaymentCheckoutService
         $pendingRegistration->loadMissing('accessTier', 'package', 'onboardingState');
 
         $package = $pendingRegistration->package;
-        $amount = (float) ($package?->price ?? $pendingRegistration->accessTier->price);
+        $amount = $package?->suggestedCheckoutAmount()
+            ?? (float) $pendingRegistration->accessTier->price;
         $currencyCode = (string) ($package?->currency_code ?? $pendingRegistration->accessTier->currency_code);
         $installmentData = $this->availableInstallmentData($pendingRegistration);
         $installmentSummary = $this->normalizeInstallmentSummary(
@@ -520,10 +560,13 @@ class PaymentCheckoutService
                 'title' => $package->title,
                 'slug' => $package->slug,
                 'description' => $package->description,
+                'payment_type' => $package->normalizedPaymentType(),
                 'image_url' => null,
                 'price' => (float) $package->price,
+                'minimum_donation_amount' => $package->minimumDonationAmount(),
+                'suggested_donation_amount' => $package->suggestedDonationAmount(),
                 'currency_code' => $package->currency_code,
-                'installment_enabled' => (bool) $package->installment_enabled,
+                'installment_enabled' => $package->supportsInstallments(),
                 'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
                 'installment_count_mode' => $package->normalizedInstallmentCountMode(),
                 'installment_count' => $package->configuredInstallmentCount(),
@@ -578,12 +621,13 @@ class PaymentCheckoutService
             'pay_url' => $this->checkoutPayUrl($pendingRegistration),
             'create_order_url' => $this->checkoutOrderCreateUrl($pendingRegistration),
             'payment_options' => $this->checkoutPaymentOptions(
+                package: $package,
                 totalAmount: $amount,
                 currencyCode: $currencyCode,
                 installmentSummary: $installmentSummary,
                 allowedBillingDays: $installmentData['allowed_billing_days'],
             ),
-            'payment_method_options' => $this->availablePaymentMethodOptions(),
+            'payment_method_options' => $this->availablePaymentMethodOptions($package),
             'installment_approve_url' => $this->checkoutSubscriptionApproveUrl($pendingRegistration),
             'installment_status_url' => $this->checkoutSubscriptionStatusUrl($pendingRegistration),
         ];
@@ -746,12 +790,17 @@ class PaymentCheckoutService
     /**
      * @return array<string, mixed>
      */
-    public function upgradePayload(User $user, AccessTier $targetTier): array
+    public function upgradePayload(User $user, AccessTier $targetTier, ?int $selectedPackageId = null): array
     {
         $currentTier = $user->accessTier;
-        $amountDue = $this->relevantUpgradeAmountDue($user, $targetTier);
+        $packages = $this->availableUpgradePackages($targetTier);
+        $selectedPackage = $this->resolveUpgradePackage($targetTier, $selectedPackageId)
+            ?? ($packages[0] ?? null);
+        abort_unless($selectedPackage instanceof Package, 422, 'This upgrade target package is unavailable.');
+
+        $amountDue = $this->relevantUpgradeAmountDueForPackage($user, $targetTier, $selectedPackage);
         $totalPaid = $this->relevantUpgradePaidAmount($user, $targetTier);
-        $installmentData = $this->availableUpgradeInstallmentData($targetTier, $amountDue);
+        $installmentData = $this->availableUpgradeInstallmentData($selectedPackage, $amountDue);
         $installmentSummary = $this->normalizeInstallmentSummary(
             $installmentData['selected_summary'],
         );
@@ -779,8 +828,9 @@ class PaymentCheckoutService
                 'currency_code' => $targetTier->currency_code,
                 'level' => $targetTier->level,
             ],
-            'payment_method_options' => $this->availablePaymentMethodOptions(),
+            'payment_method_options' => $this->availablePaymentMethodOptions($selectedPackage),
             'payment_options' => $this->checkoutPaymentOptions(
+                package: $selectedPackage,
                 totalAmount: $amountDue,
                 currencyCode: (string) $targetTier->currency_code,
                 installmentSummary: $installmentSummary,
@@ -819,6 +869,17 @@ class PaymentCheckoutService
             'installment_approve_url' => $this->upgradeSubscriptionApproveUrl($targetTier),
             'installment_status_url' => $this->upgradeSubscriptionStatusUrl($targetTier),
             'package' => $installmentData['package'],
+            'packages' => collect($packages)->map(fn (Package $package) => [
+                'id' => $package->id,
+                'title' => $package->title,
+                'slug' => $package->slug,
+                'payment_type' => $package->normalizedPaymentType(),
+                'price' => (float) $package->price,
+                'minimum_donation_amount' => $package->minimumDonationAmount(),
+                'suggested_donation_amount' => $package->suggestedDonationAmount(),
+                'currency_code' => $package->currency_code,
+                'installment_enabled' => $package->supportsInstallments(),
+            ])->values()->all(),
             'paypal' => [
                 'client_id' => $this->paypalService->clientId(),
                 'currency_code' => (string) $targetTier->currency_code,
@@ -844,8 +905,15 @@ class PaymentCheckoutService
     /**
      * @return array<int, array{value: string, label: string}>
      */
-    public function availablePaymentMethodOptions(): array
+    public function availablePaymentMethodOptions(?Package $package = null): array
     {
+        if ($package instanceof Package && $package->isFreePackage()) {
+            return [[
+                'value' => Payment::METHOD_INTERNAL,
+                'label' => 'Continue',
+            ]];
+        }
+
         $options = [
             [
                 'value' => Payment::METHOD_PAYPAL,
@@ -863,6 +931,19 @@ class PaymentCheckoutService
         return $options;
     }
 
+    /**
+     * @return array<int, Package>
+     */
+    public function availableUpgradePackages(AccessTier $targetTier): array
+    {
+        return $targetTier->packages()
+            ->where('is_active', true)
+            ->orderBy('title')
+            ->orderByDesc('id')
+            ->get()
+            ->all();
+    }
+
     private function assertSupportedPaymentMethod(string $paymentMethod): void
     {
         if ($paymentMethod === Payment::METHOD_MOCK && app()->environment('production')) {
@@ -871,6 +952,14 @@ class PaymentCheckoutService
 
         if ($paymentMethod === Payment::METHOD_BANK_TRANSFER) {
             abort(422, 'Bank transfer is not available in the PayPal payment architecture phase.');
+        }
+
+        if (! in_array($paymentMethod, [
+            Payment::METHOD_PAYPAL,
+            Payment::METHOD_MOCK,
+            Payment::METHOD_INTERNAL,
+        ], true)) {
+            abort(422, 'This payment method is not supported.');
         }
     }
 
@@ -889,6 +978,10 @@ class PaymentCheckoutService
 
         if (! $package instanceof Package) {
             abort(422, 'This package is not eligible for installment checkout.');
+        }
+
+        if (! $package->isPaidPackage()) {
+            abort(422, 'Installment checkout is only available for paid packages.');
         }
 
         if ($paymentMethod !== Payment::METHOD_PAYPAL) {
@@ -960,6 +1053,10 @@ class PaymentCheckoutService
 
         if (! $package instanceof Package) {
             abort(422, 'This upgrade target is not ready for installment checkout.');
+        }
+
+        if (! $package->isPaidPackage()) {
+            abort(422, 'Installment upgrade checkout is only available for paid packages.');
         }
 
         if ($paymentMethod !== Payment::METHOD_PAYPAL) {
@@ -1102,11 +1199,9 @@ class PaymentCheckoutService
      *     summaries: array<string, array<string, mixed>>
      * }
      */
-    private function availableUpgradeInstallmentData(AccessTier $targetTier, float $amountDue): array
+    private function availableUpgradeInstallmentData(Package $package, float $amountDue): array
     {
-        $package = $this->activeUpgradePackage($targetTier);
-
-        if (! $package instanceof Package || ! $this->installmentPlanCalculator->isEligible($package) || $amountDue <= 0) {
+        if (! $this->installmentPlanCalculator->isEligible($package) || $amountDue <= 0) {
             return [
                 'package' => null,
                 'selected_summary' => null,
@@ -1261,16 +1356,40 @@ class PaymentCheckoutService
      * @return array<int, array<string, mixed>>
      */
     private function checkoutPaymentOptions(
+        ?Package $package,
         float $totalAmount,
         string $currencyCode,
         ?array $installmentSummary,
         array $allowedBillingDays,
     ): array {
+        if ($package instanceof Package && $package->isFreePackage()) {
+            return [[
+                'type' => Invoice::PAYMENT_TYPE_FULL,
+                'label' => 'Continue to Enrollment',
+                'amount_due_today' => $this->formatMoney(0),
+                'currency_code' => $currencyCode,
+                'checkout_variant' => Package::PAYMENT_TYPE_FREE,
+            ]];
+        }
+
+        if ($package instanceof Package && $package->isDonationPackage()) {
+            return [[
+                'type' => Invoice::PAYMENT_TYPE_FULL,
+                'label' => 'Donate with PayPal',
+                'amount_due_today' => $this->formatMoney($package->suggestedCheckoutAmount()),
+                'currency_code' => $currencyCode,
+                'checkout_variant' => Package::PAYMENT_TYPE_DONATION,
+                'minimum_donation_amount' => $this->formatMoney($package->minimumDonationAmount()),
+                'suggested_donation_amount' => $this->formatMoney($package->suggestedCheckoutAmount()),
+            ]];
+        }
+
         $options = [[
             'type' => Invoice::PAYMENT_TYPE_FULL,
             'label' => 'Pay in full',
             'amount_due_today' => $this->formatMoney($totalAmount),
             'currency_code' => $currencyCode,
+            'checkout_variant' => Package::PAYMENT_TYPE_PAID,
         ]];
 
         if ($installmentSummary !== null) {
@@ -1302,6 +1421,7 @@ class PaymentCheckoutService
                 'available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
                 'schedule_breakdown' => $installmentSummary['schedule_breakdown'] ?? [],
                 'summary' => $installmentSummary,
+                'checkout_variant' => Package::PAYMENT_TYPE_PAID,
             ];
         }
 
@@ -1319,13 +1439,11 @@ class PaymentCheckoutService
 
     private function relevantUpgradeAmountDue(User $user, AccessTier $targetTier): float
     {
-        $currentTier = $user->accessTier;
+        $package = $this->resolveUpgradePackage($targetTier);
 
-        abort_if(! $targetTier->is_active, 422, 'This upgrade target is not active.');
-        abort_if(! $currentTier || ! $currentTier->is_active, 422, 'Your current tier is not available for upgrade.');
-        abort_if($targetTier->level <= $currentTier->level, 422, 'Only higher tiers can be selected for upgrade.');
+        abort_unless($package instanceof Package, 422, 'This upgrade target package is unavailable.');
 
-        return max(0, round((float) $targetTier->price - $this->relevantUpgradePaidAmount($user, $targetTier), 2));
+        return $this->relevantUpgradeAmountDueForPackage($user, $targetTier, $package);
     }
 
     private function relevantUpgradeBasisInvoice(User $user, AccessTier $targetTier): ?Invoice
@@ -1351,10 +1469,11 @@ class PaymentCheckoutService
             ->first();
     }
 
-    private function activeUpgradePackage(AccessTier $targetTier): ?Package
+    private function resolveUpgradePackage(AccessTier $targetTier, ?int $packageId = null): ?Package
     {
         return $targetTier->packages()
             ->where('is_active', true)
+            ->when($packageId, fn ($query) => $query->whereKey($packageId))
             ->latest('id')
             ->first();
     }
@@ -1464,5 +1583,85 @@ class PaymentCheckoutService
         }
 
         return $requestedInstallmentCount;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function resolveInitialCheckoutAmount(PendingRegistration $pendingRegistration, array $attributes): float
+    {
+        $package = $pendingRegistration->package;
+
+        if (! $package instanceof Package) {
+            return round((float) $pendingRegistration->accessTier->price, 2);
+        }
+
+        if ($package->isDonationPackage()) {
+            return round(max(
+                $package->minimumDonationAmount(),
+                (float) ($attributes['donation_amount'] ?? 0)
+            ), 2);
+        }
+
+        return $package->checkoutBaseAmount();
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function resolveUpgradeChargeAmount(User $user, AccessTier $targetTier, Package $targetPackage, array $attributes): float
+    {
+        $credit = $this->relevantUpgradePaidAmount($user, $targetTier);
+
+        if ($targetPackage->isFreePackage()) {
+            return 0.0;
+        }
+
+        if ($targetPackage->isDonationPackage()) {
+            $enteredDonationAmount = round(max(
+                $targetPackage->minimumDonationAmount(),
+                (float) ($attributes['donation_amount'] ?? $targetPackage->minimumDonationAmount())
+            ), 2);
+
+            return max(0, round($enteredDonationAmount - $credit, 2));
+        }
+
+        return max(0, round($targetPackage->checkoutBaseAmount() - $credit, 2));
+    }
+
+    private function relevantUpgradeAmountDueForPackage(User $user, AccessTier $targetTier, Package $targetPackage): float
+    {
+        $currentTier = $user->accessTier;
+
+        abort_if(! $targetTier->is_active, 422, 'This upgrade target is not active.');
+        abort_if(! $currentTier || ! $currentTier->is_active, 422, 'Your current tier is not available for upgrade.');
+        abort_if($targetTier->level <= $currentTier->level, 422, 'Only higher tiers can be selected for upgrade.');
+
+        return max(0, round($targetPackage->checkoutBaseAmount() - $this->relevantUpgradePaidAmount($user, $targetTier), 2));
+    }
+
+    private function initialPaymentNotes(string $paymentMethod, string $packagePaymentType, bool $isUpgrade): string
+    {
+        if ($paymentMethod === Payment::METHOD_INTERNAL) {
+            return $isUpgrade
+                ? 'Internal upgrade finalized without PayPal.'
+                : 'Internal checkout finalized without PayPal.';
+        }
+
+        if ($paymentMethod === Payment::METHOD_MOCK) {
+            return $isUpgrade
+                ? 'Mock upgrade checkout initialized.'
+                : 'Mock checkout initialized.';
+        }
+
+        if ($packagePaymentType === Package::PAYMENT_TYPE_DONATION) {
+            return $isUpgrade
+                ? 'PayPal donation upgrade checkout initialized.'
+                : 'PayPal donation checkout initialized.';
+        }
+
+        return $isUpgrade
+            ? 'PayPal upgrade checkout initialized.'
+            : 'PayPal checkout initialized.';
     }
 }

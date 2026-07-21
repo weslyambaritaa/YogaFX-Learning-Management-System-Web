@@ -150,7 +150,10 @@ class LeadRegistrationController extends Controller
             'title' => $package->title,
             'slug' => $package->slug,
             'description' => $package->description,
+            'payment_type' => $package->normalizedPaymentType(),
             'price' => (float) $package->price,
+            'minimum_donation_amount' => $package->minimumDonationAmount(),
+            'suggested_donation_amount' => $package->suggestedDonationAmount(),
             'currency_code' => $package->currency_code,
 
             /*
@@ -170,7 +173,7 @@ class LeadRegistrationController extends Controller
             | ke 2, sehingga slider terlihat mentok di 2 installment.
             |
             */
-            'installment_enabled' => $installmentEnabled,
+            'installment_enabled' => $package->supportsInstallments() && $installmentEnabled,
             'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
             'installment_count_mode' => $package->normalizedInstallmentCountMode(),
             'installment_count' => $package->configuredInstallmentCount(),

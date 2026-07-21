@@ -14,8 +14,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'title',
     'slug',
     'description',
+    'payment_type',
     'image',
     'price',
+    'minimum_donation_amount',
+    'suggested_donation_amount',
     'currency_code',
     'is_active',
     'installment_enabled',
@@ -65,6 +68,10 @@ class Package extends Model
     /** @use HasFactory<PackageFactory> */
     use HasFactory;
 
+    public const PAYMENT_TYPE_PAID = 'paid';
+    public const PAYMENT_TYPE_FREE = 'free';
+    public const PAYMENT_TYPE_DONATION = 'donation';
+
     public const INSTALLMENT_CALCULATION_DATE = 'date';
     public const INSTALLMENT_CALCULATION_NUMBER = 'number';
 
@@ -80,7 +87,10 @@ class Package extends Model
     protected function casts(): array
     {
         return [
+            'payment_type' => 'string',
             'price' => 'decimal:2',
+            'minimum_donation_amount' => 'decimal:2',
+            'suggested_donation_amount' => 'decimal:2',
             'is_active' => 'boolean',
             'installment_enabled' => 'boolean',
             'installment_count' => 'integer',
@@ -132,6 +142,71 @@ class Package extends Model
     public function isCheckoutAvailable(): bool
     {
         return $this->is_active && $this->access_tier_id !== null;
+    }
+
+    public function normalizedPaymentType(): string
+    {
+        $type = strtolower(trim((string) ($this->payment_type ?? '')));
+
+        return in_array($type, [
+            self::PAYMENT_TYPE_PAID,
+            self::PAYMENT_TYPE_FREE,
+            self::PAYMENT_TYPE_DONATION,
+        ], true)
+            ? $type
+            : self::PAYMENT_TYPE_PAID;
+    }
+
+    public function isPaidPackage(): bool
+    {
+        return $this->normalizedPaymentType() === self::PAYMENT_TYPE_PAID;
+    }
+
+    public function isFreePackage(): bool
+    {
+        return $this->normalizedPaymentType() === self::PAYMENT_TYPE_FREE;
+    }
+
+    public function isDonationPackage(): bool
+    {
+        return $this->normalizedPaymentType() === self::PAYMENT_TYPE_DONATION;
+    }
+
+    public function minimumDonationAmount(): float
+    {
+        return round((float) ($this->minimum_donation_amount ?? 0), 2);
+    }
+
+    public function suggestedDonationAmount(): ?float
+{
+    if (! $this->isDonationPackage()) {
+        return null;
+    }
+
+    return $this->minimumDonationAmount();
+}
+
+    public function checkoutBaseAmount(): float
+    {
+        return match ($this->normalizedPaymentType()) {
+            self::PAYMENT_TYPE_FREE => 0.0,
+            self::PAYMENT_TYPE_DONATION => $this->minimumDonationAmount(),
+            default => round((float) $this->price, 2),
+        };
+    }
+
+    public function suggestedCheckoutAmount(): float
+{
+    if ($this->isDonationPackage()) {
+        return $this->minimumDonationAmount();
+    }
+
+    return $this->checkoutBaseAmount();
+}
+
+    public function supportsInstallments(): bool
+    {
+        return $this->isPaidPackage() && $this->installment_enabled;
     }
 
     /*
@@ -236,7 +311,7 @@ class Package extends Model
 
     public function customerCanChooseInstallmentCount(): bool
     {
-        if (! $this->installment_enabled) {
+        if (! $this->supportsInstallments()) {
             return false;
         }
 
@@ -282,7 +357,7 @@ class Package extends Model
 
     public function checkoutAcceptsBillingDay(): bool
     {
-        return $this->installment_enabled && $this->resolvedAllowedBillingDays() !== [];
+        return $this->supportsInstallments() && $this->resolvedAllowedBillingDays() !== [];
     }
 
     public function checkoutRequiresBillingDayChoice(): bool

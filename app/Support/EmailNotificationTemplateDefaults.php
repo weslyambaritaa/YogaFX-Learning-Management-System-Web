@@ -145,10 +145,10 @@ class EmailNotificationTemplateDefaults
                 'auto_enable' => true,
             ],
             EmailNotificationTypeRegistry::PAYMENT_SUCCESS => [
-                'subject_user' => 'Payment successful: welcome to YogaFX, {user_name}',
+                'subject_user' => '{payment_success_subject}: welcome to YogaFX, {user_name}',
                 'body_user' => implode('', [
                     '<p>Hi {user_name},</p>',
-                    '<p>Congratulations. Your payment for <strong>{access_tier_label}</strong> was successful.</p>',
+                    '<p>{payment_success_message}</p>',
                     '<p>Your invoice confirmation PDF is attached as <strong>{invoice_pdf_file_name}</strong>.</p>',
                     '<p>Invoice: <strong>{invoice_number}</strong></p>',
                     '<p>Payment reference: <strong>{payment_reference}</strong></p>',
@@ -157,9 +157,9 @@ class EmailNotificationTemplateDefaults
                     '<p><a href="{enrollment_url}">{enrollment_url}</a></p>',
                     '<p>We are excited to welcome you into YogaFX.</p>',
                 ]),
-                'subject_admin' => 'YogaFX payment successful: {user_email}',
+                'subject_admin' => 'YogaFX {payment_success_subject}: {user_email}',
                 'body_admin' => implode('', [
-                    '<p>A new YogaFX onboarding payment has been completed successfully.</p>',
+                    '<p>{payment_success_admin_message}</p>',
                     '<p>Invoice PDF attached: <strong>{invoice_pdf_file_name}</strong></p>',
                     '<p>Student: <strong>{user_name}</strong> ({user_email})</p>',
                     '<p>Access tier: <strong>{access_tier_label}</strong></p>',

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const INITIAL_ERRORS = {
     billing_day: "",
     installment_count: "",
+    donation_amount: "",
     terms_accepted: "",
     payment_method: "",
 };
@@ -528,16 +529,13 @@ function buildInstallmentSummaryForCount(
             due_at: summary.first_payment_date ?? toDateString(new Date()),
             grace_deadline: null,
         },
-        ...Array.from(
-            { length: requiredRecurringCount },
-            (_, index) => ({
-                cycle_number: index + 2,
-                type: "recurring",
-                amount: recurringAmount.toFixed(2),
-                due_at: selectedRecurringDueDates[index] ?? null,
-                grace_deadline: null,
-            }),
-        ),
+        ...Array.from({ length: requiredRecurringCount }, (_, index) => ({
+            cycle_number: index + 2,
+            type: "recurring",
+            amount: recurringAmount.toFixed(2),
+            due_at: selectedRecurringDueDates[index] ?? null,
+            grace_deadline: null,
+        })),
     ];
 
     return {
@@ -751,6 +749,11 @@ export default function PublicCheckoutPanel({
         paymentOptions[0]?.type ?? "pay_full",
     );
 
+    const selectedPaymentOption =
+        paymentOptions.find((option) => option.type === paymentType) ??
+        paymentOptions[0] ??
+        null;
+
     const [billingDay, setBillingDay] = useState(initialBillingDay);
 
     const [selectedInstallmentCount, setSelectedInstallmentCount] = useState(
@@ -758,6 +761,11 @@ export default function PublicCheckoutPanel({
     );
 
     const [formData, setFormData] = useState({
+        donation_amount:
+            checkout.package?.suggested_donation_amount ??
+            selectedPaymentOption?.suggested_donation_amount ??
+            selectedPaymentOption?.amount_due_today ??
+            "",
         terms_accepted: false,
     });
 
@@ -787,10 +795,12 @@ export default function PublicCheckoutPanel({
     const installmentAcceptsBillingDayRef = useRef(false);
     const availableInstallmentCountsRef = useRef([]);
 
-    const selectedPaymentOption =
-        paymentOptions.find((option) => option.type === paymentType) ??
-        paymentOptions[0] ??
-        null;
+    const selectedCheckoutVariant =
+        selectedPaymentOption?.checkout_variant ??
+        checkout.package?.payment_type ??
+        "paid";
+    const isFreeCheckout = selectedCheckoutVariant === "free";
+    const isDonationCheckout = selectedCheckoutVariant === "donation";
 
     const isInstallmentSelected = paymentType === "installment";
 
@@ -961,7 +971,9 @@ export default function PublicCheckoutPanel({
     }, [paypalConfig.client_id]);
 
     const shouldRenderPayFullButtons =
-        !isInstallmentSelected && Boolean(paypalConfig.client_id);
+        !isInstallmentSelected &&
+        !isFreeCheckout &&
+        Boolean(paypalConfig.client_id);
 
     const shouldRenderInstallmentButtons =
         isInstallmentSelected &&
@@ -1008,6 +1020,32 @@ export default function PublicCheckoutPanel({
     }, [paymentOptions, paymentType]);
 
     useEffect(() => {
+        if (!isDonationCheckout) {
+            return;
+        }
+
+        const suggestedAmount =
+            selectedPaymentOption?.suggested_donation_amount ??
+            checkout.package?.suggested_donation_amount ??
+            selectedPaymentOption?.amount_due_today ??
+            "";
+
+        setFormData((current) => ({
+            ...current,
+            donation_amount:
+                current.donation_amount === "" ||
+                current.donation_amount == null
+                    ? suggestedAmount
+                    : current.donation_amount,
+        }));
+    }, [
+        checkout.package?.suggested_donation_amount,
+        isDonationCheckout,
+        selectedPaymentOption?.amount_due_today,
+        selectedPaymentOption?.suggested_donation_amount,
+    ]);
+
+    useEffect(() => {
         setBillingDay(initialBillingDay);
     }, [initialBillingDay]);
 
@@ -1045,7 +1083,11 @@ export default function PublicCheckoutPanel({
             ...current,
             installment_count: "",
         }));
-    }, [isInstallmentSelected, installmentPolicySignature, defaultInstallmentCount]);
+    }, [
+        isInstallmentSelected,
+        installmentPolicySignature,
+        defaultInstallmentCount,
+    ]);
 
     useEffect(() => {
         if (!isInstallmentSelected) {
@@ -1293,10 +1335,7 @@ export default function PublicCheckoutPanel({
         return () => {
             clearPayPalContainer(payFullButtonsRef);
         };
-    }, [
-        shouldRenderPayFullButtons,
-        payFullSdkReady,
-    ]);
+    }, [shouldRenderPayFullButtons, payFullSdkReady]);
 
     useEffect(() => {
         if (!shouldRenderInstallmentButtons || !installmentSdkReady) {
@@ -1601,6 +1640,25 @@ export default function PublicCheckoutPanel({
             }
         }
 
+        if (isDonationCheckout) {
+            const donationAmount = Number(currentData.donation_amount ?? 0);
+            const minimumDonationAmount = Number(
+                selectedPaymentOption?.minimum_donation_amount ??
+                    checkout.package?.minimum_donation_amount ??
+                    0,
+            );
+
+            if (
+                !Number.isFinite(donationAmount) ||
+                donationAmount < minimumDonationAmount
+            ) {
+                nextErrors.donation_amount = `Please enter at least ${formatCurrency(
+                    minimumDonationAmount,
+                    activeCurrencyCode,
+                )}.`;
+            }
+        }
+
         if (!currentData.terms_accepted) {
             nextErrors.terms_accepted = "You must agree before continuing.";
         }
@@ -1695,7 +1753,8 @@ export default function PublicCheckoutPanel({
                     ? "installment"
                     : "pay_full",
                 payment_method: paymentMethod,
-                checkout_mode: "paypal",
+                checkout_mode:
+                    paymentMethod === "internal" ? "internal" : "paypal",
                 billing_day:
                     isInstallmentSelectedRef.current &&
                     installmentAcceptsBillingDayRef.current
@@ -1706,6 +1765,9 @@ export default function PublicCheckoutPanel({
                     availableInstallmentCountsRef.current.length > 0
                         ? Number(selectedInstallmentCountRef.current)
                         : null,
+                donation_amount: isDonationCheckout
+                    ? Number(currentData.donation_amount ?? 0)
+                    : null,
                 terms_accepted: currentData.terms_accepted,
             }),
         });
@@ -1900,6 +1962,14 @@ export default function PublicCheckoutPanel({
         }
     };
 
+    const continueFreeCheckout = async () => {
+        try {
+            await createOrderSession("internal");
+        } catch {
+            // Validation and server errors are already surfaced in state.
+        }
+    };
+
     const showLockedMessage = () => {
         setGeneralError(
             "Please complete your personal details above before continuing to payment.",
@@ -1972,7 +2042,6 @@ export default function PublicCheckoutPanel({
                 }
             `}</style>
 
-
             {isConfirmingPayment && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-6 backdrop-blur-sm"
@@ -2018,44 +2087,97 @@ export default function PublicCheckoutPanel({
                 </div>
             )}
 
-            <div className={paymentButtonGridClass}>
-                {paymentOptions.map((option) => {
-                    const optionIsActive = paymentType === option.type;
-                    const optionIsInstallment = option.type === "installment";
+            {!isFreeCheckout && (
+                <div className={paymentButtonGridClass}>
+                    {paymentOptions.map((option) => {
+                        const optionIsActive = paymentType === option.type;
+                        const optionIsInstallment =
+                            option.type === "installment";
 
-                    return (
-                        <div key={option.type} className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setPaymentType(option.type)}
-                                className={`w-full rounded-[5px] border-2 px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
-                                    optionIsActive
-                                        ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_2px_rgba(219,32,44,0.28)]"
-                                        : "border-white/35 bg-black/25 text-white/85 hover:border-white/55 hover:bg-white/10"
-                                }`}
-                                style={{
-                                    fontFamily: FONT_FAMILY,
-                                    fontSize: "14px",
-                                    fontWeight: 600,
-                                }}
-                            >
-                                {optionIsInstallment
-                                    ? "Pay in installment"
-                                    : "Pay in full"}
-                            </button>
-
-                            {paymentIsLocked && (
+                        return (
+                            <div key={option.type} className="relative">
                                 <button
                                     type="button"
-                                    onClick={showLockedMessage}
-                                    className="absolute inset-0 z-10 cursor-not-allowed rounded-[5px] bg-black/10"
-                                    aria-label="Complete your details before choosing payment type"
-                                />
+                                    onClick={() => setPaymentType(option.type)}
+                                    className={`w-full rounded-[5px] border-2 px-5 py-4 text-center text-sm font-semibold transition-all duration-200 ${
+                                        optionIsActive
+                                            ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_2px_rgba(219,32,44,0.28)]"
+                                            : "border-white/35 bg-black/25 text-white/85 hover:border-white/55 hover:bg-white/10"
+                                    }`}
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                        fontSize: "14px",
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    {option.label ??
+                                        (optionIsInstallment
+                                            ? "Pay in installment"
+                                            : "Pay in full")}
+                                </button>
+
+                                {paymentIsLocked && (
+                                    <button
+                                        type="button"
+                                        onClick={showLockedMessage}
+                                        className="absolute inset-0 z-10 cursor-not-allowed rounded-[5px] bg-black/10"
+                                        aria-label="Complete your details before choosing payment type"
+                                    />
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {isDonationCheckout && !isInstallmentSelected && (
+                <div className="space-y-3 rounded-[8px] border border-white/10 bg-white/5 p-5">
+                    <div>
+                        <p className="text-sm font-semibold text-white">
+                            Enter your donation amount
+                        </p>
+                        <p className="mt-1 text-sm text-white/60">
+                            Minimum donation:{" "}
+                            {formatCurrency(
+                                Number(
+                                    selectedPaymentOption?.minimum_donation_amount ??
+                                        checkout.package
+                                            ?.minimum_donation_amount ??
+                                        0,
+                                ),
+                                activeCurrencyCode,
                             )}
-                        </div>
-                    );
-                })}
-            </div>
+                            . You may donate more if you wish.
+                        </p>
+                    </div>
+
+                    <input
+                        type="number"
+                        min={Number(
+                            selectedPaymentOption?.minimum_donation_amount ??
+                                checkout.package?.minimum_donation_amount ??
+                                0,
+                        )}
+                        step="0.01"
+                        value={formData.donation_amount ?? ""}
+                        onChange={(event) =>
+                            setFieldValue("donation_amount", event.target.value)
+                        }
+                        className="block w-full rounded-[5px] border border-white/20 bg-black/20 px-4 py-3 text-sm text-white focus:border-white/40 focus:ring-2 focus:ring-white/20"
+                    />
+                    <InputError
+                        className="text-sm text-rose-400"
+                        style={{ fontFamily: FONT_FAMILY }}
+                        message={fieldErrors.donation_amount}
+                    />
+                </div>
+            )}
+
+            {isFreeCheckout && !isInstallmentSelected && (
+                <div className="rounded-[8px] border border-emerald-400/20 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-100">
+                    This package is free. No payment is required.
+                </div>
+            )}
 
             {isInstallmentSelected && activeInstallmentSummary && (
                 <div className="space-y-5">
@@ -2117,58 +2239,62 @@ export default function PublicCheckoutPanel({
 
                     {installmentCountSelectable !== false &&
                         availableInstallmentCounts.length > 0 && (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between gap-4">
-                                <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                    Number of installments
-                                </p>
-                                <p className="rounded-full bg-[#DB202C] px-4 py-1.5 text-sm font-semibold text-white">
-                                    {selectedInstallmentCount} payments
-                                </p>
-                            </div>
-
-                            <div className="relative pt-7">
-                                <div
-                                    className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-full bg-[#DB202C] px-2 py-0.5 text-xs font-semibold text-white"
-                                    style={{
-                                        left: `${sliderProgressPercent}%`,
-                                    }}
-                                >
-                                    {selectedInstallmentCount}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between gap-4">
+                                    <p className="text-xs uppercase tracking-[0.16em] text-white/45">
+                                        Number of installments
+                                    </p>
+                                    <p className="rounded-full bg-[#DB202C] px-4 py-1.5 text-sm font-semibold text-white">
+                                        {selectedInstallmentCount} payments
+                                    </p>
                                 </div>
 
-                                <input
-                                    type="range"
-                                    min={minimumInstallmentCount}
-                                    max={maximumInstallmentCount}
-                                    step="1"
-                                    value={selectedInstallmentCount}
-                                    disabled={paymentIsLocked}
-                                    onChange={(event) => {
-                                        setSelectedInstallmentCount(
-                                            Number(event.target.value),
-                                        );
-                                        setFieldErrors((current) => ({
-                                            ...current,
-                                            installment_count: "",
-                                        }));
-                                    }}
-                                    className="yogafx-installment-slider w-full disabled:opacity-60"
+                                <div className="relative pt-7">
+                                    <div
+                                        className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-full bg-[#DB202C] px-2 py-0.5 text-xs font-semibold text-white"
+                                        style={{
+                                            left: `${sliderProgressPercent}%`,
+                                        }}
+                                    >
+                                        {selectedInstallmentCount}
+                                    </div>
+
+                                    <input
+                                        type="range"
+                                        min={minimumInstallmentCount}
+                                        max={maximumInstallmentCount}
+                                        step="1"
+                                        value={selectedInstallmentCount}
+                                        disabled={paymentIsLocked}
+                                        onChange={(event) => {
+                                            setSelectedInstallmentCount(
+                                                Number(event.target.value),
+                                            );
+                                            setFieldErrors((current) => ({
+                                                ...current,
+                                                installment_count: "",
+                                            }));
+                                        }}
+                                        className="yogafx-installment-slider w-full disabled:opacity-60"
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-between text-xs font-medium text-white/55">
+                                    <span>
+                                        {minimumInstallmentCount} payments
+                                    </span>
+                                    <span>
+                                        {maximumInstallmentCount} payments
+                                    </span>
+                                </div>
+
+                                <InputError
+                                    className="mt-2 text-sm font-medium text-rose-400"
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                    message={fieldErrors.installment_count}
                                 />
                             </div>
-
-                            <div className="flex items-center justify-between text-xs font-medium text-white/55">
-                                <span>{minimumInstallmentCount} payments</span>
-                                <span>{maximumInstallmentCount} payments</span>
-                            </div>
-
-                            <InputError
-                                className="mt-2 text-sm font-medium text-rose-400"
-                                style={{ fontFamily: FONT_FAMILY }}
-                                message={fieldErrors.installment_count}
-                            />
-                        </div>
-                    )}
+                        )}
 
                     {installmentCountSelectable === false && (
                         <div className="space-y-2">
@@ -2311,16 +2437,14 @@ export default function PublicCheckoutPanel({
                         type="checkbox"
                         checked={formData.terms_accepted}
                         onChange={(event) =>
-                            void handleTermsAcceptedChange(
-                                event.target.checked,
-                            )
+                            void handleTermsAcceptedChange(event.target.checked)
                         }
                         className="mt-1 h-5 w-5 flex-shrink-0 rounded border-white/20 bg-black/20 text-[#DB202C] transition-colors focus:ring-[#DB202C] focus:ring-offset-gray-900"
                     />
                     <span className="flex-1 leading-relaxed">
-                        I agree to continue with YogaFX payment processing and
-                        understand that sensitive card data is handled directly
-                        by PayPal-hosted secure components.
+                        {isFreeCheckout
+                            ? "I agree to continue and activate this free YogaFX access."
+                            : "I agree to continue with YogaFX payment processing and understand that sensitive card data is handled directly by PayPal-hosted secure components."}
                     </span>
                     {fieldErrors.terms_accepted && (
                         <AlertCircle className="mt-1 h-5 w-5 flex-shrink-0 text-rose-400" />
@@ -2351,7 +2475,8 @@ export default function PublicCheckoutPanel({
                             </div>
                         )}
 
-                        {installmentSession?.provider_subscription_id && !isConfirmingPayment ? (
+                        {installmentSession?.provider_subscription_id &&
+                        !isConfirmingPayment ? (
                             <div
                                 className="rounded-[5px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/70"
                                 style={{ fontFamily: FONT_FAMILY }}
@@ -2418,31 +2543,47 @@ export default function PublicCheckoutPanel({
                                 : "opacity-100 grayscale-0"
                         }`}
                     >
-                        <div
-                            className="rounded-[5px] p-3"
-                            style={{
-                                backgroundColor: "rgba(255, 255, 255, 0.97)",
-                            }}
-                        >
+                        {isFreeCheckout ? (
+                            formData.terms_accepted ? (
+                                <Button
+                                    type="button"
+                                    onClick={continueFreeCheckout}
+                                    disabled={paymentIsLocked}
+                                    className="w-full rounded-[5px] bg-[#DB202C] px-6 py-6 text-white hover:bg-[#c31c28] disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    Continue to Enrollment
+                                </Button>
+                            ) : null
+                        ) : (
                             <div
-                                ref={payFullButtonsRef}
-                                className="min-h-[48px]"
-                            />
-                        </div>
+                                className="rounded-[5px] p-3"
+                                style={{
+                                    backgroundColor:
+                                        "rgba(255, 255, 255, 0.97)",
+                                }}
+                            >
+                                <div
+                                    ref={payFullButtonsRef}
+                                    className="min-h-[48px]"
+                                />
+                            </div>
+                        )}
 
                         {lockedOverlay}
                     </div>
                 )}
 
-                {!isInstallmentSelected && !payFullSdkReady && (
-                    <div
-                        className="flex items-center gap-3 text-sm font-medium text-white/60"
-                        style={{ fontFamily: FONT_FAMILY }}
-                    >
-                        <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
-                        <span>Loading secure payment methods...</span>
-                    </div>
-                )}
+                {!isInstallmentSelected &&
+                    !isFreeCheckout &&
+                    !payFullSdkReady && (
+                        <div
+                            className="flex items-center gap-3 text-sm font-medium text-white/60"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
+                            <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
+                            <span>Loading secure payment methods...</span>
+                        </div>
+                    )}
 
                 {(isSubmitting || isPreparingCheckout) &&
                     !isInstallmentSelected && (

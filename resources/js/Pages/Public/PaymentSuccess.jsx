@@ -6,9 +6,9 @@ import { Link } from "@inertiajs/react";
 export default function PaymentSuccess({ onboarding }) {
     return (
         <PublicFlowLayout
-            title="Payment Success"
-            eyebrow="Payment Approved"
-            heading="Your payment was received."
+            title={onboarding.title ?? "Payment Success"}
+            eyebrow={onboarding.eyebrow ?? "Payment Approved"}
+            heading={onboarding.heading ?? "Your payment was received."}
         >
             <div className="flex justify-center pt-0 pb-6">
                 <div className="w-full max-w-md text-center">
@@ -20,7 +20,8 @@ export default function PaymentSuccess({ onboarding }) {
                     </div>
 
                     <p className="mt-9 text-base font-semibold leading-relaxed text-white">
-                        Continue to enrollment to complete your YogaFX account.
+                        {onboarding.message ??
+                            "Continue to enrollment to complete your YogaFX account."}
                     </p>
 
                     <Button

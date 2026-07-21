@@ -47,6 +47,12 @@ class PackageRequest extends FormRequest
             ]);
         }
 
+        if ($this->has('payment_type')) {
+            $this->merge([
+                'payment_type' => strtolower(trim((string) $this->input('payment_type'))),
+            ]);
+        }
+
         if ($this->has('installment_calculation_method')) {
             $this->merge([
                 'installment_calculation_method' => strtolower(trim((string) $this->input('installment_calculation_method'))),
@@ -68,6 +74,26 @@ class PackageRequest extends FormRequest
                 'installment_count' => $installmentCount === null || $installmentCount === ''
                     ? null
                     : (int) $installmentCount,
+            ]);
+        }
+
+        if ($this->has('minimum_donation_amount')) {
+            $minimumDonationAmount = $this->input('minimum_donation_amount');
+
+            $this->merge([
+                'minimum_donation_amount' => $minimumDonationAmount === null || $minimumDonationAmount === ''
+                    ? null
+                    : (float) $minimumDonationAmount,
+            ]);
+        }
+
+        if ($this->has('suggested_donation_amount')) {
+            $suggestedDonationAmount = $this->input('suggested_donation_amount');
+
+            $this->merge([
+                'suggested_donation_amount' => $suggestedDonationAmount === null || $suggestedDonationAmount === ''
+                    ? null
+                    : (float) $suggestedDonationAmount,
             ]);
         }
 
@@ -108,6 +134,40 @@ class PackageRequest extends FormRequest
             ]);
         }
 
+        $paymentType = strtolower(trim((string) $this->input('payment_type', Package::PAYMENT_TYPE_PAID)));
+
+        if ($paymentType === Package::PAYMENT_TYPE_PAID) {
+    $this->merge([
+        'minimum_donation_amount' => null,
+        'suggested_donation_amount' => null,
+    ]);
+}
+
+if ($paymentType === Package::PAYMENT_TYPE_FREE) {
+    $this->merge([
+        'price' => 0,
+        'minimum_donation_amount' => null,
+        'suggested_donation_amount' => null,
+        'installment_enabled' => false,
+    ]);
+}
+
+if ($paymentType === Package::PAYMENT_TYPE_DONATION) {
+    $minimumDonationAmount = $this->input('minimum_donation_amount');
+
+    $this->merge([
+        'price' => 0,
+
+        // Keep the legacy/internal field equal to the minimum amount.
+        'suggested_donation_amount' =>
+            $minimumDonationAmount === null || $minimumDonationAmount === ''
+                ? null
+                : (float) $minimumDonationAmount,
+
+        'installment_enabled' => false,
+    ]);
+}
+
         if (! $this->boolean('installment_enabled')) {
             $this->merge([
                 'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_DATE,
@@ -125,6 +185,7 @@ class PackageRequest extends FormRequest
     public function rules(): array
     {
         $package = $this->route('package');
+        $paymentType = $this->input('payment_type', Package::PAYMENT_TYPE_PAID);
         $installmentEnabled = $this->boolean('installment_enabled');
         $method = $this->input('installment_calculation_method', Package::INSTALLMENT_CALCULATION_DATE);
         $isDateMethod = $installmentEnabled && $method === Package::INSTALLMENT_CALCULATION_DATE;
@@ -140,8 +201,27 @@ class PackageRequest extends FormRequest
                 Rule::unique(Package::class, 'slug')->ignore($package?->id),
             ],
             'description' => ['nullable', 'string', 'max:4000'],
+            'payment_type' => ['required', 'string', Rule::in([
+                Package::PAYMENT_TYPE_PAID,
+                Package::PAYMENT_TYPE_FREE,
+                Package::PAYMENT_TYPE_DONATION,
+            ])],
             'image' => ['nullable', 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
-            'price' => ['required', 'numeric', 'min:0'],
+            'price' => [
+                'required',
+                'numeric',
+                $paymentType === Package::PAYMENT_TYPE_PAID ? 'gt:0' : 'min:0',
+            ],
+            'minimum_donation_amount' => [
+                $paymentType === Package::PAYMENT_TYPE_DONATION ? 'required' : 'nullable',
+                'numeric',
+                'min:0',
+            ],
+            'suggested_donation_amount' => [
+    'nullable',
+    'numeric',
+    'min:0',
+],
             'currency_code' => ['required', 'string', Rule::in(AccessTier::CURRENCY_OPTIONS)],
             'is_active' => ['required', 'boolean'],
             'installment_enabled' => ['required', 'boolean'],
@@ -230,11 +310,39 @@ class PackageRequest extends FormRequest
             'installment_count.integer' => 'Installment count must be a whole number.',
             'installment_count.min' => 'Installment count must be at least '.Package::MIN_INSTALLMENT_COUNT.'.',
             'installment_count.max' => 'Installment count cannot be greater than '.Package::MAX_INSTALLMENT_COUNT.'.',
+            'price.gt' => 'Paid packages must have a price greater than 0.',
+            'price.in' => 'Free and donation packages must keep the fixed price at 0.',
+            'minimum_donation_amount.required' => 'Minimum donation amount is required for donation packages.',
 
             'allowed_billing_days.required' => 'Please enable at least one billing day for installment.',
             'allowed_billing_days.array' => 'The allowed billing days must be a valid list.',
             'allowed_billing_days.min' => 'Please enable at least one billing day for installment.',
             'allowed_billing_days.*.in' => 'Allowed billing days can only be day 1 or day 15.',
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function ($validator): void {
+                $paymentType = $this->input('payment_type', Package::PAYMENT_TYPE_PAID);
+                $price = round((float) ($this->input('price') ?? 0), 2);
+                $installmentEnabled = $this->boolean('installment_enabled');
+
+                if ($paymentType !== Package::PAYMENT_TYPE_PAID && $price !== 0.0) {
+                    $validator->errors()->add(
+                        'price',
+                        'Free and donation packages must keep the fixed price at 0.',
+                    );
+                }
+
+                if ($paymentType !== Package::PAYMENT_TYPE_PAID && $installmentEnabled) {
+                    $validator->errors()->add(
+                        'installment_enabled',
+                        'Installment is only available for paid packages.',
+                    );
+                }
+            },
         ];
     }
 }
