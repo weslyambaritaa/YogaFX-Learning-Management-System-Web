@@ -1,13 +1,19 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
+import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 function completionIntroStorageKey(attemptId) {
     return `assessment-result-intro-seen-${attemptId}`;
 }
 
-export default function AssessmentResult({ lesson, assessment, attempt }) {
+export default function AssessmentResult({
+    lesson,
+    assessment,
+    attempt,
+    nextLesson,
+}) {
     const [stage, setStage] = useState('loading');
     const [countdown, setCountdown] = useState(5);
 
@@ -65,9 +71,13 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
             <div className="bg-[radial-gradient(circle_at_top,_rgba(226,72,72,0.18),_transparent_28%),linear-gradient(180deg,#111111_0%,#080808_38%,#030303_100%)] py-12">
                 <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
                     {stage === 'loading' && (
-                        <div className="rounded-[36px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:p-12">
-                            <div className="mx-auto flex size-24 items-center justify-center rounded-full border border-white/12 bg-white/8 text-4xl font-semibold text-white">
-                                {countdown}
+                        <div className="rounded-[16px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:p-12">
+                            <div className="relative mx-auto flex size-28 items-center justify-center">
+                                <div className="absolute inset-0 rounded-full border-4 border-white/10" />
+                                <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#e24848] border-r-[#e24848]/60" />
+                                <div className="relative flex size-20 items-center justify-center rounded-full border border-white/12 bg-white/8 text-4xl font-semibold text-white">
+                                    {Math.max(countdown, 1)}
+                                </div>
                             </div>
                             <div className="mx-auto mt-8 max-w-2xl">
                                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-red-200/90">
@@ -77,14 +87,14 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                                     Preparing your final result
                                 </h3>
                                 <p className="mt-3 text-base leading-7 text-white/72">
-                                    Your answers are being wrapped into the final YogaFX assessment experience.
+                                    We are preparing your result.
                                 </p>
                             </div>
                         </div>
                     )}
 
                     {stage === 'success' && (
-                        <div className="rounded-[36px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:p-12">
+                        <div className="rounded-[16px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:p-12">
                             <div className="mx-auto flex size-24 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-500/15 text-emerald-100">
                                 <svg
                                     viewBox="0 0 24 24"
@@ -114,8 +124,11 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                     )}
 
                     {stage === 'result' && (
-                        <div className="rounded-[36px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:p-12">
+                        <div className="rounded-[16px] border border-white/10 bg-white/6 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur md:p-12">
                             <div className="mx-auto max-w-2xl">
+                                <div className="mx-auto flex size-24 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-500/15 text-emerald-100">
+                                    <Check className="size-12" strokeWidth={3} />
+                                </div>
                                 <div className="text-xs font-semibold uppercase tracking-[0.18em] text-red-200/90">
                                     Assessment Complete
                                 </div>
@@ -128,11 +141,11 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                                         : 'This assessment does not have auto-graded questions yet, so no correctness percentage is available.'}
                                 </p>
                                 <p className="mt-4 text-sm text-white/46">
-                                    This assessment has already been completed. Retake is currently disabled.
+                                    This assessment is complete. Retake is disabled.
                                 </p>
 
                                 <div className="mt-8 grid gap-4 md:grid-cols-3">
-                                    <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4">
+                                    <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-4">
                                         <div className="text-xs uppercase tracking-[0.16em] text-white/45">
                                             Correct Answers
                                         </div>
@@ -140,7 +153,7 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                                             {attempt.correct_answers}/{attempt.gradable_questions}
                                         </div>
                                     </div>
-                                    <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4">
+                                    <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-4">
                                         <div className="text-xs uppercase tracking-[0.16em] text-white/45">
                                             Status
                                         </div>
@@ -148,15 +161,7 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                                             {attempt.status}
                                         </div>
                                     </div>
-                                    <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4">
-                                        <div className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                            Result Range
-                                        </div>
-                                        <div className="mt-2 text-lg font-semibold text-white">
-                                            {attempt.result_label ?? 'Not configured'}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4">
+                                    <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-4">
                                         <div className="text-xs uppercase tracking-[0.16em] text-white/45">
                                             Completed At
                                         </div>
@@ -167,32 +172,26 @@ export default function AssessmentResult({ lesson, assessment, attempt }) {
                                 </div>
 
                                 <div className="mt-8 flex flex-wrap justify-center gap-3">
+                                    {nextLesson?.url && (
+                                        <Button
+                                            asChild
+                                            size="lg"
+                                            className="bg-[#e24848] text-white hover:bg-[#f05a5a]"
+                                        >
+                                            <Link href={nextLesson.url}>
+                                                Next Lesson
+                                            </Link>
+                                        </Button>
+                                    )}
                                     <Button
                                         asChild
                                         size="lg"
-                                        className="bg-[#e24848] text-white hover:bg-[#f05a5a]"
+                                        className="bg-white/10 text-white hover:bg-white/15"
                                     >
                                         <Link href={route('lessons.show', lesson.id)}>
                                             Return to Lesson
                                         </Link>
                                     </Button>
-                                    {lesson.module && (
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            size="lg"
-                                            className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                        >
-                                            <Link
-                                                href={route(
-                                                    'modules.show',
-                                                    lesson.module.url_slug,
-                                                )}
-                                            >
-                                                Back to Module
-                                            </Link>
-                                        </Button>
-                                    )}
                                 </div>
                             </div>
                         </div>

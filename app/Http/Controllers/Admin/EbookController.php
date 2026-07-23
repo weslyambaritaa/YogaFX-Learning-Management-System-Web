@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\EbookRequest;
 use App\Models\AccessTier;
 use App\Models\Ebook;
+use App\Support\BunnyAssetPath;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -47,7 +48,10 @@ class EbookController extends Controller
     public function store(EbookRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['file'] = $this->storeUploadedFile($request->file('file'), 'ebooks/files');
+        $data['file'] = $this->storeUploadedFileToBunny(
+            $request->file('file'),
+            'ebooks/files',
+        );
         unset($data['access_tier_ids']);
 
         $ebook = Ebook::query()->create($data);
@@ -66,6 +70,7 @@ class EbookController extends Controller
                 'title' => $ebook->title,
                 'access_tier_ids' => $ebook->accessTiers()->pluck('access_tiers.id')->all(),
                 'preview_url' => route('admin.ebooks.preview', $ebook),
+                'file_name' => $this->fileNameForEbook($ebook),
             ],
             'accessTiers' => $this->accessTierOptions(),
             'status' => session('status'),
@@ -100,7 +105,7 @@ class EbookController extends Controller
                     ? null
                     : 'This ebook file cannot be previewed in the browser yet. You can still download it.',
                 'mime_type' => $mimeType,
-                'file_name' => basename((string) $ebook->file),
+                'file_name' => $this->fileNameForEbook($ebook),
             ],
             'backUrl' => route('admin.ebooks.index'),
             'backLabel' => 'Back to Ebooks',
@@ -110,7 +115,7 @@ class EbookController extends Controller
     public function update(EbookRequest $request, Ebook $ebook): RedirectResponse
     {
         $data = $request->validated();
-        $data['file'] = $this->storeUploadedFile(
+        $data['file'] = $this->storeUploadedFileToBunny(
             $request->file('file'),
             'ebooks/files',
             $ebook->file,
@@ -127,7 +132,7 @@ class EbookController extends Controller
 
     public function destroy(Ebook $ebook): RedirectResponse
     {
-        $this->deleteUploadedFile($ebook->file);
+        $this->deleteUploadedFileFromAnyStorage($ebook->file);
         $ebook->delete();
 
         return redirect()
@@ -154,12 +159,35 @@ class EbookController extends Controller
      */
     private function previewMetadata(Ebook $ebook): array
     {
-        $mimeType = $ebook->file
-            ? Storage::disk('local')->mimeType($ebook->file)
-            : null;
+        if (! $ebook->file) {
+            return [false, null];
+        }
+
+        if (BunnyAssetPath::isBunnyPath($ebook->file)) {
+            $extension = strtolower(pathinfo(BunnyAssetPath::objectKey($ebook->file), PATHINFO_EXTENSION));
+            $mimeType = match ($extension) {
+                'pdf' => 'application/pdf',
+                default => null,
+            };
+
+            return [$extension === 'pdf', $mimeType];
+        }
+
+        $mimeType = Storage::disk('local')->mimeType($ebook->file);
         $isPdf = str($ebook->file)->lower()->endsWith('.pdf')
             || $mimeType === 'application/pdf';
 
         return [$isPdf, $mimeType];
+    }
+
+    private function fileNameForEbook(Ebook $ebook): string
+    {
+        if (! $ebook->file) {
+            return '';
+        }
+
+        return basename(BunnyAssetPath::isBunnyPath($ebook->file)
+            ? BunnyAssetPath::objectKey($ebook->file)
+            : (string) $ebook->file);
     }
 }

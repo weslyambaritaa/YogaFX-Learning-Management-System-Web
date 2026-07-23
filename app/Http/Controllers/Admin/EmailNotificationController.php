@@ -2,31 +2,37 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\EmailTemplateMediaUploadRequest;
 use App\Http\Requests\Admin\EmailTemplateSendTestRequest;
 use App\Http\Requests\Admin\EmailTemplateUpdateRequest;
 use App\Models\Module;
+use App\Services\EmailBrandingService;
 use App\Services\EmailNotificationService;
+use App\Services\BunnyStorageService;
 use App\Support\EmailNotificationTypeRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EmailNotificationController extends Controller
 {
-    public function __construct(private readonly EmailNotificationService $emailNotificationService)
-    {
-    }
+    use HandlesLocalUploads;
+
+    public function __construct(
+        private readonly EmailNotificationService $emailNotificationService,
+        private readonly EmailBrandingService $emailBrandingService,
+        private readonly BunnyStorageService $bunnyStorageService,
+    ) {}
 
     public function show(string $notificationType): Response
     {
         abort_unless(EmailNotificationTypeRegistry::isValid($notificationType), 404);
 
-        $template = $this->emailNotificationService->findOrCreateTemplate($notificationType);
+        $template = $this->emailNotificationService->findOrPrepareTemplate($notificationType);
         $modules = Module::query()
             ->orderBy('sort_order')
             ->orderBy('title')
@@ -53,6 +59,10 @@ class EmailNotificationController extends Controller
                 'title' => $module->title,
             ])->values(),
             'availableMergeTags' => EmailNotificationTypeRegistry::mergeTagsFor($notificationType),
+            'brandingSettingsUrl' => route('admin.email-branding.show'),
+            'brandingSummary' => [
+                'logo_html' => $this->emailBrandingService->logoEditorHtml(),
+            ],
             'statusMessage' => session('status_message'),
             'statusTone' => session('status_tone'),
         ]);
@@ -102,9 +112,12 @@ class EmailNotificationController extends Controller
         $media = $request->file('media');
         abort_unless($media !== null, 422);
 
-        $path = $media->store('email-notifications/media', 'public');
-        $relativeUrl = Storage::disk('public')->url($path);
-        $publicUrl = url($relativeUrl);
+        $path = $this->storeUploadedFileToBunny(
+            $media,
+            'email-notifications/media',
+        );
+        $publicUrl = $this->bunnyStorageService->url($path);
+        abort_unless(is_string($publicUrl) && $publicUrl !== '', 500, 'Unable to resolve Bunny media URL.');
         $fileName = $media->getClientOriginalName() ?: basename($path);
         $safeLabel = Str::of(pathinfo($fileName, PATHINFO_FILENAME))
             ->replace(['_', '-'], ' ')

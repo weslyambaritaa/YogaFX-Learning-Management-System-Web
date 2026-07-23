@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'lesson_id',
     'watch_progress',
+    'watch_time_seconds',
     'is_workbook_downloaded',
     'workbook_downloaded_at',
     'video_completed_at',
@@ -27,6 +28,7 @@ class LessonProgress extends Model
     {
         return [
             'watch_progress' => 'decimal:2',
+            'watch_time_seconds' => 'integer',
             'is_workbook_downloaded' => 'boolean',
             'workbook_downloaded_at' => 'datetime',
             'video_completed_at' => 'datetime',

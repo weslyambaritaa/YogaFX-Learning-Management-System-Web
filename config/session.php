@@ -32,9 +32,22 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 120),
+    'lifetime' => (int) env('SESSION_LIFETIME', 525600),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Student Activity Tracking Idle Window
+    |--------------------------------------------------------------------------
+    |
+    | Web authentication is intentionally long-lived, but student access-time
+    | tracking should still close inactive sessions after a reasonable idle
+    | window so analytics reflect real activity rather than cookie lifetime.
+    |
+    */
+
+    'tracking_idle_lifetime' => (int) env('SESSION_TRACKING_IDLE_LIFETIME', 120),
 
     /*
     |--------------------------------------------------------------------------

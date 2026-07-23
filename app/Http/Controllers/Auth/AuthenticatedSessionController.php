@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\EmailOtpChallengeService;
 use App\Services\StudentSessionTrackingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Inertia\Response;
 class AuthenticatedSessionController extends Controller
 {
     public function __construct(
+        private readonly EmailOtpChallengeService $otpChallenges,
         private readonly StudentSessionTrackingService $sessionTrackingService,
     ) {}
 
@@ -36,11 +38,9 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
-
         $user = $request->user();
 
-        if (! $user || ! $user->hasRole($user::ROLE_ADMIN, $user::ROLE_STUDENT)) {
+        if (! $user || ! $user->hasRole($user::ROLE_SUPER_ADMIN, $user::ROLE_ADMIN, $user::ROLE_STUDENT)) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -50,11 +50,21 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        if (! ($user->isStudent() && ! $user->isStudentAccountActive())) {
-            $this->sessionTrackingService->startStudentSession($request, $user);
-        }
+        $otpChallenge = $this->otpChallenges->createForLogin($user, [
+            'remember' => true,
+            'redirect_to' => $request->session()->get(
+                'url.intended',
+                route($user->postLoginRouteName(), absolute: false),
+            ),
+        ]);
 
-        return redirect()->intended(route($user->postLoginRouteName(), absolute: false));
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('auth.otp.show', [
+            'token' => $otpChallenge['token'],
+        ]);
     }
 
     /**

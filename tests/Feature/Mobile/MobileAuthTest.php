@@ -3,15 +3,29 @@
 namespace Tests\Feature\Mobile;
 
 use App\Models\AccessTier;
+use App\Models\AuthEmailOtpChallenge;
+use App\Models\EmailLog;
+use App\Models\StudentPasswordChangeRequest;
 use App\Models\User;
+use App\Services\EmailOtpChallengeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class MobileAuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_student_can_login_and_receive_a_mobile_token(): void
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Mail::fake();
+    }
+
+    public function test_student_can_submit_valid_credentials_and_receive_an_otp_challenge(): void
     {
         $tier = AccessTier::factory()->create([
             'name' => 'Online',
@@ -34,12 +48,42 @@ class MobileAuthTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'Login successful.')
-            ->assertJsonPath('data.token_type', 'Bearer')
-            ->assertJsonPath('data.user.id', $student->id)
-            ->assertJsonPath('data.user.access_tier.slug', 'online');
+            ->assertJsonPath('message', 'OTP code sent to your email.')
+            ->assertJsonPath('data.otp_required', true)
+            ->assertJsonPath('data.email', $student->email);
 
-        $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+        $this->assertDatabaseCount('auth_email_otp_challenges', 1);
+        $this->assertDatabaseHas('auth_email_otp_challenges', [
+            'user_id' => $student->id,
+            'context' => AuthEmailOtpChallenge::CONTEXT_LOGIN,
+            'email' => $student->email,
+        ]);
+    }
+
+    public function test_student_can_request_mobile_login_otp_via_request_otp_alias_route(): void
+    {
+        $student = User::factory()->student()->completeProfile()->create([
+            'is_active' => true,
+        ]);
+
+        $response = $this->postJson('/api/mobile/v1/auth/login/request-otp', [
+            'email' => $student->email,
+            'password' => 'password',
+            'device_name' => 'Pixel 9',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'OTP code sent to your email.')
+            ->assertJsonPath('data.otp_required', true)
+            ->assertJsonPath('data.email', $student->email);
+
+        $this->assertDatabaseHas('auth_email_otp_challenges', [
+            'user_id' => $student->id,
+            'context' => AuthEmailOtpChallenge::CONTEXT_LOGIN,
+            'email' => $student->email,
+        ]);
     }
 
     public function test_mobile_login_rejects_invalid_credentials(): void
@@ -86,6 +130,238 @@ class MobileAuthTest extends TestCase
             ]);
     }
 
+    public function test_mobile_forgot_password_sends_reset_email_with_otp(): void
+    {
+        config()->set('app.url', 'http://127.0.0.1:8000');
+        config()->set('app.public_url', 'http://192.168.0.11:8000');
+
+        $student = User::factory()->student()->create([
+            'email' => 'mobile-reset@yogafx.test',
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/forgot-password', [
+            'email' => $student->email,
+        ])->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Password reset email and OTP sent successfully.')
+            ->assertJsonPath('data.email', $student->email)
+            ->assertJsonPath('data.otp_required', true);
+
+        $this->assertDatabaseHas('student_password_change_requests', [
+            'user_id' => $student->id,
+            'email' => $student->email,
+        ]);
+
+        $emailLog = EmailLog::query()
+            ->where('notification_type', 'reset_password')
+            ->where('reference_type', 'user')
+            ->where('reference_id', $student->id)
+            ->where('recipient_type', 'user')
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($emailLog);
+        $this->assertStringContainsString('http://192.168.0.11:8000/reset-password/', $emailLog->body_snapshot);
+        $this->assertStringContainsString('one-time password code', strtolower($emailLog->body_snapshot));
+    }
+
+    public function test_mobile_reset_password_requires_a_valid_otp_code(): void
+    {
+        $student = User::factory()->student()->create();
+        $token = Password::broker()->createToken($student);
+
+        StudentPasswordChangeRequest::query()->create([
+            'user_id' => $student->id,
+            'email' => $student->email,
+            'token_hash' => hash('sha256', $token),
+            'otp_hash' => Hash::make('123456'),
+            'expires_at' => now()->addMinutes(60),
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/reset-password', [
+            'token' => $token,
+            'email' => $student->email,
+            'otp_code' => '999999',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath(
+                'errors.otp_code.0',
+                'The OTP code is invalid. Please check the email you received and try again.',
+            );
+    }
+
+    public function test_mobile_reset_password_succeeds_with_valid_token_and_otp(): void
+    {
+        $student = User::factory()->student()->create();
+        $token = Password::broker()->createToken($student);
+
+        StudentPasswordChangeRequest::query()->create([
+            'user_id' => $student->id,
+            'email' => $student->email,
+            'token_hash' => hash('sha256', $token),
+            'otp_hash' => Hash::make('123456'),
+            'expires_at' => now()->addMinutes(60),
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/reset-password', [
+            'token' => $token,
+            'email' => $student->email,
+            'otp_code' => '123456',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Password reset successfully.')
+            ->assertJsonPath('data.password_reset', true)
+            ->assertJsonPath('data.email', $student->email);
+
+        $this->assertNotNull(
+            StudentPasswordChangeRequest::query()->where('user_id', $student->id)->first()?->used_at
+        );
+    }
+
+    public function test_student_can_verify_mobile_login_otp_and_receive_a_mobile_token(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'name' => 'Online',
+            'slug' => 'online',
+        ]);
+
+        $student = User::factory()
+            ->student()
+            ->completeProfile()
+            ->create([
+                'access_tier_id' => $tier->id,
+                'is_active' => true,
+            ]);
+
+        $challenge = app(EmailOtpChallengeService::class)->createForLogin($student, [
+            'device_name' => 'Pixel 9',
+        ]);
+
+        $response = $this->postJson('/api/mobile/v1/auth/login/verify-otp', [
+            'challenge_token' => $challenge['token'],
+            'otp_code' => $challenge['otp_code'],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Login successful.')
+            ->assertJsonPath('data.token_type', 'Bearer')
+            ->assertJsonPath('data.user.id', $student->id)
+            ->assertJsonPath('data.user.access_tier.slug', 'online');
+
+        $this->assertDatabaseCount('personal_access_tokens', 1);
+        $this->assertDatabaseHas('user_sessions', [
+            'user_id' => $student->id,
+            'session_id' => 'mobile-token:1',
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('auth_email_otp_challenges', [
+            'user_id' => $student->id,
+            'context' => AuthEmailOtpChallenge::CONTEXT_LOGIN,
+        ]);
+        $this->assertNotNull(AuthEmailOtpChallenge::query()->first()?->used_at);
+    }
+
+    public function test_mobile_login_otp_verification_rejects_invalid_code(): void
+    {
+        $student = User::factory()->student()->completeProfile()->create([
+            'is_active' => true,
+        ]);
+        $challenge = app(EmailOtpChallengeService::class)->createForLogin($student, [
+            'device_name' => 'Pixel 9',
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/login/verify-otp', [
+            'challenge_token' => $challenge['token'],
+            'otp_code' => '000000',
+        ])->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath(
+                'errors.otp_code.0',
+                'The OTP code is invalid. Please check the email that YogaFX sent you and try again.',
+            );
+    }
+
+    public function test_mobile_login_otp_verification_rejects_expired_challenges(): void
+    {
+        $student = User::factory()->student()->completeProfile()->create([
+            'is_active' => true,
+        ]);
+        $challenge = app(EmailOtpChallengeService::class)->createForLogin($student, [
+            'device_name' => 'Pixel 9',
+        ]);
+
+        AuthEmailOtpChallenge::query()->update([
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/login/verify-otp', [
+            'challenge_token' => $challenge['token'],
+            'otp_code' => $challenge['otp_code'],
+        ])->assertStatus(422)
+            ->assertJsonPath(
+                'errors.otp_code.0',
+                'This verification request is invalid or has expired. Please start again.',
+            );
+    }
+
+    public function test_mobile_login_otp_verification_rejects_reused_challenges(): void
+    {
+        $student = User::factory()->student()->completeProfile()->create([
+            'is_active' => true,
+        ]);
+        $challenge = app(EmailOtpChallengeService::class)->createForLogin($student, [
+            'device_name' => 'Pixel 9',
+        ]);
+
+        $this->postJson('/api/mobile/v1/auth/login/verify-otp', [
+            'challenge_token' => $challenge['token'],
+            'otp_code' => $challenge['otp_code'],
+        ])->assertOk();
+
+        $this->postJson('/api/mobile/v1/auth/login/verify-otp', [
+            'challenge_token' => $challenge['token'],
+            'otp_code' => $challenge['otp_code'],
+        ])->assertStatus(422)
+            ->assertJsonPath(
+                'errors.otp_code.0',
+                'This verification request is invalid or has expired. Please start again.',
+            );
+    }
+
+    public function test_mobile_login_can_resend_otp_and_replace_the_previous_challenge(): void
+    {
+        $student = User::factory()->student()->completeProfile()->create([
+            'is_active' => true,
+        ]);
+        $firstChallenge = app(EmailOtpChallengeService::class)->createForLogin($student, [
+            'device_name' => 'Pixel 9',
+        ]);
+
+        $response = $this->postJson('/api/mobile/v1/auth/login/resend-otp', [
+            'challenge_token' => $firstChallenge['token'],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'OTP code sent to your email.')
+            ->assertJsonPath('data.otp_required', true)
+            ->assertJsonPath('data.email', $student->email);
+
+        $this->assertDatabaseCount('auth_email_otp_challenges', 1);
+        $newChallenge = AuthEmailOtpChallenge::query()->first();
+
+        $this->assertNotNull($newChallenge);
+        $this->assertNotSame(
+            hash('sha256', $firstChallenge['token']),
+            $newChallenge->token_hash,
+        );
+    }
+
     public function test_authenticated_student_can_use_mobile_me_and_logout(): void
     {
         $tier = AccessTier::factory()->create([
@@ -99,9 +375,17 @@ class MobileAuthTest extends TestCase
             ->create([
                 'access_tier_id' => $tier->id,
                 'is_active' => true,
+                'total_access_duration_seconds' => 120,
             ]);
 
         $token = $student->createToken('iPhone 17')->plainTextToken;
+        \App\Models\UserSession::query()->create([
+            'user_id' => $student->id,
+            'session_id' => 'mobile-token:1',
+            'login_at' => now()->subMinutes(2),
+            'last_activity_at' => now()->subMinute(),
+            'is_active' => true,
+        ]);
 
         $this->withToken($token)
             ->getJson('/api/mobile/v1/me')
@@ -114,6 +398,12 @@ class MobileAuthTest extends TestCase
             ->assertJsonPath('message', 'Logout successful.');
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
+        $this->assertDatabaseHas('user_sessions', [
+            'user_id' => $student->id,
+            'session_id' => 'mobile-token:1',
+            'is_active' => false,
+        ]);
+        $this->assertGreaterThanOrEqual(180, $student->fresh()->total_access_duration_seconds);
     }
 
     public function test_mobile_logout_requires_authentication(): void

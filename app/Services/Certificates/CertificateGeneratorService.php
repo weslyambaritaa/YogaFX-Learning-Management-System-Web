@@ -9,9 +9,11 @@ use App\Support\BunnyAssetPath;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class CertificateGeneratorService
 {
@@ -35,14 +37,15 @@ class CertificateGeneratorService
 
         $timestamp = now();
         $templateBytes = $this->loadTemplateBytes($template);
-        $renderedImagePath = $this->renderCertificateTemplate(
+        $pdfBinary = $this->buildPdfFromTemplate(
             $templateBytes,
+            $student,
             $studentName,
             $template['placement'] ?? [],
             $template['date_placement'] ?? [],
+            $template['profile_photo_placement'] ?? [],
             $timestamp,
         );
-        $pdfBinary = $this->buildPdfFromRenderedImage($renderedImagePath);
 
         $existing = Certificate::query()
             ->where('user_id', $student->id)
@@ -64,8 +67,6 @@ class CertificateGeneratorService
             .'/v'.$nextVersion.'-'.$timestamp->format('YmdHis').'-'.Str::uuid()->toString().'.pdf';
 
         $storedPath = $this->bunnyStorage->uploadContents($pdfBinary, $objectKey, 'application/pdf');
-
-        @unlink($renderedImagePath);
 
         $certificate = $existing ?? new Certificate([
             'user_id' => $student->id,
@@ -90,9 +91,11 @@ class CertificateGeneratorService
 
     private function renderCertificateTemplate(
         string $templateBytes,
+        User $student,
         string $studentName,
         array $placement,
         array $datePlacement,
+        array $profilePhotoPlacement,
         Carbon $generatedAt,
     ): string
     {
@@ -113,6 +116,10 @@ class CertificateGeneratorService
             );
         }
 
+        if ($profilePhotoPlacement !== [] && filled($student->profile_photo)) {
+            $this->drawCircularProfilePhoto($image, $student, $profilePhotoPlacement);
+        }
+
         $outputPath = storage_path('app/tmp/'.Str::uuid()->toString().'.jpg');
         $outputDirectory = dirname($outputPath);
 
@@ -124,6 +131,104 @@ class CertificateGeneratorService
         imagedestroy($image);
 
         return $outputPath;
+    }
+
+    private function drawCircularProfilePhoto($certificateImage, User $student, array $placement): void
+    {
+        $photoBytes = $this->loadProfilePhotoBytes((string) $student->profile_photo);
+
+        if ($photoBytes === null) {
+            return;
+        }
+
+        $source = imagecreatefromstring($photoBytes);
+
+        if (! $source) {
+            return;
+        }
+
+        $diameter = max(40, (int) ($placement['diameter'] ?? 180));
+        $borderWidth = max(0, (int) ($placement['border_width'] ?? 6));
+        $canvasSize = $diameter + ($borderWidth * 2);
+
+        $canvas = imagecreatetruecolor($canvasSize, $canvasSize);
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefill($canvas, 0, 0, $transparent);
+
+        $resized = imagecreatetruecolor($diameter, $diameter);
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        imagefill($resized, 0, 0, $transparent);
+
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $square = min($sourceWidth, $sourceHeight);
+        $sourceX = (int) floor(($sourceWidth - $square) / 2);
+        $sourceY = (int) floor(($sourceHeight - $square) / 2);
+
+        imagecopyresampled(
+            $resized,
+            $source,
+            0,
+            0,
+            $sourceX,
+            $sourceY,
+            $diameter,
+            $diameter,
+            $square,
+            $square,
+        );
+
+        $radius = $diameter / 2;
+
+        for ($x = 0; $x < $diameter; $x++) {
+            for ($y = 0; $y < $diameter; $y++) {
+                $dx = $x - $radius;
+                $dy = $y - $radius;
+
+                if (($dx * $dx) + ($dy * $dy) > ($radius * $radius)) {
+                    imagesetpixel($resized, $x, $y, $transparent);
+                }
+            }
+        }
+
+        imagecopy($canvas, $resized, $borderWidth, $borderWidth, 0, 0, $diameter, $diameter);
+
+        $borderColorRgb = $this->parseHexColor((string) ($placement['border_color'] ?? '#FFFFFF'));
+        $borderColor = imagecolorallocate(
+            $canvas,
+            $borderColorRgb['red'],
+            $borderColorRgb['green'],
+            $borderColorRgb['blue'],
+        );
+
+        imagealphablending($canvas, true);
+
+        for ($i = 0; $i < $borderWidth; $i++) {
+            imageellipse(
+                $canvas,
+                (int) round($canvasSize / 2),
+                (int) round($canvasSize / 2),
+                $diameter + ($borderWidth * 2) - (2 * $i) - 1,
+                $diameter + ($borderWidth * 2) - (2 * $i) - 1,
+                $borderColor,
+            );
+        }
+
+        $certificateWidth = imagesx($certificateImage);
+        $x = isset($placement['x'])
+            ? (int) $placement['x']
+            : max(0, $certificateWidth - (int) ($placement['right'] ?? 100) - $canvasSize);
+        $y = (int) ($placement['top'] ?? ($placement['y'] ?? 100));
+
+        imagecopy($certificateImage, $canvas, $x, $y, 0, 0, $canvasSize, $canvasSize);
+
+        imagedestroy($source);
+        imagedestroy($resized);
+        imagedestroy($canvas);
     }
 
     private function drawText($image, string $text, array $placement, string $errorMessage): void
@@ -211,10 +316,14 @@ class CertificateGeneratorService
         $bunnyUrl = $this->bunnyStorage->url($bunnyPath);
 
         if (filled($bunnyUrl)) {
-            $bunnyResponse = Http::timeout(30)->get($bunnyUrl);
+            try {
+                $bunnyResponse = Http::timeout(30)->get($bunnyUrl);
 
-            if ($bunnyResponse->successful() && $bunnyResponse->body() !== '') {
-                return $bunnyResponse->body();
+                if ($bunnyResponse->successful() && $bunnyResponse->body() !== '') {
+                    return $bunnyResponse->body();
+                }
+            } catch (Throwable) {
+                // Fall through to the configured source URL when Bunny CDN is unavailable.
             }
         }
 
@@ -222,7 +331,11 @@ class CertificateGeneratorService
             throw new RuntimeException('Certificate JPG template source URL is missing.');
         }
 
-        $sourceResponse = Http::timeout(60)->get($templateSourceUrl);
+        try {
+            $sourceResponse = Http::timeout(60)->get($templateSourceUrl);
+        } catch (Throwable $exception) {
+            throw new RuntimeException('Certificate JPG template could not be loaded from the configured source.', previous: $exception);
+        }
 
         if (! $sourceResponse->successful() || $sourceResponse->body() === '') {
             throw new RuntimeException('Certificate JPG template could not be loaded from the configured source.');
@@ -237,6 +350,44 @@ class CertificateGeneratorService
         }
 
         return $templateBytes;
+    }
+
+    private function buildPdfFromTemplate(
+        string $templateBytes,
+        User $student,
+        string $studentName,
+        array $placement,
+        array $datePlacement,
+        array $profilePhotoPlacement,
+        Carbon $generatedAt,
+    ): string {
+        $templateMeta = $this->detectImageMeta($templateBytes);
+        $pageWidthPx = $templateMeta['width'];
+        $pageHeightPx = $templateMeta['height'];
+        $pageWidthPt = $this->pixelsToPoints($pageWidthPx);
+        $pageHeightPt = $this->pixelsToPoints($pageHeightPx);
+        $templateDataUri = $this->dataUri($templateBytes, $templateMeta['mime']);
+
+        $options = new Options();
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $html = sprintf(
+            '<html><head><style>%s</style></head><body><div class="page">%s%s%s%s</div></body></html>',
+            $this->certificatePdfCss($pageWidthPx, $pageHeightPx, $pageWidthPt, $pageHeightPt),
+            '<img class="background" src="'.$templateDataUri.'" alt="Certificate template">',
+            $this->buildTextOverlayHtml($studentName, $placement, $pageWidthPx),
+            $datePlacement !== []
+                ? $this->buildTextOverlayHtml($generatedAt->format('F j, Y'), $datePlacement, $pageWidthPx)
+                : '',
+            $this->buildProfilePhotoOverlayHtml($student, $profilePhotoPlacement, $pageWidthPx),
+        );
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper([0, 0, $pageWidthPt, $pageHeightPt]);
+        $dompdf->render();
+
+        return $dompdf->output();
     }
 
     private function buildPdfFromRenderedImage(string $renderedImagePath): string
@@ -262,6 +413,248 @@ class CertificateGeneratorService
         $dompdf->render();
 
         return $dompdf->output();
+    }
+
+    private function certificatePdfCss(
+        int $pageWidthPx,
+        int $pageHeightPx,
+        float $pageWidthPt,
+        float $pageHeightPt,
+    ): string {
+        return sprintf(
+            '@page { margin: 0; size: %.4Fpt %.4Fpt; } html, body { margin: 0; padding: 0; width: %dpx; height: %dpx; } body { font-family: DejaVu Sans, sans-serif; } .page { position: relative; width: %dpx; height: %dpx; overflow: hidden; } .background { position: absolute; inset: 0; width: %dpx; height: %dpx; display: block; } .overlay-text { position: absolute; white-space: nowrap; line-height: 1; } .profile-photo-frame { position: absolute; overflow: hidden; box-sizing: border-box; border-radius: 9999px; } .profile-photo-frame img { display: block; width: 100%%; height: 100%%; object-fit: cover; }',
+            $pageWidthPt,
+            $pageHeightPt,
+            $pageWidthPx,
+            $pageHeightPx,
+            $pageWidthPx,
+            $pageHeightPx,
+            $pageWidthPx,
+            $pageHeightPx,
+        );
+    }
+
+    private function buildTextOverlayHtml(string $text, array $placement, int $pageWidthPx): string
+    {
+        if ($text === '') {
+            return '';
+        }
+
+        $fontSize = max(8, (float) ($placement['font_size'] ?? 42));
+        $fontFamily = (string) ($placement['font_family'] ?? 'dejavu_sans');
+        $fontWeight = str_contains(strtolower($fontFamily), 'bold') ? '700' : '400';
+        $color = $this->normalizeHexColor((string) ($placement['font_color'] ?? '#000000'));
+        $alignment = strtolower((string) ($placement['alignment'] ?? 'center'));
+        $verticalAlignment = strtolower((string) ($placement['vertical_alignment'] ?? 'baseline'));
+        $top = $this->resolveTextTopPx($placement, $fontSize, $verticalAlignment);
+        $styles = [
+            'top: '.$top.'px',
+            'font-size: '.$fontSize.'px',
+            'font-weight: '.$fontWeight,
+            'color: '.$color,
+            'text-align: '.$this->normalizeTextAlign($alignment),
+        ];
+
+        $maxWidth = isset($placement['max_width']) ? max(1, (int) $placement['max_width']) : null;
+        $resolvedX = $this->resolvePlacementX($placement['x'] ?? 0, $pageWidthPx);
+
+        if ($alignment === 'center') {
+            $width = $maxWidth ?? $pageWidthPx;
+            $left = $maxWidth !== null
+                ? (int) round($resolvedX - ($width / 2))
+                : 0;
+
+            $styles[] = 'left: '.$left.'px';
+            $styles[] = 'width: '.$width.'px';
+        } elseif ($alignment === 'right') {
+            $width = $maxWidth ?? $resolvedX;
+            $left = max(0, $resolvedX - $width);
+
+            $styles[] = 'left: '.$left.'px';
+            $styles[] = 'width: '.$width.'px';
+        } else {
+            $styles[] = 'left: '.$resolvedX.'px';
+
+            if ($maxWidth !== null) {
+                $styles[] = 'width: '.$maxWidth.'px';
+            }
+        }
+
+        return '<div class="overlay-text" style="'.$this->implodeStyles($styles).'">'
+            .htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+            .'</div>';
+    }
+
+    private function buildProfilePhotoOverlayHtml(User $student, array $placement, int $pageWidthPx): string
+    {
+        if ($placement === [] || ! filled($student->profile_photo)) {
+            return '';
+        }
+
+        $photoBytes = $this->loadProfilePhotoBytes((string) $student->profile_photo);
+
+        if ($photoBytes === null) {
+            return '';
+        }
+
+        $photoMeta = $this->detectImageMeta($photoBytes, 'image/jpeg');
+        $diameter = max(40, (int) ($placement['diameter'] ?? 180));
+        $borderWidth = max(0, (int) ($placement['border_width'] ?? 6));
+        $frameSize = $diameter + ($borderWidth * 2);
+        $x = isset($placement['x'])
+            ? (int) $placement['x']
+            : max(0, $pageWidthPx - (int) ($placement['right'] ?? 100) - $frameSize);
+        $y = (int) ($placement['top'] ?? ($placement['y'] ?? 100));
+        $borderColor = $this->normalizeHexColor((string) ($placement['border_color'] ?? '#FFFFFF'));
+
+        return '<div class="profile-photo-frame" style="'.$this->implodeStyles([
+            'left: '.$x.'px',
+            'top: '.$y.'px',
+            'width: '.$frameSize.'px',
+            'height: '.$frameSize.'px',
+            'border: '.$borderWidth.'px solid '.$borderColor,
+            'background: transparent',
+        ]).'">'
+            .'<img src="'.$this->dataUri($photoBytes, $photoMeta['mime']).'" alt="Student profile photo">'
+            .'</div>';
+    }
+
+    /**
+     * @return array{width:int, height:int, mime:string}
+     */
+    private function detectImageMeta(string $bytes, string $fallbackMime = 'image/jpeg'): array
+    {
+        $size = function_exists('getimagesizefromstring')
+            ? @getimagesizefromstring($bytes)
+            : false;
+
+        if (is_array($size) && isset($size[0], $size[1])) {
+            return [
+                'width' => (int) $size[0],
+                'height' => (int) $size[1],
+                'mime' => is_string($size['mime'] ?? null) && $size['mime'] !== ''
+                    ? (string) $size['mime']
+                    : $this->detectMimeType($bytes, $fallbackMime),
+            ];
+        }
+
+        return [
+            'width' => 1920,
+            'height' => 1485,
+            'mime' => $this->detectMimeType($bytes, $fallbackMime),
+        ];
+    }
+
+    private function detectMimeType(string $bytes, string $fallbackMime = 'application/octet-stream'): string
+    {
+        if (class_exists(\finfo::class)) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->buffer($bytes);
+
+            if (is_string($mime) && $mime !== '') {
+                return $mime;
+            }
+        }
+
+        return $fallbackMime;
+    }
+
+    private function dataUri(string $bytes, string $mime): string
+    {
+        return 'data:'.$mime.';base64,'.base64_encode($bytes);
+    }
+
+    private function pixelsToPoints(int $pixels): float
+    {
+        return $pixels * 0.75;
+    }
+
+    private function resolvePlacementX(mixed $value, int $pageWidthPx): int
+    {
+        if (is_string($value) && strtolower(trim($value)) === 'center') {
+            return (int) round($pageWidthPx / 2);
+        }
+
+        return (int) round((float) $value);
+    }
+
+    private function resolveTextTopPx(array $placement, float $fontSize, string $verticalAlignment): int
+    {
+        $y = (float) ($placement['y'] ?? 0);
+
+        return match ($verticalAlignment) {
+            'top' => (int) round($y),
+            'middle', 'center' => (int) round($y - ($fontSize * 0.55)),
+            'bottom' => (int) round($y - ($fontSize * 1.05)),
+            default => (int) round($y - ($fontSize * 0.85)),
+        };
+    }
+
+    private function normalizeTextAlign(string $alignment): string
+    {
+        return match ($alignment) {
+            'left', 'right' => $alignment,
+            default => 'center',
+        };
+    }
+
+    private function normalizeHexColor(string $hex): string
+    {
+        $normalized = ltrim($hex, '#');
+
+        if (strlen($normalized) === 3) {
+            $normalized = preg_replace('/(.)/', '$1$1', $normalized) ?? '000000';
+        }
+
+        if (! preg_match('/^[0-9a-fA-F]{6}$/', $normalized)) {
+            $normalized = '000000';
+        }
+
+        return '#'.strtoupper($normalized);
+    }
+
+    private function implodeStyles(array $styles): string
+    {
+        return implode('; ', array_filter($styles, fn (mixed $style) => is_string($style) && $style !== '')).';';
+    }
+
+    private function loadProfilePhotoBytes(string $path): ?string
+    {
+        if ($path === '') {
+            return null;
+        }
+
+        if (BunnyAssetPath::isBunnyPath($path)) {
+            $url = $this->bunnyStorage->url($path);
+
+            if (! filled($url)) {
+                return null;
+            }
+
+            $response = Http::timeout(30)->get($url);
+
+            return $response->successful() && $response->body() !== ''
+                ? $response->body()
+                : null;
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $response = Http::timeout(30)->get($path);
+
+            return $response->successful() && $response->body() !== ''
+                ? $response->body()
+                : null;
+        }
+
+        if (Storage::disk('local')->exists($path)) {
+            $contents = Storage::disk('local')->get($path);
+
+            return $contents !== ''
+                ? $contents
+                : null;
+        }
+
+        return null;
     }
 
     private function resolveFontPath(string $fontFamily): string

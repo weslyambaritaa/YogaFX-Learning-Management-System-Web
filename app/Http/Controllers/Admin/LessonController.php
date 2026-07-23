@@ -12,8 +12,11 @@ use App\Models\Module;
 use App\Services\BunnyStorageService;
 use App\Support\BunnyAssetPath;
 use App\Support\UploadConstraints;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -29,11 +32,20 @@ class LessonController extends Controller
     ) {
     }
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $selectedModuleId = $request->integer('module_id');
+        $this->normalizeLessonSortOrder($selectedModuleId > 0 ? $selectedModuleId : null);
+
+        $lessonsQuery = Lesson::query()
+            ->with(['module', 'accessTiers', 'assessment']);
+
+        if ($selectedModuleId > 0) {
+            $lessonsQuery->where('module_id', $selectedModuleId);
+        }
+
         return Inertia::render('Admin/Lessons/Index', [
-            'lessons' => Lesson::query()
-                ->with(['module', 'accessTiers', 'assessment'])
+            'lessons' => $lessonsQuery
                 ->orderBy('sort_order', 'asc')
                 ->orderBy('title', 'asc')
                 ->get()
@@ -55,6 +67,8 @@ class LessonController extends Controller
                     'has_lesson_video' => $lesson->lesson_video_id !== null,
                     'has_audio' => $lesson->audio_url !== null,
                 ]),
+            'modules' => $this->moduleOptions(),
+            'selectedModuleId' => $selectedModuleId > 0 ? $selectedModuleId : null,
             'status' => session('status'),
         ]);
     }
@@ -189,6 +203,40 @@ class LessonController extends Controller
             ->with('status', 'lesson-deleted');
     }
 
+    public function reorder(Request $request): HttpResponse
+    {
+        $data = $request->validate([
+            'module_id' => ['required', 'integer', 'exists:modules,id'],
+            'source_id' => ['required', 'integer', 'exists:lessons,id'],
+            'target_id' => ['required', 'integer', 'exists:lessons,id', 'different:source_id'],
+            'position' => ['required', 'in:before,after'],
+        ]);
+
+        DB::transaction(function () use ($data): void {
+            $moduleId = (int) $data['module_id'];
+
+            $this->normalizeLessonSortOrder($moduleId);
+
+            $sourceLesson = Lesson::query()
+                ->where('module_id', $moduleId)
+                ->findOrFail($data['source_id']);
+
+            $targetLesson = Lesson::query()
+                ->where('module_id', $moduleId)
+                ->findOrFail($data['target_id']);
+
+            $targetOrder = $this->resolveRequestedSortOrder(
+                currentOrder: (int) $sourceLesson->sort_order,
+                targetOrder: (int) $targetLesson->sort_order,
+                position: $data['position'],
+            );
+
+            $this->moveLessonToSortOrder($sourceLesson, $targetOrder);
+        });
+
+        return response()->noContent();
+    }
+
     private function storeLessonAsset(mixed $file, string $directory, ?string $currentPath = null): ?string
     {
         if (! $file) {
@@ -313,5 +361,82 @@ class LessonController extends Controller
             || $mimeType === 'application/pdf';
 
         return [$isPdf, $mimeType];
+    }
+
+    private function normalizeLessonSortOrder(?int $moduleId = null): void
+    {
+        $query = Lesson::query()
+            ->orderBy('module_id')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+
+        if ($moduleId !== null) {
+            $query->where('module_id', $moduleId);
+        }
+
+        $query
+            ->get()
+            ->groupBy('module_id')
+            ->each(function ($lessons): void {
+                $lessons->values()->each(function (Lesson $lesson, int $index): void {
+                    $expectedOrder = $index + 1;
+
+                    if ((int) $lesson->sort_order !== $expectedOrder) {
+                        $lesson->updateQuietly([
+                            'sort_order' => $expectedOrder,
+                        ]);
+                    }
+                });
+            });
+    }
+
+    private function moveLessonToSortOrder(Lesson $lesson, int $requestedSortOrder): void
+    {
+        $this->normalizeLessonSortOrder((int) $lesson->module_id);
+        $lesson->refresh();
+
+        $lessonCount = (int) Lesson::query()
+            ->where('module_id', $lesson->module_id)
+            ->count();
+
+        $targetOrder = max(1, min($requestedSortOrder > 0 ? $requestedSortOrder : $lessonCount, $lessonCount));
+        $currentOrder = (int) $lesson->sort_order;
+
+        if ($currentOrder === $targetOrder) {
+            return;
+        }
+
+        if ($targetOrder < $currentOrder) {
+            Lesson::query()
+                ->where('module_id', $lesson->module_id)
+                ->whereKeyNot($lesson->id)
+                ->whereBetween('sort_order', [$targetOrder, $currentOrder - 1])
+                ->increment('sort_order');
+        } else {
+            Lesson::query()
+                ->where('module_id', $lesson->module_id)
+                ->whereKeyNot($lesson->id)
+                ->whereBetween('sort_order', [$currentOrder + 1, $targetOrder])
+                ->decrement('sort_order');
+        }
+
+        $lesson->updateQuietly([
+            'sort_order' => $targetOrder,
+        ]);
+
+        $this->normalizeLessonSortOrder((int) $lesson->module_id);
+    }
+
+    private function resolveRequestedSortOrder(int $currentOrder, int $targetOrder, string $position): int
+    {
+        if ($position === 'before') {
+            return $currentOrder < $targetOrder
+                ? max(1, $targetOrder - 1)
+                : $targetOrder;
+        }
+
+        return $currentOrder < $targetOrder
+            ? $targetOrder
+            : $targetOrder + 1;
     }
 }

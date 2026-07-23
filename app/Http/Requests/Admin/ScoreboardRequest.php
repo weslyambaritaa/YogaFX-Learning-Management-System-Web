@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Assessment;
+use App\Support\UploadConstraints;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -31,7 +32,7 @@ class ScoreboardRequest extends FormRequest
                 Rule::unique('assessments', 'slug')->ignore($assessment?->id),
             ],
             'description' => ['nullable', 'string'],
-            'thumbnail' => [$assessment ? 'nullable' : 'nullable', 'image', 'max:2048'],
+            'thumbnail' => ['nullable', 'image', 'max:'.UploadConstraints::MAX_FILE_SIZE_KB],
             'status' => ['required', Rule::in([
                 Assessment::STATUS_DRAFT,
                 Assessment::STATUS_LIVE,
@@ -43,6 +44,13 @@ class ScoreboardRequest extends FormRequest
             'is_active' => ['required', 'boolean'],
             'show_progress_bar' => ['required', 'boolean'],
             'allow_back_navigation' => ['required', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'thumbnail.max' => 'The thumbnail must not be larger than 10 MB.',
         ];
     }
 }

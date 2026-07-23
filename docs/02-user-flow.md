@@ -4,9 +4,9 @@
 
 ## 1. Purpose
 
-Dokumen ini menjelaskan **flow aktual yang sudah aktif** di aplikasi saat ini.
+Dokumen ini menjelaskan flow produk yang aktif saat ini di YogaFX LMS.
 
-Jika ada flow yang masih berupa rencana, flow tersebut tidak dianggap source of truth implementasi sampai didokumentasikan ulang.
+Flow yang belum tertulis di sini tidak boleh dianggap sebagai source of truth implementasi aktif.
 
 ---
 
@@ -14,6 +14,7 @@ Jika ada flow yang masih berupa rencana, flow tersebut tidak dianggap source of 
 
 ### Scope
 - login
+- OTP verification
 - logout
 - forgot password
 - reset password
@@ -21,230 +22,380 @@ Jika ada flow yang masih berupa rencana, flow tersebut tidak dianggap source of 
 ### Main Flow
 1. User membuka halaman login.
 2. User mengisi email dan password.
-3. Sistem memvalidasi kredensial.
-4. Jika valid:
+3. Sistem memvalidasi kredensial dasar.
+4. Jika akun valid dan role diizinkan, sistem membuat email OTP challenge.
+5. Session login awal dibersihkan.
+6. User diarahkan ke halaman verifikasi OTP email.
+7. User memasukkan 6-digit OTP.
+8. Jika OTP valid:
    - Admin diarahkan ke `admin.dashboard`
-   - Student diarahkan ke `profile.edit` jika profile belum lengkap
-   - Student diarahkan ke `student.dashboard` jika profile sudah lengkap
-5. Saat logout, sistem mengakhiri session auth dan mengarahkan user ke login.
+   - Student inactive diarahkan ke `student.inactive`
+   - Student tanpa profile lengkap diarahkan ke `profile.edit`
+   - Student aktif dengan profile lengkap diarahkan ke `student.dashboard`
+9. Saat logout, sistem mengakhiri student session tracking bila relevan lalu kembali ke login.
 
 ### Important Notes
-- public signup route tidak aktif saat ini
+- public register route Laravel tidak aktif
 - forgot password dan reset password tetap aktif
-- template email reset password dapat dioverride oleh Email Notification bila template diaktifkan
 
 ---
 
-## 3. Student Onboarding Flow
+## 3. Public Lead, Checkout, dan Onboarding Flow
 
-### Main Flow
+### 3.1 Lead Registration
+1. Visitor membuka `/scoreboard` atau halaman tier publik seperti `/online`.
+2. Visitor memilih tier dan mengisi data dasar.
+3. Sistem membuat `pending_registration`.
+4. Visitor diarahkan ke checkout.
+
+### 3.2 Checkout
+1. Visitor membuka signed checkout URL.
+2. Sistem memuat ringkasan package, tier entitlement, amount, dan payment configuration.
+3. Sistem menampilkan opsi:
+   - `Pay in full`
+   - `Installment` jika package eligible
+4. Jika visitor memilih `Pay in full`, sistem memakai flow PayPal order/capture existing.
+5. Jika visitor memilih `Installment`, sistem membuat invoice installment dan payment subscription lalu mengarahkan visitor ke approval PayPal Subscription.
+6. Jika payment pertama sukses, visitor diarahkan ke payment success continuation.
+7. Jika payment pending, cancel, atau gagal, visitor masuk ke status page checkout.
+
+### 3.3 Enrollment
+1. Setelah payment sukses, user diarahkan ke halaman enrollment.
+2. User melengkapi profile enrollment.
+3. Sistem menyimpan data ke user dan menandai onboarding siap ke tahap signup.
+
+### 3.4 Signup Completion
+1. User membuka halaman signup onboarding.
+2. User membuat password.
+3. Sistem menyelesaikan onboarding.
+4. User diarahkan ke login.
+
+---
+
+## 4. Student Profile & Upgrade Flow
+
+### 4.1 Profile Completion
 1. Student login.
-2. Sistem memeriksa kelengkapan profile student.
-3. Jika belum lengkap, student dipaksa masuk ke halaman profile edit.
-4. Student mengisi semua field wajib.
-5. Sistem memvalidasi data.
-6. Setelah profile tersimpan, student dapat masuk ke dashboard.
+2. Jika profile belum lengkap, student dipaksa membuka profile edit.
+3. Student menyimpan semua field wajib.
+4. Setelah sukses, student dapat mengakses Home.
 
-### Alternative Flow
-- admin dapat membuka dan mengedit profile student dari area Student Progress
+### 4.2 Student Upgrade
+1. Student membuka profile.
+2. Sistem menampilkan upgrade options berdasarkan `level` tier yang lebih tinggi.
+3. Student memilih salah satu upgrade.
+4. Sistem membuka halaman checkout upgrade.
+5. Student menyelesaikan payment.
+6. Setelah payment sukses, student diarahkan ke halaman success lalu kembali ke dashboard.
+
+### 4.3 Mobile Upgrade Handoff
+1. Mobile app memuat student identity / profile payload.
+2. Backend mobile mengirim `upgrade_options` dinamis berdasarkan tier aktif student.
+3. Setiap option membawa `upgrade_url` web yang siap dibuka mobile app.
+4. Mobile app membuka web upgrade flow tanpa hardcode tier id.
 
 ---
 
-## 4. Student Dashboard Flow
-
-### Current State
-Student dashboard saat ini masih berupa halaman foundation, belum final premium dashboard.
+## 5. Student Home Flow
 
 ### Main Flow
-1. Student membuka dashboard.
-2. Sistem menampilkan informasi dasar user:
-   - signed in as
-   - role
-   - access tier
-3. Student menggunakan shortcut ke:
-   - Modules
-   - Ebooks
-   - Courses
-   - Profile
+1. Student membuka `Home`.
+2. Sistem memuat:
+   - continue learning
+   - progress summary
+   - next step guidance
+   - available modules
+   - assignment milestone
+   - certificate milestone
+   - ebook resource summary
+   - access time summary
+3. Student menggunakan CTA utama untuk melanjutkan lesson terakhir atau memulai lesson pertama.
 
----
+### Desktop First-Open Welcome
+1. Student membuka `Home` dari desktop untuk pertama kali.
+2. Sistem menampilkan welcome popup multi-slide.
+3. Salah satu slide menampilkan QR image dari `Link Control`.
+4. Student dapat next, skip, atau close popup lalu masuk ke Home normal.
 
-## 5. Student Learning Content Flow
+### Mobile App Download CTA
+1. Student membuka `Home` dari mobile.
+2. Student scroll ke bagian bawah halaman.
+3. Jika `Link Control` sudah berisi store links, sistem menampilkan tombol Google Play dan App Store.
+4. Student menekan salah satu tombol lalu diarahkan ke store link terkait.
 
-### 5.1 Modules
-1. Student membuka halaman modules.
-2. Sistem memfilter module berdasarkan tier student.
-3. Student membuka satu module.
-4. Sistem menampilkan lessons yang juga sesuai tier student.
-5. Student memilih lesson.
-
-### 5.2 Lesson Detail
-1. Sistem memastikan tier student cocok dengan tier module dan lesson.
-2. Halaman lesson menampilkan:
-   - thumbnail
-   - workbook jika ada
-   - video URL/reference
-   - audio URL/reference
-   - text content
-   - `assessment_id` jika tersedia sebagai placeholder relasi
+### Public App Download Page
+1. Visitor atau student scan QR dari YogaFX.
+2. QR selalu mengarah ke satu public page download app.
+3. Halaman menampilkan tombol App Store dan Google Play berdasarkan link terbaru dari `Link Control`.
+4. Jika salah satu link kosong, tombol store tersebut tampil disabled.
 
 ### Important Notes
-- lesson locking belum aktif
-- workbook gating belum aktif
-- watch progress automation belum aktif
-- assessment player belum aktif
+- Home adalah dashboard student aktif saat ini
+- Home sengaja fokus pada guidance, bukan tabel atau statistik admin-like
 
 ---
 
-## 6. Student Ebook Flow
+## 6. Student Module dan Lesson Flow
+
+### 6.1 Modules
+1. Student membuka modules index.
+2. Sistem memfilter module berdasarkan tier student.
+3. Module yang belum terbuka tetap dapat terlihat, tetapi dapat menunjukkan status lock jika prerequisite belum terpenuhi.
+4. Student membuka module.
+5. Sistem menampilkan daftar lesson, assignment, dan resource pendukung yang relevan.
+
+### 6.2 Lesson Detail
+1. Student membuka lesson.
+2. Sistem memastikan:
+   - tier lesson cocok
+   - tier module cocok
+   - lesson sudah unlocked dalam urutan belajar
+3. Halaman lesson menampilkan:
+   - thumbnail
+   - Bunny Stream video state
+   - audio
+   - workbook
+   - text content
+   - assessment info jika ada dan aktif
+4. Student menonton lesson video.
+5. Frontend mengirim update watch progress.
+6. Sistem hanya menaikkan progress, tidak menurunkan progress yang sudah lebih tinggi.
+7. Lesson video dianggap complete saat watch progress mencapai minimal 95% dan assessment aktif yang relevan juga selesai bila diperlukan.
+
+### 6.3 Sequential Unlock Rule
+Lesson berikutnya dapat terkunci sampai lesson sebelumnya memenuhi rule aktif:
+- workbook sudah dipicu/download bila lesson punya workbook
+- watch progress video minimal 95% bila lesson punya video
+- assessment aktif sudah completed bila lesson punya assessment live
+
+### 6.4 Workbook Trigger
+1. Student membuka lesson dengan workbook.
+2. Sistem dapat memicu workbook auto-delivery satu kali per student.
+3. Sistem menandai workbook downloaded state.
+4. Sistem mengirim email `workbook_sent`.
+5. Student tetap punya manual download path.
+
+---
+
+## 7. Student Assessment Flow
 
 ### Main Flow
+1. Student membuka assessment intro dari lesson.
+2. Sistem memeriksa assessment aktif, tier access, dan unlock state.
+3. Student memulai assessment.
+4. Sistem membuat atau melanjutkan `assessment_attempt`.
+5. Student mengerjakan pertanyaan satu per satu.
+6. Sistem menyimpan jawaban per question.
+7. Jika timer habis, attempt dapat di-expire dan diselesaikan otomatis.
+8. Saat pertanyaan terakhir selesai, sistem menghitung score dan result range.
+9. Student diarahkan ke halaman result.
+
+### Important Notes
+- back navigation tergantung pengaturan assessment
+- result dapat menampilkan next lesson jika ada
+
+---
+
+## 8. Student Assignment Flow
+
+### Main Flow
+1. Student membuka assignment yang relevan dari module.
+2. Sistem memeriksa:
+   - student punya tier yang mengizinkan flow assignment
+   - assignment berstatus `live`
+   - module assignment termasuk dalam tier student
+3. Student upload video assignment.
+4. Sistem menyimpan atau mengganti submission terakhir student.
+5. Sistem menandai status submission sebagai `submitted`.
+6. Sistem memicu email `assignment_review`.
+
+### Important Notes
+- flow assignment student saat ini dibatasi untuk path tier `online`
+
+---
+
+## 9. Student Ebook dan Course Flow
+
+### 9.1 Ebook
 1. Student membuka daftar ebooks.
-2. Sistem memfilter ebook berdasarkan tier student.
-3. Student memilih ebook.
-4. Sistem membuka halaman preview ebook.
-5. Jika file dapat dipreview, terutama PDF, file ditampilkan inline.
-6. Jika file tidak dapat dipreview, sistem menampilkan pesan fallback.
-7. Download hanya terjadi jika student menekan tombol download secara eksplisit.
+2. Sistem memfilter ebook berdasarkan tier.
+3. Student membuka halaman preview ebook.
+4. Jika format mendukung, file dipreview inline.
+5. Download tetap menjadi aksi eksplisit terpisah.
 
----
-
-## 7. Student Course Flow
-
-### Main Flow
+### 9.2 Course / Video Lecture
 1. Student membuka daftar courses.
-2. Sistem memfilter course berdasarkan single tier milik student.
-3. Student melihat title, description, thumbnail, dan video reference.
+2. Sistem memfilter course berdasarkan tier.
+3. Student membuka detail course.
+4. Sistem menampilkan data video lecture yang relevan.
 
 ---
 
-## 8. Admin Dashboard Flow
+## 10. Student Certificate Flow
 
 ### Main Flow
-1. Admin login.
-2. Sistem mengarahkan admin ke dashboard.
-3. Admin melihat halaman sambutan sederhana:
-   - `Hai, {nama pengguna}`
-   - `Welcome to YogaFX Learning Management System`
-4. Admin menggunakan sidebar kiri untuk berpindah area kerja.
+1. Student melihat certificate milestone dari Home.
+2. Jika certificate sudah digenerate admin, Home menampilkan download CTA.
+3. Student menekan download.
+4. Sistem memeriksa ownership certificate.
+5. Sistem mencatat certificate download event.
+6. File certificate dikirim ke student.
 
-### Sidebar Structure
+---
+
+## 11. Admin Dashboard Flow
+
+### Main Flow
+1. Admin login dan menyelesaikan OTP verification.
+2. Sistem mengarahkan admin ke dashboard.
+3. Admin melihat halaman sambutan sederhana.
+4. Admin menggunakan left sidebar untuk berpindah area kerja.
+
+### Sidebar Active
 - Dashboard
 - Modules
 - Lessons
 - Assessment
 - Student Progress
+- Students
+- Dialog
 - Video Lecture
 - E-Book
 - Email
+- Supporting Pages -> Packages
 - Supporting Pages -> Access Tiers
 
+<<<<<<< Updated upstream
 ### Topbar Structure
 - page title
 - sidebar toggle
 - user menu
 - logout
 
+### User Menu Extension
+- di student desktop, user menu dapat menampilkan:
+  - Profile
+  - Download Application
+  - Logout
+- `Download Application` membuka popup QR berbasis `Link Control`
+
+### 8.1 Admin Account Profile
+1. Admin menekan user menu di kanan atas.
+2. Admin memilih `Profile`.
+3. Sistem membuka halaman profile admin.
+4. Admin dapat memperbarui first name, last name, email, dan password.
+5. Setelah save berhasil, sistem tetap berada di halaman profile admin dengan flash success message.
+
+### 8.2 Admin User Management
+#### Students
+1. Admin membuka menu `Students`.
+2. Sistem menampilkan directory student dengan search, filter, dan pagination.
+3. Admin dapat menekan `Add Student`.
+4. Admin mengisi email, password, dan access tier.
+5. Setelah save berhasil, sistem kembali ke list student.
+6. Student yang dibuat dapat login dan akan tetap diarahkan ke profile edit jika profile belum lengkap.
+
+#### Admin
+1. Admin membuka menu `Admin`.
+2. Sistem menampilkan list admin dengan search, filter, dan pagination.
+3. Jika user adalah super admin, sistem menampilkan aksi `Add Admin`, `Edit`, dan `Delete` sesuai aturan.
+4. Jika super admin menambah admin, user mengisi name, email, dan password.
+5. Setelah save berhasil, sistem kembali ke list admin.
+6. Admin biasa hanya melihat directory admin tanpa aksi admin management.
+7. Super admin tidak dapat menghapus dirinya sendiri.
+8. Super admin tidak dapat menurunkan role dirinya sendiri.
+
+=======
+>>>>>>> Stashed changes
 ---
 
-## 9. Admin Content Management Flow
+## 12. Admin Content Management Flow
 
-### Main Flow
+### 12.1 Core CRUD
 1. Admin membuka salah satu area:
+   - Packages
    - Access Tiers
    - Modules
    - Lessons
-   - E-Books
+   - Assignments
+   - Assessment
+   - E-Book
    - Video Lecture
-2. Admin membuka halaman list.
-3. Admin memilih create, edit, preview, atau delete.
-4. Saat create/edit:
-   - sistem memvalidasi form
-   - upload file dibatasi 10 MB
-   - jika sukses, admin diarahkan kembali ke halaman list
-5. Saat delete:
-   - sistem selalu meminta konfirmasi
-   - jika valid dan diperbolehkan, data dihapus
+   - Dialog
+2. Admin membuka list atau edit page.
+3. Saat create/edit, sistem memvalidasi form.
+4. Saat delete, sistem meminta konfirmasi bila aksi destruktif tersedia.
 
-### Current Rules
-- module, lesson, dan ebook memakai multi-tier access
-- course memakai single-tier access
-- lesson tier harus subset dari tier module induk
-- module tidak boleh dihapus jika masih punya lesson
-- ebook saat ini dapat dipreview dari admin
+### 12.2 Assessment Builder
+1. Admin membuat assessment meta terlebih dahulu.
+2. Admin masuk ke builder.
+3. Admin mengatur:
+   - questions
+   - options
+   - jumps
+   - design
+   - result ranges
+4. Admin dapat preview assessment dari sisi admin.
+
+### 12.3 Link Control
+1. Admin membuka `Supporting Pages -> Link Control`.
+2. Admin mengisi link Google Play / App Store.
+3. Saat save, sistem mengenerate ulang QR image otomatis untuk public download app page.
+4. Setelah save, student home memakai data terbaru tersebut.
 
 ---
 
-## 10. Student Progress Admin Flow
+## 13. Admin Student Management Flow
 
-### 10.1 Directory
-1. Admin membuka menu `Student Progress`.
-2. Halaman index langsung menampilkan 3 tabel:
-   - Masterclass
-   - Online
-   - Starter Kit
-3. Setiap tabel menampilkan:
-   - No
-   - Photo
-   - Name
-   - Progress
-   - Registration Date
-   - Assignment
-   - Action
-4. Kolom Action memakai menu titik tiga.
-5. Dari menu tersebut admin dapat membuka:
+### Main Flow
+1. Admin membuka menu `Students`.
+2. Sistem menampilkan daftar semua student.
+3. Admin membuka `Student Detail`.
+4. Admin dapat:
+   - edit profile
+   - ubah access tier
+   - ubah status active/inactive
+   - reset progress
+   - delete student
+
+---
+
+## 14. Student Progress Admin Flow
+
+### 14.1 Directory
+1. Admin membuka `Student Progress`.
+2. Sistem menampilkan 3 section tabel berdasarkan tier.
+3. Tiap row menampilkan progress dan assignment status.
+4. Admin memakai action menu untuk membuka:
    - Completed Lesson
    - Assignment
    - Certificate
 
-### 10.2 Completed Lesson
-1. Admin membuka detail completed lesson untuk satu student.
-2. Sistem menampilkan semua lesson progress yang `is_done = true`.
-3. Admin dapat reset progress satu lesson dengan konfirmasi.
+### 14.2 Completed Lesson
+1. Admin membuka detail completed lessons per student.
+2. Sistem menampilkan lesson yang complete.
+3. Admin dapat reset satu lesson progress.
 
-### 10.3 Assignment
-1. Admin membuka detail assignment untuk satu student.
-2. Sistem menampilkan tabel assignment:
-   - title
-   - video
-   - status
-   - feedback
-3. Admin dapat:
-   - save perubahan status/feedback
-   - send email
-   - delete video
+### 14.3 Assignment Review
+1. Admin membuka detail assignment per student.
+2. Sistem menampilkan status, feedback, dan video.
+3. Admin dapat update status, save feedback, send email, atau delete video.
 
-### 10.4 Certificate
-1. Admin membuka detail certificate untuk satu student.
-2. Sistem memeriksa eligibility certificate.
-3. Admin dapat:
-   - generate certificate
-   - send graduation email
-   - recreate certificate
-   - download certificate
-   - delete certificate
+### 14.4 Certificate
+1. Admin membuka detail certificate per student.
+2. Sistem menghitung eligibility row sesuai tier student.
+3. Admin dapat generate, recreate, download, send graduation email, atau delete certificate.
 
 ---
 
-## 11. Email Notification Flow
+## 15. Email Notification Flow
 
 ### Main Flow
 1. Admin membuka parent menu `Email`.
-2. Admin memilih salah satu child menu notification type.
-3. Sistem memuat template email untuk type tersebut.
-4. Admin dapat:
-   - enable/disable notification
-   - mengatur admin recipients
-   - mengatur admin subject/body
-   - mengatur user subject/body
-5. Admin klik `Save Changes`.
-6. Admin dapat mengirim `Send Test` ke alamat email tertentu.
-7. Saat trigger bisnis terjadi, sistem:
-   - memeriksa template
-   - memeriksa `is_enabled`
-   - merender merge tags
-   - mengirim email
-   - mencatat email log
+2. Admin memilih salah satu notification type.
+3. Sistem memuat template detail.
+4. Admin dapat enable/disable, edit content, upload media, save, dan send test.
+5. Saat event bisnis terjadi, sistem merender template dan mencatat email log.
 
 ### Notification Types Active
 - module_completion
@@ -257,18 +408,19 @@ Student dashboard saat ini masih berupa halaman foundation, belum final premium 
 - assessment_complete
 - course_complete
 - reminder
+- workbook_sent
+- installment_payment_success
+- installment_payment_failed
+- installment_overdue_inactive
+- installment_payment_completed
 
 ---
 
-## 12. Flows That Are Not Active Yet
+## 16. Flows That Are Not Active Yet
 
-Flow berikut belum aktif end-to-end:
-- public signup self-service
-- student assignment submission
-- assessment builder dan assessment player
-- sequential lesson locking
-- workbook download gating
-- student certificate page
-- watch progress automation
-
-Dokumen lain tidak boleh lagi menggambarkan flow-flow tersebut sebagai fitur aktif saat ini.
+Flow berikut belum menjadi alur produk aktif final:
+- public free signup tanpa checkout
+- installment untuk upgrade
+- subscription renewal / expiry management di luar initial installment package
+- analytics dashboard kaya data
+- web student certificate center terpisah dari Home/download flow

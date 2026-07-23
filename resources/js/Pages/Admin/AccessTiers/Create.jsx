@@ -5,15 +5,19 @@ import { Head, Link, useForm } from '@inertiajs/react';
 export default function CreateAccessTier() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
-        slug: '',
         description: '',
+        level: '1',
         is_active: true,
+        has_full_standing_dialog_access: false,
+        has_full_floor_dialog_access: false,
     });
 
     const submit = (event) => {
         event.preventDefault();
 
-        post(route('admin.access-tiers.store'));
+        post(route('admin.access-tiers.store'), {
+            forceFormData: true,
+        });
     };
 
     return (

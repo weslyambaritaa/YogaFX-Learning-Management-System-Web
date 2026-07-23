@@ -16,7 +16,7 @@ Dokumen ini mencakup:
 
 ## 1. Active Notification Types
 
-Saat ini sistem mendukung 10 notification type:
+Saat ini sistem mendukung 15 notification type di backend registry:
 
 1. `module_completion`
 2. `assignment_review`
@@ -28,6 +28,11 @@ Saat ini sistem mendukung 10 notification type:
 8. `assessment_complete`
 9. `course_complete`
 10. `reminder`
+11. `workbook_sent`
+12. `installment_payment_success`
+13. `installment_payment_failed`
+14. `installment_overdue_inactive`
+15. `installment_payment_completed`
 
 ---
 
@@ -47,6 +52,11 @@ Child menu:
 - Assessment Complete
 - Course Complete
 - Reminder
+- Workbook Sent
+
+Catatan aktif:
+- sidebar admin saat ini masih menampilkan 11 child menu legacy di atas
+- 4 notification type installment tetap bisa diakses lewat route detail notification
 
 Setiap child menu membuka satu halaman detail template.
 
@@ -138,11 +148,12 @@ Dipicu saat admin mengubah status assignment menjadi rejected.
 Dipicu saat certificate dibuat atau graduation email dikirim dari area Student Progress.
 
 #### Signup
-Dipicu dari event `Registered`.
+Dipicu setelah student menyelesaikan signup completion pada flow onboarding.
 
 Catatan:
-- public signup route belum aktif
-- event ini tetap berguna untuk user yang dibuat lewat flow lain yang tetap memicu `Registered`
+- payment success tidak mengirim email `signup`
+- enrollment tidak mengirim email `signup`
+- email baru dikirim setelah password berhasil dibuat dan onboarding selesai
 
 #### Reset Password
 Dipicu saat user meminta reset password.
@@ -167,7 +178,37 @@ Dipicu oleh command terjadwal:
 
 Scheduler:
 - dijalankan harian melalui `routes/console.php`
-- mengecek student yang tidak memiliki aktivitas lesson progress selama 7 hari
+- mengecek student yang tidak login selama threshold inactivity aktif
+- hanya mengirim ke student yang belum complete seluruh perjalanan module yang bisa diakses tier-nya
+
+Catatan implementasi aktif:
+- threshold testing saat ini 1 jam
+- implementasi disiapkan agar threshold mudah diubah ke 1 minggu
+
+#### Workbook Sent
+Dipicu saat student membuka lesson yang memiliki workbook dan workbook tersebut belum pernah dipicu sebelumnya untuk student itu.
+
+Aturan:
+- trigger ini hanya berjalan satu kali per kombinasi student + lesson
+- email dikirim ke student saat auto-download workbook pertama kali dipicu
+- workbook dikirim sebagai attachment pada email user
+- admin copy tetap mengikuti konfigurasi template existing bila diisi
+- trigger ulang manual download tidak mengirim email kedua
+
+#### Installment Payment Success
+Dipicu saat webhook installment payment sukses difinalisasi dan payment ledger berhasil dicatat.
+
+#### Installment Payment Failed
+Dipicu saat PayPal mengirim event gagal bayar recurring dan subscription masuk grace period.
+
+#### Installment Overdue Inactive
+Dipicu oleh command:
+- `installments:sync-overdue-status`
+
+Saat subscription `past_due` melewati `grace_deadline_at`, akun student dinonaktifkan dan admin mendapat notifikasi sekali.
+
+#### Installment Payment Completed
+Dipicu saat pembayaran terakhir membuat `invoice.balance_due = 0` dan subscription ditandai `completed`.
 
 ---
 

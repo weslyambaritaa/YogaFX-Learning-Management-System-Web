@@ -32,7 +32,7 @@ export default function CreateScoreboard({
                 <div className="flex items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-semibold text-slate-900">
-                            Create Scoreboard
+                            Create Assessment
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
                             Define the editorial and operational shell first, then continue inside the builder.
@@ -40,14 +40,14 @@ export default function CreateScoreboard({
                     </div>
                     <Link
                         href={route('admin.scoreboards.index')}
-                        className="text-sm font-medium text-slate-600 hover:text-slate-900"
+                        className="inline-flex items-center rounded-md border border-gray-900 bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-700"
                     >
-                        Back to Scoreboards
+                        Back to Assessment
                     </Link>
                 </div>
             }
         >
-            <Head title="Create Scoreboard" />
+            <Head title="Create Assessment" />
 
             <div className="py-12">
                 <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">

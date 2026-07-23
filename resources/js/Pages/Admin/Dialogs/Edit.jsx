@@ -3,8 +3,11 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
+import { ChevronDown } from 'lucide-react';
+import { useState } from 'react';
 
 function DialogEditorCard({
+    title,
     titleLabel,
     contentLabel,
     titleValue,
@@ -13,35 +16,58 @@ function DialogEditorCard({
     onContentChange,
     titleError,
     contentError,
+    open,
+    onToggle,
 }) {
     return (
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="space-y-5">
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">
-                        {titleLabel}
-                    </label>
-                    <Input value={titleValue} onChange={onTitleChange} />
-                    {titleError ? (
-                        <div className="text-sm text-rose-600">{titleError}</div>
-                    ) : null}
+            <button
+                type="button"
+                onClick={onToggle}
+                className="flex w-full items-center justify-between gap-4 text-left"
+            >
+                <div>
+                    <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+                    <p className="mt-1 text-sm text-slate-500">{contentLabel}</p>
                 </div>
+                <ChevronDown
+                    className={`size-5 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`}
+                />
+            </button>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">
-                        {contentLabel}
-                    </label>
-                    <CkeditorField value={contentValue} onChange={onContentChange} />
-                    {contentError ? (
-                        <div className="text-sm text-rose-600">{contentError}</div>
-                    ) : null}
+            {open ? (
+                <div className="mt-5 space-y-5 border-t border-slate-100 pt-5">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">
+                            {titleLabel}
+                        </label>
+                        <Input value={titleValue} onChange={onTitleChange} />
+                        {titleError ? (
+                            <div className="text-sm text-rose-600">{titleError}</div>
+                        ) : null}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">
+                            {contentLabel}
+                        </label>
+                        <CkeditorField value={contentValue} onChange={onContentChange} />
+                        {contentError ? (
+                            <div className="text-sm text-rose-600">{contentError}</div>
+                        ) : null}
+                    </div>
                 </div>
-            </div>
+            ) : null}
         </section>
     );
 }
 
 export default function Edit({ dialogs, status }) {
+    const [openSections, setOpenSections] = useState({
+        fullStanding: true,
+        fullFloor: true,
+    });
+
     const form = useForm({
         full_standing_title: dialogs.full_standing.title,
         full_standing_content: dialogs.full_standing.content,
@@ -55,19 +81,7 @@ export default function Edit({ dialogs, status }) {
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="min-w-0">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Dialog
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Manage the student-facing Full Standing and Full Floor dialog
-                        content from one place.
-                    </p>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Dialog" />
 
             <div className="py-12">
@@ -80,6 +94,7 @@ export default function Edit({ dialogs, status }) {
 
                     <form onSubmit={submit} className="space-y-6">
                         <DialogEditorCard
+                            title="Full Standing"
                             titleLabel="Full Standing Title"
                             contentLabel="Full Standing Dialog"
                             titleValue={form.data.full_standing_title}
@@ -95,9 +110,17 @@ export default function Edit({ dialogs, status }) {
                             }
                             titleError={form.errors.full_standing_title}
                             contentError={form.errors.full_standing_content}
+                            open={openSections.fullStanding}
+                            onToggle={() =>
+                                setOpenSections((current) => ({
+                                    ...current,
+                                    fullStanding: !current.fullStanding,
+                                }))
+                            }
                         />
 
                         <DialogEditorCard
+                            title="Full Floor"
                             titleLabel="Full Floor Title"
                             contentLabel="Full Floor Dialog"
                             titleValue={form.data.full_floor_title}
@@ -110,6 +133,13 @@ export default function Edit({ dialogs, status }) {
                             }
                             titleError={form.errors.full_floor_title}
                             contentError={form.errors.full_floor_content}
+                            open={openSections.fullFloor}
+                            onToggle={() =>
+                                setOpenSections((current) => ({
+                                    ...current,
+                                    fullFloor: !current.fullFloor,
+                                }))
+                            }
                         />
 
                         <div className="flex justify-end">

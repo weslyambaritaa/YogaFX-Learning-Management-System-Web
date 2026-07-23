@@ -5,7 +5,6 @@ namespace App\Http\Requests\Admin;
 use App\Models\AccessTier;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AccessTierRequest extends FormRequest
@@ -17,11 +16,16 @@ class AccessTierRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if ($this->filled('slug')) {
-            $this->merge([
-                'slug' => Str::slug((string) $this->input('slug'), '_'),
-            ]);
+        $accessTier = $this->route('accessTier');
+        $generatedSlug = $accessTier?->slug;
+
+        if ($generatedSlug === null || $generatedSlug === '') {
+            $generatedSlug = AccessTier::canonicalSlug((string) $this->input('name', ''));
         }
+
+        $this->merge([
+            'slug' => $generatedSlug,
+        ]);
     }
 
     /**
@@ -43,7 +47,10 @@ class AccessTierRequest extends FormRequest
                 Rule::unique(AccessTier::class, 'slug')->ignore($accessTier?->id),
             ],
             'description' => ['required', 'string', 'max:2000'],
+            'level' => ['required', 'integer', 'min:1'],
             'is_active' => ['required', 'boolean'],
+            'has_full_standing_dialog_access' => ['required', 'boolean'],
+            'has_full_floor_dialog_access' => ['required', 'boolean'],
         ];
     }
 }

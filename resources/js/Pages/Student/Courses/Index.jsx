@@ -1,6 +1,6 @@
 import { Button } from '@/Components/ui/button';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { ArrowUpRight, PlayCircle } from 'lucide-react';
 
 export default function StudentCoursesIndex({ courses }) {
@@ -12,7 +12,7 @@ export default function StudentCoursesIndex({ courses }) {
             <Head title="Courses" />
 
             <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-10">
-                <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[#120f0f] px-6 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:px-8 lg:px-10">
+                <section className="relative overflow-hidden rounded-[16px] border border-white/10 bg-[#120f0f] px-6 py-8 shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:px-8 lg:px-10">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,_rgba(196,91,49,0.28),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.05)_0%,_rgba(255,255,255,0)_36%),linear-gradient(180deg,_rgba(12,10,10,0.22)_0%,_rgba(12,10,10,0.82)_100%)]" />
                     <div className="relative max-w-3xl space-y-4">
                         <p className="text-xs uppercase tracking-[0.28em] text-[#f2d9c8]">
@@ -42,7 +42,7 @@ export default function StudentCoursesIndex({ courses }) {
                         {courses.map((course) => (
                             <article
                                 key={course.id}
-                                className="group overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
+                                className="group overflow-hidden rounded-[14px] border border-white/10 bg-white/[0.04] transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.06]"
                             >
                                 <div className="relative overflow-hidden">
                                     {course.thumbnail_url ? (
@@ -55,7 +55,7 @@ export default function StudentCoursesIndex({ courses }) {
                                         <div className="aspect-[4/3] bg-[radial-gradient(circle_at_24%_20%,_rgba(223,103,57,0.45),_transparent_28%),linear-gradient(160deg,_#2b1d16_0%,_#120f0e_100%)]" />
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                                    <div className="absolute left-5 top-5 rounded-full border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+                                    <div className="absolute left-5 top-5 rounded-md border border-white/12 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white/70 backdrop-blur">
                                         Course {course.index}
                                     </div>
                                 </div>
@@ -82,21 +82,14 @@ export default function StudentCoursesIndex({ courses }) {
                                     ) : null}
 
                                     <Button
-                                        asChild={Boolean(course.video?.is_ready && course.video?.hls_url)}
+                                        asChild
                                         disabled={!course.video?.is_ready || !course.video?.hls_url}
-                                        className="rounded-full bg-[#f15b3a] text-white hover:bg-[#ff6a49] disabled:cursor-not-allowed disabled:opacity-60"
+                                        className="rounded-lg bg-[#f15b3a] text-white hover:bg-[#ff6a49] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
-                                        {course.video?.is_ready && course.video?.hls_url ? (
-                                            <a href={course.video.hls_url} target="_blank" rel="noreferrer">
-                                                Open Course Video
-                                                <ArrowUpRight className="ml-2 size-4" />
-                                            </a>
-                                        ) : (
-                                            <span>
-                                                Video Not Ready
-                                                <ArrowUpRight className="ml-2 inline size-4" />
-                                            </span>
-                                        )}
+                                        <Link href={route('courses.show', course.url_slug)}>
+                                            {course.video?.is_ready && course.video?.hls_url ? 'Open Course Video' : 'Video Not Ready'}
+                                            <ArrowUpRight className="ml-2 size-4" />
+                                        </Link>
                                     </Button>
                                 </div>
                             </article>
@@ -104,7 +97,7 @@ export default function StudentCoursesIndex({ courses }) {
                     </div>
 
                     {courses.length === 0 && (
-                        <div className="rounded-[28px] border border-white/10 bg-white/[0.04] px-6 py-10 text-center text-white/62">
+                        <div className="rounded-[14px] border border-white/10 bg-white/[0.04] px-6 py-10 text-center text-white/62">
                             No courses are available for your current tier yet.
                         </div>
                     )}

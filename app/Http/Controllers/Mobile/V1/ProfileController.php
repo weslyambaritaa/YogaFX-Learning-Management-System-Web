@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Mobile\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\Mobile\V1\MobileUpgradeOptionService;
+use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
+use App\Support\StudentProfileValue;
 use App\Support\MobileApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +17,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ProfileController extends Controller
 {
+    use BuildsMobileSignedContentImageUrls;
+    use HandlesLocalUploads;
+
+    public function __construct(
+        private readonly MobileUpgradeOptionService $mobileUpgradeOptionService,
+    ) {}
+
     public function show(Request $request)
     {
         return MobileApiResponse::success(
@@ -24,8 +35,20 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request)
     {
         $user = $request->user();
-        $user->fill($request->validated());
+        $validated = $request->validated();
+        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+        $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
+        $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
+
+        $user->fill($validated);
+        $user->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $user->birth_date;
         $user->syncDisplayName();
+
+        $user->profile_photo = $this->storeUploadedFileToBunny(
+            $request->file('profile_photo'),
+            'users/profile-photos',
+            $user->profile_photo,
+        );
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
@@ -93,13 +116,21 @@ class ProfileController extends Controller
             'whatsapp' => $user->whatsapp,
             'preferred_certificate_picture' => $user->preferred_certificate_picture,
             'profile_photo' => $user->profile_photo,
+            'profile_photo_url' => $this->mobileSignedContentImageUrl(
+                $user,
+                'user',
+                $user->id,
+                'profile_photo',
+                $user->profile_photo,
+                $user->updated_at,
+            ),
             'instagram' => $user->instagram,
             'country' => $user->country,
             'birth_date' => $user->birth_date?->toDateString(),
             'gender' => $user->gender,
             'practicing_yoga_for' => $user->practicing_yoga_for,
             'yoga_sequence_experience' => $user->yoga_sequence_experience,
-            'hours_per_week' => $user->hours_per_week,
+            'hours_per_week' => StudentProfileValue::normalizeHoursPerWeek($user->hours_per_week),
             'current_fitness_level' => $user->current_fitness_level,
             'flexibility_rating' => $user->flexibility_rating,
             'motivation' => $user->motivation,
@@ -114,6 +145,7 @@ class ProfileController extends Controller
                     'slug' => $user->accessTier->slug,
                 ]
                 : null,
+            'upgrade_options' => $this->mobileUpgradeOptionService->optionsForStudent($user),
         ];
     }
 }

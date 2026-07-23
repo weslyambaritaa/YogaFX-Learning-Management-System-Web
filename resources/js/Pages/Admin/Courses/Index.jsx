@@ -4,29 +4,19 @@ import { Head, Link } from '@inertiajs/react';
 
 export default function CoursesIndex({ courses, status }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            Courses
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Manage independent course resources outside the main module flow.
-                        </p>
-                    </div>
-                    <Link
-                        href={route('admin.courses.create')}
-                        className="w-full rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700 sm:w-auto"
-                    >
-                        Create Course
-                    </Link>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Courses" />
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-end">
+                        <Link
+                            href={route('admin.courses.create')}
+                            className="rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700"
+                        >
+                            Create Course
+                        </Link>
+                    </div>
+
                     {status === 'course-created' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Course has been created.

@@ -8,7 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ModuleRequest;
 use App\Models\AccessTier;
 use App\Models\Module;
+use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -59,7 +61,6 @@ class ModuleController extends Controller
 
         return Inertia::render('Admin/Modules/Create', [
             'accessTiers' => $this->accessTierOptions(),
-            'nextSortOrder' => ((int) Module::query()->count()) + 1,
         ]);
     }
 
@@ -69,7 +70,7 @@ class ModuleController extends Controller
         $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
         $data['ebook_enabled'] = (bool) ($data['ebook_enabled'] ?? false);
         $data['video_lecturer_enabled'] = (bool) ($data['video_lecturer_enabled'] ?? false);
-        $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'modules/thumbnails');
+        $data['thumbnail'] = $this->storeUploadedFileToBunny($request->file('thumbnail'), 'modules/thumbnails');
         unset($data['access_tier_ids']);
         $requestedSortOrder = (int) ($data['sort_order'] ?? 0);
 
@@ -124,7 +125,7 @@ class ModuleController extends Controller
         $data['certificate_enabled'] = (bool) ($data['certificate_enabled'] ?? false);
         $data['ebook_enabled'] = (bool) ($data['ebook_enabled'] ?? false);
         $data['video_lecturer_enabled'] = (bool) ($data['video_lecturer_enabled'] ?? false);
-        $data['thumbnail'] = $this->storeUploadedFile(
+        $data['thumbnail'] = $this->storeUploadedFileToBunny(
             $request->file('thumbnail'),
             'modules/thumbnails',
             $module->thumbnail,
@@ -155,13 +156,39 @@ class ModuleController extends Controller
                 ]);
         }
 
-        $this->deleteUploadedFile($module->thumbnail);
+        $this->deleteUploadedFileFromAnyStorage($module->thumbnail);
         $module->delete();
         $this->normalizeModuleSortOrder();
 
         return redirect()
             ->route('admin.modules.index')
             ->with('status', 'module-deleted');
+    }
+
+    public function reorder(Request $request): HttpResponse
+    {
+        $data = $request->validate([
+            'source_id' => ['required', 'integer', 'exists:modules,id'],
+            'target_id' => ['required', 'integer', 'exists:modules,id', 'different:source_id'],
+            'position' => ['required', 'in:before,after'],
+        ]);
+
+        DB::transaction(function () use ($data): void {
+            $this->normalizeModuleSortOrder();
+
+            $sourceModule = Module::query()->findOrFail($data['source_id']);
+            $targetModule = Module::query()->findOrFail($data['target_id']);
+
+            $targetOrder = $this->resolveRequestedSortOrder(
+                currentOrder: (int) $sourceModule->sort_order,
+                targetOrder: (int) $targetModule->sort_order,
+                position: $data['position'],
+            );
+
+            $this->moveModuleToSortOrder($sourceModule, $targetOrder);
+        });
+
+        return response()->noContent();
     }
 
     private function accessTierOptions(): array
@@ -226,5 +253,18 @@ class ModuleController extends Controller
         ]);
 
         $this->normalizeModuleSortOrder();
+    }
+
+    private function resolveRequestedSortOrder(int $currentOrder, int $targetOrder, string $position): int
+    {
+        if ($position === 'before') {
+            return $currentOrder < $targetOrder
+                ? max(1, $targetOrder - 1)
+                : $targetOrder;
+        }
+
+        return $currentOrder < $targetOrder
+            ? $targetOrder
+            : $targetOrder + 1;
     }
 }

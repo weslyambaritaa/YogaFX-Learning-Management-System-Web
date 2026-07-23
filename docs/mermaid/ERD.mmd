@@ -4,6 +4,8 @@ erDiagram
         bigint access_tier_id FK
         string name
         string role
+        boolean is_active
+        int total_access_duration_seconds
         string email
         string password
         string first_name
@@ -16,13 +18,13 @@ erDiagram
         date birth_date
         string gender
         string practicing_yoga_for
-        string yoga_sequence_experience
-        int hours_per_week
+        json yoga_sequence_experience
+        string hours_per_week
         string current_fitness_level
         string flexibility_rating
         text motivation
         text why_yogafx
-        text how_did_you_find_us
+        json how_did_you_find_us
     }
 
     ACCESS_TIERS {
@@ -30,40 +32,163 @@ erDiagram
         string name
         string slug
         text description
+        string thumbnail
+        int level
         boolean is_active
+    }
+
+    PACKAGES {
+        bigint id PK
+        bigint access_tier_id FK
+        string title
+        string slug
+        text description
+        string image
+        decimal price
+        string currency_code
+        string billing_interval_unit
+        int billing_interval_count
+        boolean installment_enabled
+        int fixed_billing_day
+        int installment_deadline_month
+        int installment_deadline_day
+        string paypal_product_id
+        string paypal_plan_id
+        json metadata
+        boolean is_active
+    }
+
+    PENDING_REGISTRATIONS {
+        bigint id PK
+        bigint access_tier_id FK
+        bigint package_id FK
+        string first_name
+        string last_name
+        string email
+        string phone
+        string country
+        decimal amount_snapshot
+        string currency_code
+        string status
+        int installment_billing_day
+        datetime checkout_opened_at
+        datetime payment_succeeded_at
+        datetime completed_at
+    }
+
+    ONBOARDING_STATES {
+        bigint id PK
+        bigint pending_registration_id FK
+        bigint user_id FK
+        string status
+        datetime continuation_sent_at
+        datetime enrollment_completed_at
+        datetime signup_completed_at
+    }
+
+    INVOICES {
+        bigint id PK
+        bigint pending_registration_id FK
+        bigint user_id FK
+        bigint package_id FK
+        bigint access_tier_id FK
+        string invoice_number
+        string type
+        string payment_type
+        decimal total_amount
+        decimal balance_due
+        string currency_code
+        string status
+        datetime issued_at
+        datetime paid_at
+    }
+
+    PAYMENTS {
+        bigint id PK
+        bigint invoice_id FK
+        string payment_method
+        string payment_type
+        decimal amount_paid
+        string currency_code
+        string status
+        string payment_reference
+        text notes
+    }
+
+    PAYMENT_SUBSCRIPTIONS {
+        bigint id PK
+        bigint invoice_id FK
+        bigint package_id FK
+        bigint pending_registration_id FK
+        bigint user_id FK
+        bigint access_tier_id FK
+        string provider
+        string provider_product_id
+        string provider_plan_id
+        string provider_subscription_id
+        string status
+        int installment_count
+        int installments_paid_count
+        string currency_code
+        decimal total_amount
+        decimal first_payment_amount
+        decimal monthly_base_amount
+        decimal next_billing_amount
+        int billing_day
+        datetime started_at
+        datetime first_payment_paid_at
+        date next_due_at
+        date final_due_at
+        date grace_deadline_at
+        datetime completed_at
+        datetime suspended_at
+        datetime cancelled_at
+        datetime last_payment_failed_at
+        datetime last_synced_at
+        json metadata
+    }
+
+    PAYMENT_SUBSCRIPTION_EVENTS {
+        bigint id PK
+        bigint payment_subscription_id FK
+        bigint invoice_id FK
+        bigint payment_activity_id FK
+        string provider
+        string provider_event_id
+        string provider_event_type
+        string provider_subscription_id
+        string provider_order_id
+        string provider_capture_id
+        datetime occurred_at
+        datetime processed_at
+        string status
+        json payload
+        text notes
     }
 
     MODULES {
         bigint id PK
         string title
+        text description
         string url_slug
         string thumbnail
         int sort_order
+        boolean certificate_enabled
+        boolean ebook_enabled
+        boolean video_lecturer_enabled
     }
 
     LESSONS {
         bigint id PK
         bigint module_id FK
-        bigint assessment_id
+        bigint assessment_id FK
         string title
         string thumbnail
         string workbook
-        string video
-        string audio
+        string lesson_video_id
+        string audio_url
         text content
         int sort_order
-    }
-
-    ACCESS_TIER_MODULE {
-        bigint id PK
-        bigint access_tier_id FK
-        bigint module_id FK
-    }
-
-    ACCESS_TIER_LESSON {
-        bigint id PK
-        bigint access_tier_id FK
-        bigint lesson_id FK
     }
 
     EBOOKS {
@@ -73,20 +198,147 @@ erDiagram
         int sort_order
     }
 
-    ACCESS_TIER_EBOOK {
-        bigint id PK
-        bigint access_tier_id FK
-        bigint ebook_id FK
-    }
-
     COURSES {
         bigint id PK
-        bigint access_tier_id FK
         string title
         string url_slug
         text description
         string thumbnail
         string video
+    }
+
+    ASSIGNMENTS {
+        bigint id PK
+        bigint module_id FK
+        string title
+        text description
+        int sort_order
+        string status
+        boolean is_required
+    }
+
+    ASSIGNMENT_SUBMISSIONS {
+        bigint id PK
+        bigint user_id FK
+        bigint assignment_id FK
+        bigint reviewed_by FK
+        string assignment_type
+        string assignment_video
+        string assignment_status
+        text assignment_feedback
+        datetime submitted_at
+        datetime graded_at
+        datetime reviewed_at
+    }
+
+    ASSESSMENTS {
+        bigint id PK
+        string title
+        string slug
+        text description
+        string thumbnail
+        string status
+        int duration_minutes
+        string scoring_mode
+        string result_mode
+        boolean is_active
+        boolean show_progress_bar
+        boolean allow_back_navigation
+    }
+
+    ASSESSMENT_DESIGNS {
+        bigint id PK
+        bigint assessment_id FK
+        string logo
+        int logo_max_width
+        string logo_alignment
+        string logo_link
+        string header_position
+        string section_background
+        int top_margin
+        int bottom_margin
+        text footer_content
+    }
+
+    QUESTIONS {
+        bigint id PK
+        bigint assessment_id FK
+        bigint jump_to_question_id FK
+        string title
+        text question_text
+        string question_type
+        int sort_order
+        boolean required
+        boolean randomize_answers_order
+        boolean jump_enabled
+    }
+
+    QUESTION_OPTIONS {
+        bigint id PK
+        bigint question_id FK
+        bigint jump_to_question_id FK
+        string label
+        string internal_value
+        string image
+        int sort_order
+        boolean scoring_enabled
+        int score_value
+        boolean jump_enabled
+        boolean is_other_option
+        boolean is_fixed_option
+        boolean is_correct
+    }
+
+    ASSESSMENT_RESULT_RANGES {
+        bigint id PK
+        bigint assessment_id FK
+        string title
+        text description
+        int min_score
+        int max_score
+        int sort_order
+    }
+
+    ASSESSMENT_ATTEMPTS {
+        bigint id PK
+        bigint user_id FK
+        bigint assessment_id FK
+        bigint current_question_id FK
+        bigint last_answered_question_id FK
+        bigint result_range_id FK
+        int attempt_number
+        string status
+        datetime started_at
+        datetime expires_at
+        datetime submitted_at
+        datetime completed_at
+        int total_score
+        string result_label
+        string finished_reason
+    }
+
+    ASSESSMENT_ANSWERS {
+        bigint id PK
+        bigint assessment_attempt_id FK
+        bigint question_id FK
+        bigint question_option_id FK
+        text answer_text
+        decimal answer_number
+        boolean answer_boolean
+        int score_awarded
+        boolean is_final
+        datetime answered_at
+    }
+
+    ASSESSMENT_PROGRESS {
+        bigint id PK
+        bigint user_id FK
+        bigint assessment_id FK
+        int latest_score
+        int highest_score
+        int total_attempts
+        boolean is_done
+        datetime completed_at
     }
 
     LESSON_PROGRESS {
@@ -101,15 +353,11 @@ erDiagram
         datetime completed_at
     }
 
-    ASSIGNMENT_SUBMISSIONS {
+    STUDENT_MODULE_VISITS {
         bigint id PK
         bigint user_id FK
-        string assignment_type
-        string assignment_video
-        string assignment_status
-        text assignment_feedback
-        datetime submitted_at
-        datetime graded_at
+        bigint module_id FK
+        datetime opened_at
     }
 
     CERTIFICATES {
@@ -122,6 +370,21 @@ erDiagram
         int version
         datetime generated_at
         datetime deleted_at
+    }
+
+    CERTIFICATE_DOWNLOAD_EVENTS {
+        bigint id PK
+        bigint user_id FK
+        bigint module_id FK
+        bigint certificate_id FK
+        datetime downloaded_at
+    }
+
+    DIALOG_CONTENTS {
+        bigint id PK
+        string key
+        string title
+        text content
     }
 
     EMAIL_TEMPLATES {
@@ -151,22 +414,103 @@ erDiagram
         datetime sent_at
     }
 
+    USER_SESSIONS {
+        bigint id PK
+        bigint user_id FK
+        string session_id
+        datetime login_at
+        datetime last_activity_at
+        datetime logout_at
+        int session_duration_seconds
+        boolean is_active
+    }
+
+    ACCESS_TIER_MODULE {
+        bigint access_tier_id FK
+        bigint module_id FK
+    }
+
+    ACCESS_TIER_LESSON {
+        bigint access_tier_id FK
+        bigint lesson_id FK
+    }
+
+    ACCESS_TIER_EBOOK {
+        bigint access_tier_id FK
+        bigint ebook_id FK
+    }
+
+    ACCESS_TIER_COURSE {
+        bigint access_tier_id FK
+        bigint course_id FK
+    }
+
     ACCESS_TIERS ||--o{ USERS : assigns
-    ACCESS_TIERS ||--o{ COURSES : controls
+    ACCESS_TIERS ||--o{ PACKAGES : assigned_by
+    ACCESS_TIERS ||--o{ PENDING_REGISTRATIONS : selected_for
+    ACCESS_TIERS ||--o{ INVOICES : granted_by
+    ACCESS_TIERS ||--o{ PAYMENT_SUBSCRIPTIONS : entitles
     ACCESS_TIERS ||--o{ ACCESS_TIER_MODULE : maps
     ACCESS_TIERS ||--o{ ACCESS_TIER_LESSON : maps
     ACCESS_TIERS ||--o{ ACCESS_TIER_EBOOK : maps
+    ACCESS_TIERS ||--o{ ACCESS_TIER_COURSE : maps
+
+    PACKAGES ||--o{ PENDING_REGISTRATIONS : selected_in
+    PACKAGES ||--o{ INVOICES : billed_as
+    PACKAGES ||--o{ PAYMENT_SUBSCRIPTIONS : finances
+
+    PENDING_REGISTRATIONS ||--o{ INVOICES : creates
+    PENDING_REGISTRATIONS ||--o| ONBOARDING_STATES : continues
+    PENDING_REGISTRATIONS ||--o{ PAYMENT_SUBSCRIPTIONS : starts
+
+    USERS ||--o| ONBOARDING_STATES : owns
+    USERS ||--o{ INVOICES : receives
+    USERS ||--o{ PAYMENT_SUBSCRIPTIONS : subscribes
+    USERS ||--o{ STUDENT_MODULE_VISITS : opens
+    USERS ||--o{ USER_SESSIONS : tracks
+    USERS ||--o{ LESSON_PROGRESS : has
+    USERS ||--o{ ASSESSMENT_ATTEMPTS : takes
+    USERS ||--o{ ASSESSMENT_PROGRESS : summarizes
+    USERS ||--o{ ASSIGNMENT_SUBMISSIONS : submits
+    USERS ||--o{ CERTIFICATES : owns
+    USERS ||--o{ CERTIFICATE_DOWNLOAD_EVENTS : triggers
+
+    INVOICES ||--o{ PAYMENTS : records
+    INVOICES ||--o{ PAYMENT_SUBSCRIPTIONS : splits_into
+    INVOICES ||--o{ PAYMENT_SUBSCRIPTION_EVENTS : linked_to
+
+    PAYMENT_SUBSCRIPTIONS ||--o{ PAYMENT_SUBSCRIPTION_EVENTS : logs
+    PAYMENTS ||--o{ PAYMENT_SUBSCRIPTION_EVENTS : linked_by
 
     MODULES ||--o{ LESSONS : contains
+    MODULES ||--o{ ASSIGNMENTS : contains
+    MODULES ||--o{ STUDENT_MODULE_VISITS : tracks
+    MODULES ||--o{ CERTIFICATE_DOWNLOAD_EVENTS : gates
     MODULES ||--o{ ACCESS_TIER_MODULE : scoped_by
     LESSONS ||--o{ ACCESS_TIER_LESSON : scoped_by
     EBOOKS ||--o{ ACCESS_TIER_EBOOK : scoped_by
+    COURSES ||--o{ ACCESS_TIER_COURSE : scoped_by
 
-    USERS ||--o{ LESSON_PROGRESS : has
+    ASSESSMENTS ||--o| ASSESSMENT_DESIGNS : styled_by
+    ASSESSMENTS ||--o{ QUESTIONS : contains
+    ASSESSMENTS ||--o{ ASSESSMENT_RESULT_RANGES : scores
+    ASSESSMENTS ||--o{ ASSESSMENT_ATTEMPTS : attempted_in
+    ASSESSMENTS ||--o{ ASSESSMENT_PROGRESS : tracked_by
+    ASSESSMENTS ||--o| LESSONS : linked_to
+
+    QUESTIONS ||--o{ QUESTION_OPTIONS : offers
+    QUESTIONS ||--o{ ASSESSMENT_ANSWERS : answered_by
+    QUESTIONS o|--o{ QUESTIONS : jumps_to
+    QUESTION_OPTIONS o|--o{ QUESTIONS : jumps_to
+    QUESTION_OPTIONS ||--o{ ASSESSMENT_ANSWERS : selected_in
+    ASSESSMENT_RESULT_RANGES ||--o{ ASSESSMENT_ATTEMPTS : classifies
+    ASSESSMENT_ATTEMPTS ||--o{ ASSESSMENT_ANSWERS : stores
     LESSONS ||--o{ LESSON_PROGRESS : tracked_by
 
-    USERS ||--o{ ASSIGNMENT_SUBMISSIONS : submits
-    USERS ||--o{ CERTIFICATES : owns
-    USERS ||--o{ CERTIFICATES : generates
+    ASSIGNMENTS ||--o{ ASSIGNMENT_SUBMISSIONS : receives
+    USERS o|--o{ ASSIGNMENT_SUBMISSIONS : reviews
+
+    USERS o|--o{ CERTIFICATES : generates
+    CERTIFICATES ||--o{ CERTIFICATE_DOWNLOAD_EVENTS : downloaded_as
 
     EMAIL_TEMPLATES ||--o{ EMAIL_LOGS : produces

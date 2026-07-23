@@ -5,15 +5,21 @@ import { Head, Link, useForm } from '@inertiajs/react';
 export default function EditAccessTier({ accessTier, status }) {
     const { data, setData, patch, processing, errors } = useForm({
         name: accessTier.name ?? '',
-        slug: accessTier.slug ?? '',
         description: accessTier.description ?? '',
+        level: accessTier.level ?? '1',
         is_active: accessTier.is_active ?? true,
+        has_full_standing_dialog_access:
+            accessTier.has_full_standing_dialog_access ?? false,
+        has_full_floor_dialog_access:
+            accessTier.has_full_floor_dialog_access ?? false,
     });
 
     const submit = (event) => {
         event.preventDefault();
 
-        patch(route('admin.access-tiers.update', accessTier.id));
+        patch(route('admin.access-tiers.update', accessTier.id), {
+            forceFormData: true,
+        });
     };
 
     return (

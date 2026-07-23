@@ -2,11 +2,10 @@ import ModuleForm from '@/Components/ModuleForm';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function CreateModule({ accessTiers, nextSortOrder }) {
+export default function CreateModule({ accessTiers }) {
     const { data, setData, post, processing, errors, setError, clearErrors } = useForm({
         title: '',
         description: '',
-        sort_order: String(nextSortOrder ?? 1),
         url_slug: '',
         certificate_enabled: false,
         ebook_enabled: false,
@@ -21,24 +20,18 @@ export default function CreateModule({ accessTiers, nextSortOrder }) {
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between gap-4">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Create Module
-                    </h2>
-                    <Link
-                        href={route('admin.modules.index')}
-                        className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                    >
-                        Back to Modules
-                    </Link>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Create Module" />
             <div className="py-12">
-                <div className="mx-auto max-w-4xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-4xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-end">
+                        <Link
+                            href={route('admin.modules.index')}
+                            className="inline-flex items-center rounded-md border border-gray-900 bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-700"
+                        >
+                            Back to Modules
+                        </Link>
+                    </div>
                     <div className="rounded-lg bg-white p-6 shadow-sm">
                         <ModuleForm
                             data={data}

@@ -27,14 +27,20 @@ export default function AccessTierForm({
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="slug" value="Slug" />
+                    <InputLabel htmlFor="level" value="Tier Level" />
                     <TextInput
-                        id="slug"
+                        id="level"
+                        type="number"
+                        min="1"
+                        step="1"
                         className="mt-1 block w-full"
-                        value={data.slug}
-                        onChange={(event) => setData('slug', event.target.value)}
+                        value={data.level}
+                        onChange={(event) => setData('level', event.target.value)}
                     />
-                    <InputError className="mt-2" message={errors.slug} />
+                    <p className="mt-2 text-xs text-gray-500">
+                        Higher level means higher upgrade hierarchy.
+                    </p>
+                    <InputError className="mt-2" message={errors.level} />
                 </div>
             </div>
 
@@ -45,7 +51,7 @@ export default function AccessTierForm({
                     rows="4"
                     value={data.description}
                     onChange={(event) => setData('description', event.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 />
                 <InputError className="mt-2" message={errors.description} />
             </div>
@@ -58,12 +64,77 @@ export default function AccessTierForm({
                     onChange={(event) =>
                         setData('is_active', event.target.value === '1')
                     }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
                 >
                     <option value="1">Active</option>
                     <option value="0">Inactive</option>
                 </select>
                 <InputError className="mt-2" message={errors.is_active} />
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+                <div>
+                    <h3 className="text-sm font-semibold text-slate-900">
+                        Instant Access
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                        Enable dialog shortcuts for students in this tier.
+                    </p>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <input
+                            type="checkbox"
+                            className="mt-1 rounded border-slate-300 text-black shadow-sm focus:ring-black"
+                            checked={Boolean(data.has_full_standing_dialog_access)}
+                            onChange={(event) =>
+                                setData(
+                                    'has_full_standing_dialog_access',
+                                    event.target.checked,
+                                )
+                            }
+                        />
+                        <span>
+                            <span className="block text-sm font-medium text-slate-900">
+                                Full Standing Dialog
+                            </span>
+                            <span className="block text-xs text-slate-500">
+                                Show and allow access to the standing instant access dialog.
+                            </span>
+                        </span>
+                    </label>
+
+                    <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+                        <input
+                            type="checkbox"
+                            className="mt-1 rounded border-slate-300 text-black shadow-sm focus:ring-black"
+                            checked={Boolean(data.has_full_floor_dialog_access)}
+                            onChange={(event) =>
+                                setData(
+                                    'has_full_floor_dialog_access',
+                                    event.target.checked,
+                                )
+                            }
+                        />
+                        <span>
+                            <span className="block text-sm font-medium text-slate-900">
+                                Full Floor Dialog
+                            </span>
+                            <span className="block text-xs text-slate-500">
+                                Show and allow access to the floor instant access dialog.
+                            </span>
+                        </span>
+                    </label>
+                </div>
+
+                <InputError
+                    className="mt-2"
+                    message={
+                        errors.has_full_standing_dialog_access
+                        ?? errors.has_full_floor_dialog_access
+                    }
+                />
             </div>
 
             <div className="flex items-center gap-4">

@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
+use App\Support\CountryDirectory;
+use App\Support\StudentProfileValidationRules;
+use App\Support\StudentProfileValue;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Carbon;
 
 class ProfileUpdateRequest extends FormRequest
 {
@@ -28,32 +31,95 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:255',
-                Rule::unique(User::class)->ignore(($this->route('student') ?? $this->user())->id),
-            ],
-            'whatsapp' => ['required', 'string', 'max:50'],
-            'preferred_certificate_picture' => ['nullable', 'string', 'max:2048'],
-            'profile_photo' => ['nullable', 'string', 'max:2048'],
-            'instagram' => ['nullable', 'string', 'max:255'],
-            'country' => ['required', 'string', 'max:255'],
-            'birth_date' => ['required', 'date', 'before_or_equal:today'],
-            'gender' => ['required', 'string', Rule::in(['female', 'male', 'non_binary', 'prefer_not_to_say'])],
-            'practicing_yoga_for' => ['required', 'string', 'max:255'],
-            'yoga_sequence_experience' => ['required', 'string', 'max:255'],
-            'hours_per_week' => ['required', 'integer', 'min:0', 'max:168'],
-            'current_fitness_level' => ['required', 'string', 'max:255'],
-            'flexibility_rating' => ['required', 'string', 'max:255'],
-            'motivation' => ['required', 'string', 'max:2000'],
-            'why_yogafx' => ['required', 'string', 'max:2000'],
-            'how_did_you_find_us' => ['required', 'string', 'max:255'],
-        ];
+        $targetUser = $this->route('student') ?? $this->user();
+
+        return StudentProfileValidationRules::make($targetUser?->id);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $country = (string) $this->input('country');
+        $whatsappCountryCode = (string) $this->input('whatsapp_country_code', CountryDirectory::dialCodeForCountry($country));
+        $whatsappNumber = (string) $this->input('whatsapp_number', '');
+        $birthDate = $this->normalizeBirthDate($this->input('birth_date'));
+
+        $this->merge([
+            'whatsapp' => CountryDirectory::formatPhoneNumber($whatsappCountryCode, $whatsappNumber),
+            'birth_date' => $birthDate,
+            'gender' => StudentProfileValue::normalizeGender(
+                $this->input('gender'),
+            ),
+            'practicing_yoga_for' => StudentProfileValue::normalizePracticingYogaFor(
+                $this->input('practicing_yoga_for'),
+            ),
+            'yoga_sequence_experience' => StudentProfileValue::normalizeYogaSequenceExperience(
+                $this->input('yoga_sequence_experience'),
+            ),
+            'hours_per_week' => StudentProfileValue::normalizeHoursPerWeek(
+                $this->input('hours_per_week'),
+            ),
+            'current_fitness_level' => StudentProfileValue::normalizeFitnessLevel(
+                $this->input('current_fitness_level'),
+            ),
+            'flexibility_rating' => StudentProfileValue::normalizeFitnessLevel(
+                $this->input('flexibility_rating'),
+            ),
+            'how_did_you_find_us' => StudentProfileValue::normalizeHowDidYouFindUs(
+                $this->input('how_did_you_find_us'),
+            ),
+        ]);
+
+        if (app()->environment(['local', 'development'])) {
+            logger()->info('Profile update request debug', [
+                'user_id' => $this->user()?->id,
+                'input_gender' => $this->input('gender'),
+                'has_gender' => $this->has('gender'),
+                'input_hours_per_week' => $this->input('hours_per_week'),
+                'input_current_fitness_level' => $this->input('current_fitness_level'),
+                'input_flexibility_rating' => $this->input('flexibility_rating'),
+                'request_keys' => array_keys($this->except(['password', 'profile_photo'])),
+            ]);
+        }
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        if (app()->environment(['local', 'development'])) {
+            logger()->warning('Profile update validation failed', [
+                'user_id' => $this->user()?->id,
+                'input_gender' => $this->input('gender'),
+                'input_hours_per_week' => $this->input('hours_per_week'),
+                'errors' => $validator->errors()->toArray(),
+            ]);
+        }
+
+        parent::failedValidation($validator);
+    }
+
+    private function normalizeBirthDate(mixed $value): mixed
+    {
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        foreach (['Y-m-d', 'd/m/Y', 'm/d/Y', 'd-m-Y', 'm-d-Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $trimmed)->format('Y-m-d');
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        try {
+            return Carbon::parse($trimmed)->format('Y-m-d');
+        } catch (\Throwable) {
+            return $value;
+        }
     }
 }

@@ -5,32 +5,20 @@ export default function AccessTiersIndex({ accessTiers, status }) {
     const errors = usePage().props.errors;
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            Access Tiers
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Manage membership tiers before they are enforced in
-                            future learning domains.
-                        </p>
-                    </div>
-
-                    <Link
-                        href={route('admin.access-tiers.create')}
-                        className="w-full rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700 sm:w-auto"
-                    >
-                        Create Access Tier
-                    </Link>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Access Tiers" />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-end">
+                        <Link
+                            href={route('admin.access-tiers.create')}
+                            className="rounded-md bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700"
+                        >
+                            Create Access Tier
+                        </Link>
+                    </div>
+
                     {status === 'access-tier-created' && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             Access tier has been created.
@@ -64,9 +52,6 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                             Tier
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
-                                            Slug
-                                        </th>
-                                        <th className="px-4 py-3 text-left font-medium text-gray-700">
                                             Status
                                         </th>
                                         <th className="px-4 py-3 text-left font-medium text-gray-700">
@@ -88,9 +73,6 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                                     {accessTier.description}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-gray-700">
-                                                {accessTier.slug}
-                                            </td>
                                             <td className="px-4 py-3">
                                                 <span
                                                     className={
@@ -108,7 +90,7 @@ export default function AccessTiersIndex({ accessTiers, status }) {
                                                 {accessTier.users_count}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex flex-wrap items-center gap-4">
                                                     <Link
                                                         href={route(
                                                             'admin.access-tiers.edit',

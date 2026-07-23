@@ -56,6 +56,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public Application URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used for links that must be opened from another device,
+    | such as password reset links sent by email. Set this to a LAN IP or
+    | environment domain when APP_URL points to localhost.
+    |
+    */
+
+    'public_url' => env('APP_PUBLIC_URL', env('APP_URL', 'http://localhost')),
+
+    'student_login_url' => env('APP_STUDENT_LOGIN_URL', 'https://app-academy.26and2yoga.com/login'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Force HTTPS URLs
+    |--------------------------------------------------------------------------
+    |
+    | Enable this in environments that should always generate HTTPS links.
+    | Disable it for `php artisan serve` local development because the PHP
+    | built-in server only serves plain HTTP.
+    |
+    */
+
+    'force_https' => (bool) env('APP_FORCE_HTTPS', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
@@ -122,5 +150,7 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+
+    'enable_mock_payment_ui' => (bool) env('VITE_ENABLE_MOCK_PAYMENT', false),
 
 ];

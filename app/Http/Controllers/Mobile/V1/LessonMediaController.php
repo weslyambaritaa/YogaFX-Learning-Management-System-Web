@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Mobile\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Lesson;
-use App\Models\LessonProgress;
 use App\Models\User;
 use App\Services\BunnyStorageService;
+use App\Services\StudentWorkbookDeliveryService;
+use App\Support\MobileSignedUrl;
 use App\Support\BunnyAssetPath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,11 +19,12 @@ class LessonMediaController extends Controller
 {
     public function __construct(
         private readonly BunnyStorageService $bunnyStorageService,
+        private readonly StudentWorkbookDeliveryService $studentWorkbookDeliveryService,
     ) {}
 
     public function audio(Request $request, Lesson $lesson): Response|StreamedResponse
     {
-        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
 
         $student = $this->resolveSignedStudent($request);
         $this->authorizeStudentLessonMedia($student, $lesson);
@@ -33,44 +35,26 @@ class LessonMediaController extends Controller
 
     public function workbook(Request $request, Lesson $lesson): Response|StreamedResponse|BinaryFileResponse
     {
-        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
 
         $student = $this->resolveSignedStudent($request);
         $this->authorizeStudentLessonMedia($student, $lesson);
         abort_unless(filled($lesson->workbook), 404);
 
-        LessonProgress::query()->updateOrCreate(
-            [
-                'user_id' => $student->id,
-                'lesson_id' => $lesson->id,
-            ],
-            [
-                'is_workbook_downloaded' => true,
-                'workbook_downloaded_at' => now(),
-            ],
-        );
+        $this->studentWorkbookDeliveryService->triggerOnce($student, $lesson);
 
         return $this->serveMediaPath((string) $lesson->workbook, false);
     }
 
     public function downloadWorkbook(Request $request, Lesson $lesson): Response|StreamedResponse|BinaryFileResponse
     {
-        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(MobileSignedUrl::hasValidSignature($request), 403);
 
         $student = $this->resolveSignedStudent($request);
         $this->authorizeStudentLessonMedia($student, $lesson);
         abort_unless(filled($lesson->workbook), 404);
 
-        LessonProgress::query()->updateOrCreate(
-            [
-                'user_id' => $student->id,
-                'lesson_id' => $lesson->id,
-            ],
-            [
-                'is_workbook_downloaded' => true,
-                'workbook_downloaded_at' => now(),
-            ],
-        );
+        $this->studentWorkbookDeliveryService->triggerOnce($student, $lesson);
 
         return $this->serveMediaPath((string) $lesson->workbook, true);
     }

@@ -17,6 +17,8 @@ use App\Models\Module;
 use App\Models\StudentModuleVisit;
 use App\Services\BunnyStreamService;
 use App\Services\Certificates\CertificateEligibilityService;
+use App\Services\StudentLearningPathService;
+use App\Support\BunnyAssetPath;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -31,6 +33,7 @@ class ModuleCatalogController extends Controller
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly CertificateEligibilityService $certificateEligibilityService,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {}
 
     public function index(Request $request): Response
@@ -38,7 +41,7 @@ class ModuleCatalogController extends Controller
         $user = $request->user();
         $accessTierId = $user?->access_tier_id;
 
-        $modules = $this->accessibleModulesWithLessons($accessTierId);
+        $modules = $this->accessibleModulesWithLessons($user);
         $resourceModuleVisitMap = $this->resourceModuleVisitMap(
             $user?->id,
             $modules->pluck('id'),
@@ -55,7 +58,7 @@ class ModuleCatalogController extends Controller
         $lessonUnlockMap = $this->lessonUnlockMap($user?->id, $modules, $lessonProgressMap);
         $assignmentSubmissionMap = $this->assignmentSubmissionMap(
             $user?->id,
-            $modules->flatMap(fn (Module $module) => $module->assignments->pluck('id')),
+            $modules->flatMap(fn (Module $module) => $module->assignments),
         );
         $moduleAccessMap = $this->moduleAccessMap(
             $user,
@@ -66,9 +69,18 @@ class ModuleCatalogController extends Controller
             $resourceModuleVisitMap,
         );
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
+        $lastOpenedLessonIds = $lessonProgressMap
+            ->sortByDesc(fn (LessonProgress $progress) => sprintf(
+                '%010d-%010d',
+                $progress->updated_at?->getTimestamp() ?? 0,
+                $progress->id,
+            ))
+            ->pluck('lesson_id')
+            ->map(fn ($lessonId) => (int) $lessonId)
+            ->values();
 
         return Inertia::render('Student/Modules/Index', [
-            'modules' => $modules->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $completedAssessmentIds, $moduleAccessMap) {
+            'modules' => $modules->map(function (Module $module) use ($activeLessonId, $lessonProgressMap, $completedAssessmentIds, $moduleAccessMap, $lessonUnlockMap, $lastOpenedLessonIds) {
                 $moduleAccess = $moduleAccessMap->get($module->id, [
                     'is_visible' => false,
                     'status' => 'locked',
@@ -84,6 +96,11 @@ class ModuleCatalogController extends Controller
                     );
                 })->count();
                 $isActive = $module->lessons->contains(fn (Lesson $lesson) => $lesson->id === $activeLessonId);
+                $continueLesson = $module->lessons->first(
+                    fn (Lesson $lesson) => $lastOpenedLessonIds->contains((int) $lesson->id),
+                ) ?? $module->lessons->first(
+                    fn (Lesson $lesson) => (bool) ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false),
+                );
                 $status = $moduleAccess['status'] === 'available' && $isActive
                     ? 'active'
                     : $moduleAccess['status'];
@@ -106,6 +123,11 @@ class ModuleCatalogController extends Controller
                         : (($moduleAccess['is_complete'] ?? false) ? 100 : 0),
                     'show_progress' => $totalLessons > 0,
                     'status' => $status,
+                    'status_label' => match ($status) {
+                        'completed' => 'Completed',
+                        'locked' => 'Locked',
+                        default => 'Available',
+                    },
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'module',
                         $module->id,
@@ -113,6 +135,9 @@ class ModuleCatalogController extends Controller
                         $module->thumbnail,
                         versionSeed: $module->updated_at,
                     ),
+                    'continue_url' => $continueLesson && ($moduleAccess['is_visible'] ?? false)
+                        ? route('lessons.show', $continueLesson)
+                        : null,
                 ];
             }),
         ]);
@@ -128,7 +153,7 @@ class ModuleCatalogController extends Controller
             403,
         );
 
-        $modules = $this->accessibleModulesWithLessons($accessTierId);
+        $modules = $this->accessibleModulesWithLessons($user);
         $currentModule = $modules->firstWhere('id', $module->id);
         abort_unless($currentModule, 404);
         $resourceModuleVisitMap = $this->resourceModuleVisitMap(
@@ -146,7 +171,7 @@ class ModuleCatalogController extends Controller
         );
         $assignmentSubmissionMap = $this->assignmentSubmissionMap(
             $user?->id,
-            $modules->flatMap(fn (Module $item) => $item->assignments->pluck('id')),
+            $modules->flatMap(fn (Module $item) => $item->assignments),
         );
         $moduleAccessMap = $this->moduleAccessMap(
             $user,
@@ -159,29 +184,6 @@ class ModuleCatalogController extends Controller
         $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
 
         abort_unless((bool) ($currentModuleAccess['is_visible'] ?? false), 403);
-
-        if ($this->shouldAutoCompleteOnFirstOpen($currentModule) && ! $resourceModuleVisitMap->has($currentModule->id)) {
-            StudentModuleVisit::query()->firstOrCreate(
-                [
-                    'user_id' => $user->id,
-                    'module_id' => $currentModule->id,
-                ],
-                [
-                    'opened_at' => now(),
-                ],
-            );
-
-            $resourceModuleVisitMap = $resourceModuleVisitMap->put($currentModule->id, true);
-            $moduleAccessMap = $this->moduleAccessMap(
-                $user,
-                $modules,
-                $lessonProgressMap,
-                $completedAssessmentIds,
-                $assignmentSubmissionMap,
-                $resourceModuleVisitMap,
-            );
-            $currentModuleAccess = $moduleAccessMap->get($currentModule->id);
-        }
 
         if ($this->isCertificateDownloadModule($currentModule)) {
             return Inertia::render('Student/Certificates/Show', [
@@ -206,6 +208,8 @@ class ModuleCatalogController extends Controller
         $lessons = $currentModule->lessons;
         $lessonUnlockMap = $this->lessonUnlockMap($user?->id, $modules, $lessonProgressMap);
         $activeLessonId = $this->latestProgressLessonId($user?->id, $lessonProgressMap);
+        $continueLesson = $lessons->first(fn (Lesson $lesson) => $lesson->id === $activeLessonId)
+            ?? $lessons->first(fn (Lesson $lesson) => (bool) ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false));
         $completedLessons = $lessons->filter(fn (Lesson $lesson) => $this->isLessonFullyComplete(
             $lesson,
             $lessonProgressMap->get($lesson->id),
@@ -226,6 +230,14 @@ class ModuleCatalogController extends Controller
                     : (($currentModuleAccess['is_complete'] ?? false) ? 100 : 0),
                 'show_progress' => $lessons->count() > 0,
                 'status' => $currentModuleAccess['status'] ?? 'available',
+                'status_label' => match ($currentModuleAccess['status'] ?? 'available') {
+                    'completed' => 'Completed',
+                    'locked' => 'Locked',
+                    default => 'Available',
+                },
+                'continue_last_lesson_url' => $continueLesson
+                    ? route('lessons.show', $continueLesson)
+                    : null,
                 'certificate_enabled' => (bool) $module->certificate_enabled,
                 'ebook_enabled' => (bool) $module->ebook_enabled,
                 'video_lecturer_enabled' => (bool) $module->video_lecturer_enabled,
@@ -260,6 +272,7 @@ class ModuleCatalogController extends Controller
                         'url' => ($lessonUnlockMap->get($lesson->id)['is_unlocked'] ?? false)
                             ? route('lessons.show', $lesson)
                             : null,
+                        'module_sort_order' => $module->sort_order,
                     ]),
                 'assignments' => $currentModule->assignments
                     ->map(function ($assignment) use ($assignmentSubmissionMap) {
@@ -283,7 +296,7 @@ class ModuleCatalogController extends Controller
                     ? $this->ebooksForStudent($user?->access_tier_id)
                     : [],
                 'video_lecturers' => $module->video_lecturer_enabled
-                    ? $this->videoLecturersForStudent($user?->access_tier_id)
+                    ? $this->videoLecturersForStudent($user?->access_tier_id, $module)
                     : [],
                 'certificates' => $module->certificate_enabled
                     ? $this->certificateEligibilityService
@@ -306,43 +319,26 @@ class ModuleCatalogController extends Controller
         ]);
     }
 
-    private function accessibleModulesWithLessons(?int $accessTierId): Collection
+    private function accessibleModulesWithLessons($user): Collection
     {
-        return Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
-            ->with([
-                'lessons' => fn ($query) => $query
-                    ->select(['id', 'module_id', 'title', 'sort_order', 'assessment_id', 'lesson_video_id', 'workbook', 'audio_url', 'content', 'thumbnail'])
-                    ->with(['assessment:id,status,is_active'])
-                    ->whereHas('accessTiers', fn ($lessonQuery) => $lessonQuery->where('access_tiers.id', $accessTierId))
-                    ->orderBy('sort_order')
-                    ->orderBy('title'),
-                'assignments' => fn ($query) => $query
-                    ->where('status', \App\Models\Assignment::STATUS_LIVE)
-                    ->orderBy('sort_order')
-                    ->orderBy('title'),
-            ])
-            ->orderBy('sort_order')
-            ->orderBy('title')
-            ->get();
-    }
-
-    private function assignmentSubmissionMap(?int $userId, iterable $assignmentIds): Collection
-    {
-        $assignmentIds = collect($assignmentIds)->filter()->values();
-
-        if (! $userId || $assignmentIds->isEmpty()) {
+        if (! $user) {
             return collect();
         }
 
-        return AssignmentSubmission::query()
-            ->where('user_id', $userId)
-            ->whereIn('assignment_id', $assignmentIds)
-            ->orderByDesc('submitted_at')
-            ->orderByDesc('id')
-            ->get()
-            ->unique('assignment_id')
-            ->keyBy('assignment_id');
+        return $this->studentLearningPathService->accessibleModulesForStudent($user, withAssessments: true);
+    }
+
+    private function assignmentSubmissionMap(?int $userId, iterable $assignments): Collection
+    {
+        $assignments = collect($assignments)
+            ->filter(fn ($assignment) => $assignment instanceof Assignment)
+            ->values();
+
+        if (! $userId || $assignments->isEmpty()) {
+            return collect();
+        }
+
+        return AssignmentSubmission::latestMapForUserAssignments($userId, $assignments);
     }
 
     private function ebooksForStudent(?int $accessTierId): array
@@ -361,18 +357,23 @@ class ModuleCatalogController extends Controller
                     download: true,
                     versionSeed: $ebook->updated_at,
                 );
-                $mimeType = $ebook->file
-                    ? Storage::disk('local')->mimeType($ebook->file)
-                    : null;
+                $fileReference = BunnyAssetPath::isBunnyPath($ebook->file)
+                    ? BunnyAssetPath::objectKey($ebook->file)
+                    : (string) $ebook->file;
+                $mimeType = null;
+
+                if ($ebook->file && ! BunnyAssetPath::isBunnyPath($ebook->file) && Storage::disk('local')->exists($ebook->file)) {
+                    $mimeType = Storage::disk('local')->mimeType($ebook->file);
+                }
 
                 return [
                     'id' => $ebook->id,
                     'title' => $ebook->title,
                     'sort_order' => $ebook->sort_order,
-                    'file_name' => basename((string) $ebook->file),
+                    'file_name' => basename($fileReference),
                     'preview_url' => route('ebooks.preview', $ebook),
                     'download_url' => $downloadUrl,
-                    'preview_supported' => str($ebook->file)->lower()->endsWith('.pdf')
+                    'preview_supported' => str($fileReference)->lower()->endsWith('.pdf')
                         || $mimeType === 'application/pdf',
                 ];
             })
@@ -380,23 +381,25 @@ class ModuleCatalogController extends Controller
             ->all();
     }
 
-    private function videoLecturersForStudent(?int $accessTierId): array
+    private function videoLecturersForStudent(?int $accessTierId, ?Module $module = null): array
     {
         return Course::query()
             ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $accessTierId))
             ->orderBy('title')
             ->get()
             ->values()
-            ->map(function (Course $course, int $index) {
+            ->map(function (Course $course, int $index) use ($module) {
                 $videoState = $this->videoStateForCourse($course);
 
                 return [
                     'id' => $course->id,
                     'title' => $course->title,
                     'url_slug' => $course->url_slug,
+                    'url' => route('courses.show', $course->url_slug).($module ? '?module='.$module->url_slug : ''),
                     'description' => $course->description,
                     'index' => $index + 1,
                     'video' => $videoState,
+                    'status' => $videoState['is_ready'] ? 'ready' : 'unavailable',
                     'thumbnail_url' => $this->protectedMediaUrl(
                         'course',
                         $course->id,
@@ -422,20 +425,18 @@ class ModuleCatalogController extends Controller
 
         foreach ($modules as $module) {
             if ($this->isCertificateDownloadModule($module)) {
-                $certificateState = $this->certificateAccessState(
-                    $user,
-                    $modules,
-                    $lessonProgressMap,
-                    $completedAssessmentIds,
-                );
+                $certificateState = $this->certificateAccessState($user);
 
                 $accessMap->put($module->id, [
                     'is_visible' => (bool) ($certificateState['is_visible'] ?? false),
                     'status' => $certificateState['module_status'] ?? 'locked',
                     'description' => $certificateState['module_description'] ?? $module->description,
-                    'is_complete' => ($certificateState['state'] ?? null) === 'download_available',
+                    'is_complete' => (bool) ($certificateState['is_complete'] ?? false),
                     'certificate_state' => $certificateState,
                 ]);
+
+                $allPreviousModulesComplete = $allPreviousModulesComplete
+                    && (bool) ($certificateState['is_complete'] ?? false);
 
                 continue;
             }
@@ -447,17 +448,22 @@ class ModuleCatalogController extends Controller
                 $assignmentSubmissionMap,
                 $resourceModuleVisitMap,
             );
+            $isResourceModule = $this->isOpenOnceResourceModule($module);
+            $isResourceModuleUnlocked = $allPreviousModulesComplete && $isResourceModule;
 
             $accessMap->put($module->id, [
                 'is_visible' => $allPreviousModulesComplete,
-                'status' => $isComplete
-                    ? 'completed'
-                    : ($allPreviousModulesComplete ? 'available' : 'locked'),
+                'status' => ! $allPreviousModulesComplete
+                    ? 'locked'
+                    : ($isResourceModule
+                        ? 'available'
+                        : ($isComplete ? 'completed' : 'available')),
                 'description' => $module->description,
-                'is_complete' => $isComplete,
+                'is_complete' => $isResourceModule ? $isResourceModuleUnlocked : $isComplete,
             ]);
 
-            $allPreviousModulesComplete = $allPreviousModulesComplete && $isComplete;
+            $allPreviousModulesComplete = $allPreviousModulesComplete
+                && ($isResourceModule ? $isResourceModuleUnlocked : $isComplete);
         }
 
         return $accessMap;
@@ -647,30 +653,33 @@ class ModuleCatalogController extends Controller
     ): bool {
         $liveAssignments = $module->assignments->where('status', Assignment::STATUS_LIVE);
 
-        if ($module->lessons->isEmpty() && $liveAssignments->isEmpty()) {
-            return $resourceModuleVisitMap->has($module->id);
+        if ($module->lessons->isNotEmpty()) {
+            return $module->lessons->every(
+                fn (Lesson $lesson) => $this->isLessonFullyComplete(
+                    $lesson,
+                    $lessonProgressMap->get($lesson->id),
+                    $completedAssessmentIds,
+                ),
+            );
         }
 
-        $hasTrackableContent = $module->lessons->isNotEmpty() || $liveAssignments->isNotEmpty();
+        if ($liveAssignments->isNotEmpty()) {
+            return $liveAssignments->every(
+                fn (Assignment $assignment) => $this->isAssignmentComplete(
+                    $assignmentSubmissionMap->get($assignment->id),
+                ),
+            );
+        }
 
-        if (! $hasTrackableContent) {
+        if ($this->isCertificateDownloadModule($module)) {
             return false;
         }
 
-        $allLessonsComplete = $module->lessons->every(
-            fn (Lesson $lesson) => $this->isLessonFullyComplete(
-                $lesson,
-                $lessonProgressMap->get($lesson->id),
-                $completedAssessmentIds,
-            ),
-        );
+        if ($this->isOpenOnceResourceModule($module)) {
+            return false;
+        }
 
-        $allRequiredAssignmentsComplete = $liveAssignments
-            ->every(fn (Assignment $assignment) => $this->isAssignmentComplete(
-                $assignmentSubmissionMap->get($assignment->id),
-            ));
-
-        return $allLessonsComplete && $allRequiredAssignmentsComplete;
+        return false;
     }
 
     private function isAssignmentComplete(?AssignmentSubmission $submission): bool
@@ -696,76 +705,91 @@ class ModuleCatalogController extends Controller
 
     private function shouldAutoCompleteOnFirstOpen(Module $module): bool
     {
-        return $module->lessons->isEmpty()
-            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty();
+        return $this->isOpenOnceResourceModule($module);
     }
 
     private function isCertificateDownloadModule(Module $module): bool
     {
-        return $module->url_slug === self::CERTIFICATE_DOWNLOAD_SLUG;
+        return $module->lessons->isEmpty()
+            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty()
+            && (bool) $module->certificate_enabled;
+    }
+
+    private function isOpenOnceResourceModule(Module $module): bool
+    {
+        return $module->lessons->isEmpty()
+            && $module->assignments->where('status', Assignment::STATUS_LIVE)->isEmpty()
+            && ! $this->isCertificateDownloadModule($module)
+            && ((bool) $module->ebook_enabled || (bool) $module->video_lecturer_enabled);
     }
 
     private function certificateAccessState(
         $user,
-        Collection $modules,
-        Collection $lessonProgressMap,
-        Collection $completedAssessmentIds,
     ): array {
         $tier = $user?->accessTier;
         $summary = $user ? $this->certificateEligibilityService->summaryForStudent($user) : null;
-        $latestCertificate = $user
-            ? Certificate::query()
-                ->where('user_id', $user->id)
-                ->latest('generated_at')
-                ->latest('id')
-                ->first()
-            : null;
-        $availableTypes = collect($summary['available_types'] ?? []);
-        $eligibleTier = $user && $user->access_tier_id !== null && $availableTypes->isNotEmpty();
-        $learningModules = $modules
-            ->reject(fn (Module $module) => $this->isCertificateDownloadModule($module))
-            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
-            ->values();
-        $currentPathCompleted = $learningModules->isNotEmpty()
-            && $learningModules->every(fn (Module $module) => $module->lessons->every(
-                fn (Lesson $lesson) => $this->isLessonFullyComplete(
-                    $lesson,
-                    $lessonProgressMap->get($lesson->id),
-                    $completedAssessmentIds,
-                ),
-            ));
-        $learningEligible = (bool) ($summary['learning_eligible'] ?? false);
-        $hasCertificate = (bool) $latestCertificate;
-        $isVisible = $eligibleTier && ($learningEligible || $hasCertificate);
+        $generatedCertificates = $user
+            ? $this->certificateEligibilityService
+                ->latestCertificatesByType($user, $summary['available_types'] ?? [])
+                ->sortByDesc(fn (Certificate $certificate) => sprintf(
+                    '%010d-%010d',
+                    $certificate->generated_at?->getTimestamp() ?? 0,
+                    $certificate->id,
+                ))
+                ->values()
+            : collect();
+        $latestCertificate = $generatedCertificates->first();
+        $requiredCertificateCount = collect($summary['available_types'] ?? [])->count();
+        $eligibleTier = $user && $user->access_tier_id !== null && collect($summary['available_types'] ?? [])->isNotEmpty();
+        $learningEligible = $eligibleTier && (bool) ($summary['learning_eligible'] ?? false);
+        $hasAnyCertificate = $generatedCertificates->isNotEmpty();
+        $hasAllCertificates = $requiredCertificateCount > 0
+            && $generatedCertificates->count() >= $requiredCertificateCount;
+        $isVisible = $eligibleTier && ($learningEligible || $hasAnyCertificate);
         $state = ! $eligibleTier
             ? 'not_available'
-            : ($hasCertificate ? 'download_available' : ($learningEligible ? 'ready' : 'locked'));
+            : ($hasAllCertificates
+                ? 'generated'
+                : ($hasAnyCertificate
+                    ? 'partial_generation'
+                    : ($learningEligible ? 'ready' : 'locked')));
 
         return [
             'state' => $state,
             'is_visible' => $isVisible,
-            'module_status' => $hasCertificate ? 'completed' : ($learningEligible ? 'available' : 'locked'),
-            'module_description' => $hasCertificate
-                ? 'Your certificate is ready. Open this module to review and download your latest YogaFX certificate.'
-                : ($learningEligible
-                    ? 'Your learning journey is complete and this certificate module is now open while certificate generation is being finalized.'
-                    : 'Complete your full YogaFX learning journey to unlock certificate access.'),
-            'title' => $hasCertificate
-                ? 'Your latest certificate is ready to download.'
-                : ($learningEligible
-                    ? 'Your certificate milestone is ready from the learning side.'
-                    : 'Certificate access is not unlocked yet.'),
-            'description' => $hasCertificate
-                ? 'This module now acts as your student certificate area. Download the latest certificate record generated for your account.'
-                : ($learningEligible
-                    ? 'You have completed the accessible learning path for your current tier. If the certificate file has not been generated yet, please wait for the YogaFX team to finalize it.'
-                    : 'Certificate access opens after the required YogaFX journey has been completed.'),
+            'is_complete' => $hasAllCertificates,
+            'module_status' => $hasAllCertificates
+                ? 'completed'
+                : ($learningEligible ? 'available' : 'locked'),
+            'module_description' => $hasAllCertificates
+                ? 'All certificates for your current path have been generated. This module is now complete and every module after it is unlocked.'
+                : ($hasAnyCertificate
+                    ? 'Some certificates have been generated already, but the next resource modules stay locked until every certificate for this path is ready.'
+                    : ($learningEligible
+                    ? 'All required submitted assignment videos have been approved. This certificate module is now ready for admin generation.'
+                    : 'Certificate access unlocks after all required submitted assignment videos in this certificate path are approved by admin.')),
+            'title' => $hasAllCertificates
+                ? 'Your certificate library is ready.'
+                : ($hasAnyCertificate
+                    ? 'Certificate generation is still in progress.'
+                    : ($learningEligible
+                    ? 'Your certificate area is unlocked from approved assignment videos.'
+                    : 'Certificate access is not unlocked yet.')),
+            'description' => $hasAllCertificates
+                ? 'This module now acts as your student certificate library. Review and download every generated certificate available for your account.'
+                : ($hasAnyCertificate
+                    ? 'At least one certificate is already generated, but this path is only marked complete after every certificate mapped to your tier is ready.'
+                    : ($learningEligible
+                    ? 'All required submitted assignment videos have been approved. If certificate files are not listed yet, please wait for the YogaFX team to finish generation.'
+                    : 'Certificate access opens after all required submitted assignment videos for your current certificate path have been approved by admin.')),
             'eligibility_label' => $eligibleTier
                 ? 'Certificate included in '.($tier?->name ?? 'your current tier')
                 : 'Certificate not available in this tier',
-            'support_note' => $hasCertificate
-                ? 'The latest available certificate record is surfaced here so you do not need a separate student certificate menu.'
-                : 'This page opens as soon as your learning path reaches certificate readiness, even if the final file is still waiting to be generated.',
+            'support_note' => $hasAllCertificates
+                ? 'Every generated certificate available for your account is listed inside this module, and later modules stay unlocked after generation.'
+                : ($hasAnyCertificate
+                    ? 'Later resource modules unlock only after every certificate required for this path has been generated.'
+                    : 'This page unlocks after the required submitted videos are approved, even if certificate files are still waiting to be generated.'),
             'requirements' => $summary['requirements'] ?? [],
             'learning_eligible' => $learningEligible,
             'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
@@ -777,11 +801,20 @@ class ModuleCatalogController extends Controller
                 'generated_at' => optional($latestCertificate->generated_at)->format('Y-m-d H:i'),
                 'download_url' => route('student.certificates.download', $latestCertificate),
             ] : null,
-            'cta_label' => $hasCertificate ? 'Download Latest Certificate' : 'Browse Modules',
-            'cta_url' => $hasCertificate
+            'generated_certificates' => $generatedCertificates
+                ->map(fn (Certificate $certificate) => [
+                    'id' => $certificate->id,
+                    'type_label' => $certificate->typeLabel(),
+                    'version' => $certificate->version,
+                    'generated_at' => optional($certificate->generated_at)->format('Y-m-d H:i'),
+                    'download_url' => route('student.certificates.download', $certificate),
+                ])
+                ->all(),
+            'cta_label' => $hasAnyCertificate ? 'Download Latest Certificate' : 'Browse Modules',
+            'cta_url' => $hasAnyCertificate
                 ? route('student.certificates.download', $latestCertificate)
                 : route('modules.index'),
-            'cta_kind' => $hasCertificate ? 'download' : 'link',
+            'cta_kind' => $hasAnyCertificate ? 'download' : 'link',
         ];
     }
 

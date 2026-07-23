@@ -5,6 +5,11 @@ import { Head, Link } from '@inertiajs/react';
 
 const sectionLinks = [
     {
+        key: 'detail',
+        label: 'Student Detail',
+        routeName: 'admin.student-progress.students.show',
+    },
+    {
         key: 'completed-lessons',
         label: 'Completed Lesson',
         routeName: 'admin.student-progress.completed-lessons.show',
@@ -30,25 +35,11 @@ export default function StudentProgressStudentLayout({
     children,
 }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="space-y-4">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div>
-                            <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                                {title}
-                            </h2>
-                            <p className="mt-1 text-sm text-gray-500">{description}</p>
-                        </div>
+        <AuthenticatedLayout>
+            <Head title={pageTitle} />
 
-                        <Link
-                            href={route('admin.student-progress.index')}
-                            className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                        >
-                            Back to Student Progress
-                        </Link>
-                    </div>
-
+            <div className="py-12">
+                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     <div className="grid gap-4 md:grid-cols-3">
                         <div className="rounded-lg bg-white p-5 shadow-sm">
                             <div className="text-sm text-gray-500">Student</div>
@@ -131,13 +122,7 @@ export default function StudentProgressStudentLayout({
                             </Button>
                         ))}
                     </div>
-                </div>
-            }
-        >
-            <Head title={pageTitle} />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                     {children}
                 </div>
             </div>

@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Services\Certificates\CertificateGeneratorService;
 use App\Services\BunnyStorageService;
+use App\Services\StudentLearningPathService;
 use App\Services\StudentSessionTrackingService;
 use App\Support\BunnyAssetPath;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -39,6 +40,7 @@ class StudentProgressController extends Controller
         private readonly BunnyStorageService $bunnyStorage,
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly CertificateGeneratorService $certificateGeneratorService,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {}
 
     public function completedLessonsIndex(): RedirectResponse
@@ -56,6 +58,7 @@ class StudentProgressController extends Controller
                     ->select('id', 'user_id', 'lesson_id'),
                 'assignmentSubmissions:id,user_id,assignment_id,assignment_type,assignment_video,submitted_at',
             ])
+            ->withMax('userSessions as last_login_at', 'login_at')
             ->where('role', User::ROLE_STUDENT)
             ->whereNotNull('access_tier_id')
             ->orderByDesc('created_at')
@@ -109,6 +112,18 @@ class StudentProgressController extends Controller
     public function certificatesIndex(): RedirectResponse
     {
         return to_route('admin.student-progress.index');
+    }
+
+    public function showStudentDetail(User $student): Response
+    {
+        $student = $this->resolveStudent($student);
+
+        return Inertia::render('Admin/Students/Edit', [
+            'student' => $this->studentDetailPayload($student),
+            'accessTiers' => $this->accessTierOptions(),
+            'managementContext' => 'student_progress',
+            'status' => session('status'),
+        ]);
     }
 
     public function showCompletedLessons(User $student): Response
@@ -194,7 +209,7 @@ class StudentProgressController extends Controller
         $emailPayload = [
             'user_name' => $student->name,
             'user_email' => $student->email,
-            'assignment_type' => $assignmentSubmission->title(),
+            'assignment_type' => $assignmentSubmission->emailTypeLabel(),
             'feedback' => $assignmentSubmission->assignment_feedback,
             'admin_email' => config('mail.from.address'),
             'dashboard_url' => route('student.dashboard'),
@@ -385,11 +400,7 @@ class StudentProgressController extends Controller
         $student = $this->resolveStudent($student);
         abort_unless($certificate->user_id === $student->id, 404);
 
-        if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
-            $this->bunnyStorage->delete($certificate->file_path);
-        } elseif (Storage::disk('local')->exists($certificate->file_path)) {
-            Storage::disk('local')->delete($certificate->file_path);
-        }
+        $this->bunnyStorage->delete($certificate->file_path);
 
         $certificate->delete();
 
@@ -406,6 +417,7 @@ class StudentProgressController extends Controller
             'email' => $student->email,
             'role' => $student->role,
             'is_active' => $student->isStudentAccountActive(),
+            'student_tag' => $student->studentTag(),
             'access_tier' => $student->accessTier ? [
                 'id' => $student->accessTier->id,
                 'name' => $student->accessTier->name,
@@ -445,11 +457,23 @@ class StudentProgressController extends Controller
                         'id' => $student->id,
                         'number' => $index + 1,
                         'name' => $student->name ?: trim("{$student->first_name} {$student->last_name}"),
-                        'profile_photo' => $student->profile_photo,
+                        'profile_photo' => $this->protectedMediaUrl(
+                            'user',
+                            $student->id,
+                            'profile_photo',
+                            $student->profile_photo,
+                            versionSeed: $student->updated_at,
+                        ),
                         'profile_initials' => $this->initialsFor($student),
                         'progress_percentage' => $this->progressPercentageForStudent($student, $modules, $tierId),
                         'registration_date' => optional($student->created_at)->format('Y-m-d'),
-                        'assignment_status' => $this->assignmentStatusForStudent($student),
+                        'registration_date_sort' => optional($student->created_at)?->toDateString(),
+                        'last_visit_at' => $student->last_login_at
+                            ? \Illuminate\Support\Carbon::parse($student->last_login_at)->format('Y-m-d H:i')
+                            : 'Never logged in',
+                        'last_visit_sort' => $student->last_login_at
+                            ? \Illuminate\Support\Carbon::parse($student->last_login_at)->toIso8601String()
+                            : null,
                     ]),
             ];
         })->values();
@@ -500,18 +524,7 @@ class StudentProgressController extends Controller
 
     private function assignmentStatusForStudent(User $student): string
     {
-        $requiredAssignmentIds = Module::query()
-            ->whereHas('accessTiers', fn ($query) => $query->where('access_tiers.id', $student->access_tier_id))
-            ->with([
-                'assignments' => fn ($query) => $query
-                    ->where('status', Assignment::STATUS_LIVE)
-                    ->select('id', 'module_id'),
-            ])
-            ->get(['id'])
-            ->flatMap(fn (Module $module) => $module->assignments->pluck('id'))
-            ->map(fn ($assignmentId) => (int) $assignmentId)
-            ->unique()
-            ->values();
+        $requiredAssignmentIds = $this->studentLearningPathService->relevantAssignmentIdsForStudent($student);
 
         if ($requiredAssignmentIds->isEmpty()) {
             return 'Not Available';
@@ -608,6 +621,70 @@ class StudentProgressController extends Controller
         abort_unless($student->isStudent(), 404);
 
         return $student->load('accessTier');
+    }
+
+    private function accessTierOptions(): Collection
+    {
+        return AccessTier::query()
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (AccessTier $accessTier) => [
+                'id' => $accessTier->id,
+                'name' => $accessTier->name,
+                'slug' => $accessTier->slug,
+                'is_active' => $accessTier->is_active,
+            ]);
+    }
+
+    private function studentDetailPayload(User $student): array
+    {
+        return [
+            'id' => $student->id,
+            'name' => $student->name,
+            'role' => $student->role,
+            'is_active' => $student->isStudentAccountActive(),
+            'account_status' => $student->studentAccountStatus(),
+            'student_tag' => $student->studentTag(),
+            'irregular_activity_count' => (int) ($student->irregular_activity_count ?? 0),
+            'access_tier_id' => $student->access_tier_id,
+            'access_tier' => $student->accessTier ? [
+                'id' => $student->accessTier->id,
+                'name' => $student->accessTier->name,
+                'slug' => $student->accessTier->slug,
+                'is_active' => $student->accessTier->is_active,
+            ] : null,
+            'first_name' => $student->first_name,
+            'last_name' => $student->last_name,
+            'email' => $student->email,
+            'whatsapp' => $student->whatsapp,
+            'whatsapp_country_code' => \App\Support\CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['country_code'],
+            'whatsapp_number' => \App\Support\CountryDirectory::splitPhoneNumber($student->whatsapp, $student->country)['local_number'],
+            'profile_photo' => $student->profile_photo,
+            'profile_photo_url' => $this->protectedMediaUrl(
+                'user',
+                $student->id,
+                'profile_photo',
+                $student->profile_photo,
+                versionSeed: $student->updated_at,
+            ),
+            'instagram' => $student->instagram,
+            'country' => $student->country,
+            'birth_date' => optional($student->birth_date)->toDateString(),
+            'gender' => $student->gender,
+            'practicing_yoga_for' => \App\Support\StudentProfileValue::normalizePracticingYogaFor($student->practicing_yoga_for),
+            'yoga_sequence_experience' => \App\Support\StudentProfileValue::normalizeYogaSequenceExperience($student->yoga_sequence_experience),
+            'hours_per_week' => \App\Support\StudentProfileValue::normalizeHoursPerWeek($student->hours_per_week),
+            'current_fitness_level' => $student->current_fitness_level,
+            'flexibility_rating' => $student->flexibility_rating,
+            'motivation' => $student->motivation,
+            'why_yogafx' => $student->why_yogafx,
+            'how_did_you_find_us' => \App\Support\StudentProfileValue::normalizeHowDidYouFindUs($student->how_did_you_find_us),
+            'profile_is_complete' => $student->hasCompletedStudentProfile(),
+            'access_time_summary' => $this->sessionTrackingService->summaryForUser(
+                $student,
+            ),
+        ];
     }
 
     private function sendEmail(User $student, string $subject, string $heading, array $bodyLines): void

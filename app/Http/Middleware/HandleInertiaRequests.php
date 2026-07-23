@@ -2,11 +2,18 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Services\LinkControlSettingService;
+use App\Support\CountryDirectory;
+use App\Support\StudentProfileValue;
+use App\Services\SupportSettingService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    use BuildsProtectedMediaUrls;
+
     /**
      * The root template that is loaded on the first page visit.
      *
@@ -30,6 +37,10 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $linkControlSettingService = app(LinkControlSettingService::class);
+        $supportSettingService = app(SupportSettingService::class);
+        $linkControlSetting = $linkControlSettingService->current();
+        $appDownloadPayload = $linkControlSettingService->publicPayload();
 
         return [
             ...parent::share($request),
@@ -39,33 +50,68 @@ class HandleInertiaRequests extends Middleware
                     'name' => $user->name,
                     'role' => $user->role,
                     'is_active' => $user->isStudentAccountActive(),
+                    'account_status' => $user->studentAccountStatus(),
+                    'irregular_activity_count' => (int) ($user->irregular_activity_count ?? 0),
                     'access_tier_id' => $user->access_tier_id,
                     'access_tier' => $user->accessTier ? [
                         'id' => $user->accessTier->id,
                         'name' => $user->accessTier->name,
                         'slug' => $user->accessTier->slug,
                         'is_active' => $user->accessTier->is_active,
+                        'has_full_standing_dialog_access' => $user->accessTier->has_full_standing_dialog_access,
+                        'has_full_floor_dialog_access' => $user->accessTier->has_full_floor_dialog_access,
                     ] : null,
                     'email' => $user->email,
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
                     'whatsapp' => $user->whatsapp,
-                    'preferred_certificate_picture' => $user->preferred_certificate_picture,
-                    'profile_photo' => $user->profile_photo,
+                    'whatsapp_country_code' => CountryDirectory::splitPhoneNumber($user->whatsapp, $user->country)['country_code'],
+                    'whatsapp_number' => CountryDirectory::splitPhoneNumber($user->whatsapp, $user->country)['local_number'],
+                    'profile_photo' => $this->protectedMediaUrl(
+                        'user',
+                        $user->id,
+                        'profile_photo',
+                        $user->profile_photo,
+                        versionSeed: $user->updated_at,
+                    ),
+                    'profile_photo_path' => $user->profile_photo,
                     'instagram' => $user->instagram,
                     'country' => $user->country,
                     'birth_date' => optional($user->birth_date)->toDateString(),
                     'gender' => $user->gender,
-                    'practicing_yoga_for' => $user->practicing_yoga_for,
-                    'yoga_sequence_experience' => $user->yoga_sequence_experience,
-                    'hours_per_week' => $user->hours_per_week,
+                    'practicing_yoga_for' => StudentProfileValue::normalizePracticingYogaFor($user->practicing_yoga_for),
+                    'yoga_sequence_experience' => StudentProfileValue::normalizeYogaSequenceExperience($user->yoga_sequence_experience),
+                    'hours_per_week' => StudentProfileValue::normalizeHoursPerWeek($user->hours_per_week),
                     'current_fitness_level' => $user->current_fitness_level,
                     'flexibility_rating' => $user->flexibility_rating,
                     'motivation' => $user->motivation,
                     'why_yogafx' => $user->why_yogafx,
-                    'how_did_you_find_us' => $user->how_did_you_find_us,
+                    'how_did_you_find_us' => StudentProfileValue::normalizeHowDidYouFindUs($user->how_did_you_find_us),
                     'profile_is_complete' => $user->hasCompletedStudentProfile(),
+                    'missing_profile_fields' => $user->missingStudentProfileFields(),
                 ] : null,
+            ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'status' => fn () => $request->session()->get('status'),
+            ],
+            'directory' => [
+                'countries' => CountryDirectory::countryOptions(),
+                'phone_country_codes' => CountryDirectory::phoneCountryCodeOptions(),
+            ],
+            'supportContact' => $supportSettingService->publicPayload(),
+            'appDownload' => [
+                ...$appDownloadPayload,
+                'qr_image_url' => $appDownloadPayload['has_any_link']
+                    ? $this->protectedMediaUrl(
+                        'link-control-setting',
+                        $linkControlSetting->id,
+                        'qr_image',
+                        $linkControlSetting->qr_image,
+                        versionSeed: $linkControlSetting->updated_at,
+                    )
+                    : null,
             ],
         ];
     }

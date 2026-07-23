@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -16,6 +16,8 @@ export default function EmailNotificationShow({
     template,
     modules,
     availableMergeTags,
+    brandingSettingsUrl,
+    brandingSummary,
     statusMessage,
     statusTone,
 }) {
@@ -39,6 +41,26 @@ export default function EmailNotificationShow({
         subject_user: template.subject_user,
         body_user: template.body_user,
     });
+
+    useEffect(() => {
+        templateForm.setData({
+            notification_type: notificationType,
+            is_enabled: template.is_enabled,
+            admin_recipients: template.admin_recipients,
+            subject_admin: template.subject_admin,
+            body_admin: template.body_admin,
+            subject_user: template.subject_user,
+            body_user: template.body_user,
+        });
+    }, [
+        notificationType,
+        template.is_enabled,
+        template.admin_recipients,
+        template.subject_admin,
+        template.body_admin,
+        template.subject_user,
+        template.body_user,
+    ]);
 
     const testForm = useForm({
         notification_type: notificationType,
@@ -239,18 +261,7 @@ export default function EmailNotificationShow({
     );
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="min-w-0">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        {notificationLabel}
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        {notificationDescription}
-                    </p>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title={notificationLabel} />
 
             <div className="py-12">
@@ -269,6 +280,12 @@ export default function EmailNotificationShow({
                         </div>
                     )}
 
+                    {(notificationType === 'payment_success' || notificationType === 'installment_payment_success') && (
+                        <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                            Live payment success emails automatically attach the generated invoice PDF to both student and admin deliveries.
+                        </div>
+                    )}
+
                     {Object.keys(errors).length > 0 && (
                         <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
                             {Object.values(errors)[0]}
@@ -281,6 +298,33 @@ export default function EmailNotificationShow({
                                 onSubmit={submitTemplate}
                                 className="space-y-6 rounded-lg bg-white p-6 shadow-sm"
                             >
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-slate-900">
+                                                Global Branding
+                                            </h3>
+                                            <p className="mt-1 text-sm text-slate-500">
+                                                Logo, header, and footer are managed once globally and applied
+                                                automatically to this notification email.
+                                            </p>
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            {brandingSummary?.logo_html ? (
+                                                <div
+                                                    className="max-w-[220px] overflow-hidden rounded-md border border-slate-200 bg-white px-3 py-2"
+                                                    dangerouslySetInnerHTML={{ __html: brandingSummary.logo_html }}
+                                                />
+                                            ) : null}
+
+                                            <Button asChild type="button" variant="outline">
+                                                <a href={brandingSettingsUrl}>Manage Branding</a>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <h3 className="text-lg font-semibold text-slate-900">
@@ -339,7 +383,7 @@ export default function EmailNotificationShow({
                                                 event.target.value,
                                             )
                                         }
-                                        placeholder="admin@yogafx.test, ops@yogafx.test"
+                                        placeholder="manager@example.com, ops@example.com"
                                         className="min-h-24"
                                     />
                                     <p className="text-xs text-slate-500">
@@ -356,7 +400,7 @@ export default function EmailNotificationShow({
                                             </h4>
                                             <p className="mt-1 text-xs text-slate-500">
                                                 Sent to admin recipients when admin
-                                                copy is configured.
+                                                copy is configured. Global branding is added automatically.
                                             </p>
                                         </div>
 
@@ -404,7 +448,7 @@ export default function EmailNotificationShow({
                                             </h4>
                                             <p className="mt-1 text-xs text-slate-500">
                                                 Sent to the user when user-facing
-                                                content is configured.
+                                                content is configured. Global branding is added automatically.
                                             </p>
                                         </div>
 

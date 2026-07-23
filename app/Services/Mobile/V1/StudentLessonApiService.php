@@ -2,26 +2,32 @@
 
 namespace App\Services\Mobile\V1;
 
-use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
 use App\Models\AssessmentAttempt;
 use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
+use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use App\Services\BunnyStreamService;
+use App\Services\StudentIrregularActivityService;
 use App\Services\StudentLearningMilestoneEmailService;
+use App\Services\StudentWorkbookDeliveryService;
+use App\Support\MobileSignedUrl;
 use App\Support\MobileMediaPayload;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class StudentLessonApiService
 {
-    use BuildsProtectedMediaUrls;
+    use BuildsMobileSignedContentImageUrls;
+
+    private const AUTHENTIC_WATCH_TIME_TOLERANCE_SECONDS = 2;
 
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
+        private readonly StudentWorkbookDeliveryService $studentWorkbookDeliveryService,
+        private readonly StudentIrregularActivityService $studentIrregularActivityService,
     ) {}
 
     /**
@@ -78,13 +84,7 @@ class StudentLessonApiService
             'id' => $lesson->id,
             'title' => $lesson->title,
             'content' => $lesson->content,
-            'thumbnail_url' => $this->protectedMediaUrl(
-                'lesson',
-                $lesson->id,
-                'thumbnail',
-                $lesson->thumbnail,
-                versionSeed: $lesson->updated_at,
-            ),
+            'thumbnail_url' => $this->lessonThumbnailUrl($user, $lesson, $lesson->module),
             'is_locked' => false,
             'lock_reason' => null,
             'video' => $videoState,
@@ -102,6 +102,7 @@ class StudentLessonApiService
             'workbook' => [
                 'url' => $workbookOpenUrl,
                 'download_url' => $workbookDownloadUrl,
+                'trigger_url' => $this->mobileLessonWorkbookTriggerUrl($lesson),
                 'file_name' => $lesson->workbook ? basename((string) $lesson->workbook) : null,
                 'is_available' => filled($lesson->workbook),
                 'file' => MobileMediaPayload::file(
@@ -152,7 +153,7 @@ class StudentLessonApiService
                 'id' => $item->id,
                 'title' => $item->title,
                 'sort_order' => $item->sort_order,
-                'thumbnail_url' => $this->lessonThumbnailUrl($item, $lesson->module),
+                'thumbnail_url' => $this->lessonThumbnailUrl($user, $item, $lesson->module),
                 'is_locked' => ! ($lessonUnlockMap->get($item->id)['is_unlocked'] ?? false),
                 'lock_reason' => $lessonUnlockMap->get($item->id)['reason'] ?? null,
                 'status' => $this->isLessonFullyComplete(
@@ -170,7 +171,7 @@ class StudentLessonApiService
                 'id' => $nextLesson->id,
                 'title' => $nextLesson->title,
                 'sort_order' => $nextLesson->sort_order,
-                'thumbnail_url' => $this->lessonThumbnailUrl($nextLesson, $lesson->module),
+                'thumbnail_url' => $this->lessonThumbnailUrl($user, $nextLesson, $lesson->module),
                 'is_unlocked' => (bool) ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false),
                 'lock_reason' => $lessonUnlockMap->get($nextLesson->id)['reason'] ?? null,
             ] : null,
@@ -180,7 +181,13 @@ class StudentLessonApiService
     /**
      * @return array<string, mixed>|null
      */
-    public function updateProgressForUser(User $user, Lesson $lesson, float $incomingProgress): ?array
+    public function updateProgressForUser(
+        User $user,
+        Lesson $lesson,
+        float $incomingProgress,
+        int $watchTimeIncrementSeconds = 0,
+        ?int $videoDurationSeconds = null,
+    ): ?array
     {
         $detail = $this->lessonDetailForUser($user, $lesson);
 
@@ -189,12 +196,18 @@ class StudentLessonApiService
         }
 
         $incomingProgress = round($incomingProgress, 2);
+        $watchTimeIncrementSeconds = max(0, $watchTimeIncrementSeconds);
         $existingProgress = (float) LessonProgress::query()
             ->where('user_id', $user->id)
             ->where('lesson_id', $lesson->id)
             ->value('watch_progress');
+        $existingWatchTimeSeconds = (int) LessonProgress::query()
+            ->where('user_id', $user->id)
+            ->where('lesson_id', $lesson->id)
+            ->value('watch_time_seconds');
 
         $watchProgress = max($existingProgress, $incomingProgress);
+        $watchTimeSeconds = $existingWatchTimeSeconds + $watchTimeIncrementSeconds;
         $hasCompletedAssessment = $lesson->assessment_id !== null
             && $lesson->assessment?->status === 'live'
             && $lesson->assessment?->is_active
@@ -203,7 +216,12 @@ class StudentLessonApiService
                 ->where('user_id', $user->id)
                 ->where('status', AssessmentAttempt::STATUS_COMPLETED)
                 ->exists();
-        $isDone = $watchProgress >= 95 && (! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live');
+        $meetsAssessmentRequirement = ! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live';
+        $hasEnoughAuthenticWatchTime = $user->isTesterStudent()
+            || $lesson->lesson_video_id === null
+            || ! $videoDurationSeconds
+            || $watchTimeSeconds >= max(0, $videoDurationSeconds - self::AUTHENTIC_WATCH_TIME_TOLERANCE_SECONDS);
+        $isDone = $watchProgress >= 95 && $meetsAssessmentRequirement && $hasEnoughAuthenticWatchTime;
 
         $lessonProgress = LessonProgress::query()->updateOrCreate(
             [
@@ -212,11 +230,27 @@ class StudentLessonApiService
             ],
             [
                 'watch_progress' => $watchProgress,
+                'watch_time_seconds' => $watchTimeSeconds,
                 'video_completed_at' => $isDone ? now() : null,
                 'is_done' => $isDone,
                 'completed_at' => $isDone ? now() : null,
             ],
         );
+
+        $irregularResult = [
+            'is_irregular' => false,
+            'irregular_activity_count' => (int) ($user->irregular_activity_count ?? 0),
+            'was_suspended' => false,
+        ];
+
+        if ($incomingProgress >= 95 && $existingProgress < 95 && ! $isDone) {
+            $irregularResult = $this->studentIrregularActivityService->evaluateCompletionAttempt(
+                $user,
+                $lesson,
+                $lessonProgress,
+                $videoDurationSeconds,
+            );
+        }
 
         if ($isDone) {
             $this->studentLearningMilestoneEmailService->syncLessonMilestones($user, $lesson);
@@ -224,8 +258,59 @@ class StudentLessonApiService
 
         return [
             'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
+            'watch_time_seconds' => (int) ($lessonProgress->watch_time_seconds ?? 0),
             'is_done' => (bool) $lessonProgress->is_done,
             'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
+            'is_irregular' => (bool) ($irregularResult['is_irregular'] ?? false),
+            'irregular_activity_count' => (int) ($irregularResult['irregular_activity_count'] ?? 0),
+            'show_irregular_warning' => (bool) ($irregularResult['warning_required'] ?? false),
+            'account_status' => $user->fresh()?->studentAccountStatus(),
+            'should_redirect_to_inactive' => (bool) ($irregularResult['was_suspended'] ?? false),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function triggerWorkbookForUser(User $user, Lesson $lesson): ?array
+    {
+        $detail = $this->lessonDetailForUser($user, $lesson);
+
+        if (! $detail || ($detail['is_locked'] ?? false)) {
+            return $detail;
+        }
+
+        if (! filled($lesson->workbook)) {
+            return [
+                'lesson_id' => $lesson->id,
+                'workbook' => [
+                    'is_available' => false,
+                ],
+            ];
+        }
+
+        $result = $this->studentWorkbookDeliveryService->triggerOnce($user, $lesson);
+
+        return [
+            'lesson_id' => $lesson->id,
+            'was_first_trigger' => $result['was_first_trigger'],
+            'workbook' => [
+                'is_available' => true,
+                'is_workbook_downloaded' => $result['is_workbook_downloaded'],
+                'workbook_downloaded_at' => $result['workbook_downloaded_at'],
+                'download_url' => $this->mobileLessonWorkbookDownloadUrl($user, $lesson),
+                'open_url' => $this->mobileLessonWorkbookOpenUrl($user, $lesson),
+                'trigger_url' => $this->mobileLessonWorkbookTriggerUrl($lesson),
+                'file_name' => basename((string) $lesson->workbook),
+            ],
+            'notification' => [
+                'title' => $result['was_first_trigger']
+                    ? 'Workbook download started'
+                    : 'Workbook already delivered',
+                'message' => $result['was_first_trigger']
+                    ? 'Workbook delivery was triggered successfully. You can start the download now and the workbook was also sent to email.'
+                    : 'This workbook was already triggered before for the authenticated student.',
+            ],
         ];
     }
 
@@ -307,23 +392,12 @@ class StudentLessonApiService
         ];
     }
 
-    private function lessonThumbnailUrl(Lesson $lesson, ?Module $module = null): ?string
+    private function lessonThumbnailUrl(User $user, Lesson $lesson, ?Module $module = null): ?string
     {
-        return $this->protectedMediaUrl(
-            'lesson',
-            $lesson->id,
-            'thumbnail',
-            $lesson->thumbnail,
-            versionSeed: $lesson->updated_at,
-        ) ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
+        return $this->mobileSignedContentImageUrl($user, 'lesson', $lesson->id, 'thumbnail', $lesson->thumbnail, $lesson->updated_at)
+            ?: $this->bunnyStreamService->thumbnailUrl($lesson->lesson_video_id)
             ?: ($module
-                ? $this->protectedMediaUrl(
-                    'module',
-                    $module->id,
-                    'thumbnail',
-                    $module->thumbnail,
-                    versionSeed: $module->updated_at,
-                )
+                ? $this->mobileSignedContentImageUrl($user, 'module', $module->id, 'thumbnail', $module->thumbnail, $module->updated_at)
                 : null);
     }
 
@@ -333,7 +407,7 @@ class StudentLessonApiService
             return null;
         }
 
-        return URL::temporarySignedRoute(
+        return MobileSignedUrl::temporarySignedRoute(
             'mobile.api.v1.lesson-media.audio',
             now()->addHour(),
             [
@@ -349,7 +423,7 @@ class StudentLessonApiService
             return null;
         }
 
-        return URL::temporarySignedRoute(
+        return MobileSignedUrl::temporarySignedRoute(
             'mobile.api.v1.lesson-media.workbook',
             now()->addHour(),
             [
@@ -365,7 +439,7 @@ class StudentLessonApiService
             return null;
         }
 
-        return URL::temporarySignedRoute(
+        return MobileSignedUrl::temporarySignedRoute(
             'mobile.api.v1.lesson-media.workbook.download',
             now()->addHour(),
             [
@@ -373,6 +447,17 @@ class StudentLessonApiService
                 'student' => $user->id,
             ],
         );
+    }
+
+    private function mobileLessonWorkbookTriggerUrl(Lesson $lesson): ?string
+    {
+        if (! filled($lesson->workbook)) {
+            return null;
+        }
+
+        return route('mobile.api.v1.lessons.workbook.trigger', [
+            'lesson' => $lesson->id,
+        ]);
     }
 
     private function accessibleModulesWithLessons(?int $accessTierId): Collection
@@ -476,6 +561,10 @@ class StudentLessonApiService
         ?LessonProgress $lessonProgress,
         Collection $completedAssessmentIds,
     ): bool {
+        if (filled($lesson->workbook) && ! (bool) ($lessonProgress?->is_workbook_downloaded ?? false)) {
+            return false;
+        }
+
         if ($lesson->lesson_video_id !== null && (float) ($lessonProgress?->watch_progress ?? 0) < 95) {
             return false;
         }

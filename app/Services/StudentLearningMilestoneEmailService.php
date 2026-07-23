@@ -11,6 +11,8 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\User;
 use App\Support\EmailNotificationTypeRegistry;
+use App\Support\PublicUrl;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class StudentLearningMilestoneEmailService
@@ -43,13 +45,16 @@ class StudentLearningMilestoneEmailService
             ->get()
             ->keyBy('lesson_id');
 
+        $moduleCompletedAt = $this->completionMomentForModule($module, $lessonProgressMap, $completedAssessmentIds);
+
         if (
-            $this->isModuleComplete($module, $lessonProgressMap, $completedAssessmentIds)
+            $moduleCompletedAt !== null
             && ! $this->hasSentNotification(
                 EmailNotificationTypeRegistry::MODULE_COMPLETION,
                 'module',
                 $module->id,
                 $user->email,
+                $moduleCompletedAt,
             )
         ) {
             event(new ModuleCompleted([
@@ -61,19 +66,24 @@ class StudentLearningMilestoneEmailService
                 'course_progress' => $this->courseProgressPercentage($accessibleModules, $lessonProgressMap, $completedAssessmentIds).'%',
                 'study_time' => $this->studyTimeLabel($user),
                 'dashboard_url' => route('student.dashboard'),
-                'login_url' => route('login'),
+                'login_url' => PublicUrl::studentLogin(),
             ], 'module', $module->id));
         }
 
+        $courseCompletedAt = $this->completionMomentForAccessibleModules(
+            $accessibleModules,
+            $lessonProgressMap,
+            $completedAssessmentIds,
+        );
+
         if (
-            $accessibleModules->every(
-                fn (Module $item) => $this->isModuleComplete($item, $lessonProgressMap, $completedAssessmentIds),
-            )
+            $courseCompletedAt !== null
             && ! $this->hasSentNotification(
                 EmailNotificationTypeRegistry::COURSE_COMPLETE,
                 'learning_path',
                 $user->id,
                 $user->email,
+                $courseCompletedAt,
             )
         ) {
             $accessTierName = $user->accessTier?->name ?? 'YogaFX Learning Path';
@@ -85,7 +95,7 @@ class StudentLearningMilestoneEmailService
                 'completion_date' => now()->format('Y-m-d H:i'),
                 'course_progress' => '100%',
                 'dashboard_url' => route('student.dashboard'),
-                'login_url' => route('login'),
+                'login_url' => PublicUrl::studentLogin(),
             ], 'learning_path', $user->id));
         }
     }
@@ -107,7 +117,9 @@ class StudentLearningMilestoneEmailService
             ])
             ->orderBy('sort_order')
             ->orderBy('title')
-            ->get();
+            ->get()
+            ->filter(fn (Module $module) => $module->lessons->isNotEmpty())
+            ->values();
     }
 
     /**
@@ -203,18 +215,72 @@ class StudentLearningMilestoneEmailService
         string $referenceType,
         int $referenceId,
         ?string $recipientEmail,
+        ?Carbon $completionMoment = null,
     ): bool {
         if (! filled($recipientEmail)) {
             return false;
         }
 
-        return EmailLog::query()
+        $query = EmailLog::query()
             ->where('notification_type', $notificationType)
             ->where('reference_type', $referenceType)
             ->where('reference_id', $referenceId)
             ->where('recipient_email', $recipientEmail)
-            ->where('status', 'sent')
-            ->exists();
+            ->where('status', 'sent');
+
+        if ($completionMoment !== null) {
+            $query->where('sent_at', '>=', $completionMoment);
+        }
+
+        return $query->exists();
+    }
+
+    private function completionMomentForModule(
+        Module $module,
+        Collection $lessonProgressMap,
+        Collection $completedAssessmentIds,
+    ): ?Carbon {
+        if (! $this->isModuleComplete($module, $lessonProgressMap, $completedAssessmentIds)) {
+            return null;
+        }
+
+        return $module->lessons
+            ->map(fn (Lesson $item) => $this->completionMomentForLesson($lessonProgressMap->get($item->id)))
+            ->filter()
+            ->max();
+    }
+
+    private function completionMomentForAccessibleModules(
+        Collection $accessibleModules,
+        Collection $lessonProgressMap,
+        Collection $completedAssessmentIds,
+    ): ?Carbon {
+        if ($accessibleModules->isEmpty()) {
+            return null;
+        }
+
+        if (! $accessibleModules->every(
+            fn (Module $item) => $this->isModuleComplete($item, $lessonProgressMap, $completedAssessmentIds),
+        )) {
+            return null;
+        }
+
+        return $accessibleModules
+            ->flatMap(fn (Module $module) => $module->lessons)
+            ->map(fn (Lesson $item) => $this->completionMomentForLesson($lessonProgressMap->get($item->id)))
+            ->filter()
+            ->max();
+    }
+
+    private function completionMomentForLesson(?LessonProgress $lessonProgress): ?Carbon
+    {
+        if (! $lessonProgress || ! $lessonProgress->is_done) {
+            return null;
+        }
+
+        return $lessonProgress->completed_at
+            ?? $lessonProgress->video_completed_at
+            ?? $lessonProgress->updated_at;
     }
 
     private function studyTimeLabel(User $user): string

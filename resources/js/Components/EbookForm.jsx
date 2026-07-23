@@ -5,7 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { validateUploadSize } from '@/lib/uploads';
 
-const EBOOK_MAX_UPLOAD_SIZE_MB = 100;
+const EBOOK_MAX_UPLOAD_SIZE_MB = 500;
 const EBOOK_MAX_UPLOAD_SIZE_BYTES = EBOOK_MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 const EBOOK_MAX_UPLOAD_SIZE_LABEL = `${EBOOK_MAX_UPLOAD_SIZE_MB} MB`;
 

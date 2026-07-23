@@ -8,6 +8,7 @@ use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\User;
 use App\Services\BunnyStorageService;
+use App\Services\StudentLearningPathService;
 use App\Support\UploadConstraints;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -31,6 +32,7 @@ class StudentAssignmentApiService
     public function __construct(
         private readonly BunnyStorageService $bunnyStorageService,
         private readonly StudentModuleApiService $studentModuleApiService,
+        private readonly StudentLearningPathService $studentLearningPathService,
     ) {}
 
     /**
@@ -152,7 +154,7 @@ class StudentAssignmentApiService
 
         $submission->assignment_id = $assignment->id;
         $submission->user_id = $user->id;
-        $submission->assignment_type = Str::snake($assignment->title);
+        $submission->assignment_type = AssignmentSubmission::assignmentTypeFor($assignment);
         $submission->assignment_video = $newVideoPath;
         $submission->assignment_status = AssignmentSubmission::STATUS_SUBMITTED;
         $submission->assignment_feedback = null;
@@ -184,6 +186,7 @@ class StudentAssignmentApiService
 
         if (
             $user->access_tier_id === null
+            || ! $this->studentLearningPathService->assignmentFlowAccessibleForStudent($user)
             || $assignment->status !== Assignment::STATUS_LIVE
             || ! $assignment->module
             || ! $assignment->module->accessTiers()->where('access_tiers.id', $user->access_tier_id)->exists()
@@ -197,12 +200,7 @@ class StudentAssignmentApiService
             return null;
         }
 
-        $submission = AssignmentSubmission::query()
-            ->where('assignment_id', $assignment->id)
-            ->where('user_id', $user->id)
-            ->latest('submitted_at')
-            ->latest('id')
-            ->first();
+        $submission = AssignmentSubmission::latestForUserAssignment($user->id, $assignment);
 
         if (($moduleDetail['is_visible'] ?? true) === false || ($moduleDetail['status'] ?? null) === 'locked') {
             return [

@@ -5,8 +5,9 @@ namespace App\Listeners;
 use App\Events\EmailNotifications\UserSignedUp;
 use App\Services\EmailNotificationService;
 use App\Support\EmailNotificationTypeRegistry;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-class SendSignupEmailNotification
+class SendSignupEmailNotification implements ShouldQueue
 {
     public function __construct(private readonly EmailNotificationService $emailNotificationService)
     {

@@ -15,29 +15,22 @@ export default function ScoreboardsIndex({ scoreboards, status }) {
     const errors = usePage().props.errors;
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-semibold text-slate-900">
-                            Assessment
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Manage the assessment list, preview student flow, and review submitted results without changing the existing layout structure.
-                        </p>
-                    </div>
-                    <Button asChild>
-                        <Link href={route('admin.scoreboards.create')}>
-                            Create Assessment
-                        </Link>
-                    </Button>
-                </div>
-            }
-        >
+        <AuthenticatedLayout>
             <Head title="Assessment" />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-end">
+                        <Button
+                            asChild
+                            className="border border-gray-900 bg-gray-900 text-white hover:bg-gray-700"
+                        >
+                            <Link href={route('admin.scoreboards.create')}>
+                                Create Assessment
+                            </Link>
+                        </Button>
+                    </div>
+
                     {statusMessages[status] && (
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                             {statusMessages[status]}

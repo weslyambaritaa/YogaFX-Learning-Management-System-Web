@@ -1,18 +1,35 @@
 <?php
 
 use App\Http\Controllers\Admin\AccessTierController;
+use App\Http\Controllers\Admin\AdminAccountController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AssignmentController as AdminAssignmentController;
 use App\Http\Controllers\Admin\AssessmentPreviewController;
 use App\Http\Controllers\Admin\AssessmentResultController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\DialogContentController as AdminDialogContentController;
+use App\Http\Controllers\Admin\EmailBrandingController;
 use App\Http\Controllers\Admin\EmailNotificationController;
 use App\Http\Controllers\Admin\EbookController;
 use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\ModuleController;
+use App\Http\Controllers\Admin\PackageController;
+use App\Http\Controllers\Admin\InvoiceIndexController;
+use App\Http\Controllers\Admin\InvoicePdfController;
+use App\Http\Controllers\Admin\LinkControlSettingController;
+use App\Http\Controllers\Admin\PaymentIndexController;
 use App\Http\Controllers\Admin\StudentProgressController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\SupportSettingController;
 use App\Http\Controllers\ContentFileController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\LeadRegistrationController;
+use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\PayPalCheckoutController;
+use App\Http\Controllers\PayPalWebhookController;
+use App\Http\Controllers\PublicAppDownloadController;
+use App\Http\Controllers\PublicAssetController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Student\CourseCatalogController;
 use App\Http\Controllers\Student\EbookCatalogController;
@@ -23,20 +40,70 @@ use App\Http\Controllers\Student\HomeController;
 use App\Http\Controllers\Student\LessonCatalogController;
 use App\Http\Controllers\Student\ModuleCatalogController;
 use App\Http\Controllers\Student\ProfilePasswordController;
+use App\Http\Controllers\Student\UpgradeController;
 use App\Http\Controllers\Admin\ScoreboardBuilderController;
 use App\Http\Controllers\Admin\ScoreboardController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => false,
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+Route::redirect('/', '/login');
+
+Route::get('/public-media/{entity}/{id}/{field}', [PublicAssetController::class, 'show'])
+    ->whereNumber('id')
+    ->name('public-media.show');
+Route::get('/download-app', PublicAppDownloadController::class)->name('public.app-download');
+
+Route::get('/scoreboard', [LeadRegistrationController::class, 'create'])->name('lead-registration.create');
+Route::post('/scoreboard', [LeadRegistrationController::class, 'store'])->name('lead-registration.store');
+Route::get('/scoreboard/submitted/{pendingRegistration}', [LeadRegistrationController::class, 'submitted'])->name('lead-registration.submitted');
+Route::get('/online', [LeadRegistrationController::class, 'showProductPaymentLink'])
+    ->defaults('paymentLinkSlug', 'online')
+    ->name('lead-registration.products.online');
+Route::post('/online', [LeadRegistrationController::class, 'store'])
+    ->defaults('paymentLinkSlug', 'online')
+    ->name('lead-registration.products.online.store');
+Route::get('/starter-kit', [LeadRegistrationController::class, 'showProductPaymentLink'])
+    ->defaults('paymentLinkSlug', 'starter-kit')
+    ->name('lead-registration.products.starter-kit');
+Route::post('/starter-kit', [LeadRegistrationController::class, 'store'])
+    ->defaults('paymentLinkSlug', 'starter-kit')
+    ->name('lead-registration.products.starter-kit.store');
+Route::get('/starterkit', [LeadRegistrationController::class, 'showProductPaymentLink'])
+    ->defaults('paymentLinkSlug', 'starterkit');
+Route::post('/starterkit', [LeadRegistrationController::class, 'store'])
+    ->defaults('paymentLinkSlug', 'starterkit');
+Route::get('/masterclass', [LeadRegistrationController::class, 'showProductPaymentLink'])
+    ->defaults('paymentLinkSlug', 'masterclass')
+    ->name('lead-registration.products.masterclass');
+Route::post('/masterclass', [LeadRegistrationController::class, 'store'])
+    ->defaults('paymentLinkSlug', 'masterclass')
+    ->name('lead-registration.products.masterclass.store');
+Route::get('/paypal/checkout/{invoice}/success', [PayPalCheckoutController::class, 'success'])->name('paypal.success');
+Route::get('/paypal/checkout/{invoice}/cancel', [PayPalCheckoutController::class, 'cancel'])->name('paypal.cancel');
+Route::post('/webhooks/paypal', PayPalWebhookController::class)
+    ->name('paypal.webhook');
+
+Route::middleware('signed')->group(function () {
+    Route::get('/checkout/{pendingRegistration}/{accessTierSlug}', [CheckoutController::class, 'show'])->name('checkout.show');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/pay', [CheckoutController::class, 'pay'])->name('checkout.pay');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders', [CheckoutController::class, 'createOrder'])->name('checkout.orders.store');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders/{invoice}/capture', [CheckoutController::class, 'captureOrder'])->name('checkout.orders.capture');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/orders/{invoice}/cancel', [CheckoutController::class, 'cancelOrder'])->name('checkout.orders.cancel');
+    Route::post('/checkout/{pendingRegistration}/{accessTierSlug}/installments/approve', [CheckoutController::class, 'approveInstallment'])->name('checkout.installments.approve');
+    Route::get('/checkout/{pendingRegistration}/{accessTierSlug}/installments/status', [CheckoutController::class, 'installmentStatus'])->name('checkout.installments.status');
+    Route::get('/checkout/{pendingRegistration}/{accessTierSlug}/installments/return', [CheckoutController::class, 'subscriptionReturn'])->name('checkout.installments.return');
+    Route::get('/checkout/{pendingRegistration}/{accessTierSlug}/installments/cancel', [CheckoutController::class, 'subscriptionCancel'])->name('checkout.installments.cancel');
+    Route::get('/checkout/invoices/{invoice}/status', [CheckoutController::class, 'status'])->name('checkout.status');
+    Route::get('/onboarding/{onboardingState}/payment-success', [OnboardingController::class, 'showPaymentSuccess'])->name('onboarding.payment-success.show');
+    Route::get('/upgrades/{invoice}/payment-success', [UpgradeController::class, 'success'])->name('student.upgrades.success');
+    Route::get('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'showEnrollment'])->name('onboarding.enrollment.show');
+    Route::post('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'storeEnrollment'])->name('onboarding.enrollment.store');
+    Route::get('/onboarding/{onboardingState}/signup', [OnboardingController::class, 'showSignup'])->name('onboarding.signup.show');
+    Route::post('/onboarding/{onboardingState}/signup', [OnboardingController::class, 'storeSignup'])->name('onboarding.signup.store');
 });
+
+Route::get('/profile/password/change/{token}', [ProfilePasswordController::class, 'edit'])->name('profile.password.change.edit');
+Route::post('/profile/password/change', [ProfilePasswordController::class, 'update'])->name('profile.password.change.update');
 
 Route::middleware('auth')->group(function () {
     Route::get('/media/{entity}/{id}/{field}', [ContentFileController::class, 'show'])->name('media.show');
@@ -49,9 +116,9 @@ Route::middleware('auth')->group(function () {
         return redirect()->route($user->postLoginRouteName());
     })->name('dashboard');
 
-    Route::get('/admin/dashboard', function () {
-        return Inertia::render('Admin/Dashboard');
-    })->middleware('role:admin')->name('admin.dashboard');
+    Route::get('/admin/dashboard', AdminDashboardController::class)
+        ->middleware('role:admin,super_admin')
+        ->name('admin.dashboard');
 
     Route::get('/student/dashboard', [HomeController::class, 'index'])
         ->middleware(['role:student', 'student.active', 'track.student.session'])
@@ -68,6 +135,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/modules', [ModuleCatalogController::class, 'index'])->name('modules.index');
         Route::get('/modules/{module:url_slug}', [ModuleCatalogController::class, 'show'])->name('modules.show');
         Route::get('/lessons/{lesson}', [LessonCatalogController::class, 'show'])->name('lessons.show');
+        Route::post('/lessons/{lesson}/workbook/trigger', [LessonCatalogController::class, 'triggerWorkbook'])->name('lessons.workbook.trigger');
         Route::get('/lessons/{lesson}/workbook/download', [LessonCatalogController::class, 'downloadWorkbook'])->name('lessons.workbook.download');
         Route::get('/assignments/{assignment}', [StudentAssignmentController::class, 'show'])->name('assignments.show');
         Route::post('/assignments/{assignment}/submit', [StudentAssignmentController::class, 'store'])->name('assignments.submit');
@@ -84,12 +152,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/ebooks', [EbookCatalogController::class, 'index'])->name('ebooks.index');
         Route::get('/ebooks/{ebook}/preview', [EbookCatalogController::class, 'preview'])->name('ebooks.preview');
         Route::get('/courses', [CourseCatalogController::class, 'index'])->name('courses.index');
+        Route::get('/courses/{course:url_slug}', [CourseCatalogController::class, 'show'])->name('courses.show');
+        Route::get('/upgrades/{accessTier}', [UpgradeController::class, 'show'])->name('student.upgrades.show');
+        Route::post('/upgrades/{accessTier}', [UpgradeController::class, 'pay'])->name('student.upgrades.pay');
+        Route::post('/upgrades/{accessTier}/installments/approve', [UpgradeController::class, 'approveInstallment'])->name('student.upgrades.installments.approve');
+        Route::get('/upgrades/{accessTier}/installments/status', [UpgradeController::class, 'installmentStatus'])->name('student.upgrades.installments.status');
+        Route::get('/upgrades/{accessTier}/installments/return', [UpgradeController::class, 'subscriptionReturn'])->name('student.upgrades.installments.return');
+        Route::get('/upgrades/{accessTier}/installments/cancel', [UpgradeController::class, 'subscriptionCancel'])->name('student.upgrades.installments.cancel');
     });
 
-    Route::get('/profile/password/change/{token}', [ProfilePasswordController::class, 'edit'])->name('profile.password.change.edit');
-    Route::post('/profile/password/change', [ProfilePasswordController::class, 'update'])->name('profile.password.change.update');
+    Route::middleware('role:admin,super_admin')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
 
-    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/access-tiers', [AccessTierController::class, 'index'])->name('access-tiers.index');
         Route::get('/access-tiers/create', [AccessTierController::class, 'create'])->name('access-tiers.create');
         Route::post('/access-tiers', [AccessTierController::class, 'store'])->name('access-tiers.store');
@@ -97,7 +172,20 @@ Route::middleware('auth')->group(function () {
         Route::patch('/access-tiers/{accessTier}', [AccessTierController::class, 'update'])->name('access-tiers.update');
         Route::delete('/access-tiers/{accessTier}', [AccessTierController::class, 'destroy'])->name('access-tiers.destroy');
 
+        Route::get('/packages', [PackageController::class, 'index'])->name('packages.index');
+        Route::get('/packages/create', [PackageController::class, 'create'])->name('packages.create');
+        Route::post('/packages', [PackageController::class, 'store'])->name('packages.store');
+        Route::get('/packages/{package}/edit', [PackageController::class, 'edit'])->name('packages.edit');
+        Route::patch('/packages/{package}', [PackageController::class, 'update'])->name('packages.update');
+        Route::delete('/packages/{package}', [PackageController::class, 'destroy'])->name('packages.destroy');
+
+        Route::get('/invoices', [InvoiceIndexController::class, 'index'])->name('invoices.index');
+        Route::get('/invoices/{invoice}/pdf/preview', [InvoicePdfController::class, 'preview'])->name('invoices.pdf.preview');
+        Route::get('/invoices/{invoice}/pdf/download', [InvoicePdfController::class, 'download'])->name('invoices.pdf.download');
+        Route::get('/payments', [PaymentIndexController::class, 'index'])->name('payments.index');
+
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+        Route::post('/modules/reorder', [ModuleController::class, 'reorder'])->name('modules.reorder');
         Route::get('/modules/create', [ModuleController::class, 'create'])->name('modules.create');
         Route::post('/modules', [ModuleController::class, 'store'])->name('modules.store');
         Route::get('/modules/{module}/edit', [ModuleController::class, 'edit'])->name('modules.edit');
@@ -111,6 +199,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/modules/{module}/assignments/{assignment}', [AdminAssignmentController::class, 'destroy'])->name('modules.assignments.destroy');
 
         Route::get('/lessons', [LessonController::class, 'index'])->name('lessons.index');
+        Route::post('/lessons/reorder', [LessonController::class, 'reorder'])->name('lessons.reorder');
         Route::get('/lessons/create', [LessonController::class, 'create'])->name('lessons.create');
         Route::post('/lessons', [LessonController::class, 'store'])->name('lessons.store');
         Route::get('/lessons/{lesson}/edit', [LessonController::class, 'edit'])->name('lessons.edit');
@@ -161,12 +250,20 @@ Route::middleware('auth')->group(function () {
         Route::patch('/dialogs', [AdminDialogContentController::class, 'update'])->name('dialogs.update');
 
         Route::redirect('/email-notifications', '/admin/email-notifications/module_completion')->name('email-notifications.index');
+        Route::get('/email-branding', [EmailBrandingController::class, 'show'])->name('email-branding.show');
+        Route::patch('/email-branding', [EmailBrandingController::class, 'update'])->name('email-branding.update');
         Route::get('/email-notifications/{notificationType}', [EmailNotificationController::class, 'show'])->name('email-notifications.show');
         Route::patch('/email-notifications/{notificationType}', [EmailNotificationController::class, 'update'])->name('email-notifications.update');
         Route::post('/email-notifications/{notificationType}/media', [EmailNotificationController::class, 'uploadMedia'])->name('email-notifications.media');
         Route::post('/email-notifications/{notificationType}/send-test', [EmailNotificationController::class, 'sendTest'])->name('email-notifications.send-test');
+        Route::get('/link-control', [LinkControlSettingController::class, 'show'])->name('link-control.show');
+        Route::patch('/link-control', [LinkControlSettingController::class, 'update'])->name('link-control.update');
+        Route::get('/support-settings', [SupportSettingController::class, 'show'])->name('support-settings.show');
+        Route::patch('/support-settings', [SupportSettingController::class, 'update'])->name('support-settings.update');
 
         Route::get('/students', [StudentController::class, 'studentsIndex'])->name('students.index');
+        Route::get('/students/create', [StudentController::class, 'studentsCreate'])->name('students.create');
+        Route::post('/students', [StudentController::class, 'studentsStore'])->name('students.store');
         Route::get('/students/{student}', [StudentController::class, 'studentsEdit'])->name('students.edit');
         Route::patch('/students/{student}', [StudentController::class, 'studentsUpdate'])->name('students.update');
         Route::patch('/students/{student}/status', [StudentController::class, 'updateStatus'])->name('students.status');
@@ -174,7 +271,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/students/{student}/reset-progress/{scope}', [StudentController::class, 'resetProgressScope'])->name('students.reset-progress.scope');
         Route::delete('/students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
 
+        Route::get('/admins', [AdminAccountController::class, 'index'])->name('admins.index');
+        Route::get('/admins/create', [AdminAccountController::class, 'create'])->name('admins.create');
+        Route::post('/admins', [AdminAccountController::class, 'store'])->name('admins.store');
+        Route::get('/admins/{admin}/edit', [AdminAccountController::class, 'edit'])->name('admins.edit');
+        Route::patch('/admins/{admin}', [AdminAccountController::class, 'update'])->name('admins.update');
+        Route::delete('/admins/{admin}', [AdminAccountController::class, 'destroy'])->name('admins.destroy');
+
         Route::get('/student-progress', [StudentProgressController::class, 'index'])->name('student-progress.index');
+        Route::get('/student-progress/students/{student}', [StudentProgressController::class, 'showStudentDetail'])->name('student-progress.students.show');
         Route::get('/student-progress/completed-lessons', [StudentProgressController::class, 'completedLessonsIndex'])->name('student-progress.completed-lessons.index');
         Route::get('/student-progress/assignments', [StudentProgressController::class, 'assignmentsIndex'])->name('student-progress.assignments.index');
         Route::get('/student-progress/certificates', [StudentProgressController::class, 'certificatesIndex'])->name('student-progress.certificates.index');
@@ -194,3 +299,16 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::get('/p/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
+    ->where('packageSlug', '[A-Za-z0-9\-]+')
+    ->name('lead-registration.packages.show');
+Route::post('/p/{packageSlug}', [LeadRegistrationController::class, 'store'])
+    ->where('packageSlug', '[A-Za-z0-9\-]+')
+    ->name('lead-registration.packages.store');
+Route::get('/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
+    ->where('packageSlug', '[A-Za-z0-9\-]+')
+    ->name('lead-registration.packages.legacy-show');
+Route::post('/{packageSlug}', [LeadRegistrationController::class, 'store'])
+    ->where('packageSlug', '[A-Za-z0-9\-]+')
+    ->name('lead-registration.packages.legacy-store');

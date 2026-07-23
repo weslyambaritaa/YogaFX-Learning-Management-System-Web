@@ -2,11 +2,15 @@
 
 namespace App\Http\Resources\Mobile\V1;
 
+use App\Services\Mobile\V1\MobileUpgradeOptionService;
+use App\Services\Mobile\V1\Concerns\BuildsMobileSignedContentImageUrls;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class CurrentStudentResource extends JsonResource
 {
+    use BuildsMobileSignedContentImageUrls;
+
     /**
      * @return array<string, mixed>
      */
@@ -19,6 +23,15 @@ class CurrentStudentResource extends JsonResource
             'role' => $this->role,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
+            'profile_photo' => $this->profile_photo,
+            'profile_photo_url' => $this->mobileSignedContentImageUrl(
+                $this->resource,
+                'user',
+                $this->id,
+                'profile_photo',
+                $this->profile_photo,
+                $this->updated_at,
+            ),
             'profile_completed' => $this->hasCompletedStudentProfile(),
             'access_tier' => $this->accessTier
                 ? [
@@ -27,6 +40,7 @@ class CurrentStudentResource extends JsonResource
                     'slug' => $this->accessTier->slug,
                 ]
                 : null,
+            'upgrade_options' => app(MobileUpgradeOptionService::class)->optionsForStudent($this->resource),
         ];
     }
 }

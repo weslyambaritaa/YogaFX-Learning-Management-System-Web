@@ -28,6 +28,13 @@ class MobileApiFoundationTest extends TestCase
         $tier = AccessTier::factory()->create([
             'name' => 'Online',
             'slug' => 'online',
+            'level' => 2,
+        ]);
+        $upgradeTier = AccessTier::factory()->create([
+            'name' => 'Master Class',
+            'slug' => 'master_class',
+            'level' => 3,
+            'is_active' => true,
         ]);
 
         $student = User::factory()
@@ -56,7 +63,9 @@ class MobileApiFoundationTest extends TestCase
                         'slug' => 'online',
                     ],
                 ],
-            ]);
+            ])
+            ->assertJsonPath('data.upgrade_options.0.id', $upgradeTier->id)
+            ->assertJsonPath('data.upgrade_options.0.slug', 'master_class');
     }
 
     public function test_admin_cannot_access_mobile_student_endpoint(): void

@@ -3,13 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\AssignmentSubmission;
+use App\Models\AccessTier;
 use App\Models\Assessment;
 use App\Models\AssessmentDesign;
 use App\Models\Course;
+use App\Models\EmailBranding;
 use App\Models\Ebook;
 use App\Models\Lesson;
+use App\Models\LinkControlSetting;
 use App\Models\QuestionOption;
+use App\Models\Package;
 use App\Models\Module;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -78,6 +83,18 @@ class ContentFileController extends Controller
                     'thumbnail' => ['download' => false],
                 ],
             ],
+            'access-tier' => [
+                'model' => AccessTier::class,
+                'fields' => [
+                    'thumbnail' => ['download' => false],
+                ],
+            ],
+            'package' => [
+                'model' => Package::class,
+                'fields' => [
+                    'image' => ['download' => false],
+                ],
+            ],
             'assessment' => [
                 'model' => Assessment::class,
                 'fields' => [
@@ -90,10 +107,28 @@ class ContentFileController extends Controller
                     'logo' => ['download' => false],
                 ],
             ],
+            'email-branding' => [
+                'model' => EmailBranding::class,
+                'fields' => [
+                    'logo_path' => ['download' => false],
+                ],
+            ],
+            'link-control-setting' => [
+                'model' => LinkControlSetting::class,
+                'fields' => [
+                    'qr_image' => ['download' => false],
+                ],
+            ],
             'question-option' => [
                 'model' => QuestionOption::class,
                 'fields' => [
                     'image' => ['download' => false],
+                ],
+            ],
+            'user' => [
+                'model' => User::class,
+                'fields' => [
+                    'profile_photo' => ['download' => false],
                 ],
             ],
             default => abort(404),
@@ -142,6 +177,16 @@ class ContentFileController extends Controller
             return;
         }
 
+        if ($record instanceof EmailBranding) {
+            abort_unless($user->isAdmin(), 403);
+
+            return;
+        }
+
+        if ($record instanceof LinkControlSetting) {
+            return;
+        }
+
         if ($record instanceof QuestionOption) {
             $assessment = $record->question?->assessment;
             abort_unless($assessment, 403);
@@ -153,6 +198,15 @@ class ContentFileController extends Controller
         if ($record instanceof AssignmentSubmission) {
             abort_unless(
                 $user->isAdmin() || $record->user_id === $user->id,
+                403,
+            );
+
+            return;
+        }
+
+        if ($record instanceof User) {
+            abort_unless(
+                $user->isAdmin() || $record->is($user),
                 403,
             );
 

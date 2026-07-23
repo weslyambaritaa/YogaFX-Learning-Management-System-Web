@@ -34,15 +34,15 @@ class StudentUserSeeder extends Seeder
                 'instagram' => '@yogafxstudent',
                 'country' => 'Indonesia',
                 'birth_date' => '1998-01-01',
-                'gender' => 'prefer_not_to_say',
-                'practicing_yoga_for' => '1-3 years',
-                'yoga_sequence_experience' => 'Beginner',
-                'hours_per_week' => 4,
-                'current_fitness_level' => 'Intermediate',
-                'flexibility_rating' => 'Moderate',
+                'gender' => 'female',
+                'practicing_yoga_for' => '0_to_3_years',
+                'yoga_sequence_experience' => json_encode(['other']),
+                'hours_per_week' => '4_7',
+                'current_fitness_level' => 'average',
+                'flexibility_rating' => 'average',
                 'motivation' => 'Improve yoga consistency and deepen practice.',
                 'why_yogafx' => 'To study in a structured YogaFX learning path.',
-                'how_did_you_find_us' => 'Instagram',
+                'how_did_you_find_us' => json_encode(['instagram']),
             ],
         );
 
@@ -62,16 +62,48 @@ class StudentUserSeeder extends Seeder
                 'instagram' => '@yogafxstudent2',
                 'country' => 'Indonesia',
                 'birth_date' => '1999-01-01',
-                'gender' => 'prefer_not_to_say',
-                'practicing_yoga_for' => '1-3 years',
-                'yoga_sequence_experience' => 'Beginner',
-                'hours_per_week' => 4,
-                'current_fitness_level' => 'Intermediate',
-                'flexibility_rating' => 'Moderate',
+                'gender' => 'female',
+                'practicing_yoga_for' => '0_to_3_years',
+                'yoga_sequence_experience' => json_encode(['other']),
+                'hours_per_week' => '4_7',
+                'current_fitness_level' => 'average',
+                'flexibility_rating' => 'average',
                 'motivation' => 'Improve yoga consistency and deepen practice.',
                 'why_yogafx' => 'To study in a structured YogaFX learning path.',
-                'how_did_you_find_us' => 'Instagram',
+                'how_did_you_find_us' => json_encode(['instagram']),
             ],
+
+        
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'maharanisitorus5@gmail.com'],
+            [
+                'name' => 'maharani',
+                'role' => User::ROLE_STUDENT,
+                'access_tier_id' => $onlineTierId,
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+                'first_name' => 'YogaFX',
+                'last_name' => 'Student Two',
+                'whatsapp' => '081234567891',
+                'preferred_certificate_picture' => null,
+                'profile_photo' => null,
+                'instagram' => '@yogafxstudent2',
+                'country' => 'Indonesia',
+                'birth_date' => '1999-01-01',
+                'gender' => 'female',
+                'practicing_yoga_for' => '0_to_3_years',
+                'yoga_sequence_experience' => json_encode(['other']),
+                'hours_per_week' => '4_7',
+                'current_fitness_level' => 'average',
+                'flexibility_rating' => 'average',
+                'motivation' => 'Improve yoga consistency and deepen practice.',
+                'why_yogafx' => 'To study in a structured YogaFX learning path.',
+                'how_did_you_find_us' => json_encode(['instagram']),
+            ],
+
+        
         );
     }
 }

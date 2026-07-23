@@ -4,11 +4,14 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Services\EmailNotificationService;
+use App\Support\StudentProfileValue;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
@@ -18,6 +21,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'name',
     'role',
     'is_active',
+    'account_status',
+    'student_tag',
+    'irregular_activity_count',
+    'irregular_activity_last_detected_at',
     'access_tier_id',
     'total_access_duration_seconds',
     'email',
@@ -25,7 +32,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'first_name',
     'last_name',
     'whatsapp',
-    'preferred_certificate_picture',
     'profile_photo',
     'instagram',
     'country',
@@ -46,8 +52,15 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const ROLE_SUPER_ADMIN = 'super_admin';
     public const ROLE_ADMIN = 'admin';
     public const ROLE_STUDENT = 'student';
+
+    public const ACCOUNT_STATUS_AVAILABLE = 'available';
+    public const ACCOUNT_STATUS_INACTIVE = 'inactive';
+    public const ACCOUNT_STATUS_SUSPENDED = 'suspended';
+    public const STUDENT_TAG_NORMAL = 'normal';
+    public const STUDENT_TAG_TESTER = 'tester';
 
     public const STUDENT_PROFILE_COMPLETION_FIELDS = [
         'first_name',
@@ -78,7 +91,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
             'is_active' => 'boolean',
-            'hours_per_week' => 'integer',
+            'irregular_activity_count' => 'integer',
+            'irregular_activity_last_detected_at' => 'datetime',
             'total_access_duration_seconds' => 'integer',
             'password' => 'hashed',
         ];
@@ -119,6 +133,31 @@ class User extends Authenticatable
         return $this->hasMany(Certificate::class);
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function payments(): HasManyThrough
+    {
+        return $this->hasManyThrough(Payment::class, Invoice::class);
+    }
+
+    public function paymentActivities(): HasManyThrough
+    {
+        return $this->payments();
+    }
+
+    public function onboardingState(): HasOne
+    {
+        return $this->hasOne(OnboardingState::class);
+    }
+
+    public function paymentSubscriptions(): HasMany
+    {
+        return $this->hasMany(PaymentSubscription::class);
+    }
+
     public function studentModuleVisits(): HasMany
     {
         return $this->hasMany(StudentModuleVisit::class);
@@ -126,7 +165,12 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return in_array($this->role, [self::ROLE_SUPER_ADMIN, self::ROLE_ADMIN], true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN;
     }
 
     public function isStudent(): bool
@@ -140,11 +184,78 @@ class User extends Authenticatable
             return true;
         }
 
-        if (! array_key_exists('is_active', $this->getAttributes())) {
-            return true;
+        return $this->studentAccountStatus() === self::ACCOUNT_STATUS_AVAILABLE;
+    }
+
+    public function studentAccountStatus(): string
+    {
+        if (! $this->isStudent()) {
+            return self::ACCOUNT_STATUS_AVAILABLE;
         }
 
-        return (bool) $this->getAttribute('is_active');
+        $status = $this->getAttribute('account_status');
+
+        if (is_string($status) && in_array($status, [
+            self::ACCOUNT_STATUS_AVAILABLE,
+            self::ACCOUNT_STATUS_INACTIVE,
+            self::ACCOUNT_STATUS_SUSPENDED,
+        ], true)) {
+            return $status;
+        }
+
+        if (! array_key_exists('is_active', $this->getAttributes())) {
+            return self::ACCOUNT_STATUS_AVAILABLE;
+        }
+
+        return (bool) $this->getAttribute('is_active')
+            ? self::ACCOUNT_STATUS_AVAILABLE
+            : self::ACCOUNT_STATUS_INACTIVE;
+    }
+
+    public function isStudentSuspended(): bool
+    {
+        return $this->studentAccountStatus() === self::ACCOUNT_STATUS_SUSPENDED;
+    }
+
+    public function isStudentInactive(): bool
+    {
+        return $this->studentAccountStatus() === self::ACCOUNT_STATUS_INACTIVE;
+    }
+
+    public function studentTag(): string
+    {
+        if (! $this->isStudent()) {
+            return self::STUDENT_TAG_NORMAL;
+        }
+
+        $tag = $this->getAttribute('student_tag');
+
+        if (is_string($tag) && in_array($tag, [
+            self::STUDENT_TAG_NORMAL,
+            self::STUDENT_TAG_TESTER,
+        ], true)) {
+            return $tag;
+        }
+
+        return self::STUDENT_TAG_NORMAL;
+    }
+
+    public function isTesterStudent(): bool
+    {
+        return $this->isStudent() && $this->studentTag() === self::STUDENT_TAG_TESTER;
+    }
+
+    public function setStudentAccountStatus(string $status): void
+    {
+        $this->account_status = $status;
+        $this->is_active = $status === self::ACCOUNT_STATUS_AVAILABLE;
+    }
+
+    public function studentBlockedMessage(): string
+    {
+        return $this->isStudentSuspended()
+            ? 'Your student account is suspended.'
+            : 'Your student account is inactive.';
     }
 
     public function hasRole(string ...$roles): bool
@@ -155,6 +266,7 @@ class User extends Authenticatable
     public function dashboardRouteName(): string
     {
         return match ($this->role) {
+            self::ROLE_SUPER_ADMIN => 'admin.dashboard',
             self::ROLE_ADMIN => 'admin.dashboard',
             self::ROLE_STUDENT => 'student.dashboard',
             default => 'login',
@@ -180,15 +292,26 @@ class User extends Authenticatable
             return true;
         }
 
-        foreach (self::STUDENT_PROFILE_COMPLETION_FIELDS as $field) {
-            $value = $this->{$field};
+        return $this->missingStudentProfileFields() === [];
+    }
 
-            if ($value === null || $value === '') {
-                return false;
-            }
+    /**
+     * @return array<int, string>
+     */
+    public function missingStudentProfileFields(): array
+    {
+        if (! $this->isStudent()) {
+            return [];
         }
 
-        return true;
+        return collect(self::STUDENT_PROFILE_COMPLETION_FIELDS)
+            ->filter(function (string $field) {
+                $value = $this->{$field};
+
+                return ! StudentProfileValue::isFilled($value);
+            })
+            ->values()
+            ->all();
     }
 
     public function syncDisplayName(): void

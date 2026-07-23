@@ -10,8 +10,10 @@ use App\Models\Lesson;
 use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Services\BunnyStreamService;
+use App\Services\StudentIrregularActivityService;
 use App\Services\StudentLearningMilestoneEmailService;
 use App\Services\StudentSessionTrackingService;
+use App\Services\StudentWorkbookDeliveryService;
 use App\Support\BunnyAssetPath;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -25,20 +27,37 @@ class LessonCatalogController extends Controller
 {
     use BuildsProtectedMediaUrls;
 
+    private const AUTHENTIC_WATCH_TIME_TOLERANCE_SECONDS = 2;
+
     public function __construct(
         private readonly BunnyStreamService $bunnyStreamService,
         private readonly StudentSessionTrackingService $sessionTrackingService,
         private readonly StudentLearningMilestoneEmailService $studentLearningMilestoneEmailService,
+        private readonly StudentWorkbookDeliveryService $studentWorkbookDeliveryService,
+        private readonly StudentIrregularActivityService $studentIrregularActivityService,
     ) {}
 
-    public function show(Request $request, Lesson $lesson): Response
+    public function show(Request $request, Lesson $lesson): Response|JsonResponse
+    {
+        $payload = $this->buildLessonShowPayload($request, $lesson);
+
+        if ($request->expectsJson() || $request->boolean('payload')) {
+            return response()->json($payload);
+        }
+
+        return Inertia::render('Student/Lessons/Show', $payload);
+    }
+
+    private function buildLessonShowPayload(Request $request, Lesson $lesson): array
     {
         $user = $request->user();
         $this->authorizeLessonAccess($request, $lesson);
+        $this->markLessonAsViewed($user?->id, $lesson);
 
         $accessibleModules = $this->accessibleModulesWithLessons($user?->access_tier_id);
         $lessonNavigation = optional($accessibleModules->firstWhere('id', $lesson->module_id))->lessons
             ?? collect();
+        $orderedLessons = $accessibleModules->flatMap(fn (Module $module) => $module->lessons)->values();
 
         $progressMap = LessonProgress::query()
             ->where('user_id', $user->id)
@@ -58,14 +77,14 @@ class LessonCatalogController extends Controller
         ))->count();
         $currentProgress = $progressMap->get($lesson->id);
         $videoState = $this->videoStateForLesson($lesson);
-        $currentLessonIndex = $lessonNavigation->search(
+        $currentLessonIndex = $orderedLessons->search(
             fn (Lesson $item) => $item->id === $lesson->id,
         );
         $nextLesson = $currentLessonIndex !== false
-            ? $lessonNavigation->get($currentLessonIndex + 1)
+            ? $orderedLessons->get($currentLessonIndex + 1)
             : null;
 
-        return Inertia::render('Student/Lessons/Show', [
+        return [
             'lesson' => [
                 'id' => $lesson->id,
                 'title' => $lesson->title,
@@ -100,6 +119,7 @@ class LessonCatalogController extends Controller
                     'id' => $lesson->module->id,
                     'title' => $lesson->module->title,
                     'url_slug' => $lesson->module->url_slug,
+                    'sort_order' => $lesson->module->sort_order,
                     'lesson_count' => $lessonNavigation->count(),
                     'completed_lessons' => $completedLessons,
                     'progress_percentage' => $lessonNavigation->count() > 0
@@ -108,6 +128,7 @@ class LessonCatalogController extends Controller
                 ] : null,
                 'progress' => [
                     'watch_progress' => (int) round((float) ($currentProgress?->watch_progress ?? 0)),
+                    'watch_time_seconds' => (int) ($currentProgress?->watch_time_seconds ?? 0),
                     'is_workbook_downloaded' => (bool) ($currentProgress?->is_workbook_downloaded ?? false),
                     'workbook_downloaded_at' => $currentProgress?->workbook_downloaded_at?->toIso8601String(),
                     'is_done' => $this->isLessonFullyComplete(
@@ -115,6 +136,8 @@ class LessonCatalogController extends Controller
                         $currentProgress,
                         $completedAssessmentIds,
                     ),
+                    'requires_workbook_download' => filled($lesson->workbook),
+                    'is_video_locked_until_workbook_downloaded' => false,
                 ],
                 'autoplay' => $request->boolean('autoplay'),
                 'thumbnail_url' => $this->protectedMediaUrl(
@@ -124,8 +147,11 @@ class LessonCatalogController extends Controller
                     $lesson->thumbnail,
                     versionSeed: $lesson->updated_at,
                 ),
-                'workbook_url' => $lesson->workbook
+                'workbook_download_url' => $lesson->workbook
                     ? route('lessons.workbook.download', $lesson)
+                    : null,
+                'workbook_trigger_url' => $lesson->workbook
+                    ? route('lessons.workbook.trigger', $lesson)
                     : null,
                 'navigation' => $lessonNavigation->map(fn (Lesson $item) => [
                     'id' => $item->id,
@@ -147,12 +173,15 @@ class LessonCatalogController extends Controller
                     'url' => ($lessonUnlockMap->get($item->id)['is_unlocked'] ?? false)
                         ? route('lessons.show', $item)
                         : null,
+                    'module_sort_order' => $item->module?->sort_order ?? $lesson->module?->sort_order,
                 ]),
                 'next_lesson' => $nextLesson ? [
                     'id' => $nextLesson->id,
                     'title' => $nextLesson->title,
                     'sort_order' => $nextLesson->sort_order,
-                    'thumbnail_url' => $this->lessonThumbnailUrl($nextLesson, $lesson->module),
+                    'module_sort_order' => $nextLesson->module?->sort_order,
+                    'module_title' => $nextLesson->module?->title,
+                    'thumbnail_url' => $this->lessonThumbnailUrl($nextLesson, $nextLesson->module),
                     'is_unlocked' => (bool) ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false),
                     'lock_reason' => $lessonUnlockMap->get($nextLesson->id)['reason'] ?? null,
                     'url' => ($lessonUnlockMap->get($nextLesson->id)['is_unlocked'] ?? false)
@@ -161,7 +190,7 @@ class LessonCatalogController extends Controller
                 ] : null,
             ],
             'accessTimeSummary' => $this->sessionTrackingService->summaryForUser($user),
-        ]);
+        ];
     }
 
     public function downloadWorkbook(Request $request, Lesson $lesson): RedirectResponse|\Symfony\Component\HttpFoundation\StreamedResponse
@@ -171,16 +200,9 @@ class LessonCatalogController extends Controller
 
         abort_unless(filled($lesson->workbook), 404);
 
-        LessonProgress::query()->updateOrCreate(
-            [
-                'user_id' => $user?->id,
-                'lesson_id' => $lesson->id,
-            ],
-            [
-                'is_workbook_downloaded' => true,
-                'workbook_downloaded_at' => now(),
-            ],
-        );
+        if ($user) {
+            $this->studentWorkbookDeliveryService->triggerOnce($user, $lesson);
+        }
 
         $downloadUrl = $this->protectedMediaUrl(
             'lesson',
@@ -200,6 +222,30 @@ class LessonCatalogController extends Controller
         return redirect($downloadUrl);
     }
 
+    public function triggerWorkbook(Request $request, Lesson $lesson): JsonResponse
+    {
+        $user = $request->user();
+        $this->authorizeLessonAccess($request, $lesson);
+
+        abort_unless($user && filled($lesson->workbook), 404);
+
+        $result = $this->studentWorkbookDeliveryService->triggerOnce($user, $lesson);
+
+        return response()->json([
+            'was_first_trigger' => $result['was_first_trigger'],
+            'is_workbook_downloaded' => $result['is_workbook_downloaded'],
+            'workbook_downloaded_at' => $result['workbook_downloaded_at'],
+            'download_url' => $this->protectedMediaUrl(
+                'lesson',
+                $lesson->id,
+                'workbook',
+                $lesson->workbook,
+                download: true,
+                versionSeed: $lesson->updated_at,
+            ),
+        ]);
+    }
+
     public function updateProgress(Request $request, Lesson $lesson): JsonResponse
     {
         $user = $request->user();
@@ -207,15 +253,26 @@ class LessonCatalogController extends Controller
 
         $validated = $request->validate([
             'watch_progress' => ['required', 'numeric', 'min:0', 'max:100'],
+            'watch_time_increment_seconds' => ['nullable', 'integer', 'min:0', 'max:36000'],
+            'video_duration_seconds' => ['nullable', 'numeric', 'min:0', 'max:86400'],
         ]);
 
         $incomingProgress = round((float) $validated['watch_progress'], 2);
+        $watchTimeIncrementSeconds = max(0, (int) ($validated['watch_time_increment_seconds'] ?? 0));
+        $videoDurationSeconds = isset($validated['video_duration_seconds'])
+            ? max(0, (int) round((float) $validated['video_duration_seconds']))
+            : null;
         $existingProgress = (float) LessonProgress::query()
             ->where('user_id', $user?->id)
             ->where('lesson_id', $lesson->id)
             ->value('watch_progress');
+        $existingWatchTimeSeconds = (int) LessonProgress::query()
+            ->where('user_id', $user?->id)
+            ->where('lesson_id', $lesson->id)
+            ->value('watch_time_seconds');
 
         $watchProgress = max($existingProgress, $incomingProgress);
+        $watchTimeSeconds = $existingWatchTimeSeconds + $watchTimeIncrementSeconds;
         $hasCompletedAssessment = $lesson->assessment_id !== null
             && $lesson->assessment?->status === 'live'
             && $lesson->assessment?->is_active
@@ -224,7 +281,12 @@ class LessonCatalogController extends Controller
                 ->where('user_id', $user?->id)
                 ->where('status', AssessmentAttempt::STATUS_COMPLETED)
                 ->exists();
-        $isDone = $watchProgress >= 95 && (! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live');
+        $meetsAssessmentRequirement = ! $lesson->assessment_id || $hasCompletedAssessment || ! $lesson->assessment?->is_active || $lesson->assessment?->status !== 'live';
+        $hasEnoughAuthenticWatchTime = $user?->isTesterStudent()
+            || $lesson->lesson_video_id === null
+            || ! $videoDurationSeconds
+            || $watchTimeSeconds >= max(0, $videoDurationSeconds - self::AUTHENTIC_WATCH_TIME_TOLERANCE_SECONDS);
+        $isDone = $watchProgress >= 95 && $meetsAssessmentRequirement && $hasEnoughAuthenticWatchTime;
 
         $lessonProgress = LessonProgress::query()->updateOrCreate(
             [
@@ -233,11 +295,27 @@ class LessonCatalogController extends Controller
             ],
             [
                 'watch_progress' => $watchProgress,
+                'watch_time_seconds' => $watchTimeSeconds,
                 'video_completed_at' => $isDone ? now() : null,
                 'is_done' => $isDone,
                 'completed_at' => $isDone ? now() : null,
             ],
         );
+
+        $irregularResult = [
+            'is_irregular' => false,
+            'irregular_activity_count' => (int) ($user?->irregular_activity_count ?? 0),
+            'was_suspended' => false,
+        ];
+
+        if ($user && $incomingProgress >= 95 && $existingProgress < 95 && ! $isDone) {
+            $irregularResult = $this->studentIrregularActivityService->evaluateCompletionAttempt(
+                $user,
+                $lesson,
+                $lessonProgress,
+                $videoDurationSeconds,
+            );
+        }
 
         if ($isDone && $user) {
             $this->studentLearningMilestoneEmailService->syncLessonMilestones($user, $lesson);
@@ -245,9 +323,38 @@ class LessonCatalogController extends Controller
 
         return response()->json([
             'watch_progress' => (int) round((float) $lessonProgress->watch_progress),
+            'watch_time_seconds' => (int) ($lessonProgress->watch_time_seconds ?? 0),
             'is_done' => (bool) $lessonProgress->is_done,
             'assessment_unlocked' => $lesson->lesson_video_id === null || $watchProgress >= 95,
+            'is_irregular' => (bool) ($irregularResult['is_irregular'] ?? false),
+            'irregular_activity_count' => (int) ($irregularResult['irregular_activity_count'] ?? 0),
+            'show_irregular_warning' => (bool) ($irregularResult['warning_required'] ?? false),
+            'account_status' => $user?->fresh()?->studentAccountStatus(),
+            'should_redirect_to_inactive' => (bool) ($irregularResult['was_suspended'] ?? false),
         ]);
+    }
+
+    private function markLessonAsViewed(?int $userId, Lesson $lesson): void
+    {
+        if (! $userId) {
+            return;
+        }
+
+        $lessonProgress = LessonProgress::query()->firstOrNew([
+            'user_id' => $userId,
+            'lesson_id' => $lesson->id,
+        ]);
+
+        if (! $lessonProgress->exists) {
+            $lessonProgress->watch_progress = 0;
+            $lessonProgress->is_workbook_downloaded = false;
+            $lessonProgress->is_done = false;
+            $lessonProgress->save();
+
+            return;
+        }
+
+        $lessonProgress->touch();
     }
 
     /**
@@ -442,6 +549,13 @@ class LessonCatalogController extends Controller
     ): array {
         $watchProgress = (float) ($lessonProgress?->watch_progress ?? 0);
 
+        if (filled($lesson->workbook) && ! (bool) ($lessonProgress?->is_workbook_downloaded ?? false)) {
+            return [
+                'is_unlocked' => false,
+                'reason' => 'Download the workbook before continuing.',
+            ];
+        }
+
         if ($lesson->lesson_video_id !== null && $watchProgress < 95) {
             return [
                 'is_unlocked' => false,
@@ -472,6 +586,10 @@ class LessonCatalogController extends Controller
         ?LessonProgress $lessonProgress,
         Collection $completedAssessmentIds,
     ): bool {
+        if (filled($lesson->workbook) && ! (bool) ($lessonProgress?->is_workbook_downloaded ?? false)) {
+            return false;
+        }
+
         if ($lesson->lesson_video_id !== null && (float) ($lessonProgress?->watch_progress ?? 0) < 95) {
             return false;
         }

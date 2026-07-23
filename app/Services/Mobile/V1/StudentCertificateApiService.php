@@ -5,14 +5,14 @@ namespace App\Services\Mobile\V1;
 use App\Models\Certificate;
 use App\Models\User;
 use App\Services\BunnyStorageService;
+use App\Services\CertificateDownloadTrackingService;
 use App\Services\Certificates\CertificateEligibilityService;
 use App\Support\BunnyAssetPath;
 use App\Support\MobileMediaPayload;
-use Illuminate\Contracts\Support\Responsable;
+use App\Support\MobileSignedUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -21,6 +21,7 @@ class StudentCertificateApiService
     public function __construct(
         private readonly CertificateEligibilityService $certificateEligibilityService,
         private readonly BunnyStorageService $bunnyStorageService,
+        private readonly CertificateDownloadTrackingService $certificateDownloadTrackingService,
     ) {}
 
     /**
@@ -30,9 +31,17 @@ class StudentCertificateApiService
     {
         $summary = $this->certificateEligibilityService->summaryForStudent($user);
         $certificates = $this->generatedCertificatesForUser($user, $summary['available_types'] ?? []);
+        $hasGeneratedCertificate = $certificates->isNotEmpty();
+        $state = $hasGeneratedCertificate
+            ? 'generated'
+            : ((bool) ($summary['learning_eligible'] ?? false) ? 'ready' : 'locked');
 
         return [
             'summary' => [
+                'state' => $state,
+                'status' => $hasGeneratedCertificate
+                    ? 'Generated'
+                    : ((bool) ($summary['learning_eligible'] ?? false) ? 'Eligible' : 'Not Eligible'),
                 'learning_eligible' => (bool) ($summary['learning_eligible'] ?? false),
                 'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
                 'message' => $summary['message'] ?? null,
@@ -40,6 +49,7 @@ class StudentCertificateApiService
                 'available_types' => $summary['available_types'] ?? [],
                 'requirements' => $summary['requirements'] ?? [],
                 'generated_count' => $certificates->count(),
+                'latest_certificate' => ($latestCertificate = $certificates->first()) ? $this->certificatePayload($latestCertificate) : null,
             ],
             'items' => $certificates
                 ->map(fn (Certificate $certificate) => $this->certificatePayload($certificate))
@@ -58,14 +68,22 @@ class StudentCertificateApiService
         }
 
         $summary = $this->certificateEligibilityService->summaryForStudent($user);
+        $hasGeneratedCertificate = filled($certificate->generated_at);
 
         return [
             'certificate' => $this->certificatePayload($certificate),
             'summary' => [
+                'state' => $hasGeneratedCertificate
+                    ? 'generated'
+                    : ((bool) ($summary['learning_eligible'] ?? false) ? 'ready' : 'locked'),
+                'status' => $hasGeneratedCertificate
+                    ? 'Generated'
+                    : ((bool) ($summary['learning_eligible'] ?? false) ? 'Eligible' : 'Not Eligible'),
                 'learning_eligible' => (bool) ($summary['learning_eligible'] ?? false),
                 'has_required_name' => (bool) ($summary['has_required_name'] ?? false),
                 'message' => $summary['message'] ?? null,
                 'tier' => $summary['tier'] ?? null,
+                'requirements' => $summary['requirements'] ?? [],
             ],
         ];
     }
@@ -75,6 +93,8 @@ class StudentCertificateApiService
         if ($certificate->user_id !== $user->id) {
             return null;
         }
+
+        $this->certificateDownloadTrackingService->record($user, $certificate);
 
         if (BunnyAssetPath::isBunnyPath($certificate->file_path)) {
             $url = $this->bunnyStorageService->url($certificate->file_path);
@@ -145,7 +165,7 @@ class StudentCertificateApiService
 
     private function signedCertificateRoute(string $routeName, Certificate $certificate): string
     {
-        return URL::temporarySignedRoute($routeName, now()->addHour(), [
+        return MobileSignedUrl::temporarySignedRoute($routeName, now()->addHour(), [
             'certificate' => $certificate->id,
             'student' => $certificate->user_id,
         ]);

@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\StudentPasswordChangeRequest;
+use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
@@ -21,9 +25,17 @@ class NewPasswordController extends Controller
      */
     public function create(Request $request): Response
     {
+        $email = (string) $request->query('email', '');
+
+        abort_if($email === '', 404);
+
+        $passwordResetRequest = $this->resolvePasswordResetRequest($email, (string) $request->route('token'));
+        abort_if(! $passwordResetRequest || $passwordResetRequest->isExpired() || $passwordResetRequest->isUsed(), 404);
+
         return Inertia::render('Auth/ResetPassword', [
-            'email' => $request->email,
+            'email' => $email,
             'token' => $request->route('token'),
+            'expires_at' => $passwordResetRequest->expires_at?->toIso8601String(),
         ]);
     }
 
@@ -37,33 +49,69 @@ class NewPasswordController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
+            'otp_code' => ['required', 'digits:6'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        // Here we will attempt to reset the user's password. If it is successful we
-        // will update the password on an actual user model and persist it to the
-        // database. Otherwise we will parse the error and return the response.
+        $passwordResetRequest = $this->resolvePasswordResetRequest(
+            (string) $request->input('email'),
+            (string) $request->input('token'),
+        );
+
+        if (! $passwordResetRequest || $passwordResetRequest->isExpired() || $passwordResetRequest->isUsed()) {
+            throw ValidationException::withMessages([
+                'otp_code' => ['This password reset request is invalid or has expired. Please request a new one.'],
+            ]);
+        }
+
+        if (! Hash::check((string) $request->input('otp_code'), $passwordResetRequest->otp_hash)) {
+            throw ValidationException::withMessages([
+                'otp_code' => ['The OTP code is invalid. Please check the email you received and try again.'],
+            ]);
+        }
+
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user) use ($request) {
+            function (User $user) use ($request, $passwordResetRequest) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
                 ])->save();
 
+                $passwordResetRequest->forceFill([
+                    'used_at' => now(),
+                ])->save();
+
+                StudentPasswordChangeRequest::query()
+                    ->where('user_id', $user->id)
+                    ->where('id', '!=', $passwordResetRequest->id)
+                    ->delete();
+
                 event(new PasswordReset($user));
             }
         );
 
-        // If the password was successfully reset, we will redirect the user back to
-        // the application's home authenticated view. If there is an error we can
-        // redirect them back to where they came from with their error message.
         if ($status == Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', __($status));
+            if ($request->user()) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
+            return Redirect::route('login')->with('status', 'Your password has been reset successfully. Please log in again.');
         }
 
         throw ValidationException::withMessages([
             'email' => [trans($status)],
         ]);
+    }
+
+    private function resolvePasswordResetRequest(string $email, string $token): ?StudentPasswordChangeRequest
+    {
+        return StudentPasswordChangeRequest::query()
+            ->where('email', $email)
+            ->where('token_hash', hash('sha256', $token))
+            ->latest('id')
+            ->first();
     }
 }

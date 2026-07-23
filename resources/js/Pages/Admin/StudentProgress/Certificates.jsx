@@ -81,8 +81,9 @@ export default function Certificates({
                             Certificate Readiness
                         </h3>
                         <p className="text-sm text-gray-500">
-                            Tier mapping and relevant learning completion are checked
-                            here before admin generates each certificate PDF manually.
+                            Tier mapping and approved assignment video readiness are
+                            checked here before admin generates each certificate PDF
+                            manually.
                         </p>
                     </div>
 

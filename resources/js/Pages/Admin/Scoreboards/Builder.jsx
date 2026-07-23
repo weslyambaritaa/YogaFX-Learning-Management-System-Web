@@ -368,6 +368,11 @@ function getQuestionTypeVisual(type) {
     }
 }
 
+/* ============================================================
+   LEFT PANEL — Question navigator
+   Simplified: single flat list, no extra wrapper card per item
+   beyond what's needed to show drag/active/drop state.
+   ============================================================ */
 function ScoreboardNavigator({
     scoreboardId,
     questions,
@@ -380,40 +385,35 @@ function ScoreboardNavigator({
     finishQuestionDrag,
 }) {
     return (
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] xl:sticky xl:top-6 xl:h-[calc(100vh-12rem)]">
-            <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#f0f0f0_0%,#d7d7d7_100%)] px-4 py-4">
-                <div className="flex items-center justify-between gap-3">
-                    <div>
-                        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#607362]">
-                            <ListTree className="size-3.5" />
-                            Structure
-                        </div>
-                        <h3 className="mt-2 text-base font-semibold text-slate-900">
-                            Question Screens
-                        </h3>
-                        <p className="mt-1 text-xs text-slate-500">
-                            {questions.length} screen{questions.length === 1 ? '' : 's'}
-                        </p>
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-[5px] border border-slate-200 bg-white xl:sticky xl:top-6 xl:h-[calc(100vh-12rem)]">
+            <header className="flex items-center justify-between gap-3 border-b border-slate-200 px-2.5 py-2">
+                <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        <ListTree className="size-3.5" />
+                        Screens
                     </div>
-
-                    <Button
-                        size="sm"
-                        className="h-9 rounded-lg px-3"
-                        onClick={() =>
-                            router.post(
-                                route('admin.scoreboards.questions.store', scoreboardId),
-                                {},
-                                { preserveScroll: true },
-                            )
-                        }
-                    >
-                        <Plus className="size-4" />
-                        Add
-                    </Button>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                        {questions.length} question{questions.length === 1 ? '' : 's'}
+                    </p>
                 </div>
-            </div>
 
-            <div className="min-h-0 space-y-2 overflow-y-auto bg-[#f0f0f0] p-3 xl:flex-1">
+                <Button
+                    size="sm"
+                    className="shrink-0 rounded-[5px] px-2.5 py-2"
+                    onClick={() =>
+                        router.post(
+                            route('admin.scoreboards.questions.store', scoreboardId),
+                            {},
+                            { preserveScroll: true },
+                        )
+                    }
+                >
+                    <Plus className="size-4" />
+                    Add
+                </Button>
+            </header>
+
+            <div className="min-h-0 space-y-1.5 overflow-y-auto p-2.5 xl:flex-1">
                 {questions.length > 0 ? (
                     questions.map((question, index) => {
                         const active = question.id === selectedQuestionId;
@@ -434,17 +434,17 @@ function ScoreboardNavigator({
                                     dropQuestionAt?.(question.id);
                                 }}
                                 className={[
-                                    'rounded-xl border transition',
+                                    'rounded-[5px] border transition',
                                     dropTargetQuestionId === question.id
                                         ? 'border-[#203529] ring-2 ring-[#203529]/10'
                                         : draggedQuestionId === question.id
-                                          ? 'border-[#cfd9cf] opacity-80'
+                                          ? 'border-slate-300 opacity-70'
                                           : active
-                                            ? 'border-[#203529] bg-[#203529] text-white shadow-[0_16px_26px_rgba(15,23,42,0.16)]'
-                                            : 'border-slate-200 bg-white text-slate-900 hover:border-[#cfd9cf] bg-[#e5e5ehover:bg-[#e0e0e0]',
+                                            ? 'border-[#203529] bg-[#203529] text-white'
+                                            : 'border-transparent text-slate-900 hover:bg-slate-50',
                                 ].join(' ')}
                             >
-                                <div className="flex items-start gap-2.5 px-3.5 py-3.5">
+                                <div className="flex items-center gap-2.5 px-2.5 py-2">
                                     <button
                                         type="button"
                                         draggable
@@ -454,10 +454,10 @@ function ScoreboardNavigator({
                                         }}
                                         onDragEnd={() => finishQuestionDrag?.()}
                                         className={[
-                                            'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border transition',
+                                            'flex size-7 shrink-0 cursor-grab items-center justify-center rounded-[5px] transition',
                                             active
-                                                ? 'border-white/15 bg-white/10 text-white/80'
-                                                : 'border-slate-200 bg-white text-slate-400 hover:border-[#cfd9cf] hover:text-slate-600',
+                                                ? 'text-white/70 hover:text-white'
+                                                : 'text-slate-300 hover:text-slate-500',
                                         ].join(' ')}
                                         aria-label="Reorder question"
                                     >
@@ -471,47 +471,38 @@ function ScoreboardNavigator({
                                         })}
                                         preserveScroll
                                         preserveState
-                                        className="flex min-w-0 flex-1 items-start gap-3"
+                                        className="flex min-w-0 flex-1 items-center gap-2.5"
                                     >
                                         <div
                                             className={[
-                                                'mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold',
+                                                'flex size-7 shrink-0 items-center justify-center rounded-[5px] text-xs font-semibold',
                                                 active
-                                                    ? 'bg-white/12 text-white'
-                                                    : 'bg-white text-slate-700 shadow-sm',
+                                                    ? 'bg-white/15 text-white'
+                                                    : 'bg-slate-100 text-slate-600',
                                             ].join(' ')}
                                         >
                                             {question.sort_order}
                                         </div>
 
                                         <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="truncate text-sm font-semibold">
-                                                    {getNavigatorLabel(question, index)}
-                                                </span>
-                                                {active ? (
-                                                    <CircleDot className="size-3.5 shrink-0" />
-                                                ) : null}
+                                            <div className="truncate text-sm font-medium leading-5">
+                                                {getNavigatorLabel(question, index)}
                                             </div>
-
-                                            <div className="mt-2 flex items-center gap-2 text-[11px] font-medium">
-                                                <span
-                                                    className={[
-                                                        'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 transition',
-                                                        active
-                                                            ? 'bg-white/10 text-white/82'
-                                                            : 'bg-[#e5e5e5] text-slate-500',
-                                                    ].join(' ')}
-                                                >
-                                                    <TypeIcon className="size-3.5" />
-                                                    {typeVisual.label}
-                                                </span>
+                                            <div
+                                                className={[
+                                                    'mt-0.5 flex items-center gap-1 text-[11px]',
+                                                    active ? 'text-white/70' : 'text-slate-400',
+                                                ].join(' ')}
+                                            >
+                                                <TypeIcon className="size-3" />
+                                                {typeVisual.label}
                                             </div>
                                         </div>
+
                                         <ChevronRight
                                             className={[
-                                                'mt-1 size-4 shrink-0',
-                                                active ? 'text-white/80' : 'text-slate-400',
+                                                'size-4 shrink-0',
+                                                active ? 'text-white/60' : 'text-slate-300',
                                             ].join(' ')}
                                         />
                                     </Link>
@@ -520,7 +511,7 @@ function ScoreboardNavigator({
                         );
                     })
                 ) : (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                    <div className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2 text-center text-sm text-slate-500">
                         Add the first question to start the builder flow.
                     </div>
                 )}
@@ -538,15 +529,17 @@ function InlineTextBlock({
     dominant = false,
 }) {
     const baseClass = [
-        'w-full rounded-2xl border border-transparent bg-transparent px-0 text-slate-900 shadow-none outline-none transition placeholder:text-slate-400 focus:border-transparent focus:ring-0',
+        'w-full rounded-[5px] border border-slate-200 bg-white px-2.5 py-2 text-slate-900 shadow-none outline-none ring-0 transition placeholder:text-slate-400',
+        'focus:border-slate-300 focus:bg-white focus:shadow-none focus:outline-none focus:ring-0',
+        'focus-visible:border-slate-300 focus-visible:bg-white focus-visible:shadow-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
         dominant
-            ? 'min-h-[30px] text-[2rem] font-semibold leading-[1.15] tracking-tight'
+            ? 'min-h-[30px] text-[1.85rem] font-semibold leading-[1.2] tracking-tight'
             : 'text-sm font-medium',
     ].join(' ');
-
+    
     return (
-        <div className="space-y-2">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#607362]">
+        <div className="space-y-1.5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                 {label}
             </div>
             {multiline ? (
@@ -554,20 +547,25 @@ function InlineTextBlock({
                     value={value}
                     onChange={onChange}
                     placeholder={placeholder}
-                    className={`${baseClass} resize-none border-none bg-transparent p-0`}
+                    className={baseClass + ' resize-none'}
                 />
             ) : (
                 <Input
                     value={value}
                     onChange={onChange}
                     placeholder={placeholder}
-                    className={`${baseClass} border-none bg-transparent p-0`}
+                    className={baseClass}
                 />
             )}
         </div>
     );
 }
 
+/* ============================================================
+   TOP BAR — Title, status, actions
+   Simplified: one info strip instead of two side-by-side boxes,
+   actions grouped (primary Save + icon-style secondary actions).
+   ============================================================ */
 function BuilderWorkspaceBar({
     scoreboard,
     selectedQuestion,
@@ -579,58 +577,52 @@ function BuilderWorkspaceBar({
     hasUnsavedChanges,
 }) {
     return (
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.06)]">
-            <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#f5f5f5_0%,#d7d7d7_100%)] px-5 py-5 lg:px-6">
-                <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                    <div className="min-w-0 space-y-4">
-                        <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#607362]">
-                            <PenSquare className="size-3.5" />
-                            Builder Workspace
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="outline">{scoreboard.status}</Badge>
-                                <Badge
-                                    variant={
-                                        scoreboard.is_active ? 'secondary' : 'outline'
-                                    }
-                                >
-                                    {scoreboard.is_active ? 'Active' : 'Inactive'}
-                                </Badge>
-                                {selectedQuestion ? (
-                                    <Badge variant="outline">
-                                        Screen {selectedQuestion.sort_order}
-                                    </Badge>
-                                ) : null}
-                                <Badge variant="outline">Manual Save</Badge>
-                            </div>
-                            <div>
-                                <h2 className="text-[1.85rem] font-semibold tracking-tight text-slate-900">
-                                    {scoreboard.title}
-                                </h2>
-                                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
-                                    Three-panel builder workspace with an active screen canvas in the center and compact configuration on the right.
-                                </p>
-                            </div>
-                        </div>
+        <section className="overflow-hidden rounded-[5px] border border-slate-200 bg-white">
+            <div className="flex flex-col gap-4 px-2.5 py-2 lg:flex-row lg:items-start lg:justify-between lg:px-6">
+                <div className="min-w-0 space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{scoreboard.status}</Badge>
+                        <Badge variant={scoreboard.is_active ? 'secondary' : 'outline'}>
+                            {scoreboard.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        {selectedQuestion ? (
+                            <Badge variant="outline">
+                                Screen {selectedQuestion.sort_order}
+                            </Badge>
+                        ) : null}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 xl:justify-end">
-                        <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
-                            {saveState === 'saving'
-                                ? 'Saving...'
-                                : hasUnsavedChanges
-                                  ? 'Unsaved Changes'
-                                  : 'Saved'}
-                        </div>
-                        <Button
-                            type="button"
-                            onClick={saveAllChanges}
-                            disabled={saveState === 'saving' || !hasUnsavedChanges}
-                            className="h-10 rounded-lg bg-[#203529] px-5 text-white shadow-[0_12px_24px_rgba(32,53,41,0.18)] transition hover:bg-[#18281f] hover:shadow-[0_16px_30px_rgba(32,53,41,0.22)] disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none"
-                        >
-                            Save
-                        </Button>
+                    <div>
+                        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+                            {scoreboard.title}
+                        </h2>
+                        <p className="mt-1 text-sm leading-6 text-slate-500">
+                            {selectedQuestion
+                                ? 'Edit text directly on the canvas, then save from the configuration panel.'
+                                : 'Add a question to start shaping the builder flow.'}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 lg:shrink-0">
+                    <span className="rounded-[5px] border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-500">
+                        {saveState === 'saving'
+                            ? 'Saving…'
+                            : hasUnsavedChanges
+                              ? 'Unsaved changes'
+                              : 'Saved'}
+                    </span>
+
+                    <Button
+                        type="button"
+                        onClick={saveAllChanges}
+                        disabled={saveState === 'saving' || !hasUnsavedChanges}
+                        className="rounded-[5px] bg-[#203529] px-2.5 py-2 text-white hover:bg-[#18281f] disabled:bg-slate-200 disabled:text-slate-500"
+                    >
+                        Save
+                    </Button>
+
+                    <div className="flex items-center gap-1 rounded-[5px] border border-slate-200 p-1">
                         <ResultRangesDrawer
                             scoreboardId={scoreboard.id}
                             resultRanges={resultRanges}
@@ -639,64 +631,41 @@ function BuilderWorkspaceBar({
                             scoreboardId={scoreboard.id}
                             design={design}
                         />
-                        <Button asChild variant="outline">
+                        <Button asChild variant="ghost" size="sm" className="rounded-[5px]">
                             <Link href={route('admin.scoreboards.edit', scoreboard.id)}>
                                 <LayoutPanelTop className="size-4" />
-                                Edit Meta
+                                <span className="hidden sm:inline">Edit Meta</span>
                             </Link>
                         </Button>
-                        <Button asChild variant="outline">
-                            <Link href={route('admin.scoreboards.index')}>
-                                <ArrowLeft className="size-4" />
-                                Back to Scoreboards
-                            </Link>
-                        </Button>
-                        <Sheet>
-                            <SheetTrigger asChild>
-                                <Button className="xl:hidden">
-                                    <Settings2 className="size-4" />
-                                    Open Panel
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent
-                                side="right"
-                                className="w-full overflow-y-auto sm:max-w-xl"
-                            >
-                                <SheetHeader>
-                                    <SheetTitle>Builder Panel</SheetTitle>
-                                    <SheetDescription>
-                                        Question and Answers settings for the active screen.
-                                    </SheetDescription>
-                                </SheetHeader>
-                                <div className="mt-6">{mobilePanel}</div>
-                            </SheetContent>
-                        </Sheet>
                     </div>
-                </div>
-            </div>
 
-            <div className="grid gap-3 bg-white px-5 py-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-6">
-                <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-[#e8e8e8] px-4 py-3 text-sm text-slate-600">
-                    <Eye className="mt-0.5 size-4 shrink-0 text-[#607362]" />
-                    <div>
-                        <div className="font-medium text-slate-900">
-                            {selectedQuestion
-                                ? getNavigatorLabel(
-                                      selectedQuestion,
-                                      selectedQuestion.sort_order - 1,
-                                  )
-                                : 'No active screen selected'}
-                        </div>
-                        <div className="mt-1 leading-6 text-slate-500">
-                            {selectedQuestion
-                                ? 'Edit text directly in the center canvas, then save from the active config panel when you are ready to commit.'
-                                : 'Create or select a question to start shaping the builder flow.'}
-                        </div>
-                    </div>
-                </div>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={route('admin.scoreboards.index')}>
+                            <ArrowLeft className="size-4" />
+                            <span className="hidden sm:inline">Back</span>
+                        </Link>
+                    </Button>
 
-                <div className="flex items-center gap-2 self-start rounded-xl border border-slate-200 bg-[#e8e8e8] px-4 py-3 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
-                    <span>{selectedQuestion ? 'Builder Ready' : 'Waiting for Screen'}</span>
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button size="sm" className="xl:hidden">
+                                <Settings2 className="size-4" />
+                                Panel
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent
+                            side="right"
+                            className="w-full overflow-y-auto sm:max-w-xl"
+                        >
+                            <SheetHeader>
+                                <SheetTitle>Builder Panel</SheetTitle>
+                                <SheetDescription>
+                                    Question and Answers settings for the active screen.
+                                </SheetDescription>
+                            </SheetHeader>
+                            <div className="mt-6">{mobilePanel}</div>
+                        </SheetContent>
+                    </Sheet>
                 </div>
             </div>
         </section>
@@ -709,7 +678,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
 
     if (values.question_type === 'info_screen') {
         return (
-            <div className="rounded-3xl border border-dashed border-[#cfd8ce] bg-white/70 px-5 py-6 text-sm leading-7 text-slate-600">
+            <div className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2 text-sm leading-7 text-slate-500">
                 This screen presents information only. Students continue through the flow without storing an answer.
             </div>
         );
@@ -725,13 +694,13 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                 : [scaleValues];
 
             return (
-                <div className="space-y-5 rounded-3xl border border-white/70 bg-white/85 p-5">
-                    <div className={isLinearScale ? 'overflow-x-auto' : 'space-y-4'}>
+                <div className="space-y-4">
+                    <div className={isLinearScale ? 'overflow-x-auto' : 'space-y-3'}>
                         {groupedScaleValues.map((group, groupIndex) => (
                             <div
                                 key={`scale-group-${groupIndex}`}
                                 className={[
-                                    'rounded-2xl border border-slate-200 bg-[#f8f6f0] p-4',
+                                    'rounded-[5px] bg-slate-50 p-4',
                                     isLinearScale
                                         ? 'inline-flex min-w-full items-center gap-2 whitespace-nowrap'
                                         : '',
@@ -739,7 +708,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                                 ].join(' ')}
                             >
                                 {isDividedScale && (
-                                    <div className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                    <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                                         Section {groupIndex + 1}
                                     </div>
                                 )}
@@ -747,7 +716,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                                     className={
                                         isLinearScale
                                             ? 'flex items-center gap-2'
-                                            : 'grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6'
+                                            : 'grid grid-cols-2 gap-2.5 md:grid-cols-4 xl:grid-cols-6'
                                     }
                                 >
                                     {group.map((scaleValue) => (
@@ -756,7 +725,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                                             className={
                                                 isLinearScale
                                                     ? 'flex size-9 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-semibold text-slate-700'
-                                                    : 'rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-medium text-slate-700'
+                                                    : 'rounded-[5px] border border-slate-200 bg-white px-2.5 py-2 text-center text-sm font-medium text-slate-700'
                                             }
                                         >
                                             {scaleValue}
@@ -772,7 +741,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                         <span>{values.right_label || 'High'}</span>
                     </div>
                     {values.show_score_tooltip && (
-                        <div className="rounded-2xl border border-slate-200 bg-[#f8f6f0] px-4 py-3 text-sm text-slate-600">
+                        <div className="rounded-[5px] bg-slate-50 px-2.5 py-2 text-sm text-slate-600">
                             {values.score_tooltip_format ||
                                 'Selected value will be used as raw score.'}
                         </div>
@@ -783,12 +752,12 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
 
         if (values.question_type === 'numeric') {
             return (
-                <div className="rounded-3xl border border-white/70 bg-white/85 p-5">
+                <div>
                     <div className="text-sm font-medium text-slate-700">Student Answer</div>
-                    <div className="mt-3 rounded-2xl border border-slate-200 bg-[#fbfaf7] px-4 py-4 text-sm text-slate-400">
+                    <div className="mt-2 rounded-[5px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-sm text-slate-400">
                         Numeric input field
                     </div>
-                    <div className="mt-3 text-xs text-slate-500">
+                    <div className="mt-2 text-xs text-slate-500">
                         Range: {values.score_range_min || 0} to {values.score_range_max || 0}
                     </div>
                 </div>
@@ -796,15 +765,15 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
         }
 
         return (
-            <div className="rounded-3xl border border-white/70 bg-white/85 p-5">
+            <div>
                 <div className="text-sm font-medium text-slate-700">Student Answer</div>
-                <div className="mt-3 rounded-2xl border border-slate-200 bg-[#fbfaf7] px-4 py-4 text-sm text-slate-400">
+                <div className="mt-2 rounded-[5px] border border-slate-200 bg-slate-50 px-2.5 py-2 text-sm text-slate-400">
                     {shouldUseMultilineInput(values.input_type, values.character_limit)
                         ? 'Long text answer field'
                         : 'Single-line text answer field'}
                 </div>
                 {values.character_limit ? (
-                    <div className="mt-3 text-xs text-slate-500">
+                    <div className="mt-2 text-xs text-slate-500">
                         Character limit: {values.character_limit}
                     </div>
                 ) : null}
@@ -827,7 +796,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
 
     return (
         <div
-            className="grid gap-3"
+            className="grid gap-2.5"
             style={{
                 gridTemplateColumns:
                     values.question_type === 'image_button'
@@ -840,15 +809,15 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                     <div
                         key={option.id}
                         className={[
-                            'rounded-3xl border bg-white/90 text-slate-800 shadow-sm',
+                            'rounded-[5px] border border-slate-200 bg-white text-slate-800',
                             values.question_type === 'image_button'
-                                ? 'overflow-hidden border-white/70'
-                                : 'border-white/70 px-4 py-4',
+                                ? 'overflow-hidden'
+                                : 'px-2.5 py-2',
                         ].join(' ')}
                     >
                         {values.question_type === 'image_button' && (
                             <>
-                                <div className="flex h-36 items-center justify-center bg-[#e8eee7]">
+                                <div className="flex h-32 items-center justify-center bg-slate-100">
                                     {option.image_url ? (
                                         <img
                                             src={option.image_url}
@@ -856,13 +825,13 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                                             className={`h-full w-full ${getImageFitClass(values.answer_image_fit)}`}
                                         />
                                     ) : (
-                                        <div className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+                                        <div className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">
                                             Image
                                         </div>
                                     )}
                                 </div>
                                 {values.show_labels && (
-                                    <div className="px-4 py-3 text-sm font-medium text-slate-900">
+                                    <div className="px-2.5 py-2 text-sm font-medium text-slate-900">
                                         {optionDrafts[option.id]?.label ?? option.label}
                                     </div>
                                 )}
@@ -877,7 +846,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
                     </div>
                 ))
             ) : (
-                <div className="rounded-3xl border border-dashed border-[#cfd8ce] bg-white/70 px-5 py-6 text-sm text-slate-500">
+                <div className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2 text-sm text-slate-500">
                     Add answers in the Answers tab to complete this screen preview.
                 </div>
             )}
@@ -887,7 +856,7 @@ function PreviewOptionGrid({ question, values, optionDrafts }) {
 
 function CenterCorrectControl({ checked, multiple, onChange, disabled = false }) {
     return (
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-[5px] border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-700">
             <input
                 type={multiple ? 'checkbox' : 'radio'}
                 checked={checked}
@@ -950,76 +919,74 @@ function CenterAnswerRow({
                 onDrop?.();
             }}
             className={[
-                'rounded-xl border bg-white/88 px-4 py-4 shadow-sm transition',
+                'rounded-[5px] border bg-white px-2.5 py-2 transition',
                 isDropTarget
                     ? 'border-[#203529] ring-2 ring-[#203529]/10'
                     : isDragActive
-                      ? 'border-[#cfd9cf] opacity-80'
+                      ? 'border-slate-300 opacity-70'
                       : 'border-slate-200',
             ].join(' ')}
         >
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
-                <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <button
-                        type="button"
-                        draggable={draggable}
-                        onDragStart={(event) => {
-                            if (!draggable) {
-                                return;
-                            }
+            <div className="flex flex-wrap items-center gap-3">
+                <button
+                    type="button"
+                    draggable={draggable}
+                    onDragStart={(event) => {
+                        if (!draggable) {
+                            return;
+                        }
 
-                            event.dataTransfer.effectAllowed = 'move';
-                            onDragStart?.();
-                        }}
-                        onDragEnd={() => onDragEnd?.()}
-                        className={[
-                            'mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition',
-                            draggable
-                                ? 'cursor-grab hover:border-[#cfd9cf] hover:text-slate-600'
-                                : 'cursor-default opacity-50',
-                        ].join(' ')}
-                        aria-label="Reorder answer"
-                    >
-                        <GripVertical className="size-4" />
-                    </button>
+                        event.dataTransfer.effectAllowed = 'move';
+                        onDragStart?.();
+                    }}
+                    onDragEnd={() => onDragEnd?.()}
+                    className={[
+                        'flex size-8 shrink-0 items-center justify-center rounded-[5px] text-slate-300 transition',
+                        draggable
+                            ? 'cursor-grab hover:text-slate-500'
+                            : 'cursor-default opacity-40',
+                    ].join(' ')}
+                    aria-label="Reorder answer"
+                >
+                    <GripVertical className="size-4" />
+                </button>
 
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#eef2ec] text-xs font-semibold text-[#35513e]">
-                        {data.sort_order}
-                    </div>
-
-                    {question.question_type === 'image_button' ? (
-                        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-[#eef2ec]">
-                            {option.image_url ? (
-                                <img
-                                    src={option.image_url}
-                                    alt={labelValue || option.label}
-                                    className="h-full w-full object-cover"
-                                />
-                            ) : (
-                                <ImageIcon className="size-4 text-slate-400" />
-                            )}
-                        </div>
-                    ) : null}
-
-                    <div className="min-w-0 flex-1">
-                        {option.is_fixed_option ? (
-                            <div className="min-h-11 rounded-lg border border-slate-200 bg-[#e8e8e8] px-4 py-3 text-sm font-medium text-slate-900">
-                                {labelValue}
-                            </div>
-                        ) : (
-                            <Input
-                                value={labelValue}
-                                onChange={(event) =>
-                                    updateField('label', event.target.value)
-                                }
-                                placeholder="Answer label"
-                                className="min-h-11 rounded-lg border-slate-200 bg-white"
-                            />
-                        )}
-                    </div>
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-[5px] bg-slate-100 text-xs font-semibold text-slate-600">
+                    {data.sort_order}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                {question.question_type === 'image_button' ? (
+                    <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[5px] bg-slate-100">
+                        {option.image_url ? (
+                            <img
+                                src={option.image_url}
+                                alt={labelValue || option.label}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <ImageIcon className="size-4 text-slate-400" />
+                        )}
+                    </div>
+                ) : null}
+
+                <div className="min-w-0 flex-1">
+                    {option.is_fixed_option ? (
+                        <div className="min-h-10 rounded-[5px] bg-slate-50 px-2.5 py-2 text-sm font-medium text-slate-900">
+                            {labelValue}
+                        </div>
+                    ) : (
+                        <Input
+                            value={labelValue}
+                            onChange={(event) =>
+                                updateField('label', event.target.value)
+                            }
+                            placeholder="Answer label"
+                            className="min-h-10 rounded-[5px] border-slate-200"
+                        />
+                    )}
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
                     <CenterCorrectControl
                         checked={data.is_correct}
                         multiple={allowMultipleCorrect}
@@ -1029,8 +996,9 @@ function CenterAnswerRow({
                     {!option.is_fixed_option ? (
                         <Button
                             type="button"
-                            variant="destructive"
+                            variant="ghost"
                             size="sm"
+                            className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                             onClick={() =>
                                 router.delete(
                                     route('admin.scoreboards.options.destroy', {
@@ -1051,6 +1019,12 @@ function CenterAnswerRow({
     );
 }
 
+/* ============================================================
+   CENTER PANEL — Canvas / live editor preview
+   Simplified: removed nested decorative wrappers (background
+   frame, backdrop-blur frame, instruction box). Single card,
+   single padded content column.
+   ============================================================ */
 function BuilderCanvas({
     scoreboard,
     question,
@@ -1069,9 +1043,6 @@ function BuilderCanvas({
     dropOptionAt,
     finishOptionDrag,
 }) {
-    const sectionBackground =
-        design.section_background ||
-        'linear-gradient(180deg, rgba(241,237,229,0.95) 0%, rgba(246,249,245,0.95) 46%, rgba(239,245,239,0.95) 100%)';
     const supportsMultipleCorrectAnswers = question
         ? questionTypeSupportsMultipleCorrectSelection(
               values.question_type,
@@ -1083,248 +1054,218 @@ function BuilderCanvas({
         : false;
 
     return (
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.07)]">
-            <div className="border-b border-slate-200 bg-[linear-gradient(180deg,#fcfbf8_0%,#f7f6f1_100%)] px-6 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#607362]">
-                            <Eye className="size-3.5" />
-                            Canvas
-                        </div>
-                        <h3 className="mt-2 text-lg font-semibold text-slate-900">
-                            Editor Preview
-                        </h3>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        {question ? (
-                            <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium">
-                                Screen {question.sort_order}
-                            </span>
-                        ) : null}
-                        <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium">
-                            Student Preview
-                        </span>
-                    </div>
+        <section className="overflow-hidden rounded-[5px] border border-slate-200 bg-white">
+            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-2.5 py-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <Eye className="size-4 text-slate-400" />
+                    Editor Preview
                 </div>
-            </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    {question ? (
+                        <span className="rounded-[5px] bg-slate-100 px-2.5 py-2 font-medium">
+                            Screen {question.sort_order}
+                        </span>
+                    ) : null}
+                    <span className="rounded-[5px] bg-slate-100 px-2.5 py-2 font-medium">
+                        Student Preview
+                    </span>
+                    {question ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-[5px] px-2.5 py-2 text-xs"
+                            onClick={() =>
+                                router.post(
+                                    route('admin.scoreboards.questions.store', scoreboard.id),
+                                    {},
+                                    { preserveScroll: true },
+                                )
+                            }
+                        >
+                            <Plus className="size-3.5" />
+                            Add Question
+                        </Button>
+                    ) : null}
+                </div>
+            </header>
 
             {question ? (
-                <div className="bg-[linear-gradient(180deg,#ffffff_0%,#d7d7d7_100%)] p-5 md:p-6">
-                    <div
-                        className="rounded-2xl border border-white/70 p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] md:p-6"
-                        style={{ background: sectionBackground }}
-                    >
-                        <div
-                            className="mx-auto max-w-3xl rounded-2xl border border-white/60 bg-white/50 p-5 backdrop-blur-sm md:p-8"
-                            style={{
-                                paddingTop: design.top_margin || 0,
-                                paddingBottom: design.bottom_margin || 0,
-                            }}
-                        >
-                            <div className="space-y-8">
-                                <div className="flex flex-col gap-3 rounded-xl border border-white/60 bg-white/55 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="text-sm text-slate-500">
-                                        Edit the active screen directly on canvas.
+                <div
+                    className="p-5 md:p-8"
+                    style={{
+                        background:
+                            design.section_background ||
+                            'linear-gradient(180deg, rgba(250,250,248,1) 0%, rgba(255,255,255,1) 100%)',
+                        paddingTop: design.top_margin || undefined,
+                        paddingBottom: design.bottom_margin || undefined,
+                    }}
+                >
+                    <div className="mx-auto max-w-2xl space-y-7">
+                        <InlineTextBlock
+                            label="Screen Label"
+                            value={values.title}
+                            onChange={(event) => setValue('title', event.target.value)}
+                            placeholder="Optional internal screen title"
+                        />
+
+                        {values.show_instruction ? (
+                            <div className="border-l-2 border-slate-200 pl-4">
+                                <InlineTextBlock
+                                    label="Instruction"
+                                    value={values.instruction_text}
+                                    onChange={(event) =>
+                                        setValue('instruction_text', event.target.value)
+                                    }
+                                    placeholder="Add optional guidance for the student."
+                                    multiline
+                                />
+                            </div>
+                        ) : null}
+
+                        <InlineTextBlock
+                            label="Question Text"
+                            value={values.question_text}
+                            onChange={(event) =>
+                                setValue('question_text', event.target.value)
+                            }
+                            placeholder="Click here and write the main question students will see."
+                            multiline
+                            dominant
+                        />
+
+                        {!supportsCenterAnswers ? (
+                            <PreviewOptionGrid
+                                question={question}
+                                values={values}
+                                optionDrafts={optionDrafts}
+                            />
+                        ) : null}
+
+                        {supportsCenterAnswers ? (
+                            <div className="space-y-3">
+                                <div>
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                        Answers
                                     </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        className="rounded-lg"
-                                        onClick={() =>
-                                            router.post(
-                                                route('admin.scoreboards.questions.store', scoreboard.id),
-                                                {},
-                                                { preserveScroll: true },
-                                            )
-                                        }
-                                    >
-                                        <Plus className="size-4" />
-                                        Add Question
-                                    </Button>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        {supportsMultipleCorrectAnswers
+                                            ? 'Edit labels and choose one or more correct answers directly here.'
+                                            : 'Edit labels and choose the correct answer directly here.'}
+                                    </p>
                                 </div>
 
-                                <InlineTextBlock
-                                    label="Screen Label"
-                                    value={values.title}
-                                    onChange={(event) =>
-                                        setValue('title', event.target.value)
-                                    }
-                                    placeholder="Optional internal screen title"
-                                />
+                                <div className="space-y-2.5">
+                                    {visibleOptions.map((option) =>
+                                        option.is_virtual ? (
+                                            <div
+                                                key={option.id}
+                                                className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2 text-sm text-slate-500"
+                                            >
+                                                <div className="font-medium text-slate-900">
+                                                    Other
+                                                </div>
+                                                <div className="mt-1 leading-6">
+                                                    This special answer row will be created after you save the question.
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <CenterAnswerRow
+                                                key={`center-answer-${option.id}`}
+                                                scoreboardId={scoreboard.id}
+                                                question={question}
+                                                option={option}
+                                                draft={
+                                                    optionDrafts[option.id] ??
+                                                    buildOptionDraft(option)
+                                                }
+                                                setOptionValue={setOptionValue}
+                                                toggleCorrectOption={toggleCorrectOption}
+                                                allowMultipleCorrect={
+                                                    supportsMultipleCorrectAnswers
+                                                }
+                                                draggable={!option.is_virtual}
+                                                isDragActive={
+                                                    draggedOptionId === option.id
+                                                }
+                                                isDropTarget={
+                                                    dropTargetOptionId === option.id
+                                                }
+                                                onDragStart={() =>
+                                                    startOptionDrag(option.id)
+                                                }
+                                                onDragOver={() =>
+                                                    markOptionDropTarget(option.id)
+                                                }
+                                                onDrop={() => dropOptionAt(option.id)}
+                                                onDragEnd={finishOptionDrag}
+                                            />
+                                        ),
+                                    )}
+                                </div>
 
-                                {values.show_instruction ? (
-                                    <div className="rounded-3xl border border-[#d7e2d6] bg-white/70 px-5 py-4">
-                                        <InlineTextBlock
-                                            label="Instruction"
-                                            value={values.instruction_text}
-                                            onChange={(event) =>
-                                                setValue(
-                                                    'instruction_text',
-                                                    event.target.value,
+                                {questionTypeSupportsCustomAnswerRows(
+                                    values.question_type,
+                                ) ? (
+                                    <div className="flex justify-end pt-1">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                router.post(
+                                                    route('admin.scoreboards.options.store', {
+                                                        assessment: scoreboard.id,
+                                                        question: question.id,
+                                                    }),
+                                                    {},
+                                                    { preserveScroll: true },
                                                 )
                                             }
-                                            placeholder="Add optional guidance for the student."
-                                            multiline
-                                        />
-                                    </div>
-                                ) : null}
-
-                                <InlineTextBlock
-                                    label="Question Text"
-                                    value={values.question_text}
-                                    onChange={(event) =>
-                                        setValue('question_text', event.target.value)
-                                    }
-                                    placeholder="Click here and write the main question students will see."
-                                    multiline
-                                    dominant
-                                />
-
-                                {!supportsCenterAnswers ? (
-                                    <PreviewOptionGrid
-                                        question={question}
-                                        values={values}
-                                        optionDrafts={optionDrafts}
-                                    />
-                                ) : null}
-
-                                {supportsCenterAnswers ? (
-                                    <div className="space-y-3 rounded-xl border border-white/60 bg-white/60 p-4">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div>
-                                                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#607362]">
-                                                    Answers
-                                                </div>
-                                                <div className="mt-1 text-sm text-slate-500">
-                                                    {supportsMultipleCorrectAnswers
-                                                        ? 'Edit labels and choose one or more correct answers directly from the center panel.'
-                                                        : 'Edit labels and choose the correct answer directly from the center panel.'}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid gap-3">
-                                            {visibleOptions.map((option) =>
-                                                option.is_virtual ? (
-                                                    <div
-                                                        key={option.id}
-                                                        className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-600"
-                                                    >
-                                                        <div className="font-medium text-slate-900">
-                                                            Other
-                                                        </div>
-                                                        <div className="mt-1 leading-6">
-                                                            This special answer row will be created after you save the question.
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <CenterAnswerRow
-                                                        key={`center-answer-${option.id}`}
-                                                        scoreboardId={scoreboard.id}
-                                                        question={question}
-                                                        option={option}
-                                                        draft={
-                                                            optionDrafts[option.id] ??
-                                                            buildOptionDraft(option)
-                                                        }
-                                                        setOptionValue={setOptionValue}
-                                                        toggleCorrectOption={toggleCorrectOption}
-                                                        allowMultipleCorrect={
-                                                            supportsMultipleCorrectAnswers
-                                                        }
-                                                        draggable={!option.is_virtual}
-                                                        isDragActive={
-                                                            draggedOptionId === option.id
-                                                        }
-                                                        isDropTarget={
-                                                            dropTargetOptionId === option.id
-                                                        }
-                                                        onDragStart={() =>
-                                                            startOptionDrag(option.id)
-                                                        }
-                                                        onDragOver={() =>
-                                                            markOptionDropTarget(
-                                                                option.id,
-                                                            )
-                                                        }
-                                                        onDrop={() =>
-                                                            dropOptionAt(option.id)
-                                                        }
-                                                        onDragEnd={finishOptionDrag}
-                                                    />
-                                                ),
-                                            )}
-                                        </div>
-
-                                        {questionTypeSupportsCustomAnswerRows(
-                                            values.question_type,
-                                        ) ? (
-                                            <div className="flex justify-end pt-1">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    onClick={() =>
-                                                        router.post(
-                                                            route(
-                                                                'admin.scoreboards.options.store',
-                                                                {
-                                                                    assessment: scoreboard.id,
-                                                                    question: question.id,
-                                                                },
-                                                            ),
-                                                            {},
-                                                            { preserveScroll: true },
-                                                        )
-                                                    }
-                                                >
-                                                    <Plus className="size-4" />
-                                                    Add Answer
-                                                </Button>
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                ) : null}
-
-                                <div className="flex items-center justify-end border-t border-slate-200 pt-6">
-                                    <button
-                                        type="button"
-                                        className="inline-flex h-11 items-center justify-center rounded-lg bg-[#203529] px-6 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(32,53,41,0.24)]"
-                                    >
-                                        Next
-                                    </button>
-                                </div>
-
-                                {design.footer_content ? (
-                                    <div className="border-t border-slate-200 pt-6 text-sm leading-7 text-slate-500">
-                                        {design.footer_content}
+                                        >
+                                            <Plus className="size-4" />
+                                            Add Answer
+                                        </Button>
                                     </div>
                                 ) : null}
                             </div>
+                        ) : null}
+
+                        <div className="flex items-center justify-end border-t border-slate-100 pt-6">
+                            <button
+                                type="button"
+                                className="inline-flex items-center justify-center rounded-[5px] bg-[#203529] px-2.5 py-2 text-sm font-semibold text-white"
+                            >
+                                Next
+                            </button>
                         </div>
+
+                        {design.footer_content ? (
+                            <div className="border-t border-slate-100 pt-5 text-sm leading-7 text-slate-500">
+                                {design.footer_content}
+                            </div>
+                        ) : null}
                     </div>
 
                     {error ? (
-                        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                        <div className="mx-auto mt-5 max-w-2xl rounded-[5px] border border-rose-200 bg-rose-50 px-2.5 py-2 text-sm text-rose-900">
                             {error}
                         </div>
                     ) : null}
                 </div>
             ) : (
-                <div className="p-6">
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-[#fbfaf6] px-6 py-20 text-center">
-                        <div className="mx-auto max-w-md">
-                            <div className="inline-flex rounded-lg bg-white p-3 text-[#607362] shadow-sm">
-                                <Sparkles className="size-5" />
-                            </div>
-                            <h3 className="mt-5 text-xl font-semibold text-slate-900">
-                                Start building the first screen
-                            </h3>
-                            <p className="mt-2 text-sm leading-7 text-slate-500">
-                                Add a question from the left panel and the canvas will turn into your live editing surface.
-                            </p>
+                <div className="px-2.5 py-16 text-center">
+                    <div className="mx-auto max-w-md">
+                        <div className="inline-flex rounded-[5px] bg-slate-100 p-3 text-slate-400">
+                            <Sparkles className="size-5" />
                         </div>
+                        <h3 className="mt-4 text-lg font-semibold text-slate-900">
+                            Start building the first screen
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                            Add a question from the left panel and the canvas will turn into your live editing surface.
+                        </p>
                     </div>
                 </div>
             )}
@@ -1332,25 +1273,30 @@ function BuilderCanvas({
     );
 }
 
+/* ============================================================
+   RIGHT PANEL — Question / Answers configuration
+   Simplified: section "cards" replaced with plain labeled
+   groups separated by divide-y, no border box per group.
+   ============================================================ */
 function QuestionSection({ title, description, children }) {
     return (
-        <section className="space-y-4 rounded-xl border border-slate-200 bg-[#e8e8e8] p-4">
+        <div className="space-y-3 py-2 first:pt-0">
             <div>
-                <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-slate-900">
-                    {title}
-                </h4>
+                <h4 className="text-[13px] font-semibold text-slate-900">{title}</h4>
                 {description ? (
-                    <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+                    <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                        {description}
+                    </p>
                 ) : null}
             </div>
-            {children}
-        </section>
+            <div className="space-y-3">{children}</div>
+        </div>
     );
 }
 
 function ToggleField({ checked, onChange, label, description }) {
     return (
-        <label className="flex w-full items-start justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3.5">
+        <label className="flex w-full items-start justify-between gap-3 rounded-[5px] border border-slate-200 px-2.5 py-2">
             <div className="min-w-0 flex-1">
                 <div className="break-words text-sm font-medium leading-5 text-slate-900">
                     {label}
@@ -1367,8 +1313,8 @@ function ToggleField({ checked, onChange, label, description }) {
                 onChange={(event) => onChange(event.target.checked)}
                 className="peer sr-only"
             />
-            <div className="relative mt-0.5 h-6 w-11 shrink-0 rounded-lg bg-slate-200 transition peer-checked:bg-[#203529]">
-                <span className="absolute left-1 top-1 size-4 rounded-md bg-white shadow-sm transition peer-checked:left-6" />
+            <div className="relative mt-0.5 h-6 w-11 shrink-0 rounded-[5px] bg-slate-200 transition peer-checked:bg-[#203529]">
+                <span className="absolute left-1 top-1 size-4 rounded-[5px] bg-white shadow-sm transition peer-checked:left-6" />
             </div>
         </label>
     );
@@ -1453,61 +1399,57 @@ function AnswerRow({
                 onDrop?.();
             }}
             className={[
-                'rounded-xl border bg-white p-4 shadow-sm transition',
+                'rounded-[5px] border bg-white px-2.5 py-2 transition',
                 isDropTarget
                     ? 'border-[#203529] ring-2 ring-[#203529]/10'
                     : isDragActive
-                      ? 'border-[#cfd9cf] opacity-80'
+                      ? 'border-slate-300 opacity-70'
                       : 'border-slate-200',
             ].join(' ')}
         >
-            <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                    <button
-                        type="button"
-                        draggable={draggable}
-                        onDragStart={(event) => {
-                            if (!draggable) {
-                                return;
-                            }
+            <div className="flex items-center gap-2.5">
+                <button
+                    type="button"
+                    draggable={draggable}
+                    onDragStart={(event) => {
+                        if (!draggable) {
+                            return;
+                        }
 
-                            event.dataTransfer.effectAllowed = 'move';
-                            onDragStart?.();
-                        }}
-                        onDragEnd={() => onDragEnd?.()}
-                        className={[
-                            'mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition',
-                            draggable
-                                ? 'cursor-grab hover:border-[#cfd9cf] hover:text-slate-600'
-                                : 'cursor-default opacity-50',
-                        ].join(' ')}
-                        aria-label="Reorder answer settings"
-                    >
-                        <GripVertical className="size-4" />
-                    </button>
+                        event.dataTransfer.effectAllowed = 'move';
+                        onDragStart?.();
+                    }}
+                    onDragEnd={() => onDragEnd?.()}
+                    className={[
+                        'flex size-7 shrink-0 items-center justify-center rounded-[5px] text-slate-300 transition',
+                        draggable
+                            ? 'cursor-grab hover:text-slate-500'
+                            : 'cursor-default opacity-40',
+                    ].join(' ')}
+                    aria-label="Reorder answer settings"
+                >
+                    <GripVertical className="size-4" />
+                </button>
 
-                    <div className="min-w-0 flex-1">
-                        <div className="break-words text-sm font-semibold leading-6 text-slate-900">
-                            {data.label || option.label || `Answer ${data.sort_order}`}
-                        </div>
-                    </div>
+                <div className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
+                    {data.label || option.label || `Answer ${data.sort_order}`}
                 </div>
 
                 <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="w-full justify-center sm:w-auto"
+                    className="shrink-0 text-xs"
                     onClick={() => setExpanded((current) => !current)}
                 >
                     {expanded ? 'Hide' : 'Details'}
                 </Button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-2.5 border-t border-slate-100 pt-3">
                 {supportsImage ? (
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                             Image
                         </label>
                         <input
@@ -1525,9 +1467,9 @@ function AnswerRow({
                         <button
                             type="button"
                             onClick={() => imageInputRef.current?.click()}
-                            className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-[#faf8f3] px-3 py-3 text-left transition hover:border-[#cfd9cf] hover:bg-white"
+                            className="flex w-full items-center gap-3 rounded-[5px] border border-slate-200 px-2.5 py-2 text-left transition hover:border-slate-300"
                         >
-                            <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+                            <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[5px] bg-slate-100">
                                 {imagePreviewUrl ? (
                                     <img
                                         src={imagePreviewUrl}
@@ -1542,11 +1484,8 @@ function AnswerRow({
                                 <div className="text-sm font-medium text-slate-900">
                                     {imagePreviewUrl ? 'Change image' : 'Select image'}
                                 </div>
-                                <div className="mt-1 text-xs leading-5 text-slate-500">
-                                    Click this area to open the file picker.
-                                </div>
                                 {data.image instanceof File ? (
-                                    <div className="mt-1 truncate text-xs text-slate-500">
+                                    <div className="mt-0.5 truncate text-xs text-slate-500">
                                         {data.image.name}
                                     </div>
                                 ) : null}
@@ -1557,90 +1496,86 @@ function AnswerRow({
 
                 <ToggleField
                     checked={data.scoring_enabled}
-                    onChange={(checked) =>
-                        updateField('scoring_enabled', checked)
-                    }
+                    onChange={(checked) => updateField('scoring_enabled', checked)}
                     label="Score Answer"
                 />
                 {supportsJump ? (
                     <ToggleField
                         checked={data.jump_enabled}
-                        onChange={(checked) =>
-                            updateField('jump_enabled', checked)
-                        }
+                        onChange={(checked) => updateField('jump_enabled', checked)}
                         label="Jump to Question"
                     />
                 ) : null}
-            </div>
 
-            {expanded || data.scoring_enabled || (supportsJump && data.jump_enabled) ? (
-                <div className="mt-5 space-y-4 border-t border-slate-200 pt-4">
-                    {data.scoring_enabled ? (
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                Score Value
-                            </label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                value={data.score_value}
-                                onChange={(event) =>
-                                    updateField('score_value', event.target.value)
-                                }
-                            />
-                        </div>
-                    ) : null}
+                {expanded || data.scoring_enabled || (supportsJump && data.jump_enabled) ? (
+                    <div className="space-y-3 pt-1">
+                        {data.scoring_enabled ? (
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                    Score Value
+                                </label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={data.score_value}
+                                    onChange={(event) =>
+                                        updateField('score_value', event.target.value)
+                                    }
+                                />
+                            </div>
+                        ) : null}
 
-                    {supportsJump && data.jump_enabled ? (
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                Jump to Question
-                            </label>
-                            <select
-                                value={data.jump_to_question_id}
-                                onChange={(event) =>
-                                    updateField(
-                                        'jump_to_question_id',
-                                        event.target.value,
-                                    )
-                                }
-                                className="flex h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
-                            >
-                                <option value="">Select target</option>
-                                {questionTargets.map((target) => (
-                                    <option key={target.id} value={target.id}>
-                                        {target.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    ) : null}
+                        {supportsJump && data.jump_enabled ? (
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                                    Jump to Question
+                                </label>
+                                <select
+                                    value={data.jump_to_question_id}
+                                    onChange={(event) =>
+                                        updateField(
+                                            'jump_to_question_id',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="flex w-full rounded-[5px] border border-slate-200 bg-white px-2.5 py-2 text-sm"
+                                >
+                                    <option value="">Select target</option>
+                                    {questionTargets.map((target) => (
+                                        <option key={target.id} value={target.id}>
+                                            {target.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : null}
 
-                    {fieldError(errors, [
-                        'label',
-                        'score_value',
-                        'jump_to_question_id',
-                    ]) ? (
-                        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                            {fieldError(errors, [
-                                'label',
-                                'score_value',
-                                'jump_to_question_id',
-                            ])}
-                        </div>
-                    ) : null}
+                        {fieldError(errors, [
+                            'label',
+                            'score_value',
+                            'jump_to_question_id',
+                        ]) ? (
+                            <div className="rounded-[5px] border border-rose-200 bg-rose-50 px-2.5 py-2 text-sm text-rose-900">
+                                {fieldError(errors, [
+                                    'label',
+                                    'score_value',
+                                    'jump_to_question_id',
+                                ])}
+                            </div>
+                        ) : null}
+                    </div>
+                ) : null}
+
+                <div className="flex pt-1">
+                    <Button
+                        type="submit"
+                        size="sm"
+                        disabled={processing}
+                        className="w-full justify-center sm:w-auto"
+                    >
+                        Save Settings
+                    </Button>
                 </div>
-            ) : null}
-
-            <div className="mt-5 flex">
-                <Button
-                    type="submit"
-                    size="sm"
-                    disabled={processing}
-                    className="w-full justify-center sm:w-auto"
-                >
-                    Save Settings
-                </Button>
             </div>
         </form>
     );
@@ -2364,13 +2299,13 @@ function useQuestionConfigPanel({
     };
 
     const questionTabContent = question ? (
-        <form onSubmit={submitQuestion} className="space-y-4">
+        <form onSubmit={submitQuestion} className="divide-y divide-slate-100">
             <QuestionSection
                 title="General"
                 description="Core structure, type, and the essential content for this screen."
             >
-                <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                         Question Type
                     </label>
                     <select
@@ -2378,7 +2313,7 @@ function useQuestionConfigPanel({
                         onChange={(event) =>
                             setValue('question_type', event.target.value)
                         }
-                        className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                        className="flex w-full rounded-[5px] border border-slate-200 bg-white px-2.5 py-2 text-sm"
                     >
                         {questionTypeOptions.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -2388,8 +2323,8 @@ function useQuestionConfigPanel({
                     </select>
                 </div>
 
-                <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                         Sort Order
                     </label>
                     <Input
@@ -2407,46 +2342,44 @@ function useQuestionConfigPanel({
                 title="Behaviour"
                 description="Screen-level rules that affect answering and navigation."
             >
-                <div className="space-y-3">
-                    {supportsInstruction ? (
-                        <ToggleField
-                            checked={questionForm.data.show_instruction}
-                            onChange={(checked) =>
-                                setValue('show_instruction', checked)
-                            }
-                            label="Show Instruction"
-                        />
-                    ) : null}
+                {supportsInstruction ? (
+                    <ToggleField
+                        checked={questionForm.data.show_instruction}
+                        onChange={(checked) =>
+                            setValue('show_instruction', checked)
+                        }
+                        label="Show Instruction"
+                    />
+                ) : null}
 
-                    {supportsInstruction && questionForm.data.show_instruction ? (
-                        <Textarea
-                            value={questionForm.data.instruction_text}
-                            onChange={(event) =>
-                                setValue('instruction_text', event.target.value)
-                            }
-                            className="min-h-24"
-                            placeholder="Instruction text appears on the canvas preview."
-                        />
-                    ) : null}
+                {supportsInstruction && questionForm.data.show_instruction ? (
+                    <Textarea
+                        value={questionForm.data.instruction_text}
+                        onChange={(event) =>
+                            setValue('instruction_text', event.target.value)
+                        }
+                        className="min-h-24"
+                        placeholder="Instruction text appears on the canvas preview."
+                    />
+                ) : null}
 
-                    {supportsRequired ? (
-                        <ToggleField
-                            checked={questionForm.data.required}
-                            onChange={(checked) => setValue('required', checked)}
-                            label="Required"
-                        />
-                    ) : null}
+                {supportsRequired ? (
+                    <ToggleField
+                        checked={questionForm.data.required}
+                        onChange={(checked) => setValue('required', checked)}
+                        label="Required"
+                    />
+                ) : null}
 
-                    {supportsRandomize ? (
-                        <ToggleField
-                            checked={questionForm.data.randomize_answers_order}
-                            onChange={(checked) =>
-                                setValue('randomize_answers_order', checked)
-                            }
-                            label="Randomize Answers Order"
-                        />
-                    ) : null}
-                </div>
+                {supportsRandomize ? (
+                    <ToggleField
+                        checked={questionForm.data.randomize_answers_order}
+                        onChange={(checked) =>
+                            setValue('randomize_answers_order', checked)
+                        }
+                        label="Randomize Answers Order"
+                    />
+                ) : null}
             </QuestionSection>
 
             <QuestionSection
@@ -2460,8 +2393,8 @@ function useQuestionConfigPanel({
                 />
 
                 {questionForm.data.jump_enabled ? (
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                             Jump to Question
                         </label>
                         <select
@@ -2469,7 +2402,7 @@ function useQuestionConfigPanel({
                             onChange={(event) =>
                                 setValue('jump_to_question_id', event.target.value)
                             }
-                            className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                            className="flex w-full rounded-[5px] border border-slate-200 bg-white px-2.5 py-2 text-sm"
                         >
                             <option value="">Select target</option>
                             {orderedQuestionTargets.map((target) => (
@@ -2484,10 +2417,10 @@ function useQuestionConfigPanel({
 
             <QuestionSection
                 title="Type-specific Settings"
-                description="Only the settings that matter for the active question type should live here."
+                description="Only the settings that matter for the active question type appear here."
             >
                 {questionForm.data.question_type === 'yes_no_maybe' ? (
-                    <div className="rounded-2xl border border-slate-200 bg-[#fbfaf6] px-4 py-4 text-sm text-slate-600">
+                    <div className="rounded-[5px] bg-slate-50 px-2.5 py-2 text-sm text-slate-600">
                         This question type is treated as <span className="font-semibold text-slate-900">Yes / No only</span>. Maybe is hidden from both builder and student flow.
                     </div>
                 ) : null}
@@ -2528,8 +2461,8 @@ function useQuestionConfigPanel({
                                     label="Show Labels"
                                 />
                                 <div className="grid gap-3 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                             Answer Image Fit
                                         </label>
                                         <select
@@ -2540,14 +2473,14 @@ function useQuestionConfigPanel({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                                            className="flex w-full rounded-[5px] border border-slate-200 bg-white px-2.5 py-2 text-sm"
                                         >
                                             <option value="cover">Cover</option>
                                             <option value="contain">Contain</option>
                                         </select>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                             Answers Per Row
                                         </label>
                                         <select
@@ -2558,7 +2491,7 @@ function useQuestionConfigPanel({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                                            className="flex w-full rounded-[5px] border border-slate-200 bg-white px-2.5 py-2 text-sm"
                                         >
                                             <option value="2">2</option>
                                             <option value="4">4</option>
@@ -2572,8 +2505,8 @@ function useQuestionConfigPanel({
                         'multiple_choice_checkboxes' ? (
                             <div className="space-y-3">
                                 <div className="grid gap-3 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                             Min Count
                                         </label>
                                         <Input
@@ -2590,8 +2523,8 @@ function useQuestionConfigPanel({
                                             </div>
                                         ) : null}
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                             Max Count
                                         </label>
                                         <Input
@@ -2609,7 +2542,7 @@ function useQuestionConfigPanel({
                                         ) : null}
                                     </div>
                                 </div>
-                                <div className="rounded-2xl border border-slate-200 bg-[#fbfaf6] px-4 py-3 text-xs leading-6 text-slate-600">
+                                <div className="rounded-[5px] bg-slate-50 px-2.5 py-2 text-xs leading-6 text-slate-600">
                                     Students must select at least the minimum count and cannot exceed the maximum count.
                                 </div>
                             </div>
@@ -2620,8 +2553,8 @@ function useQuestionConfigPanel({
                 {scaleTypes.includes(questionForm.data.question_type) ? (
                     <div className="space-y-3">
                         <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                     Score Range From
                                 </label>
                                 <Input
@@ -2637,8 +2570,8 @@ function useQuestionConfigPanel({
                                     }
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                     Score Range To
                                 </label>
                                 <Input
@@ -2658,8 +2591,8 @@ function useQuestionConfigPanel({
 
                         <div className="grid gap-3 md:grid-cols-2">
                             {questionForm.data.question_type === 'sliding_scale' ? (
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Starting Score
                                     </label>
                                     <Input
@@ -2673,8 +2606,8 @@ function useQuestionConfigPanel({
                                 </div>
                             ) : null}
                             {questionForm.data.question_type === 'divided_scale' ? (
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Section Count
                                     </label>
                                     <Input
@@ -2693,8 +2626,8 @@ function useQuestionConfigPanel({
                             questionForm.data.question_type === 'linear_scale' ||
                             questionForm.data.question_type === 'divided_scale') ? (
                             <div className="grid gap-3 md:grid-cols-3">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Left
                                     </label>
                                     <Input
@@ -2704,8 +2637,8 @@ function useQuestionConfigPanel({
                                         }
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Center
                                     </label>
                                     <Input
@@ -2715,8 +2648,8 @@ function useQuestionConfigPanel({
                                         }
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Right
                                     </label>
                                     <Input
@@ -2740,8 +2673,8 @@ function useQuestionConfigPanel({
                                 />
 
                                 {questionForm.data.show_score_tooltip ? (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                             Score Tooltip Format
                                         </label>
                                         <Input
@@ -2760,8 +2693,8 @@ function useQuestionConfigPanel({
                 {questionForm.data.question_type === 'numeric' ? (
                     <div className="space-y-3">
                         <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                     Range From
                                 </label>
                                 <Input
@@ -2773,8 +2706,8 @@ function useQuestionConfigPanel({
                                     }
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                     Range To
                                 </label>
                                 <Input
@@ -2800,8 +2733,8 @@ function useQuestionConfigPanel({
 
                 {questionForm.data.question_type === 'open_text' ? (
                     <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                 Input Type
                             </label>
                             <select
@@ -2809,14 +2742,14 @@ function useQuestionConfigPanel({
                                 onChange={(event) =>
                                     setValue('input_type', event.target.value)
                                 }
-                                className="flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                                className="flex w-full rounded-[5px] border border-slate-200 bg-white px-2.5 py-2 text-sm"
                             >
                                 <option value="single_line">Single line</option>
                                 <option value="multi_line">Multi line</option>
                             </select>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                 Character Limit
                             </label>
                             <Input
@@ -2830,16 +2763,17 @@ function useQuestionConfigPanel({
                         </div>
                     </div>
                 ) : null}
-
             </QuestionSection>
 
             {primaryError ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                    {primaryError}
+                <div className="py-2">
+                    <div className="rounded-[5px] border border-rose-200 bg-rose-50 px-2.5 py-2 text-sm text-rose-900">
+                        {primaryError}
+                    </div>
                 </div>
             ) : null}
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 pt-4">
                 <Button
                     type="button"
                     variant="destructive"
@@ -2858,7 +2792,7 @@ function useQuestionConfigPanel({
             </div>
         </form>
     ) : (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+        <div className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2 text-sm text-slate-600">
             Select a question to edit its configuration.
         </div>
     );
@@ -2870,7 +2804,7 @@ function useQuestionConfigPanel({
                     option.is_virtual ? (
                         <div
                             key={option.id}
-                            className="rounded-[22px] border border-dashed border-slate-300 bg-[#fbfaf6] px-4 py-4 text-sm text-slate-600"
+                            className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2 text-sm text-slate-600"
                         >
                             <div className="font-medium text-slate-900">{option.label}</div>
                             <div className="mt-1 leading-6">
@@ -2901,7 +2835,7 @@ function useQuestionConfigPanel({
             </div>
         ) : (
             supportsAnswerTabScoringCategory ? (
-                <div className="space-y-4 rounded-xl border border-slate-200 bg-[#fbfaf6] px-4 py-5">
+                <div className="space-y-3">
                     <ToggleField
                         checked={scoringCategoryPanelEnabled}
                         onChange={(checked) => {
@@ -2919,8 +2853,8 @@ function useQuestionConfigPanel({
                     />
 
                     {scoringCategoryPanelEnabled ? (
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                 Scoring Category
                             </label>
                             <Input
@@ -2928,34 +2862,33 @@ function useQuestionConfigPanel({
                                 onChange={(event) =>
                                     setValue('scoring_category', event.target.value)
                                 }
-                                className="rounded-xl border-slate-200 bg-white"
                                 placeholder="Type a scoring category"
                             />
                         </div>
                     ) : null}
                 </div>
             ) : (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+                <div className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2 text-sm text-slate-600">
                     This question type does not need answer-specific settings.
                 </div>
             )
         )
     ) : (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+        <div className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2 text-sm text-slate-600">
             Select a question first to manage its answers.
         </div>
     );
 
     const PanelContent = (
         <div className="space-y-4">
-            <div className="grid h-auto w-full grid-cols-2 rounded-xl border border-slate-200 bg-[#d7d7d7] p-1">
+            <div className="grid h-auto w-full grid-cols-2 rounded-[5px] bg-slate-100 p-1">
                 <button
                     type="button"
                     onClick={() => setActiveTab('question')}
                     className={[
-                        'rounded-lg px-3 py-2 text-sm font-medium transition',
+                        'rounded-[5px] px-2.5 py-2 text-sm font-medium transition',
                         activeTab === 'question'
-                            ? 'bg-white text-slate-900 shadow-[0_6px_16px_rgba(15,23,42,0.08)]'
+                            ? 'bg-white text-slate-900 shadow-sm'
                             : 'text-slate-500 hover:text-slate-700',
                     ].join(' ')}
                     aria-pressed={activeTab === 'question'}
@@ -2966,9 +2899,9 @@ function useQuestionConfigPanel({
                     type="button"
                     onClick={() => setActiveTab('answers')}
                     className={[
-                        'rounded-lg px-3 py-2 text-sm font-medium transition',
+                        'rounded-[5px] px-2.5 py-2 text-sm font-medium transition',
                         activeTab === 'answers'
-                            ? 'bg-white text-slate-900 shadow-[0_6px_16px_rgba(15,23,42,0.08)]'
+                            ? 'bg-white text-slate-900 shadow-sm'
                             : 'text-slate-500 hover:text-slate-700',
                     ].join(' ')}
                     aria-pressed={activeTab === 'answers'}
@@ -2977,9 +2910,7 @@ function useQuestionConfigPanel({
                 </button>
             </div>
 
-            <div className="space-y-4">
-                {activeTab === 'question' ? questionTabContent : answersTabContent}
-            </div>
+            <div>{activeTab === 'question' ? questionTabContent : answersTabContent}</div>
         </div>
     );
 
@@ -2989,27 +2920,20 @@ function useQuestionConfigPanel({
         orderedQuestions,
         selectedQuestion: question,
         panel: (
-            <section className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)] xl:sticky xl:top-6 xl:h-[calc(100vh-12rem)]">
-                <div className="shrink-0 overflow-hidden rounded-t-2xl border-b border-slate-200 bg-[linear-gradient(180deg,#f0f0f0_0%,#d7d7d7_100%)] px-5 py-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <div>
-                            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#607362]">
-                                <Settings2 className="size-3.5" />
-                                Configuration
-                            </div>
-                            <h3 className="mt-2 text-base font-semibold text-slate-900">
-                                Question / Answers
-                            </h3>
-                        </div>
-                        {question ? (
-                            <div className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
-                                {formatQuestionType(question.question_type)}
-                            </div>
-                        ) : null}
+            <section className="flex min-h-0 flex-col rounded-[5px] border border-slate-200 bg-white xl:sticky xl:top-6 xl:h-[calc(100vh-12rem)]">
+                <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-2.5 py-2">
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        <Settings2 className="size-3.5" />
+                        Configuration
                     </div>
-                </div>
+                    {question ? (
+                        <span className="rounded-[5px] bg-slate-100 px-2.5 py-2 text-xs font-medium text-slate-500">
+                            {formatQuestionType(question.question_type)}
+                        </span>
+                    ) : null}
+                </header>
 
-                <div className="min-h-0 flex-1 overflow-y-auto rounded-b-2xl bg-[linear-gradient(180deg,#ffffff_0%,#e8e8e8_100%)] p-4 pb-10 [scrollbar-gutter:stable]">
+                <div className="min-h-0 flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable]">
                     {PanelContent}
                 </div>
             </section>
@@ -3080,28 +3004,28 @@ function DesignSettingsDrawer({ scoreboardId, design }) {
     return (
         <Sheet>
             <SheetTrigger asChild>
-                <Button variant="outline">
+                <Button variant="ghost" size="sm" className="rounded-[5px]">
                     <Palette className="size-4" />
-                    Design Settings
+                    <span className="hidden sm:inline">Design</span>
                 </Button>
             </SheetTrigger>
             <SheetContent className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-none sm:max-w-2xl">
-                <SheetHeader className="shrink-0 border-b border-slate-200 bg-white px-6 py-5 text-left">
+                <SheetHeader className="shrink-0 border-b border-slate-200 bg-white px-2.5 py-2 text-left">
                     <SheetTitle>Design Settings</SheetTitle>
                     <SheetDescription>
                         Global visual settings that apply to the scoreboard question flow.
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="flex-1 overflow-y-auto bg-white px-6 py-6">
-                    <form onSubmit={submitDesign} className="space-y-5">
+                <div className="flex-1 overflow-y-auto bg-white px-2.5 py-2">
+                    <form onSubmit={submitDesign} className="divide-y divide-slate-100">
                         <QuestionSection
                             title="Layout"
                             description="Global layout controls for the live builder canvas."
                         >
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Header Position
                                     </label>
                                     <Input
@@ -3115,8 +3039,8 @@ function DesignSettingsDrawer({ scoreboardId, design }) {
                                         placeholder="top, inline"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Section Background
                                     </label>
                                     <Input
@@ -3138,8 +3062,8 @@ function DesignSettingsDrawer({ scoreboardId, design }) {
                             description="Control the frame around the screen without overloading the main builder panel."
                         >
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Top Margin
                                     </label>
                                     <Input
@@ -3154,8 +3078,8 @@ function DesignSettingsDrawer({ scoreboardId, design }) {
                                         }
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                         Bottom Margin
                                     </label>
                                     <Input
@@ -3172,8 +3096,8 @@ function DesignSettingsDrawer({ scoreboardId, design }) {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                                     Footer Content
                                 </label>
                                 <Textarea
@@ -3190,12 +3114,14 @@ function DesignSettingsDrawer({ scoreboardId, design }) {
                         </QuestionSection>
 
                         {Object.values(designForm.errors)[0] ? (
-                            <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-                                {Object.values(designForm.errors)[0]}
+                            <div className="py-2">
+                                <div className="rounded-[5px] border border-rose-200 bg-rose-50 px-2.5 py-2 text-sm text-rose-900">
+                                    {Object.values(designForm.errors)[0]}
+                                </div>
                             </div>
                         ) : null}
 
-                        <div className="flex justify-end border-t border-slate-200 pt-5">
+                        <div className="flex justify-end pt-5">
                             <Button type="submit" disabled={designForm.processing}>
                                 Save Design Settings
                             </Button>
@@ -3240,12 +3166,11 @@ function ResultRangeRow({ scoreboardId, range }) {
     return (
         <form
             onSubmit={submit}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+            className="rounded-[5px] border border-slate-200 bg-white px-2.5 py-2"
         >
-            {/* PERBAIKAN: Title di atas (full width), Min/Max/Order di bawah (3 kolom) */}
-            <div className="space-y-4">
-                <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            <div className="space-y-3">
+                <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                         Result Title
                     </label>
                     <Input
@@ -3256,9 +3181,9 @@ function ResultRangeRow({ scoreboardId, range }) {
                         placeholder="e.g., Beginner"
                     />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                             Min Score
                         </label>
                         <Input
@@ -3271,8 +3196,8 @@ function ResultRangeRow({ scoreboardId, range }) {
                             placeholder="Min"
                         />
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                             Max Score
                         </label>
                         <Input
@@ -3285,8 +3210,8 @@ function ResultRangeRow({ scoreboardId, range }) {
                             placeholder="Max"
                         />
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                             Order
                         </label>
                         <Input
@@ -3300,29 +3225,29 @@ function ResultRangeRow({ scoreboardId, range }) {
                         />
                     </div>
                 </div>
-            </div>
 
-            <div className="mt-4 space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    Description
-                </label>
-                <Textarea
-                    value={rangeForm.data.description}
-                    onChange={(event) =>
-                        rangeForm.setData('description', event.target.value)
-                    }
-                    className="min-h-24"
-                    placeholder="Describe what this score range means."
-                />
+                <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        Description
+                    </label>
+                    <Textarea
+                        value={rangeForm.data.description}
+                        onChange={(event) =>
+                            rangeForm.setData('description', event.target.value)
+                        }
+                        className="min-h-24"
+                        placeholder="Describe what this score range means."
+                    />
+                </div>
             </div>
 
             {Object.values(rangeForm.errors)[0] ? (
-                <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                <div className="mt-3 rounded-[5px] border border-rose-200 bg-rose-50 px-2.5 py-2 text-sm text-rose-900">
                     {Object.values(rangeForm.errors)[0]}
                 </div>
             ) : null}
 
-            <div className="mt-5 flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-4">
+            <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3.5">
                 <Button type="submit" size="sm" disabled={rangeForm.processing}>
                     Save Range
                 </Button>
@@ -3351,21 +3276,21 @@ function ResultRangesDrawer({ scoreboardId, resultRanges }) {
     return (
         <Sheet>
             <SheetTrigger asChild>
-                <Button variant="outline">
+                <Button variant="ghost" size="sm" className="rounded-[5px]">
                     <Target className="size-4" />
-                    Result Ranges
+                    <span className="hidden sm:inline">Ranges</span>
                 </Button>
             </SheetTrigger>
             <SheetContent className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-slate-200 bg-white p-0 shadow-none sm:max-w-3xl">
-                <SheetHeader className="shrink-0 border-b border-slate-200 bg-white px-6 py-5 text-left">
+                <SheetHeader className="shrink-0 border-b border-slate-200 bg-white px-2.5 py-2 text-left">
                     <SheetTitle>Result Ranges</SheetTitle>
                     <SheetDescription>
                         Configure range-based outcomes. If you leave this empty, the scoreboard can still go live and students will simply see the raw score.
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="flex-1 overflow-y-auto bg-white px-6 py-6">
-                    <div className="space-y-4">
+                <div className="flex-1 overflow-y-auto bg-white px-2.5 py-2">
+                    <div className="space-y-3">
                         <div className="flex justify-end">
                             <Button
                                 onClick={() =>
@@ -3393,9 +3318,9 @@ function ResultRangesDrawer({ scoreboardId, resultRanges }) {
                                 />
                             ))
                         ) : (
-                            <div className="rounded-xl border border-dashed border-slate-300 bg-[#e8e8e8] px-5 py-8">
+                            <div className="rounded-[5px] border border-dashed border-slate-300 px-2.5 py-2">
                                 <div className="max-w-xl">
-                                    <h4 className="text-lg font-semibold text-slate-900">
+                                    <h4 className="text-base font-semibold text-slate-900">
                                         No result ranges configured
                                     </h4>
                                     <p className="mt-2 text-sm leading-7 text-slate-600">
@@ -3480,21 +3405,21 @@ export default function ScoreboardBuilder({
             <Head title="Scoreboard Builder" />
 
             <div className="py-10">
-                <div className="mx-auto max-w-[1660px] space-y-6 px-4 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-[1660px] space-y-5 px-2.5 sm:px-6 lg:px-8">
                     {statusMessages[status] ? (
-                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                        <div className="rounded-[5px] border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-sm text-emerald-900">
                             {statusMessages[status]}
                         </div>
                     ) : null}
 
                     {restoredDraftNotice ? (
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                        <div className="rounded-[5px] border border-amber-200 bg-amber-50 px-2.5 py-2 text-sm text-amber-900">
                             Unsaved builder draft was restored in this browser. Save the builder again to persist it to the database.
                         </div>
                     ) : null}
 
                     {saveError ? (
-                        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+                        <div className="rounded-[5px] border border-rose-200 bg-rose-50 px-2.5 py-2 text-sm text-rose-900">
                             {saveError}
                         </div>
                     ) : null}
@@ -3510,51 +3435,14 @@ export default function ScoreboardBuilder({
                         hasUnsavedChanges={hasUnsavedChanges}
                     />
 
-                    <div className="space-y-5">
-                        <div className="hidden rounded-2xl border border-slate-200 bg-[#e5e5e5] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.05)] xl:block">
-                            <div
-                                className="grid min-h-0 items-start gap-5"
-                                style={{
-                                    gridTemplateColumns:
-                                        'minmax(248px,18%) minmax(680px,64%) minmax(300px,18%)',
-                                }}
-                            >
-                                <ScoreboardNavigator
-                                    scoreboardId={scoreboard.id}
-                                    questions={orderedQuestions}
-                                    selectedQuestionId={selectedQuestion?.id}
-                                    draggedQuestionId={draggedQuestionId}
-                                    dropTargetQuestionId={dropTargetQuestionId}
-                                    startQuestionDrag={startQuestionDrag}
-                                    markQuestionDropTarget={markQuestionDropTarget}
-                                    dropQuestionAt={dropQuestionAt}
-                                    finishQuestionDrag={finishQuestionDrag}
-                                />
-
-                                <BuilderCanvas
-                                    scoreboard={scoreboard}
-                                    question={selectedQuestion}
-                                    values={values}
-                                    visibleOptions={visibleOptions}
-                                    setValue={setValue}
-                                    error={error}
-                                    design={design}
-                                    optionDrafts={optionDrafts}
-                                    setOptionValue={setOptionValue}
-                                    toggleCorrectOption={toggleCorrectOption}
-                                    draggedOptionId={draggedOptionId}
-                                    dropTargetOptionId={dropTargetOptionId}
-                                    startOptionDrag={startOptionDrag}
-                                    markOptionDropTarget={markOptionDropTarget}
-                                    dropOptionAt={dropOptionAt}
-                                    finishOptionDrag={finishOptionDrag}
-                                />
-
-                                <div className="min-h-0 xl:self-stretch">{panel}</div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-5 xl:hidden">
+                    <div className="hidden xl:block">
+                        <div
+                            className="grid min-h-0 items-start gap-5"
+                            style={{
+                                gridTemplateColumns:
+                                    'minmax(248px,18%) minmax(680px,64%) minmax(300px,18%)',
+                            }}
+                        >
                             <ScoreboardNavigator
                                 scoreboardId={scoreboard.id}
                                 questions={orderedQuestions}
@@ -3585,7 +3473,42 @@ export default function ScoreboardBuilder({
                                 dropOptionAt={dropOptionAt}
                                 finishOptionDrag={finishOptionDrag}
                             />
+
+                            <div className="min-h-0 xl:self-stretch">{panel}</div>
                         </div>
+                    </div>
+
+                    <div className="space-y-5 xl:hidden">
+                        <ScoreboardNavigator
+                            scoreboardId={scoreboard.id}
+                            questions={orderedQuestions}
+                            selectedQuestionId={selectedQuestion?.id}
+                            draggedQuestionId={draggedQuestionId}
+                            dropTargetQuestionId={dropTargetQuestionId}
+                            startQuestionDrag={startQuestionDrag}
+                            markQuestionDropTarget={markQuestionDropTarget}
+                            dropQuestionAt={dropQuestionAt}
+                            finishQuestionDrag={finishQuestionDrag}
+                        />
+
+                        <BuilderCanvas
+                            scoreboard={scoreboard}
+                            question={selectedQuestion}
+                            values={values}
+                            visibleOptions={visibleOptions}
+                            setValue={setValue}
+                            error={error}
+                            design={design}
+                            optionDrafts={optionDrafts}
+                            setOptionValue={setOptionValue}
+                            toggleCorrectOption={toggleCorrectOption}
+                            draggedOptionId={draggedOptionId}
+                            dropTargetOptionId={dropTargetOptionId}
+                            startOptionDrag={startOptionDrag}
+                            markOptionDropTarget={markOptionDropTarget}
+                            dropOptionAt={dropOptionAt}
+                            finishOptionDrag={finishOptionDrag}
+                        />
                     </div>
                 </div>
             </div>

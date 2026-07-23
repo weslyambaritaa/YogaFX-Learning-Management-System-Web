@@ -1,4 +1,6 @@
-import { Button } from '@/Components/ui/button';
+import { Button } from "@/Components/ui/button";
+import StudentAppDownloadDialog from "@/Components/student/StudentAppDownloadDialog";
+import TransientStatusBanner from "@/Components/TransientStatusBanner";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -6,8 +8,8 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/Components/ui/dropdown-menu';
-import { Separator } from '@/Components/ui/separator';
+} from "@/Components/ui/dropdown-menu";
+import { Separator } from "@/Components/ui/separator";
 import {
     Sheet,
     SheetContent,
@@ -15,8 +17,8 @@ import {
     SheetHeader,
     SheetTitle,
     SheetTrigger,
-} from '@/Components/ui/sheet';
-import { Link, router, usePage } from '@inertiajs/react';
+} from "@/Components/ui/sheet";
+import { Link, router, usePage } from "@inertiajs/react";
 import {
     BookMarked,
     BookOpen,
@@ -26,158 +28,209 @@ import {
     ChevronRight,
     ClipboardList,
     FileSpreadsheet,
+    FileText,
+    House,
     LayoutDashboard,
     Mail,
     Menu,
     MessageSquareText,
     PlaySquare,
+    Smartphone,
+    Shield,
     UserRound,
-} from 'lucide-react';
-import { useEffect, useState } from 'react';
+    Wallet,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
-const ADMIN_SIDEBAR_STORAGE_KEY = 'yogafx-admin-sidebar-collapsed';
-const ADMIN_EMAIL_GROUP_STORAGE_KEY = 'yogafx-admin-email-group-open';
-const ADMIN_DESKTOP_BREAKPOINT = '(min-width: 1024px)';
-const STUDENT_DESKTOP_BREAKPOINT = '(min-width: 768px)';
+const ADMIN_SIDEBAR_STORAGE_KEY = "yogafx-admin-sidebar-collapsed";
+const ADMIN_EMAIL_GROUP_STORAGE_KEY = "yogafx-admin-email-group-open";
+const ADMIN_DESKTOP_BREAKPOINT = "(min-width: 1024px)";
+const STUDENT_DESKTOP_BREAKPOINT = "(min-width: 768px)";
 
 const adminNavigationItems = [
     {
-        label: 'Dashboard',
-        route: 'admin.dashboard',
+        label: "Dashboard",
+        route: "admin.dashboard",
         icon: LayoutDashboard,
-        match: ['admin.dashboard'],
+        match: ["admin.dashboard"],
     },
     {
-        label: 'Modules',
-        route: 'admin.modules.index',
+        label: "Modules",
+        route: "admin.modules.index",
         icon: BookOpen,
-        match: ['admin.modules.*'],
+        match: ["admin.modules.*"],
     },
     {
-        label: 'Lessons',
-        route: 'admin.lessons.index',
+        label: "Lessons",
+        route: "admin.lessons.index",
         icon: BookOpenCheck,
-        match: ['admin.lessons.*'],
+        match: ["admin.lessons.*"],
     },
     {
-        label: 'Assessment',
-        route: 'admin.scoreboards.index',
+        label: "Assessment",
+        route: "admin.scoreboards.index",
         icon: ClipboardList,
-        match: ['admin.scoreboards.*', 'admin.assessments.*'],
+        match: ["admin.scoreboards.*", "admin.assessments.*"],
     },
     {
-        label: 'Student Progress',
-        route: 'admin.student-progress.index',
-        match: ['admin.student-progress.*'],
+        label: "Student",
+        route: "admin.student-progress.index",
+        match: ["admin.student-progress.*"],
         icon: FileSpreadsheet,
     },
     {
-        label: 'Students',
-        route: 'admin.students.index',
-        match: ['admin.students.*'],
-        icon: UserRound,
+        label: "Admin",
+        route: "admin.admins.index",
+        match: ["admin.admins.*"],
+        icon: Shield,
     },
     {
-        label: 'Dialog',
-        route: 'admin.dialogs.edit',
-        match: ['admin.dialogs.*'],
+        label: "Dialog",
+        route: "admin.dialogs.edit",
+        match: ["admin.dialogs.*"],
         icon: MessageSquareText,
     },
     {
-        label: 'Video Lecture',
-        route: 'admin.courses.index',
+        label: "Video Lecture",
+        route: "admin.courses.index",
         icon: PlaySquare,
-        match: ['admin.courses.*'],
+        match: ["admin.courses.*"],
     },
     {
-        label: 'E-Book',
-        route: 'admin.ebooks.index',
+        label: "E-Book",
+        route: "admin.ebooks.index",
         icon: BookMarked,
-        match: ['admin.ebooks.*'],
+        match: ["admin.ebooks.*"],
     },
     {
-        label: 'Email',
+        label: "Email",
         icon: Mail,
         children: [
             {
-                label: 'Module Completion',
+                label: "Branding",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'module_completion' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'module_completion' },
+                route: "admin.email-branding.show",
+                match: ["admin.email-branding.show"],
             },
             {
-                label: 'Assignments Review',
+                label: "Module Completion",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'assignment_review' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'assignment_review' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "module_completion" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "module_completion" },
             },
             {
-                label: 'Assignments Approved',
+                label: "Assignments Review",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'assignment_approved' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'assignment_approved' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "assignment_review" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "assignment_review" },
             },
             {
-                label: 'Assignments Rejected',
+                label: "Assignments Approved",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'assignment_rejected' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'assignment_rejected' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "assignment_approved" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "assignment_approved" },
             },
             {
-                label: 'Certificate Created',
+                label: "Assignments Rejected",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'certificate_created' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'certificate_created' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "assignment_rejected" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "assignment_rejected" },
             },
             {
-                label: 'Signup',
+                label: "Certificate Created",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'signup' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'signup' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "certificate_created" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "certificate_created" },
             },
             {
-                label: 'Reset Password',
+                label: "Payment Success",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'reset_password' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'reset_password' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "payment_success" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "payment_success" },
             },
             {
-                label: 'Assessment Complete',
+                label: "Installment Payment Success",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'assessment_complete' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'assessment_complete' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "installment_payment_success" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "installment_payment_success" },
             },
             {
-                label: 'Course Complete',
+                label: "Enrollment Success",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'course_complete' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'course_complete' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "enrollment_success" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "enrollment_success" },
             },
             {
-                label: 'Reminder',
+                label: "Signup",
                 icon: Mail,
-                route: 'admin.email-notifications.show',
-                params: { notificationType: 'reminder' },
-                match: ['admin.email-notifications.show'],
-                activeWhen: { notificationType: 'reminder' },
+                route: "admin.email-notifications.show",
+                params: { notificationType: "signup" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "signup" },
+            },
+            {
+                label: "Reset Password",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "reset_password" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "reset_password" },
+            },
+            {
+                label: "Assessment Complete",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "assessment_complete" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "assessment_complete" },
+            },
+            {
+                label: "Course Complete",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "course_complete" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "course_complete" },
+            },
+            {
+                label: "Reminder",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "reminder" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "reminder" },
+            },
+            {
+                label: "Workbook Sent",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "workbook_sent" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "workbook_sent" },
+            },
+            {
+                label: "Irregular Activity Suspended",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "irregular_activity_suspended" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "irregular_activity_suspended" },
             },
         ],
     },
@@ -185,166 +238,336 @@ const adminNavigationItems = [
 
 const adminUtilityItems = [
     {
-        label: 'Access Tiers',
-        route: 'admin.access-tiers.index',
+        label: "Packages",
+        route: "admin.packages.index",
         icon: FileSpreadsheet,
-        match: ['admin.access-tiers.*'],
+        match: ["admin.packages.*"],
+    },
+    {
+        label: "Invoice",
+        route: "admin.invoices.index",
+        icon: FileText,
+        match: ["admin.invoices.*"],
+    },
+    {
+        label: "Payment",
+        route: "admin.payments.index",
+        icon: Wallet,
+        match: ["admin.payments.*"],
+    },
+    {
+        label: "Access Tiers",
+        route: "admin.access-tiers.index",
+        icon: FileSpreadsheet,
+        match: ["admin.access-tiers.*"],
+    },
+    {
+        label: "Link Control",
+        route: "admin.link-control.show",
+        icon: Smartphone,
+        match: ["admin.link-control.*"],
+    },
+    {
+        label: "Contact Support",
+        route: "admin.support-settings.show",
+        icon: Mail,
+        match: ["admin.support-settings.*"],
     },
 ];
 
 const studentNavigationItems = [
-    { label: 'Home', route: 'student.dashboard', match: ['student.dashboard'] },
-    { label: 'Modules', route: 'modules.index', match: ['modules.index', 'modules.show', 'lessons.show', 'assignments.show'] },
+    { label: "Home", route: "student.dashboard", match: ["student.dashboard"] },
+    {
+        label: "Modules",
+        route: "modules.index",
+        match: [
+            "modules.index",
+            "modules.show",
+            "lessons.show",
+            "assignments.show",
+        ],
+    },
 ];
 
-const studentInstantAccessItems = [
-    {
-        label: 'Full Standing Dialog',
-        route: 'student.dialogs.standing',
-        match: ['student.dialogs.standing'],
-    },
-    {
-        label: 'Full Floor Dialog',
-        route: 'student.dialogs.floor',
-        match: ['student.dialogs.floor'],
-    },
-];
+function studentCanUpgrade(user) {
+    const accessTierSlug = user?.access_tier?.slug;
+
+    return ["starter_kit", "online"].includes(String(accessTierSlug ?? ""));
+}
+
+function studentInstantAccessItemsForUser(user) {
+    const accessTier = user?.access_tier;
+    const items = [];
+
+    if (accessTier?.has_full_standing_dialog_access) {
+        items.push({
+            label: "Full Standing Dialog",
+            route: "student.dialogs.standing",
+            match: ["student.dialogs.standing"],
+        });
+    }
+
+    if (accessTier?.has_full_floor_dialog_access) {
+        items.push({
+            label: "Full Floor Dialog",
+            route: "student.dialogs.floor",
+            match: ["student.dialogs.floor"],
+        });
+    }
+
+    return items;
+}
 
 const adminPageTitles = {
-    'admin.dashboard': 'Dashboard',
-    'admin.modules.index': 'Modules',
-    'admin.modules.create': 'Create Module',
-    'admin.modules.edit': 'Edit Module',
-    'admin.modules.assignments.index': 'Assignments',
-    'admin.modules.assignments.create': 'Create Assignment',
-    'admin.modules.assignments.edit': 'Edit Assignment',
-    'admin.lessons.index': 'Lessons',
-    'admin.lessons.create': 'Create Lesson',
-    'admin.lessons.edit': 'Edit Lesson',
-    'admin.scoreboards.index': 'Assessment',
-    'admin.scoreboards.create': 'Create Assessment',
-    'admin.scoreboards.edit': 'Edit Assessment',
-    'admin.scoreboards.builder': 'Assessment Builder',
-    'admin.assessments.preview': 'Assessment Preview',
-    'admin.assessments.preview.result': 'Assessment Preview Result',
-    'admin.assessments.results.index': 'Assessment Results',
-    'admin.assessments.results.show': 'Assessment Result Detail',
-    'admin.courses.index': 'Video Lecture',
-    'admin.courses.create': 'Create Video Lecture',
-    'admin.courses.edit': 'Edit Video Lecture',
-    'admin.ebooks.index': 'E-Book',
-    'admin.ebooks.create': 'Create E-Book',
-    'admin.ebooks.edit': 'Edit E-Book',
-    'admin.ebooks.preview': 'E-Book Preview',
-    'admin.student-progress.index': 'Student Progress',
-    'admin.student-progress.completed-lessons.index': 'Completed Lesson',
-    'admin.student-progress.assignments.index': 'Assignment',
-    'admin.student-progress.certificates.index': 'Certificate',
-    'admin.student-progress.completed-lessons.show': 'Completed Lesson',
-    'admin.student-progress.assignments.show': 'Assignment',
-    'admin.student-progress.certificates.show': 'Certificate',
-    'admin.students.index': 'Students',
-    'admin.students.edit': 'Student Detail',
-    'admin.dialogs.edit': 'Dialog',
-    'admin.email-notifications.index': 'Email Notification',
-    'admin.email-notifications.show': 'Email Notification',
-    'admin.access-tiers.index': 'Access Tiers',
-    'admin.access-tiers.create': 'Create Access Tier',
-    'admin.access-tiers.edit': 'Edit Access Tier',
+    "admin.dashboard": "Dashboard",
+    "admin.modules.index": "Modules",
+    "admin.modules.create": "Create Module",
+    "admin.modules.edit": "Edit Module",
+    "admin.modules.assignments.index": "Assignments",
+    "admin.modules.assignments.create": "Create Assignment",
+    "admin.modules.assignments.edit": "Edit Assignment",
+    "admin.lessons.index": "Lessons",
+    "admin.lessons.create": "Create Lesson",
+    "admin.lessons.edit": "Edit Lesson",
+    "admin.scoreboards.index": "Assessment",
+    "admin.scoreboards.create": "Create Assessment",
+    "admin.scoreboards.edit": "Edit Assessment",
+    "admin.scoreboards.builder": "Assessment Builder",
+    "admin.assessments.preview": "Assessment Preview",
+    "admin.assessments.preview.result": "Assessment Preview Result",
+    "admin.assessments.results.index": "Assessment Results",
+    "admin.assessments.results.show": "Assessment Result Detail",
+    "admin.courses.index": "Video Lecture",
+    "admin.courses.create": "Create Video Lecture",
+    "admin.courses.edit": "Edit Video Lecture",
+    "admin.ebooks.index": "E-Book",
+    "admin.ebooks.create": "Create E-Book",
+    "admin.ebooks.edit": "Edit E-Book",
+    "admin.ebooks.preview": "E-Book Preview",
+    "admin.student-progress.index": "Student",
+    "admin.student-progress.students.show": "Student Detail",
+    "admin.student-progress.completed-lessons.index": "Completed Lesson",
+    "admin.student-progress.assignments.index": "Assignment",
+    "admin.student-progress.certificates.index": "Certificate",
+    "admin.student-progress.completed-lessons.show": "Completed Lesson",
+    "admin.student-progress.assignments.show": "Assignment",
+    "admin.student-progress.certificates.show": "Certificate",
+    "admin.students.index": "Students",
+    "admin.students.create": "Create Student",
+    "admin.students.edit": "Student Detail",
+    "admin.admins.index": "Admin",
+    "admin.admins.create": "Create Admin",
+    "admin.admins.edit": "Edit Admin",
+    "admin.profile.edit": "Profile",
+    "admin.dialogs.edit": "Dialog",
+    "admin.email-notifications.index": "Email Notification",
+    "admin.email-notifications.show": "Email Notification",
+    "admin.email-branding.show": "Email Branding",
+    "admin.link-control.show": "Link Control",
+    "admin.support-settings.show": "Contact Support",
+    "admin.packages.index": "Packages",
+    "admin.packages.create": "Create Package",
+    "admin.packages.edit": "Edit Package",
+    "admin.invoices.index": "Invoice",
+    "admin.payments.index": "Payment",
+    "admin.access-tiers.index": "Access Tiers",
+    "admin.access-tiers.create": "Create Access Tier",
+    "admin.access-tiers.edit": "Edit Access Tier",
 };
 
+// Admin logo: https://yogafx.b-cdn.net/content/yogafx.png
+// Student logo: https://yogafx.b-cdn.net/content/Logo%20YogAFX.png
+const ADMIN_LOGO_URL = "https://yogafx.b-cdn.net/content/yogafx.png";
+const STUDENT_LOGO_URL = "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png";
+
 function getUserInitials(user) {
-    const baseName = [user?.first_name, user?.last_name]
-        .filter(Boolean)
-        .join(' ')
-        .trim() || user?.name || 'Student';
+    const baseName =
+        [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() ||
+        user?.name ||
+        "Student";
 
     return baseName
         .split(/\s+/)
         .slice(0, 2)
         .map((part) => part.charAt(0).toUpperCase())
-        .join('');
+        .join("");
 }
 
 function UserMenu({ user, isImmersive = false }) {
+    const { appDownload } = usePage().props;
+    const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+    const [isStudentDesktop, setIsStudentDesktop] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === "undefined") {
+            return undefined;
+        }
+
+        const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
+        const syncMatch = () => setIsStudentDesktop(mediaQuery.matches);
+
+        syncMatch();
+
+        if (typeof mediaQuery.addEventListener === "function") {
+            mediaQuery.addEventListener("change", syncMatch);
+
+            return () => mediaQuery.removeEventListener("change", syncMatch);
+        }
+
+        mediaQuery.addListener(syncMatch);
+
+        return () => mediaQuery.removeListener(syncMatch);
+    }, []);
+
     const handleLogout = () => {
-        router.post(route('logout'));
+        router.post(route("logout"));
     };
 
-    const isStudent = user?.role === 'student';
-    const displayName = user?.first_name || user?.name || 'Student';
+    const handleProfileNavigation = () => {
+        if (user?.role === "student") {
+            router.visit(route("profile.edit"));
+            return;
+        }
+
+        if (["admin", "super_admin"].includes(user?.role)) {
+            router.visit(route("admin.profile.edit"));
+        }
+    };
+
+    const isStudent = user?.role === "student";
+    const isAdmin = ["admin", "super_admin"].includes(user?.role);
+    const showDownloadApplication =
+        isStudent &&
+        isStudentDesktop &&
+        appDownload?.qr_image_url;
+    const displayName = user?.first_name || user?.name || "Student";
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    variant="outline"
-                    className={[
-                        'gap-2 rounded-full',
-                        isImmersive
-                            ? 'border-white/15 bg-white/5 px-3 text-white hover:bg-white/10 hover:text-white'
-                            : '',
-                    ].join(' ')}
-                >
-                    <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current">
-                        {user?.profile_photo ? (
-                            <img
-                                src={user.profile_photo}
-                                alt={displayName}
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
-                            getUserInitials(user) || <UserRound className="size-4" />
-                        )}
-                    </span>
-                    <span className="hidden max-w-32 truncate md:inline">
-                        {displayName}
-                    </span>
-                    <ChevronDown className="size-4 opacity-70" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                    <div className="flex flex-col">
-                        <span className="font-medium text-foreground">{user.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                            {user.email}
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="outline"
+                        className={[
+                            "gap-2 rounded-lg",
+                            isImmersive
+                                ? "border-transparent bg-transparent px-3 text-white hover:bg-transparent hover:text-white"
+                                : "",
+                            isImmersive
+                                ? "max-md:h-11 max-md:w-11 max-md:rounded-[10px] max-md:border-transparent max-md:bg-transparent max-md:px-0 max-md:hover:bg-transparent"
+                                : "",
+                        ].join(" ")}
+                    >
+                        <span
+                            className={[
+                                "flex size-8 items-center justify-center overflow-hidden bg-white/10 text-xs font-semibold uppercase tracking-[0.12em] text-current",
+                                isImmersive
+                                    ? "rounded-[8px] max-md:size-9 max-md:border-0 max-md:bg-transparent"
+                                    : "rounded-full",
+                            ].join(" ")}
+                        >
+                            {user?.profile_photo ? (
+                                <img
+                                    src={user.profile_photo}
+                                    alt={displayName}
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                getUserInitials(user) || (
+                                    <UserRound className="size-4" />
+                                )
+                            )}
                         </span>
-                    </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {isStudent && (
-                    <DropdownMenuItem asChild>
-                        <Link href={route('profile.edit')}>Profile</Link>
-                    </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                    onSelect={(event) => {
-                        event.preventDefault();
-                        handleLogout();
-                    }}
+                        <span className="hidden max-w-32 truncate md:inline">
+                            {displayName}
+                        </span>
+                        <ChevronDown className="hidden size-4 opacity-70 md:inline" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    align="end"
+                    className="w-56 border-gray-200 bg-white text-gray-900"
                 >
-                    Log Out
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+                    <DropdownMenuLabel>
+                        <div className="flex flex-col">
+                            <span className="font-medium text-foreground">
+                                {user.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                                {user.email}
+                            </span>
+                        </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {isStudent && (
+                        <DropdownMenuItem
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                handleProfileNavigation();
+                            }}
+                        >
+                            Profile
+                        </DropdownMenuItem>
+                    )}
+                    {isAdmin && (
+                        <DropdownMenuItem
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                handleProfileNavigation();
+                            }}
+                        >
+                            Profile
+                        </DropdownMenuItem>
+                    )}
+                    {showDownloadApplication ? (
+                        <DropdownMenuItem
+                            onSelect={(event) => {
+                                event.preventDefault();
+                                setDownloadDialogOpen(true);
+                            }}
+                        >
+                            Download Application
+                        </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuItem
+                        onSelect={(event) => {
+                            event.preventDefault();
+                            handleLogout();
+                        }}
+                    >
+                        Log Out
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <StudentAppDownloadDialog
+                open={downloadDialogOpen}
+                onOpenChange={setDownloadDialogOpen}
+                qrImageUrl={appDownload?.qr_image_url ?? null}
+                maxWidthClassName="sm:max-w-lg"
+            />
+        </>
     );
 }
 
 function isItemActive(item) {
     const routeMatches = item.match
         ? item.match.some((pattern) => route().current(pattern))
-        : (item.route ? route().current(item.route) : false);
+        : item.route
+          ? route().current(item.route)
+          : false;
 
-    if (! routeMatches) {
+    if (!routeMatches) {
         return false;
     }
 
-    if (! item.activeWhen) {
+    if (!item.activeWhen) {
         return true;
     }
 
-    return Object.entries(item.activeWhen).every(([key, value]) => route().params[key] === value);
+    return Object.entries(item.activeWhen).every(
+        ([key, value]) => route().params[key] === value,
+    );
 }
 
 function SidebarNavItem({ item, collapsed, onNavigate }) {
@@ -365,9 +588,9 @@ function SidebarNavItem({ item, collapsed, onNavigate }) {
                 disabled
                 title={collapsed ? item.label : undefined}
                 className={[
-                    'h-11 w-full justify-start gap-3 rounded-xl px-3 text-muted-foreground',
-                    collapsed ? 'px-0 justify-center' : '',
-                ].join(' ')}
+                    "h-11 w-full justify-start gap-3 rounded-xl px-3 text-muted-foreground",
+                    collapsed ? "px-0 justify-center" : "",
+                ].join(" ")}
             >
                 {content}
             </Button>
@@ -377,12 +600,12 @@ function SidebarNavItem({ item, collapsed, onNavigate }) {
     return (
         <Button
             asChild
-            variant={active ? 'secondary' : 'ghost'}
+            variant={active ? "secondary" : "ghost"}
             title={collapsed ? item.label : undefined}
             className={[
-                'h-11 w-full justify-start gap-3 rounded-xl px-3',
-                collapsed ? 'px-0 justify-center' : '',
-            ].join(' ')}
+                "h-11 w-full justify-start gap-3 rounded-xl px-3",
+                collapsed ? "px-0 justify-center" : "",
+            ].join(" ")}
         >
             <Link href={route(item.route)} onClick={onNavigate}>
                 {content}
@@ -391,13 +614,7 @@ function SidebarNavItem({ item, collapsed, onNavigate }) {
     );
 }
 
-function SidebarGroup({
-    item,
-    collapsed,
-    open,
-    setOpen,
-    onNavigate,
-}) {
+function SidebarGroup({ item, collapsed, open, setOpen, onNavigate }) {
     const Icon = item.icon;
 
     return (
@@ -408,9 +625,9 @@ function SidebarGroup({
                 title={collapsed ? item.label : undefined}
                 onClick={() => setOpen((current) => !current)}
                 className={[
-                    'h-11 w-full justify-start gap-3 rounded-xl px-3',
-                    collapsed ? 'px-0 justify-center' : '',
-                ].join(' ')}
+                    "h-11 w-full justify-start gap-3 rounded-xl px-3",
+                    collapsed ? "px-0 justify-center" : "",
+                ].join(" ")}
             >
                 <Icon className="size-4 shrink-0" />
                 {!collapsed && (
@@ -435,10 +652,13 @@ function SidebarGroup({
                             <Button
                                 key={child.label}
                                 asChild
-                                variant={childActive ? 'secondary' : 'ghost'}
+                                variant={childActive ? "secondary" : "ghost"}
                                 className="h-10 w-full justify-start gap-3 rounded-xl px-3"
                             >
-                                <Link href={route(child.route, child.params)} onClick={onNavigate}>
+                                <Link
+                                    href={route(child.route, child.params)}
+                                    onClick={onNavigate}
+                                >
                                     <ChildIcon className="size-4 shrink-0" />
                                     <span>{child.label}</span>
                                 </Link>
@@ -451,28 +671,21 @@ function SidebarGroup({
     );
 }
 
-function AdminSidebar({
-    collapsed,
-    emailOpen,
-    setEmailOpen,
-    onNavigate,
-}) {
+function AdminSidebar({ collapsed, emailOpen, setEmailOpen, onNavigate }) {
     return (
         <aside
             className={[
-                'hidden border-r border-border bg-background lg:flex lg:flex-col',
-                collapsed ? 'lg:w-24' : 'lg:w-72',
-            ].join(' ')}
+                "hidden border-r border-border bg-background lg:flex lg:flex-col",
+                collapsed ? "lg:w-24" : "lg:w-72",
+            ].join(" ")}
         >
-            <div className="flex h-16 items-center px-4">
-                {!collapsed && (
-                    <div>
-                        <div className="text-sm font-semibold text-foreground">
-                            YogaFX LMS
-                        </div>
-                        <div className="text-xs text-muted-foreground">Admin Console</div>
-                    </div>
-                )}
+            {/* Admin logo — tanpa teks */}
+            <div className="flex h-16 items-center justify-center px-4">
+                <img
+                    src={ADMIN_LOGO_URL}
+                    alt="YogaFX Admin"
+                    className="h-9 w-auto object-contain"
+                />
             </div>
 
             <Separator />
@@ -522,12 +735,7 @@ function AdminSidebar({
     );
 }
 
-function AdminMobileSidebar({
-    open,
-    setOpen,
-    emailOpen,
-    setEmailOpen,
-}) {
+function AdminMobileSidebar({ open, setOpen, emailOpen, setEmailOpen }) {
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -536,9 +744,19 @@ function AdminMobileSidebar({
                     <span className="sr-only">Open sidebar</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[85vw] max-w-80 p-0" showCloseButton={false}>
+            <SheetContent
+                side="left"
+                className="w-[85vw] max-w-80 p-0"
+                showCloseButton={false}
+            >
                 <SheetHeader className="border-b border-border">
-                    <SheetTitle>YogaFX LMS</SheetTitle>
+                    <SheetTitle>
+                        <img
+                            src={ADMIN_LOGO_URL}
+                            alt="YogaFX Admin"
+                            className="h-8 w-auto object-contain"
+                        />
+                    </SheetTitle>
                     <SheetDescription>Admin navigation</SheetDescription>
                 </SheetHeader>
                 <div className="flex-1 overflow-y-auto px-3 py-4">
@@ -589,209 +807,191 @@ function StudentTopNavigation({
     user,
     header,
     children,
-    variant = 'default',
-    contentClassName = '',
+    variant = "default",
+    contentClassName = "",
 }) {
-    const [mobileOpen, setMobileOpen] = useState(false);
+    const { flash = {} } = usePage().props;
     const currentRouteName = route().current();
-    const isImmersive = variant === 'immersive';
-
-    useEffect(() => {
-        const mediaQuery = window.matchMedia(STUDENT_DESKTOP_BREAKPOINT);
-        const handleBreakpointChange = (event) => {
-            if (event.matches) {
-                setMobileOpen(false);
-            }
-        };
-
-        handleBreakpointChange(mediaQuery);
-        mediaQuery.addEventListener('change', handleBreakpointChange);
-
-        return () => {
-            mediaQuery.removeEventListener('change', handleBreakpointChange);
-        };
-    }, []);
-
-    useEffect(() => {
-        setMobileOpen(false);
-    }, [currentRouteName]);
+    const isImmersive = variant === "immersive";
+    const flashMessage = flash.success ?? flash.error ?? null;
+    const flashTone = flash.error ? "error" : "success";
+    const studentInstantAccessItems = studentInstantAccessItemsForUser(user);
+    const showUpgradeButton = studentCanUpgrade(user);
+    const profileUpgradeHref = `${route("profile.edit")}#upgrade-class`;
+    const [instantAccessOpen, setInstantAccessOpen] = useState(false);
+    const mobileStudentNavItems = [
+        {
+            label: "Home",
+            route: "student.dashboard",
+            match: ["student.dashboard"],
+            icon: House,
+        },
+        {
+            label: "Modules",
+            route: "modules.index",
+            match: [
+                "modules.index",
+                "modules.show",
+                "lessons.show",
+                "assignments.show",
+            ],
+            icon: BookOpen,
+        },
+        {
+            label: "Profile",
+            route: "profile.edit",
+            match: ["profile.edit"],
+            icon: UserRound,
+        },
+    ];
 
     return (
         <div
             className={[
-                'min-h-screen',
+                "font-student min-h-screen",
                 isImmersive
-                    ? 'bg-[radial-gradient(circle_at_top,_rgba(173,76,38,0.28),_transparent_32%),linear-gradient(180deg,_#120f0e_0%,_#0a0908_38%,_#080808_100%)] text-white'
-                    : 'bg-slate-50',
-            ].join(' ')}
+                    ? "bg-[radial-gradient(circle_at_top,_rgba(173,76,38,0.28),_transparent_32%),linear-gradient(180deg,_#120f0e_0%,_#0a0908_38%,_#080808_100%)] text-white"
+                    : "bg-slate-50",
+            ].join(" ")}
         >
             <nav
                 className={[
                     isImmersive
-                        ? 'sticky top-0 z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl'
-                        : 'border-b border-border bg-background',
-                ].join(' ')}
+                        ? "sticky top-0 z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl"
+                        : "border-b border-border bg-background",
+                ].join(" ")}
             >
                 <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
                     <div className="flex min-w-0 items-center gap-3">
-                        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-                            <SheetTrigger asChild>
-                                <Button
-                                    variant={isImmersive ? 'ghost' : 'outline'}
-                                    size="icon"
-                                    className={[
-                                        'shrink-0 md:hidden',
-                                        isImmersive
-                                            ? 'border border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white'
-                                            : '',
-                                    ].join(' ')}
-                                >
-                                    <Menu className="size-4" />
-                                    <span className="sr-only">Open navigation</span>
-                                </Button>
-                            </SheetTrigger>
-                            <SheetContent
-                                side="left"
-                                className={[
-                                    'w-[85vw] max-w-72 p-0',
-                                    isImmersive
-                                        ? 'border-white/10 bg-[#0d0b0a] text-white'
-                                        : '',
-                                ].join(' ')}
+                        <Link href={route("student.dashboard")}>
+                            <img
+                                src={STUDENT_LOGO_URL}
+                                alt="YogaFX"
+                                className="h-7 w-auto shrink-0 cursor-pointer object-contain transition-opacity hover:opacity-80 sm:h-10"
+                            />
+                        </Link>
+                    </div>
+                    <div className="min-w-0 md:hidden">
+                        {studentInstantAccessItems.length > 0 ? (
+                            <Sheet
+                                open={instantAccessOpen}
+                                onOpenChange={setInstantAccessOpen}
                             >
-                                <SheetHeader
-                                    className={[
-                                        'border-b',
-                                        isImmersive
-                                            ? 'border-white/10'
-                                            : 'border-border',
-                                    ].join(' ')}
-                                >
-                                    <SheetTitle>YogaFX LMS</SheetTitle>
-                                    <SheetDescription>Student navigation</SheetDescription>
-                                </SheetHeader>
-                                <div className="space-y-2 p-4">
-                                    {studentNavigationItems.map((item) => (
-                                        <Button
-                                            key={item.route}
-                                            asChild
-                                            variant={isItemActive(item) ? 'secondary' : 'ghost'}
-                                            className={[
-                                                'h-11 w-full justify-start rounded-xl px-3',
-                                                isImmersive && !isItemActive(item)
-                                                    ? 'text-white/78 hover:bg-white/10 hover:text-white'
-                                                    : '',
-                                            ].join(' ')}
-                                        >
-                                            <Link
-                                                href={route(item.route)}
-                                                onClick={() => setMobileOpen(false)}
-                                            >
-                                                {item.label}
-                                            </Link>
-                                        </Button>
-                                    ))}
-
-                                    <div
-                                        className={[
-                                            'px-3 pt-3 text-[11px] font-semibold uppercase tracking-[0.28em]',
-                                            isImmersive
-                                                ? 'text-white/35'
-                                                : 'text-muted-foreground',
-                                        ].join(' ')}
+                                <SheetTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className="h-11 max-w-[180px] rounded-full border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
                                     >
-                                        INSTANT ACCESS
+                                        <span className="truncate text-sm font-medium">
+                                            Instant Access Dialog
+                                        </span>
+                                        <ChevronDown className="ml-2 size-4 shrink-0 opacity-70" />
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent
+                                    side="bottom"
+                                    className="rounded-t-[22px] border-white/10 bg-[#171311] px-0 text-white"
+                                >
+                                    <SheetHeader className="px-4 text-left">
+                                        <SheetTitle className="text-white">
+                                            Instant Access Dialog
+                                        </SheetTitle>
+                                        <SheetDescription className="text-white/55">
+                                            Pick a dialog to open.
+                                        </SheetDescription>
+                                    </SheetHeader>
+                                    <div className="space-y-2 px-4 pb-6 pt-2">
+                                        {studentInstantAccessItems.map(
+                                            (item) => (
+                                                <Button
+                                                    key={item.label}
+                                                    type="button"
+                                                    variant="ghost"
+                                                    className="h-12 w-full justify-start rounded-[14px] border border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
+                                                    onClick={() => {
+                                                        setInstantAccessOpen(
+                                                            false,
+                                                        );
+                                                        router.visit(
+                                                            route(item.route),
+                                                        );
+                                                    }}
+                                                >
+                                                    {item.label}
+                                                </Button>
+                                            ),
+                                        )}
                                     </div>
-
-                                    {studentInstantAccessItems.map((item) => (
-                                        <Button
-                                            key={item.label}
-                                            asChild
-                                            variant={isItemActive(item) ? 'secondary' : 'ghost'}
-                                            className={[
-                                                'h-11 w-full justify-start rounded-xl px-3 opacity-100',
-                                                isImmersive && !isItemActive(item)
-                                                    ? 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10 hover:text-white'
-                                                    : '',
-                                            ].join(' ')}
-                                        >
-                                            <Link
-                                                href={route(item.route)}
-                                                onClick={() => setMobileOpen(false)}
-                                            >
-                                                {item.label}
-                                            </Link>
-                                        </Button>
-                                    ))}
-                                </div>
-                            </SheetContent>
-                        </Sheet>
-
-                        <div className="min-w-0">
-                            <div
-                                className={[
-                                    'truncate text-sm font-semibold',
-                                    isImmersive ? 'text-white' : 'text-foreground',
-                                ].join(' ')}
-                            >
-                                YogaFX LMS
-                            </div>
-                            <div
-                                className={[
-                                    'truncate text-xs',
-                                    isImmersive
-                                        ? 'text-white/60'
-                                        : 'text-muted-foreground',
-                                ].join(' ')}
-                            >
-                                Student Area
-                            </div>
-                        </div>
+                                </SheetContent>
+                            </Sheet>
+                        ) : null}
                     </div>
 
-                    <div className="hidden items-center gap-2 overflow-x-auto md:flex">
+                    <div className="hidden min-w-0 items-center gap-2 md:flex">
                         {studentNavigationItems.map((item) => (
                             <Button
                                 key={item.route}
                                 asChild
-                                variant={isItemActive(item) ? 'secondary' : 'ghost'}
+                                variant="ghost"
                                 className={
-                                    isImmersive && !isItemActive(item)
-                                        ? 'text-white/78 hover:bg-white/10 hover:text-white'
-                                        : ''
+                                    isItemActive(item)
+                                        ? "text-[#ff5a3c] hover:text-[#ff5a3c] hover:bg-[#ff5a3c]/10"
+                                        : isImmersive
+                                          ? "text-white/78 hover:bg-white/10 hover:text-white"
+                                          : ""
                                 }
                             >
-                                <Link href={route(item.route)}>{item.label}</Link>
+                                <Link href={route(item.route)}>
+                                    {item.label}
+                                </Link>
                             </Button>
                         ))}
 
-                        <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
-                        <div
-                            className={[
-                                'hidden text-[11px] font-semibold uppercase tracking-[0.28em] lg:block',
-                                isImmersive ? 'text-white/35' : 'text-muted-foreground',
-                            ].join(' ')}
-                        >
-                            INSTANT ACCESS
-                        </div>
-                        {studentInstantAccessItems.map((item) => (
-                            <Button
-                                key={item.label}
-                                asChild
-                                variant={isItemActive(item) ? 'secondary' : 'ghost'}
-                                className={[
-                                    'rounded-full px-4 text-xs font-medium opacity-100',
-                                    isImmersive && !isItemActive(item)
-                                        ? 'border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white'
-                                        : '',
-                                ].join(' ')}
-                            >
-                                <Link href={route(item.route)}>{item.label}</Link>
-                            </Button>
-                        ))}
+                        {studentInstantAccessItems.length > 0 && (
+                            <>
+                                <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
+                                <div
+                                    className={[
+                                        "hidden text-[11px] font-semibold uppercase tracking-[0.28em] lg:block",
+                                        isImmersive
+                                            ? "text-white/35"
+                                            : "text-muted-foreground",
+                                    ].join(" ")}
+                                >
+                                    INSTANT ACCESS
+                                </div>
+                                {studentInstantAccessItems.map((item) => (
+                                    <Button
+                                        key={item.label}
+                                        asChild
+                                        variant="ghost"
+                                        className={[
+                                            "rounded-lg px-4 text-xs font-medium opacity-100",
+                                            isItemActive(item)
+                                                ? "border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]"
+                                                : isImmersive
+                                                  ? "border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white"
+                                                  : "",
+                                        ].join(" ")}
+                                    >
+                                        <Link href={route(item.route)}>
+                                            {item.label}
+                                        </Link>
+                                    </Button>
+                                ))}
+                            </>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {showUpgradeButton ? (
+                            <Button
+                                asChild
+                                className="rounded-[10px] bg-[#DB202C] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#c31c28]"
+                            >
+                                <Link href={profileUpgradeHref}>Upgrade Account</Link>
+                            </Button>
+                        ) : null}
                         <UserMenu user={user} isImmersive={isImmersive} />
                     </div>
                 </div>
@@ -801,9 +1001,9 @@ function StudentTopNavigation({
                 <header
                     className={[
                         isImmersive
-                            ? 'border-b border-white/10 bg-black/10'
-                            : 'border-b border-border bg-background/90',
-                    ].join(' ')}
+                            ? "border-b border-white/10 bg-black/10"
+                            : "border-b border-border bg-background/90",
+                    ].join(" ")}
                 >
                     <div className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 lg:px-10">
                         {header}
@@ -811,7 +1011,43 @@ function StudentTopNavigation({
                 </header>
             )}
 
-            <main className={contentClassName}>{children}</main>
+            <main className={["pb-20 md:pb-0", contentClassName].join(" ")}>
+                {flashMessage ? (
+                    <div className="mx-auto max-w-[1400px] px-4 pt-4 sm:px-6 lg:px-10">
+                        <TransientStatusBanner
+                            message={flashMessage}
+                            tone={flashTone}
+                        />
+                    </div>
+                ) : null}
+
+                {children}
+            </main>
+
+            <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0908]/95 backdrop-blur-xl md:hidden">
+                <div className="mx-auto grid max-w-[1400px] grid-cols-3 px-2 py-2">
+                    {mobileStudentNavItems.map((item) => {
+                        const Icon = item.icon;
+                        const active = isItemActive(item);
+
+                        return (
+                            <Link
+                                key={item.route}
+                                href={route(item.route)}
+                                className={[
+                                    "flex flex-col items-center justify-center gap-1 rounded-[12px] px-2 py-2 text-[11px] font-medium transition",
+                                    active
+                                        ? "bg-[#db202c]/14 text-white"
+                                        : "text-white/58 hover:bg-white/6 hover:text-white",
+                                ].join(" ")}
+                            >
+                                <Icon className="size-4" />
+                                <span>{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }
@@ -819,13 +1055,13 @@ function StudentTopNavigation({
 export default function AuthenticatedLayout({
     header,
     children,
-    studentVariant = 'default',
-    studentContentClassName = '',
+    studentVariant = "default",
+    studentContentClassName = "",
 }) {
     const user = usePage().props.auth.user;
     const currentRouteName = route().current();
-    const isAdmin = user?.role === 'admin';
-    const pageTitle = adminPageTitles[currentRouteName] ?? 'Admin';
+    const isAdmin = ["admin", "super_admin"].includes(user?.role);
+    const pageTitle = adminPageTitles[currentRouteName] ?? "Admin";
 
     const [collapsed, setCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -836,10 +1072,13 @@ export default function AuthenticatedLayout({
             return;
         }
 
-        const storedValue = window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY);
-        setCollapsed(storedValue === 'true');
+        const storedValue = window.localStorage.getItem(
+            ADMIN_SIDEBAR_STORAGE_KEY,
+        );
+        setCollapsed(storedValue === "true");
         setEmailOpen(
-            window.localStorage.getItem(ADMIN_EMAIL_GROUP_STORAGE_KEY) === 'true',
+            window.localStorage.getItem(ADMIN_EMAIL_GROUP_STORAGE_KEY) ===
+                "true",
         );
     }, [isAdmin]);
 
@@ -878,10 +1117,10 @@ export default function AuthenticatedLayout({
         };
 
         handleBreakpointChange(mediaQuery);
-        mediaQuery.addEventListener('change', handleBreakpointChange);
+        mediaQuery.addEventListener("change", handleBreakpointChange);
 
         return () => {
-            mediaQuery.removeEventListener('change', handleBreakpointChange);
+            mediaQuery.removeEventListener("change", handleBreakpointChange);
         };
     }, [isAdmin]);
 
@@ -916,7 +1155,7 @@ export default function AuthenticatedLayout({
                 />
 
                 <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-                    <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
+                    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
                         <div className="flex h-16 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
                             <div className="flex min-w-0 items-center gap-3">
                                 <AdminMobileSidebar
@@ -931,14 +1170,18 @@ export default function AuthenticatedLayout({
                                     variant="outline"
                                     size="icon"
                                     className="hidden lg:inline-flex"
-                                    onClick={() => setCollapsed((current) => !current)}
+                                    onClick={() =>
+                                        setCollapsed((current) => !current)
+                                    }
                                 >
                                     {collapsed ? (
                                         <ChevronRight className="size-4" />
                                     ) : (
                                         <ChevronLeft className="size-4" />
                                     )}
-                                    <span className="sr-only">Toggle sidebar</span>
+                                    <span className="sr-only">
+                                        Toggle sidebar
+                                    </span>
                                 </Button>
 
                                 <div className="min-w-0">
@@ -955,9 +1198,11 @@ export default function AuthenticatedLayout({
                         </div>
                     </header>
 
-                    {header && (
+                    {header && !isAdmin && (
                         <div className="border-b border-border bg-background">
-                            <div className="px-4 py-5 sm:px-6 lg:px-8">{header}</div>
+                            <div className="px-4 py-5 sm:px-6 lg:px-8">
+                                {header}
+                            </div>
                         </div>
                     )}
 

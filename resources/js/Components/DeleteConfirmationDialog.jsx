@@ -3,7 +3,6 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -27,21 +26,9 @@ export default function DeleteConfirmationDialog({
 
     const handleConfirm = () => {
         setProcessing(true);
-
-        const finish = () => {
-            setProcessing(false);
-            setOpen(false);
-        };
-
-        if (onConfirm) {
-            onConfirm({ onFinish: finish });
-
-            return;
-        }
-
-        router.delete(href, {
-            onFinish: finish,
-        });
+        const finish = () => { setProcessing(false); setOpen(false); };
+        if (onConfirm) { onConfirm({ onFinish: finish }); return; }
+        router.delete(href, { onFinish: finish });
     };
 
     return (
@@ -57,10 +44,12 @@ export default function DeleteConfirmationDialog({
                     </button>
                 )}
             </DialogTrigger>
+
             <DialogContent
-                className="max-w-md border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl ring-1 ring-black/5"
+                className="max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 text-slate-900 shadow-2xl ring-1 ring-black/5"
                 overlayClassName="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
             >
+                {/* Header — sama persis aslinya */}
                 <DialogHeader className="gap-3 px-6 py-5">
                     <DialogTitle className="text-lg font-semibold text-slate-950">
                         {title}
@@ -69,7 +58,9 @@ export default function DeleteConfirmationDialog({
                         {description}
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter className="rounded-b-xl border-slate-200 bg-slate-50/95 px-6 py-4">
+
+                {/* Footer — div biasa, full width, tidak pakai DialogFooter */}
+                <div className="flex w-full items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/95 px-6 py-4">
                     <Button
                         type="button"
                         variant="outline"
@@ -88,7 +79,7 @@ export default function DeleteConfirmationDialog({
                     >
                         {processing ? 'Deleting...' : confirmLabel}
                     </Button>
-                </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     );

@@ -25,17 +25,23 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/paypal',
+        ]);
 
         $middleware->alias([
+            'mobile.signed' => \App\Http\Middleware\ValidateMobileRelativeSignature::class,
             'mobile.student' => \App\Http\Middleware\EnsureMobileStudentAccess::class,
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'track.student.session' => \App\Http\Middleware\TrackStudentSessionActivity::class,
             'student.active' => \App\Http\Middleware\EnsureStudentAccountIsActive::class,
         ]);
+
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
         $exceptions->render(function (AuthenticationException $exception, Request $request) {
@@ -118,6 +124,29 @@ return Application::configure(basePath: dirname(__DIR__))
                         .UploadConstraints::labelFromMb(UploadConstraints::ASSIGNMENT_VIDEO_MAX_FILE_SIZE_MB)
                         .', but the request must also stay within the active PHP server limits. '
                         .$serverLimitSummary(),
+                ]);
+            }
+
+            if ($request->routeIs('admin.ebooks.store', 'admin.ebooks.update')) {
+                Log::error('Ebook upload request exceeded server post size limit.', [
+                    'message' => $exception->getMessage(),
+                    'file' => $exception->getFile(),
+                    'line' => $exception->getLine(),
+                    'content_length' => $request->server('CONTENT_LENGTH'),
+                    'php_upload_max_filesize' => ini_get('upload_max_filesize'),
+                    'php_post_max_size' => ini_get('post_max_size'),
+                    'route' => $request->route()?->getName(),
+                ]);
+
+                return back()->withErrors([
+                    'file' => 'The ebook upload exceeded the server request limit. '
+                        .'Ebook files can be up to '
+                        .UploadConstraints::labelFromMb(UploadConstraints::EBOOK_MAX_FILE_SIZE_MB)
+                        .', but the server must also allow at least upload_max_filesize='
+                        .UploadConstraints::labelFromMb(UploadConstraints::EBOOK_SERVER_UPLOAD_MAX_FILE_SIZE_MB)
+                        .' and post_max_size='
+                        .UploadConstraints::labelFromMb(UploadConstraints::EBOOK_SERVER_POST_MAX_SIZE_MB)
+                        .'. '.$serverLimitSummary(),
                 ]);
             }
 

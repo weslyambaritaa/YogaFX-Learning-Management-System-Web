@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\HandlesLocalUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AccessTierRequest;
 use App\Models\AccessTier;
@@ -11,20 +12,25 @@ use Inertia\Response;
 
 class AccessTierController extends Controller
 {
+    use HandlesLocalUploads;
+
     public function index(): Response
     {
         return Inertia::render('Admin/AccessTiers/Index', [
             'accessTiers' => AccessTier::query()
                 ->withCount('users')
                 ->orderByDesc('is_active')
+                ->orderBy('level')
                 ->orderBy('name')
                 ->get()
                 ->map(fn (AccessTier $accessTier) => [
                     'id' => $accessTier->id,
                     'name' => $accessTier->name,
-                    'slug' => $accessTier->slug,
                     'description' => $accessTier->description,
+                    'level' => $accessTier->level,
                     'is_active' => $accessTier->is_active,
+                    'has_full_standing_dialog_access' => $accessTier->has_full_standing_dialog_access,
+                    'has_full_floor_dialog_access' => $accessTier->has_full_floor_dialog_access,
                     'users_count' => $accessTier->users_count,
                 ]),
             'status' => session('status'),
@@ -38,7 +44,13 @@ class AccessTierController extends Controller
 
     public function store(AccessTierRequest $request): RedirectResponse
     {
-        AccessTier::query()->create($request->validated());
+        $data = $request->validated();
+        $data['payment_link'] = AccessTier::publicPaymentPathForSlug($data['slug']);
+        $data['thumbnail'] = null;
+        $data['price'] = 0;
+        $data['currency_code'] = AccessTier::CURRENCY_IDR;
+
+        AccessTier::query()->create($data);
 
         return redirect()
             ->route('admin.access-tiers.index')
@@ -53,9 +65,11 @@ class AccessTierController extends Controller
             'accessTier' => [
                 'id' => $accessTier->id,
                 'name' => $accessTier->name,
-                'slug' => $accessTier->slug,
                 'description' => $accessTier->description,
+                'level' => $accessTier->level,
                 'is_active' => $accessTier->is_active,
+                'has_full_standing_dialog_access' => $accessTier->has_full_standing_dialog_access,
+                'has_full_floor_dialog_access' => $accessTier->has_full_floor_dialog_access,
                 'users_count' => $accessTier->users_count,
             ],
             'status' => session('status'),
@@ -64,7 +78,13 @@ class AccessTierController extends Controller
 
     public function update(AccessTierRequest $request, AccessTier $accessTier): RedirectResponse
     {
-        $accessTier->update($request->validated());
+        $data = $request->validated();
+        $data['payment_link'] = AccessTier::publicPaymentPathForSlug($data['slug']);
+        $data['thumbnail'] = $accessTier->thumbnail;
+        $data['price'] = $accessTier->price;
+        $data['currency_code'] = $accessTier->currency_code;
+
+        $accessTier->update($data);
 
         return redirect()
             ->route('admin.access-tiers.index')
@@ -81,6 +101,7 @@ class AccessTierController extends Controller
                 ]);
         }
 
+        $this->deleteUploadedFileFromAnyStorage($accessTier->thumbnail);
         $accessTier->delete();
 
         return redirect()

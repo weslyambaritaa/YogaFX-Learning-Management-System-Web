@@ -51,7 +51,7 @@ class CourseController extends Controller
     public function store(CourseRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['thumbnail'] = $this->storeUploadedFile($request->file('thumbnail'), 'courses/thumbnails');
+        $data['thumbnail'] = $this->storeUploadedFileToBunny($request->file('thumbnail'), 'courses/thumbnails');
         $data['access_tier_id'] = collect($request->validated('access_tier_ids'))
             ->map(fn ($tierId) => (int) $tierId)
             ->filter()
@@ -92,7 +92,7 @@ class CourseController extends Controller
     public function update(CourseRequest $request, Course $course): RedirectResponse
     {
         $data = $request->validated();
-        $data['thumbnail'] = $this->storeUploadedFile(
+        $data['thumbnail'] = $this->storeUploadedFileToBunny(
             $request->file('thumbnail'),
             'courses/thumbnails',
             $course->thumbnail,
@@ -113,7 +113,7 @@ class CourseController extends Controller
 
     public function destroy(Course $course): RedirectResponse
     {
-        $this->deleteUploadedFile($course->thumbnail);
+        $this->deleteUploadedFileFromAnyStorage($course->thumbnail);
         $course->delete();
 
         return redirect()

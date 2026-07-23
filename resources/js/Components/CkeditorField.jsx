@@ -1,4 +1,4 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import {
     Autoformat,
@@ -162,8 +162,25 @@ const CkeditorField = forwardRef(function CkeditorField({
         },
     }), []);
 
+    useEffect(() => {
+        const editor = editorRef.current;
+        const normalizedValue = value ?? '';
+
+        if (!editor) {
+            return;
+        }
+
+        if (editor.getData() === normalizedValue) {
+            return;
+        }
+
+        editor.setData(normalizedValue);
+    }, [value]);
+
     return (
-        <div className={`ckeditor-field ${invalid ? 'ckeditor-field-invalid' : ''} ${className}`.trim()}>
+        <div
+            className={`ckeditor-field ${invalid ? 'ckeditor-field-invalid' : ''} ${className} [&_.ck.ck-editor]:relative [&_.ck.ck-editor]:z-0 [&_.ck.ck-sticky-panel]:z-0 [&_.ck.ck-toolbar]:z-0`.trim()}
+        >
             <CKEditor
                 editor={ClassicEditor}
                 disabled={disabled}
