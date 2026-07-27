@@ -12,11 +12,20 @@ use App\Models\AssessmentAnswer;
 use App\Models\AssessmentAttempt;
 use App\Models\AssessmentProgress;
 use App\Models\AssignmentSubmission;
+use App\Models\AuthEmailOtpChallenge;
 use App\Models\Certificate;
 use App\Models\CertificateDownloadEvent;
+use App\Models\Invoice;
+use App\Models\LessonIrregularActivity;
 use App\Models\LessonProgress;
 use App\Models\Lesson;
+use App\Models\OnboardingState;
+use App\Models\Payment;
+use App\Models\PendingRegistration;
+use App\Models\PaymentSubscription;
+use App\Models\PaymentSubscriptionEvent;
 use App\Models\StudentModuleVisit;
+use App\Models\StudentPasswordChangeRequest;
 use App\Models\UserSession;
 use App\Models\User;
 use App\Services\BunnyStorageService;
@@ -341,8 +350,9 @@ class StudentController extends Controller
             ->pluck('file_path')
             ->filter()
             ->values();
+        $profilePhotoPath = $student->profile_photo;
 
-        DB::transaction(function () use ($student) {
+        $assignmentMediaPaths = DB::transaction(function () use ($student) {
             $attemptIds = AssessmentAttempt::query()
                 ->where('user_id', $student->id)
                 ->pluck('id');
@@ -356,14 +366,63 @@ class StudentController extends Controller
             AssessmentAttempt::query()->where('user_id', $student->id)->delete();
             AssessmentProgress::query()->where('user_id', $student->id)->delete();
             LessonProgress::query()->where('user_id', $student->id)->delete();
-            AssignmentSubmission::query()->where('user_id', $student->id)->delete();
+
+            $assignmentMediaPaths = $this->resetNonLessonModuleProgress($student);
+
             Certificate::withTrashed()->where('user_id', $student->id)->forceDelete();
             UserSession::query()->where('user_id', $student->id)->delete();
             DB::table('sessions')->where('user_id', $student->id)->delete();
+
+            LessonIrregularActivity::query()->where('user_id', $student->id)->delete();
+            StudentPasswordChangeRequest::query()->where('user_id', $student->id)->delete();
+            AuthEmailOtpChallenge::query()->where('user_id', $student->id)->delete();
+
+            // Abandoned/retried checkout attempts create Invoice + PendingRegistration rows
+            // that never get a user_id (only the invoice that was actually paid does), so
+            // they must be swept up by matching email instead of user_id alone.
+            $pendingRegistrationIds = PendingRegistration::query()
+                ->whereRaw('LOWER(email) = ?', [Str::lower($student->email)])
+                ->pluck('id');
+
+            OnboardingState::query()
+                ->where('user_id', $student->id)
+                ->when($pendingRegistrationIds->isNotEmpty(), fn ($query) => $query->orWhereIn('pending_registration_id', $pendingRegistrationIds))
+                ->delete();
+
+            $invoiceIds = Invoice::query()
+                ->where('user_id', $student->id)
+                ->when($pendingRegistrationIds->isNotEmpty(), fn ($query) => $query->orWhereIn('pending_registration_id', $pendingRegistrationIds))
+                ->pluck('id');
+            $subscriptionIds = PaymentSubscription::query()
+                ->where('user_id', $student->id)
+                ->when($invoiceIds->isNotEmpty(), fn ($query) => $query->orWhereIn('invoice_id', $invoiceIds))
+                ->when($pendingRegistrationIds->isNotEmpty(), fn ($query) => $query->orWhereIn('pending_registration_id', $pendingRegistrationIds))
+                ->pluck('id');
+
+            if ($subscriptionIds->isNotEmpty()) {
+                PaymentSubscriptionEvent::query()->whereIn('payment_subscription_id', $subscriptionIds)->delete();
+            }
+
+            if ($invoiceIds->isNotEmpty()) {
+                PaymentSubscriptionEvent::query()->whereIn('invoice_id', $invoiceIds)->delete();
+                Payment::query()->whereIn('invoice_id', $invoiceIds)->delete();
+            }
+
+            PaymentSubscription::query()->whereIn('id', $subscriptionIds)->delete();
+            Invoice::query()->whereIn('id', $invoiceIds)->delete();
+            PendingRegistration::query()->whereIn('id', $pendingRegistrationIds)->delete();
+
             $student->delete();
+
+            return $assignmentMediaPaths;
         });
 
         $certificateFiles->each(fn (string $path) => $this->bunnyStorage->delete($path));
+        $this->deleteAssignmentMediaPaths($assignmentMediaPaths);
+
+        if ($profilePhotoPath) {
+            $this->bunnyStorage->delete($profilePhotoPath);
+        }
 
         return redirect()
             ->route($this->studentIndexRouteNameForContext($managementContext))
