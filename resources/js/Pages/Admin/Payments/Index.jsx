@@ -3,6 +3,7 @@ import CommerceIndexPage, {
     formatDateTime,
     statusBadgeClass,
 } from '@/Components/admin/commerce/CommerceIndexPage';
+import DeleteConfirmationDialog from '@/Components/DeleteConfirmationDialog';
 import { Button } from '@/Components/ui/button';
 
 const columns = [
@@ -69,14 +70,22 @@ const columns = [
         key: 'action',
         label: 'Action',
         render: (row, openDetail) => (
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => openDetail(row)}
-            >
-                Detail
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openDetail(row)}
+                >
+                    Detail
+                </Button>
+
+                <DeleteConfirmationDialog
+                    href={route('admin.payments.destroy', row.id)}
+                    title="Delete payment?"
+                    description={`This will permanently delete payment "${row.payment_reference}". This action cannot be undone.`}
+                />
+            </div>
         ),
     },
 ];

@@ -182,7 +182,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/invoices', [InvoiceIndexController::class, 'index'])->name('invoices.index');
         Route::get('/invoices/{invoice}/pdf/preview', [InvoicePdfController::class, 'preview'])->name('invoices.pdf.preview');
         Route::get('/invoices/{invoice}/pdf/download', [InvoicePdfController::class, 'download'])->name('invoices.pdf.download');
+        Route::delete('/invoices/{invoice}', [InvoiceIndexController::class, 'destroy'])->name('invoices.destroy');
         Route::get('/payments', [PaymentIndexController::class, 'index'])->name('payments.index');
+        Route::delete('/payments/{payment}', [PaymentIndexController::class, 'destroy'])->name('payments.destroy');
 
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
         Route::post('/modules/reorder', [ModuleController::class, 'reorder'])->name('modules.reorder');

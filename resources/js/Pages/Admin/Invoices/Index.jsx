@@ -3,6 +3,7 @@ import CommerceIndexPage, {
     formatDateTime,
     statusBadgeClass,
 } from "@/Components/admin/commerce/CommerceIndexPage";
+import DeleteConfirmationDialog from "@/Components/DeleteConfirmationDialog";
 import { Button } from "@/Components/ui/button";
 import {
     DropdownMenu,
@@ -112,6 +113,12 @@ const columns = [
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                <DeleteConfirmationDialog
+                    href={route("admin.invoices.destroy", row.id)}
+                    title="Delete invoice?"
+                    description={`This will permanently delete invoice "${row.invoice_number}" and all its related payments. This action cannot be undone.`}
+                />
             </div>
         ),
     },

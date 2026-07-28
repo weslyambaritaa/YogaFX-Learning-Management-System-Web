@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AccessTier;
 use App\Models\Invoice;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -57,6 +58,15 @@ class InvoiceIndexController extends Controller
                 ['value' => Invoice::STATUS_UPGRADED, 'label' => 'Upgraded'],
             ],
         ]);
+    }
+
+    public function destroy(Invoice $invoice): RedirectResponse
+    {
+        $invoice->delete();
+
+        return redirect()
+            ->back()
+            ->with('status', 'invoice-deleted');
     }
 
     private function buildSection(

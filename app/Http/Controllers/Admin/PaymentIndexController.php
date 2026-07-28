@@ -7,6 +7,7 @@ use App\Models\AccessTier;
 use App\Models\Invoice;
 use App\Models\Payment;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -75,6 +76,15 @@ class PaymentIndexController extends Controller
                 ['value' => Payment::STATUS_CANCELLED, 'label' => 'Cancelled'],
             ],
         ]);
+    }
+
+    public function destroy(Payment $payment): RedirectResponse
+    {
+        $payment->delete();
+
+        return redirect()
+            ->back()
+            ->with('status', 'payment-deleted');
     }
 
     private function buildSection(
