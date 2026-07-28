@@ -171,6 +171,18 @@ class EmailNotificationTemplateDefaults
                 ]),
                 'auto_enable' => true,
             ],
+            EmailNotificationTypeRegistry::CHECKOUT_PAYMENT_LINK => [
+                'subject_user' => 'Complete your YogaFX payment: {package_title}',
+                'body_user' => implode('', [
+                    '<p>Hi {user_name},</p>',
+                    '<p>We have saved your registration for <strong>{package_title}</strong> ({access_tier_label}).</p>',
+                    '<p>Amount due: <strong>{currency_code} {amount}</strong></p>',
+                    '<p>You can finish your payment anytime using the link below — no need to fill in your details again:</p>',
+                    '<p><a href="{payment_link_url}">{payment_link_url}</a></p>',
+                    '<p>If you already completed this payment, you can safely ignore this email.</p>',
+                ]),
+                'auto_enable' => true,
+            ],
             EmailNotificationTypeRegistry::ENROLLMENT_SUCCESS => [
                 'subject_user' => 'Enrollment completed: your YogaFX signup is ready',
                 'body_user' => implode('', [

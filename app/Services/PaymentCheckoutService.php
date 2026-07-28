@@ -24,6 +24,7 @@ class PaymentCheckoutService
         private readonly PaymentFinalizerService $paymentFinalizer,
         private readonly InstallmentPlanCalculator $installmentPlanCalculator,
         private readonly PaymentSubscriptionService $paymentSubscriptionService,
+        private readonly EmailNotificationService $emailNotifications,
     ) {}
 
     /**
@@ -150,7 +151,7 @@ class PaymentCheckoutService
             ];
         }
 
-        /** @var array{invoice: Invoice, payment_activity: Payment} $created */
+        /** @var array{invoice: Invoice, payment_activity: Payment, is_new_invoice: bool} $created */
         $created = DB::transaction(function () use ($pendingRegistration, $attributes): array {
             $pendingRegistration->loadMissing('accessTier', 'package', 'onboardingState.user');
 
@@ -164,20 +165,45 @@ class PaymentCheckoutService
                 abort(409, 'This registration flow is already completed.');
             }
 
-            $invoice = Invoice::query()->create([
-                'invoice_number' => $this->invoiceNumbers->nextNumber(),
-                'pending_registration_id' => $pendingRegistration->id,
-                'package_id' => $package?->id,
-                'access_tier_id' => $pendingRegistration->access_tier_id,
-                'type' => Invoice::TYPE_INITIAL,
-                'payment_type' => $attributes['payment_type'],
-                'package_payment_type' => $packagePaymentType,
-                'total_amount' => $amount,
-                'balance_due' => $amount,
-                'currency_code' => $currencyCode,
-                'status' => Invoice::STATUS_UNPAID,
-                'issued_at' => now(),
-            ]);
+            // Reuse the still-unpaid invoice for this registration instead of creating a
+            // new one on every checkout retry, so one abandoned attempt = one invoice.
+            $existingInvoice = Invoice::query()
+                ->where('pending_registration_id', $pendingRegistration->id)
+                ->where('type', Invoice::TYPE_INITIAL)
+                ->where('payment_type', $attributes['payment_type'])
+                ->where('status', Invoice::STATUS_UNPAID)
+                ->latest('id')
+                ->first();
+
+            $isNewInvoice = ! $existingInvoice instanceof Invoice;
+
+            if ($existingInvoice instanceof Invoice) {
+                $existingInvoice->forceFill([
+                    'package_id' => $package?->id,
+                    'access_tier_id' => $pendingRegistration->access_tier_id,
+                    'package_payment_type' => $packagePaymentType,
+                    'total_amount' => $amount,
+                    'balance_due' => $amount,
+                    'currency_code' => $currencyCode,
+                ])->save();
+
+                $invoice = $existingInvoice->fresh();
+            } else {
+                $invoice = Invoice::query()->create([
+                    'invoice_number' => $this->invoiceNumbers->nextNumber(),
+                    'pending_registration_id' => $pendingRegistration->id,
+                    'package_id' => $package?->id,
+                    'access_tier_id' => $pendingRegistration->access_tier_id,
+                    'type' => Invoice::TYPE_INITIAL,
+                    'payment_type' => $attributes['payment_type'],
+                    'package_payment_type' => $packagePaymentType,
+                    'total_amount' => $amount,
+                    'balance_due' => $amount,
+                    'currency_code' => $currencyCode,
+                    'status' => Invoice::STATUS_UNPAID,
+                    'issued_at' => now(),
+                ]);
+            }
 
             $paymentActivity = Payment::query()->create([
                 'invoice_id' => $invoice->id,
@@ -200,6 +226,7 @@ class PaymentCheckoutService
             return [
                 'invoice' => $invoice,
                 'payment_activity' => $paymentActivity,
+                'is_new_invoice' => $isNewInvoice,
             ];
         });
 
@@ -224,6 +251,14 @@ class PaymentCheckoutService
                 'payment_activity' => $finalized['payment_activity'],
                 'redirect_url' => $this->paymentSuccessUrl($onboardingState),
             ];
+        }
+
+        if ($created['is_new_invoice']) {
+            $this->emailNotifications->sendCheckoutPaymentLinkNotification(
+                $pendingRegistration,
+                $created['invoice'],
+                $this->checkoutUrl($pendingRegistration),
+            );
         }
 
         $approval = $this->paypalService->createOrder(

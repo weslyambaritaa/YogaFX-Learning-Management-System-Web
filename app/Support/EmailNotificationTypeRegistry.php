@@ -16,6 +16,7 @@ class EmailNotificationTypeRegistry
     public const REMINDER = 'reminder';
     public const WORKBOOK_SENT = 'workbook_sent';
     public const PAYMENT_SUCCESS = 'payment_success';
+    public const CHECKOUT_PAYMENT_LINK = 'checkout_payment_link';
     public const ENROLLMENT_SUCCESS = 'enrollment_success';
     public const INSTALLMENT_PAYMENT_SUCCESS = 'installment_payment_success';
     public const INSTALLMENT_PAYMENT_FAILED = 'installment_payment_failed';
@@ -201,6 +202,21 @@ class EmailNotificationTypeRegistry
                     '{{ currency_code }}',
                     '{{ enrollment_url }}',
                     '{{ invoice_pdf_file_name }}',
+                ],
+            ],
+            [
+                'value' => self::CHECKOUT_PAYMENT_LINK,
+                'label' => 'Checkout Payment Link',
+                'description' => 'Send the checkout page link so a buyer can return and pay later without restarting checkout.',
+                'trigger' => 'Triggered once when a new unpaid initial checkout invoice is created for a pay-in-full registration.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ package_title }}',
+                    '{{ access_tier_label }}',
+                    '{{ amount }}',
+                    '{{ currency_code }}',
+                    '{{ payment_link_url }}',
                 ],
             ],
             [

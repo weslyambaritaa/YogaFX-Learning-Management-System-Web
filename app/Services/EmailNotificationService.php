@@ -12,6 +12,7 @@ use App\Models\LessonProgress;
 use App\Models\Module;
 use App\Models\OnboardingState;
 use App\Models\Package;
+use App\Models\PendingRegistration;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\UserSession;
@@ -374,6 +375,37 @@ class EmailNotificationService
             'payment_activity',
             $paymentActivity->id,
             $attachments,
+        );
+    }
+
+    public function sendCheckoutPaymentLinkNotification(
+        PendingRegistration $pendingRegistration,
+        Invoice $invoice,
+        string $paymentLinkUrl,
+    ): void {
+        if ($this->notificationAlreadySent(
+            EmailNotificationTypeRegistry::CHECKOUT_PAYMENT_LINK,
+            'invoice',
+            $invoice->id,
+        )) {
+            return;
+        }
+
+        $pendingRegistration->loadMissing('accessTier', 'package');
+
+        $this->sendAutomated(
+            EmailNotificationTypeRegistry::CHECKOUT_PAYMENT_LINK,
+            [
+                'user_name' => $pendingRegistration->fullName() ?: 'there',
+                'user_email' => $pendingRegistration->email,
+                'package_title' => (string) ($pendingRegistration->package?->title ?? ''),
+                'access_tier_label' => (string) ($pendingRegistration->accessTier?->name ?? ''),
+                'amount' => number_format((float) $invoice->total_amount, 2, '.', ''),
+                'currency_code' => (string) $invoice->currency_code,
+                'payment_link_url' => $paymentLinkUrl,
+            ],
+            'invoice',
+            $invoice->id,
         );
     }
 
