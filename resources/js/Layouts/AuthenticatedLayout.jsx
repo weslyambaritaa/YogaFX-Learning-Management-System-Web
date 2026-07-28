@@ -75,8 +75,8 @@ const adminNavigationItems = [
     },
     {
         label: "Student",
-        route: "admin.student-progress.index",
-        match: ["admin.student-progress.*"],
+        route: "admin.students.index",
+        match: ["admin.students.*", "admin.student-progress.*"],
         icon: FileSpreadsheet,
     },
     {

@@ -8,20 +8,20 @@ import { Search, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 function PhotoCell({ student }) {
-    if (student.profile_photo) {
-        return (
-            <img
-                src={student.profile_photo}
-                alt={student.name}
-                className="size-12 rounded-full object-cover ring-1 ring-slate-200"
-            />
-        );
-    }
-
     return (
-        <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
-            {student.profile_initials}
-        </div>
+        <Link href={route('admin.student-progress.students.show', student.id)}>
+            {student.profile_photo ? (
+                <img
+                    src={student.profile_photo}
+                    alt={student.name}
+                    className="size-12 rounded-full object-cover ring-1 ring-slate-200"
+                />
+            ) : (
+                <div className="flex size-12 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
+                    {student.profile_initials}
+                </div>
+            )}
+        </Link>
     );
 }
 
@@ -301,7 +301,15 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                                                     <PhotoCell student={student} />
                                                 </td>
                                                 <td className="px-4 py-4 font-medium text-slate-900">
-                                                    {student.name || 'Unnamed student'}
+                                                    <Link
+                                                        href={route(
+                                                            'admin.student-progress.students.show',
+                                                            student.id,
+                                                        )}
+                                                        className="hover:text-indigo-600 hover:underline"
+                                                    >
+                                                        {student.name || 'Unnamed student'}
+                                                    </Link>
                                                 </td>
                                                 <td className="px-4 py-4 text-slate-700">
                                                     {student.email}
@@ -332,7 +340,7 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                                                     >
                                                         <Link
                                                             href={route(
-                                                                'admin.students.edit',
+                                                                'admin.student-progress.students.show',
                                                                 student.id,
                                                             )}
                                                         >
