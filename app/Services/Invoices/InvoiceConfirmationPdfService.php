@@ -144,6 +144,7 @@ class InvoiceConfirmationPdfService
             'isPayIn4' => $paymentMode === 'pay_in_4',
             'isSetupFeeSchedule' => $paymentMode === 'pay_in_4',
             'coursePrice' => $this->formatMoney($coursePriceAmount, $invoice->currency_code, $this->summaryDecimals($coursePriceAmount)),
+            'hasFullPaymentReceived' => $paymentMode === 'pay_in_full' && $invoice->status === Invoice::STATUS_PAID_FULL,
             'paymentReceivedOn' => $this->paymentReceivedOn($successPayments),
             'depositPaid' => $this->formatMoney($firstPaymentAmount, $invoice->currency_code, $this->detailDecimals($firstPaymentAmount)),
             'depositLabel' => '1st Installment:',

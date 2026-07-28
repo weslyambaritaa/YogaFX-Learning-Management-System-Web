@@ -88,14 +88,25 @@
 
                 @if (($paymentMode ?? 'pay_in_full') === 'pay_in_full')
                     <tr>
-                        <td class="k">Full Payment Received</td>
+                        <td class="k">Full Payment{{ $hasFullPaymentReceived ? ' Received' : '' }}</td>
                         <td class="v">
-                            {{ $coursePrice }} Received on {{ $paymentReceivedOn }}
-                            @if (filled($greenTickUrl))
-                                <img class="check-icon" src="{{ $greenTickUrl }}" alt="Paid">
+                            {{ $coursePrice }}
+                            @if ($hasFullPaymentReceived)
+                                Received on {{ $paymentReceivedOn }}
+                                @if (filled($greenTickUrl))
+                                    <img class="check-icon" src="{{ $greenTickUrl }}" alt="Paid">
+                                @endif
+                            @else
+                                Pending
                             @endif
                         </td>
                     </tr>
+                    @unless ($hasFullPaymentReceived)
+                        <tr>
+                            <td class="k">Balance</td>
+                            <td class="v">{{ $balanceDue }} due as follows please</td>
+                        </tr>
+                    @endunless
                 @else
                     <tr>
                         <td class="k">{{ $depositLabel ?? 'Deposit' }}</td>
