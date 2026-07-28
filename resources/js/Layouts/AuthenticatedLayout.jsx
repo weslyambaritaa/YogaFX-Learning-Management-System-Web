@@ -1,4 +1,5 @@
 import { Button } from "@/Components/ui/button";
+import ImpersonationBanner from "@/Components/ImpersonationBanner";
 import StudentAppDownloadDialog from "@/Components/student/StudentAppDownloadDialog";
 import TransientStatusBanner from "@/Components/TransientStatusBanner";
 import {
@@ -1134,19 +1135,23 @@ export default function AuthenticatedLayout({
 
     if (!isAdmin) {
         return (
-            <StudentTopNavigation
-                user={user}
-                header={header}
-                variant={studentVariant}
-                contentClassName={studentContentClassName}
-            >
-                {children}
-            </StudentTopNavigation>
+            <>
+                <ImpersonationBanner />
+                <StudentTopNavigation
+                    user={user}
+                    header={header}
+                    variant={studentVariant}
+                    contentClassName={studentContentClassName}
+                >
+                    {children}
+                </StudentTopNavigation>
+            </>
         );
     }
 
     return (
         <div className="min-h-screen bg-slate-50">
+            <ImpersonationBanner />
             <div className="flex min-h-screen">
                 <AdminSidebar
                     collapsed={collapsed}

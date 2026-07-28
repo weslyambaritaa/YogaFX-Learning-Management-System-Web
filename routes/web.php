@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\SupportSettingController;
 use App\Http\Controllers\ContentFileController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\LeadRegistrationController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\PayPalCheckoutController;
@@ -120,15 +121,17 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:admin,super_admin')
         ->name('admin.dashboard');
 
+    Route::post('/impersonation/stop', [ImpersonationController::class, 'stop'])->name('impersonation.stop');
+
     Route::get('/student/dashboard', [HomeController::class, 'index'])
-        ->middleware(['role:student', 'student.active', 'track.student.session'])
+        ->middleware(['role:student', 'student.active', 'track.student.session', 'impersonation.readonly'])
         ->name('student.dashboard');
 
     Route::get('/student/inactive', function () {
         return Inertia::render('Student/Inactive');
     })->middleware('role:student')->name('student.inactive');
 
-    Route::middleware(['role:student', 'student.active', 'track.student.session'])->group(function () {
+    Route::middleware(['role:student', 'student.active', 'track.student.session', 'impersonation.readonly'])->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::post('/profile/password/request', [ProfilePasswordController::class, 'request'])->name('profile.password.request');
@@ -270,6 +273,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/students/{student}/reset-progress', [StudentController::class, 'resetProgress'])->name('students.reset-progress');
         Route::post('/students/{student}/reset-progress/{scope}', [StudentController::class, 'resetProgressScope'])->name('students.reset-progress.scope');
         Route::delete('/students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
+        Route::post('/students/{student}/impersonate', [ImpersonationController::class, 'start'])->name('students.impersonate');
 
         Route::get('/admins', [AdminAccountController::class, 'index'])->name('admins.index');
         Route::get('/admins/create', [AdminAccountController::class, 'create'])->name('admins.create');

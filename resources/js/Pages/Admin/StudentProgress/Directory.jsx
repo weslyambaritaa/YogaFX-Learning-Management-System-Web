@@ -3,11 +3,12 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/Components/ui/dropdown-menu';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { usePersistedPage } from '@/lib/useIndexPageMemory';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowDown,
     ArrowUp,
@@ -74,6 +75,29 @@ function StudentActionMenu({ student }) {
                     >
                         Certificate
                     </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                    disabled={!student.can_impersonate}
+                    onSelect={(event) => {
+                        event.preventDefault();
+
+                        if (!student.can_impersonate) {
+                            return;
+                        }
+
+                        if (
+                            window.confirm(
+                                `Login as ${student.name || 'this student'}? You will browse the app as them until you click "Back to Admin".`,
+                            )
+                        ) {
+                            router.post(
+                                route('admin.students.impersonate', student.id),
+                            );
+                        }
+                    }}
+                >
+                    Login as Student
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

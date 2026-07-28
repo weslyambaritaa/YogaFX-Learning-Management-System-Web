@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\StudentSessionTrackingService;
+use App\Support\Impersonation;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +18,7 @@ class TrackStudentSessionActivity
     {
         $user = $request->user();
 
-        if ($user?->isStudent()) {
+        if ($user?->isStudent() && ! Impersonation::active()) {
             $this->sessionTrackingService->touchStudentSession($request, $user);
         }
 

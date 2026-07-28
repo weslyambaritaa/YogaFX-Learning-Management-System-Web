@@ -7,6 +7,7 @@ use App\Models\LessonIrregularActivity;
 use App\Models\LessonProgress;
 use App\Models\User;
 use App\Support\EmailNotificationTypeRegistry;
+use App\Support\Impersonation;
 use Illuminate\Support\Facades\DB;
 
 class StudentIrregularActivityService
@@ -34,7 +35,7 @@ class StudentIrregularActivityService
         LessonProgress $lessonProgress,
         ?int $videoDurationSeconds,
     ): array {
-        if (! $user->isStudent() || $user->isTesterStudent()) {
+        if (! $user->isStudent() || $user->isTesterStudent() || Impersonation::active()) {
             return [
                 'is_irregular' => false,
                 'total_watch_time_seconds' => max(0, (int) ($lessonProgress->watch_time_seconds ?? 0)),
@@ -154,6 +155,7 @@ class StudentIrregularActivityService
             ! $user->isStudent()
             || in_array($user->role, ['admin', 'tester'], true)
             || $user->isTesterStudent()
+            || Impersonation::active()
         ) {
             return $this->ignoredResponse($user, $lesson);
         }

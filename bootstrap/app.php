@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'track.student.session' => \App\Http\Middleware\TrackStudentSessionActivity::class,
             'student.active' => \App\Http\Middleware\EnsureStudentAccountIsActive::class,
+            'impersonation.readonly' => \App\Http\Middleware\EnforceImpersonationReadOnly::class,
         ]);
 
         $middleware->trustProxies(at: '*');
