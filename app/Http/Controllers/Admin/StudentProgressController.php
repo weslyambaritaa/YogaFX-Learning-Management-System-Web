@@ -62,16 +62,18 @@ class StudentProgressController extends Controller
             ->where('role', User::ROLE_STUDENT)
             ->whereNotNull('access_tier_id')
             ->orderByDesc('created_at')
-            ->get([
+            ->get(array_values(array_unique(array_merge([
                 'id',
                 'name',
                 'first_name',
                 'last_name',
                 'email',
+                'is_active',
+                'account_status',
                 'access_tier_id',
                 'profile_photo',
                 'created_at',
-            ]);
+            ], User::STUDENT_PROFILE_COMPLETION_FIELDS))));
 
         $tiers = AccessTier::query()
             ->whereIn('slug', [
@@ -474,6 +476,7 @@ class StudentProgressController extends Controller
                         'last_visit_sort' => $student->last_login_at
                             ? \Illuminate\Support\Carbon::parse($student->last_login_at)->toIso8601String()
                             : null,
+                        'can_impersonate' => $student->isStudentAccountActive() && $student->hasCompletedStudentProfile(),
                     ]),
             ];
         })->values();

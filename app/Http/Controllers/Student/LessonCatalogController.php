@@ -15,6 +15,7 @@ use App\Services\StudentLearningMilestoneEmailService;
 use App\Services\StudentSessionTrackingService;
 use App\Services\StudentWorkbookDeliveryService;
 use App\Support\BunnyAssetPath;
+use App\Support\Impersonation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -336,7 +337,7 @@ class LessonCatalogController extends Controller
 
     private function markLessonAsViewed(?int $userId, Lesson $lesson): void
     {
-        if (! $userId) {
+        if (! $userId || Impersonation::active()) {
             return;
         }
 

@@ -3,8 +3,10 @@
 namespace App\Http\Middleware;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
+use App\Models\User;
 use App\Services\LinkControlSettingService;
 use App\Support\CountryDirectory;
+use App\Support\Impersonation;
 use App\Support\StudentProfileValue;
 use App\Services\SupportSettingService;
 use Illuminate\Http\Request;
@@ -90,6 +92,13 @@ class HandleInertiaRequests extends Middleware
                     'profile_is_complete' => $user->hasCompletedStudentProfile(),
                     'missing_profile_fields' => $user->missingStudentProfileFields(),
                 ] : null,
+            ],
+            'impersonation' => Impersonation::active() ? [
+                'active' => true,
+                'admin_name' => optional(User::find(Impersonation::adminId()))->name,
+                'student_name' => $user?->name,
+            ] : [
+                'active' => false,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
