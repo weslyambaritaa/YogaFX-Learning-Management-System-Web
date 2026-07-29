@@ -76,6 +76,7 @@ class StudentController extends Controller
             ->orderByDesc('created_at')
             ->paginate($perPage, [
                 'id',
+                'role',
                 'name',
                 'first_name',
                 'last_name',
@@ -85,6 +86,19 @@ class StudentController extends Controller
                 'access_tier_id',
                 'profile_photo',
                 'created_at',
+                // Needed by hasCompletedStudentProfile() below for the can_impersonate flag.
+                'whatsapp',
+                'country',
+                'birth_date',
+                'gender',
+                'practicing_yoga_for',
+                'yoga_sequence_experience',
+                'hours_per_week',
+                'current_fitness_level',
+                'flexibility_rating',
+                'motivation',
+                'why_yogafx',
+                'how_did_you_find_us',
             ])
             ->withQueryString();
 
@@ -106,6 +120,7 @@ class StudentController extends Controller
                 'is_active' => (bool) $student->is_active,
                 'account_status' => $student->studentAccountStatus(),
                 'registration_date' => optional($student->created_at)->format('Y-m-d'),
+                'can_impersonate' => $student->isStudentAccountActive() && $student->hasCompletedStudentProfile(),
             ]));
 
         return Inertia::render('Admin/Students/Index', [

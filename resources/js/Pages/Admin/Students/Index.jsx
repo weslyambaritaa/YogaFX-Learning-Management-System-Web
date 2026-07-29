@@ -332,21 +332,50 @@ export default function StudentsIndex({ students, accessTiers, filters, status }
                                                     {student.registration_date}
                                                 </td>
                                                 <td className="px-4 py-4">
-                                                    <Button
-                                                        asChild
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="rounded-[5px]"
-                                                    >
-                                                        <Link
-                                                            href={route(
-                                                                'admin.student-progress.students.show',
-                                                                student.id,
-                                                            )}
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Button
+                                                            asChild
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="rounded-[5px]"
                                                         >
-                                                            Student Detail
-                                                        </Link>
-                                                    </Button>
+                                                            <Link
+                                                                href={route(
+                                                                    'admin.student-progress.students.show',
+                                                                    student.id,
+                                                                )}
+                                                            >
+                                                                Student Detail
+                                                            </Link>
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="rounded-[5px]"
+                                                            disabled={!student.can_impersonate}
+                                                            onClick={() => {
+                                                                if (!student.can_impersonate) {
+                                                                    return;
+                                                                }
+
+                                                                if (
+                                                                    window.confirm(
+                                                                        `Login as ${student.name || 'this student'}? You will browse the app as them until you click "Back to Admin".`,
+                                                                    )
+                                                                ) {
+                                                                    router.post(
+                                                                        route(
+                                                                            'admin.students.impersonate',
+                                                                            student.id,
+                                                                        ),
+                                                                    );
+                                                                }
+                                                            }}
+                                                        >
+                                                            Login as Student
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))

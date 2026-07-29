@@ -59,6 +59,7 @@ class HandleInertiaRequests extends Middleware
                         'id' => $user->accessTier->id,
                         'name' => $user->accessTier->name,
                         'slug' => $user->accessTier->slug,
+                        'description' => $user->accessTier->description,
                         'is_active' => $user->accessTier->is_active,
                         'has_full_standing_dialog_access' => $user->accessTier->has_full_standing_dialog_access,
                         'has_full_floor_dialog_access' => $user->accessTier->has_full_floor_dialog_access,

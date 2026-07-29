@@ -858,19 +858,31 @@ function StudentTopNavigation({
             <nav
                 className={[
                     isImmersive
-                        ? "sticky top-0 z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl"
+                        ? "sticky top-(--impersonation-banner-height,0px) z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl"
                         : "border-b border-border bg-background",
                 ].join(" ")}
             >
                 <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
                     <div className="flex min-w-0 items-center gap-3">
-                        <Link href={route("student.dashboard")}>
+                        <Link href={route("student.dashboard")} className="shrink-0">
                             <img
                                 src={STUDENT_LOGO_URL}
                                 alt="YogaFX"
                                 className="h-7 w-auto shrink-0 cursor-pointer object-contain transition-opacity hover:opacity-80 sm:h-10"
                             />
                         </Link>
+                        {user?.access_tier?.description ? (
+                            <span
+                                className={[
+                                    "hidden truncate text-sm font-semibold uppercase tracking-wide sm:block",
+                                    isImmersive
+                                        ? "text-white/70"
+                                        : "text-muted-foreground",
+                                ].join(" ")}
+                            >
+                                {user.access_tier.description}
+                            </span>
+                        ) : null}
                     </div>
                     <div className="min-w-0 md:hidden">
                         {studentInstantAccessItems.length > 0 ? (
@@ -951,35 +963,39 @@ function StudentTopNavigation({
                         {studentInstantAccessItems.length > 0 && (
                             <>
                                 <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
-                                <div
-                                    className={[
-                                        "hidden text-[11px] font-semibold uppercase tracking-[0.28em] lg:block",
-                                        isImmersive
-                                            ? "text-white/35"
-                                            : "text-muted-foreground",
-                                    ].join(" ")}
-                                >
-                                    INSTANT ACCESS
-                                </div>
-                                {studentInstantAccessItems.map((item) => (
-                                    <Button
-                                        key={item.label}
-                                        asChild
-                                        variant="ghost"
+                                <div className="hidden flex-col items-center gap-1.5 lg:flex">
+                                    <div
                                         className={[
-                                            "rounded-lg px-4 text-xs font-medium opacity-100",
-                                            isItemActive(item)
-                                                ? "border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]"
-                                                : isImmersive
-                                                  ? "border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white"
-                                                  : "",
+                                            "text-[11px] font-semibold uppercase tracking-[0.28em]",
+                                            isImmersive
+                                                ? "text-white/35"
+                                                : "text-muted-foreground",
                                         ].join(" ")}
                                     >
-                                        <Link href={route(item.route)}>
-                                            {item.label}
-                                        </Link>
-                                    </Button>
-                                ))}
+                                        INSTANT ACCESS
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {studentInstantAccessItems.map((item) => (
+                                            <Button
+                                                key={item.label}
+                                                asChild
+                                                variant="ghost"
+                                                className={[
+                                                    "rounded-lg px-4 text-xs font-medium opacity-100",
+                                                    isItemActive(item)
+                                                        ? "border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]"
+                                                        : isImmersive
+                                                          ? "border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white"
+                                                          : "",
+                                                ].join(" ")}
+                                            >
+                                                <Link href={route(item.route)}>
+                                                    {item.label}
+                                                </Link>
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
                             </>
                         )}
                     </div>

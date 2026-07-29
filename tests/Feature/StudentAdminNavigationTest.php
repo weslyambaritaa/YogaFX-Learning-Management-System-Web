@@ -81,4 +81,67 @@ class StudentAdminNavigationTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_students_index_exposes_true_can_impersonate_flag_for_an_eligible_student(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $eligibleStudent = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $tier->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.students.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('students.data.0.id', $eligibleStudent->id)
+                ->where('students.data.0.can_impersonate', true));
+    }
+
+    public function test_students_index_exposes_false_can_impersonate_flag_for_a_student_with_an_incomplete_profile(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $incompleteStudent = User::factory()->student()->create([
+            'access_tier_id' => $tier->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.students.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('students.data.0.id', $incompleteStudent->id)
+                ->where('students.data.0.can_impersonate', false));
+    }
+
+    public function test_admin_can_login_as_student_from_the_students_index_impersonate_button(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $tier = AccessTier::factory()->create();
+        $student = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $tier->id,
+        ]);
+
+        $response = $this->actingAs($admin)->post(
+            route('admin.students.impersonate', $student),
+        );
+
+        $response->assertRedirect(route('student.dashboard'));
+        $this->assertAuthenticatedAs($student);
+    }
+
+    public function test_student_pages_expose_access_tier_description_for_the_navbar(): void
+    {
+        $tier = AccessTier::factory()->create([
+            'description' => 'Full access to every online module.',
+        ]);
+        $student = User::factory()->student()->completeProfile()->create([
+            'access_tier_id' => $tier->id,
+        ]);
+
+        $response = $this->actingAs($student)->get(route('student.dashboard'));
+
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('auth.user.access_tier.description', 'Full access to every online module.'));
+    }
 }
