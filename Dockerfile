@@ -35,6 +35,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-source --optimize-autoloader --no-scripts
 
 COPY package.json package-lock.json ./
+RUN echo "=== DISK USAGE SEBELUM NPM CI ===" && df -h && echo "=== MEMORY SEBELUM NPM CI ===" && free -h
 RUN npm ci
 
 COPY . .
