@@ -1062,6 +1062,13 @@ class EmailNotificationService
             'support_email_url' => 'mailto:support@yogafx.com',
             'dashboard_url' => route('student.dashboard'),
             'login_url' => $this->studentLoginUrl(),
+            'hotel_name' => 'Sample Hotel',
+            'room_type' => 'Deluxe Room',
+            'check_in_date' => now()->addDays(5)->toDateString(),
+            'check_out_date' => now()->addDays(7)->toDateString(),
+            'nights' => '2',
+            'total_amount' => '200.00',
+            'booking_number' => 'BOOK-'.now()->format('Y').'-000001',
         ];
 
         $base['notification_type'] = $notificationType;

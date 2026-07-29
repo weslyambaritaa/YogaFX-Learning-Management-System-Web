@@ -23,6 +23,7 @@ class EmailNotificationTypeRegistry
     public const INSTALLMENT_OVERDUE_INACTIVE = 'installment_overdue_inactive';
     public const INSTALLMENT_PAYMENT_COMPLETED = 'installment_payment_completed';
     public const IRREGULAR_ACTIVITY_SUSPENDED = 'irregular_activity_suspended';
+    public const ACCOMMODATION_BOOKING_CONFIRMED = 'accommodation_booking_confirmed';
 
     /**
      * @return array<int, array{
@@ -310,6 +311,24 @@ class EmailNotificationTypeRegistry
                     '{{ next_due_at }}',
                     '{{ grace_deadline_at }}',
                     '{{ payment_completed_at }}',
+                ],
+            ],
+            [
+                'value' => self::ACCOMMODATION_BOOKING_CONFIRMED,
+                'label' => 'Accommodation Booking Confirmed',
+                'description' => 'Confirm a hotel booking to the guest once PayPal payment has been captured successfully.',
+                'trigger' => 'Triggered when an accommodation booking payment is captured and the booking status becomes confirmed.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ hotel_name }}',
+                    '{{ room_type }}',
+                    '{{ check_in_date }}',
+                    '{{ check_out_date }}',
+                    '{{ nights }}',
+                    '{{ total_amount }}',
+                    '{{ currency_code }}',
+                    '{{ booking_number }}',
                 ],
             ],
             [

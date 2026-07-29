@@ -1,0 +1,334 @@
+%% Entity Relationship Diagram - YogaFX Learning Management System
+%% Sumber: database/migrations/*.php + app/Models/*.php
+%% Versi grafis: atribut dipangkas hanya PK/FK/UK + 1 field pembeda,
+%% label relasi diringkas, agar rapi & tidak padat saat dirender di draw.io.
+%% Tabel infrastruktur murni Laravel (sessions, cache, jobs, failed_jobs,
+%% job_batches, personal_access_tokens, password_reset_tokens) tidak disertakan.
+
+erDiagram
+
+    %% ==================== 1. IDENTITY & ACCESS ====================
+    users {
+        int id PK
+        string email UK
+        string role
+        int access_tier_id FK
+    }
+
+    access_tiers {
+        int id PK
+        string slug UK
+        int level
+    }
+
+    %% ==================== 2. CONTENT CATALOG ====================
+    modules {
+        int id PK
+        string url_slug UK
+    }
+
+    lessons {
+        int id PK
+        int module_id FK
+        int assessment_id FK
+    }
+
+    ebooks {
+        int id PK
+        string title
+    }
+
+    courses {
+        int id PK
+        int access_tier_id FK
+        string url_slug UK
+    }
+
+    assignments {
+        int id PK
+        int module_id FK
+        string status
+    }
+
+    dialog_contents {
+        int id PK
+        string key UK
+    }
+
+    %% ==================== 3. ACCESS TIER PIVOTS (N:M) ====================
+    access_tier_module {
+        int id PK
+        int access_tier_id FK
+        int module_id FK
+    }
+
+    access_tier_lesson {
+        int id PK
+        int access_tier_id FK
+        int lesson_id FK
+    }
+
+    access_tier_ebook {
+        int id PK
+        int access_tier_id FK
+        int ebook_id FK
+    }
+
+    access_tier_course {
+        int id PK
+        int access_tier_id FK
+        int course_id FK
+    }
+
+    %% ==================== 4. STUDENT PROGRESS & ACTIVITY ====================
+    lesson_progress {
+        int id PK
+        int user_id FK
+        int lesson_id FK
+        boolean is_done
+    }
+
+    student_module_visits {
+        int id PK
+        int user_id FK
+        int module_id FK
+    }
+
+    lesson_irregular_activities {
+        int id PK
+        int user_id FK
+        int lesson_id FK
+    }
+
+    user_sessions {
+        int id PK
+        int user_id FK
+    }
+
+    assignment_submissions {
+        int id PK
+        int user_id FK
+        int assignment_id FK
+        int reviewed_by FK
+    }
+
+    certificates {
+        int id PK
+        int user_id FK
+        int generated_by_user_id FK
+    }
+
+    certificate_download_events {
+        int id PK
+        int user_id FK
+        int module_id FK
+        int certificate_id FK
+    }
+
+    %% ==================== 5. ASSESSMENT ENGINE ====================
+    assessments {
+        int id PK
+        string slug UK
+        string status
+    }
+
+    assessment_designs {
+        int id PK
+        int assessment_id FK
+    }
+
+    questions {
+        int id PK
+        int assessment_id FK
+        int jump_to_question_id FK
+    }
+
+    question_options {
+        int id PK
+        int question_id FK
+        int jump_to_question_id FK
+    }
+
+    assessment_result_ranges {
+        int id PK
+        int assessment_id FK
+    }
+
+    assessment_attempts {
+        int id PK
+        int user_id FK
+        int assessment_id FK
+        int result_range_id FK
+    }
+
+    assessment_answers {
+        int id PK
+        int assessment_attempt_id FK
+        int question_id FK
+        int question_option_id FK
+    }
+
+    assessment_progress {
+        int id PK
+        int user_id FK
+        int assessment_id FK
+    }
+
+    %% ==================== 6. PAYMENTS & BILLING ====================
+    pending_registrations {
+        int id PK
+        int access_tier_id FK
+        int package_id FK
+        string status
+    }
+
+    packages {
+        int id PK
+        int access_tier_id FK
+        string slug UK
+    }
+
+    invoices {
+        int id PK
+        int pending_registration_id FK
+        int package_id FK
+        int user_id FK
+        int access_tier_id FK
+        string status
+    }
+
+    payment_activities {
+        int id PK
+        int invoice_id FK
+        string status
+    }
+
+    payment_subscriptions {
+        int id PK
+        int invoice_id FK
+        int package_id FK
+        int pending_registration_id FK
+        int user_id FK
+        int access_tier_id FK
+        string status
+    }
+
+    payment_subscription_events {
+        int id PK
+        int payment_subscription_id FK
+        int invoice_id FK
+        int payment_activity_id FK
+    }
+
+    onboarding_states {
+        int id PK
+        int pending_registration_id FK
+        int user_id FK
+        string status
+    }
+
+    %% ==================== 7. AUTH & ADMIN SETTINGS ====================
+    auth_email_otp_challenges {
+        int id PK
+        int user_id FK
+    }
+
+    student_password_change_requests {
+        int id PK
+        int user_id FK
+    }
+
+    email_templates {
+        int id PK
+        string notification_type UK
+    }
+
+    email_logs {
+        int id PK
+        int email_template_id FK
+    }
+
+    email_brandings {
+        int id PK
+        string singleton_key UK
+    }
+
+    support_settings {
+        int id PK
+    }
+
+    link_control_settings {
+        int id PK
+    }
+
+    %% ==================== RELATIONSHIPS ====================
+
+    access_tiers ||--o{ users : ""
+    access_tiers ||--o{ courses : "legacy"
+
+    modules ||--o{ lessons : ""
+    modules ||--o{ assignments : ""
+    assessments ||--o| lessons : ""
+
+    access_tiers ||--o{ access_tier_module : ""
+    modules ||--o{ access_tier_module : ""
+    access_tiers ||--o{ access_tier_lesson : ""
+    lessons ||--o{ access_tier_lesson : ""
+    access_tiers ||--o{ access_tier_ebook : ""
+    ebooks ||--o{ access_tier_ebook : ""
+    access_tiers ||--o{ access_tier_course : ""
+    courses ||--o{ access_tier_course : ""
+
+    users ||--o{ lesson_progress : ""
+    lessons ||--o{ lesson_progress : ""
+    users ||--o{ student_module_visits : ""
+    modules ||--o{ student_module_visits : ""
+    users ||--o{ lesson_irregular_activities : ""
+    lessons ||--o{ lesson_irregular_activities : ""
+    users ||--o{ user_sessions : ""
+    users ||--o{ assignment_submissions : "submitter"
+    users ||--o{ assignment_submissions : "reviewer"
+    assignments ||--o{ assignment_submissions : ""
+    users ||--o{ certificates : "owner"
+    users ||--o{ certificates : "generator"
+    users ||--o{ certificate_download_events : ""
+    modules ||--o{ certificate_download_events : ""
+    certificates ||--o{ certificate_download_events : ""
+
+    assessments ||--o| assessment_designs : ""
+    assessments ||--o{ questions : ""
+    questions ||--o{ question_options : ""
+    questions |o--o{ questions : "jump"
+    questions |o--o{ question_options : "jump"
+    assessments ||--o{ assessment_result_ranges : ""
+    users ||--o{ assessment_attempts : ""
+    assessments ||--o{ assessment_attempts : ""
+    assessment_result_ranges |o--o{ assessment_attempts : ""
+    assessment_attempts ||--o{ assessment_answers : ""
+    questions ||--o{ assessment_answers : ""
+    question_options |o--o{ assessment_answers : ""
+    users ||--o{ assessment_progress : ""
+    assessments ||--o{ assessment_progress : ""
+
+    access_tiers ||--o{ pending_registrations : ""
+    packages |o--o{ pending_registrations : ""
+    access_tiers ||--o{ packages : ""
+    pending_registrations |o--o{ invoices : ""
+    packages |o--o{ invoices : ""
+    users |o--o{ invoices : ""
+    access_tiers ||--o{ invoices : ""
+    invoices ||--o{ payment_activities : ""
+    invoices ||--o{ payment_subscriptions : ""
+    packages ||--o{ payment_subscriptions : ""
+    pending_registrations |o--o{ payment_subscriptions : ""
+    users |o--o{ payment_subscriptions : ""
+    access_tiers ||--o{ payment_subscriptions : ""
+    payment_subscriptions |o--o{ payment_subscription_events : ""
+    invoices |o--o{ payment_subscription_events : ""
+    payment_activities |o--o{ payment_subscription_events : ""
+    pending_registrations ||--o| onboarding_states : ""
+    users ||--o| onboarding_states : ""
+
+    users ||--o{ auth_email_otp_challenges : ""
+    users ||--o{ student_password_change_requests : ""
+    email_templates |o--o{ email_logs : ""
