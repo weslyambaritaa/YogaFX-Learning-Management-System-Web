@@ -299,6 +299,33 @@ class EmailNotificationTemplateDefaults
                 ]),
                 'auto_enable' => true,
             ],
+            EmailNotificationTypeRegistry::ACCOMMODATION_BOOKING_CONFIRMED => [
+                'subject_user' => 'Your booking at {hotel_name} is confirmed',
+                'body_user' => implode('', [
+                    '<p>Hi {user_name},</p>',
+                    '<p>Your booking at <strong>{hotel_name}</strong> has been confirmed.</p>',
+                    '<p>Booking number: <strong>{booking_number}</strong></p>',
+                    '<p>Room type: {room_type}</p>',
+                    '<p>Check-in: {check_in_date}</p>',
+                    '<p>Check-out: {check_out_date}</p>',
+                    '<p>Nights: {nights}</p>',
+                    '<p>Total paid: <strong>{currency_code} {total_amount}</strong></p>',
+                    '<p>We look forward to hosting you.</p>',
+                ]),
+                'subject_admin' => 'New accommodation booking confirmed: {booking_number}',
+                'body_admin' => implode('', [
+                    '<p>A new accommodation booking has been confirmed.</p>',
+                    '<p>Guest: <strong>{user_name}</strong> ({user_email})</p>',
+                    '<p>Hotel: <strong>{hotel_name}</strong></p>',
+                    '<p>Room type: {room_type}</p>',
+                    '<p>Check-in: {check_in_date}</p>',
+                    '<p>Check-out: {check_out_date}</p>',
+                    '<p>Nights: {nights}</p>',
+                    '<p>Total paid: <strong>{currency_code} {total_amount}</strong></p>',
+                    '<p>Booking number: <strong>{booking_number}</strong></p>',
+                ]),
+                'auto_enable' => true,
+            ],
             EmailNotificationTypeRegistry::IRREGULAR_ACTIVITY_SUSPENDED => [
                 'subject_user' => 'Your YogaFX account has been temporarily suspended',
                 'body_user' => implode('', [

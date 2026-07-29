@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\AccessTierController;
+use App\Http\Controllers\Admin\AccommodationBookingController as AdminAccommodationBookingController;
+use App\Http\Controllers\Admin\AccommodationController;
+use App\Http\Controllers\Admin\AccommodationRoomTypeController;
+use App\Http\Controllers\AccommodationBookingController;
 use App\Http\Controllers\Admin\AdminAccountController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminProfileController;
@@ -83,6 +87,38 @@ Route::get('/paypal/checkout/{invoice}/success', [PayPalCheckoutController::clas
 Route::get('/paypal/checkout/{invoice}/cancel', [PayPalCheckoutController::class, 'cancel'])->name('paypal.cancel');
 Route::post('/webhooks/paypal', PayPalWebhookController::class)
     ->name('paypal.webhook');
+
+/*
+|--------------------------------------------------------------------------
+| Accommodation Booking — Public
+|--------------------------------------------------------------------------
+|
+| Registered here, well above the /{packageSlug} catch-all at the bottom of
+| this file, per the accommodation booking spec. Each route below is two
+| path segments (/stay/...), so it would never actually collide with the
+| catch-all's single-segment regex anyway — but keeping it here matches the
+| intended ordering and avoids relying on that detail.
+*/
+Route::get('/stay/{accommodation:slug}', [AccommodationBookingController::class, 'show'])->name('stay.show');
+Route::post('/stay/{accommodation:slug}/availability', [AccommodationBookingController::class, 'availability'])->name('stay.availability');
+Route::post('/stay/{accommodation:slug}/orders', [AccommodationBookingController::class, 'createOrder'])->name('stay.orders.store');
+
+/*
+|--------------------------------------------------------------------------
+| Accommodation Booking — Signed Actions
+|--------------------------------------------------------------------------
+|
+| capture/cancel/success reference a specific {booking} row by numeric id.
+| These stay signed (URLs handed to the frontend by createOrder()/
+| captureOrder() above, never constructed client-side) so a guessed booking
+| id alone can't be used to confirm, cancel, or view someone else's booking —
+| same protection pattern as the LMS checkout flow below.
+*/
+Route::middleware('signed')->group(function () {
+    Route::post('/stay/{accommodation:slug}/orders/{booking}/capture', [AccommodationBookingController::class, 'captureOrder'])->name('stay.orders.capture');
+    Route::post('/stay/{accommodation:slug}/orders/{booking}/cancel', [AccommodationBookingController::class, 'cancelOrder'])->name('stay.orders.cancel');
+    Route::get('/stay/{accommodation:slug}/bookings/{booking}/success', [AccommodationBookingController::class, 'success'])->name('stay.bookings.success');
+});
 
 Route::middleware('signed')->group(function () {
     Route::get('/checkout/{pendingRegistration}/{accessTierSlug}', [CheckoutController::class, 'show'])->name('checkout.show');
@@ -181,6 +217,24 @@ Route::middleware('auth')->group(function () {
         Route::get('/packages/{package}/edit', [PackageController::class, 'edit'])->name('packages.edit');
         Route::patch('/packages/{package}', [PackageController::class, 'update'])->name('packages.update');
         Route::delete('/packages/{package}', [PackageController::class, 'destroy'])->name('packages.destroy');
+
+        Route::get('/accommodations', [AccommodationController::class, 'index'])->name('accommodations.index');
+        Route::get('/accommodations/create', [AccommodationController::class, 'create'])->name('accommodations.create');
+        Route::post('/accommodations', [AccommodationController::class, 'store'])->name('accommodations.store');
+        Route::get('/accommodations/{accommodation}/edit', [AccommodationController::class, 'edit'])->name('accommodations.edit');
+        Route::patch('/accommodations/{accommodation}', [AccommodationController::class, 'update'])->name('accommodations.update');
+        Route::delete('/accommodations/{accommodation}', [AccommodationController::class, 'destroy'])->name('accommodations.destroy');
+
+        Route::get('/accommodations/{accommodation}/room-types', [AccommodationRoomTypeController::class, 'index'])->name('accommodations.room-types.index');
+        Route::get('/accommodations/{accommodation}/room-types/create', [AccommodationRoomTypeController::class, 'create'])->name('accommodations.room-types.create');
+        Route::post('/accommodations/{accommodation}/room-types', [AccommodationRoomTypeController::class, 'store'])->name('accommodations.room-types.store');
+        Route::get('/accommodations/{accommodation}/room-types/{roomType}/edit', [AccommodationRoomTypeController::class, 'edit'])->name('accommodations.room-types.edit');
+        Route::patch('/accommodations/{accommodation}/room-types/{roomType}', [AccommodationRoomTypeController::class, 'update'])->name('accommodations.room-types.update');
+        Route::delete('/accommodations/{accommodation}/room-types/{roomType}', [AccommodationRoomTypeController::class, 'destroy'])->name('accommodations.room-types.destroy');
+
+        Route::get('/accommodation-bookings', [AdminAccommodationBookingController::class, 'index'])->name('accommodation-bookings.index');
+        Route::get('/accommodation-bookings/{booking}', [AdminAccommodationBookingController::class, 'show'])->name('accommodation-bookings.show');
+        Route::post('/accommodation-bookings/{booking}/cancel', [AdminAccommodationBookingController::class, 'cancel'])->name('accommodation-bookings.cancel');
 
         Route::get('/invoices', [InvoiceIndexController::class, 'index'])->name('invoices.index');
         Route::get('/invoices/{invoice}/pdf/preview', [InvoicePdfController::class, 'preview'])->name('invoices.pdf.preview');

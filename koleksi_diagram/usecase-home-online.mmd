@@ -1,0 +1,44 @@
+%% Use Case Diagram - Fitur Home (Role: Online Student / Peserta Tier Online)
+%% Sumber: resources/js/Pages/Student/Home.jsx
+
+flowchart LR
+    Actor(["Online Student\n(Peserta Tier Online)"])
+
+    subgraph SYS["Sistem YogaFX LMS - Fitur Home"]
+        direction TB
+        UC1(["Melihat Halaman Home"])
+        UC2(["Melihat Status Access Tier"])
+        UC3(["Melihat Waktu Akses Berjalan (Running Login Time)"])
+        UC4(["Melanjutkan Pembelajaran Terakhir (Continue Learning)"])
+        UC5(["Melihat Daftar Semua Modul"])
+        UC6(["Membuka Detail Modul"])
+        UC7(["Melihat Daftar Lesson dalam Modul"])
+        UC8(["Membuka Lesson"])
+        UC9(["Melihat Onboarding Pengenalan Fitur"])
+        UC10(["Melihat Notifikasi Konten Terkunci"])
+        UC11(["Mengunduh Aplikasi Mobile"])
+    end
+
+    Actor --- UC1
+    Actor --- UC4
+    Actor --- UC5
+    Actor --- UC6
+    Actor --- UC8
+    Actor --- UC11
+
+    UC1 -.->|"<<include>>"| UC2
+    UC1 -.->|"<<include>>"| UC3
+    UC1 -.->|"<<include>>"| UC5
+    UC1 -.->|"<<extend>>"| UC9
+    UC4 -.->|"<<include>>"| UC8
+    UC6 -.->|"<<include>>"| UC7
+    UC6 -.->|"<<extend>>"| UC10
+    UC8 -.->|"<<extend>>"| UC10
+
+    classDef actor fill:#ffffff,stroke:#333333,stroke-width:1px,font-weight:bold;
+    classDef usecase fill:#f5f8ff,stroke:#3b5bdb,stroke-width:1px;
+    classDef boundary fill:none,stroke:#333333,stroke-width:1.5px,stroke-dasharray: 0;
+
+    class Actor actor;
+    class UC1,UC2,UC3,UC4,UC5,UC6,UC7,UC8,UC9,UC10,UC11 usecase;
+    class SYS boundary;

@@ -53,16 +53,43 @@ class PayPalService
         string $successUrl,
         string $cancelUrl,
     ): array {
+        return $this->createOrderFromReference(
+            referenceId: $invoice->invoice_number,
+            customId: (string) $paymentActivity->id,
+            invoiceId: $invoice->invoice_number,
+            currencyCode: $invoice->currency_code,
+            amount: (float) $paymentActivity->amount_paid,
+            successUrl: $successUrl,
+            cancelUrl: $cancelUrl,
+        );
+    }
+
+    /**
+     * Generic PayPal order creation for domains that are not backed by an
+     * Invoice/Payment pair (e.g. accommodation bookings). createOrder() above
+     * keeps its exact original behavior and now just delegates here.
+     *
+     * @return array{order_id: string, approval_url: string}
+     */
+    public function createOrderFromReference(
+        string $referenceId,
+        string $customId,
+        string $invoiceId,
+        string $currencyCode,
+        float $amount,
+        string $successUrl,
+        string $cancelUrl,
+    ): array {
         $response = $this->authenticatedHttp()
             ->post('/v2/checkout/orders', [
                 'intent' => 'CAPTURE',
                 'purchase_units' => [[
-                    'reference_id' => $invoice->invoice_number,
-                    'custom_id' => (string) $paymentActivity->id,
-                    'invoice_id' => $invoice->invoice_number,
+                    'reference_id' => $referenceId,
+                    'custom_id' => $customId,
+                    'invoice_id' => $invoiceId,
                     'amount' => [
-                        'currency_code' => $invoice->currency_code,
-                        'value' => number_format((float) $paymentActivity->amount_paid, 2, '.', ''),
+                        'currency_code' => $currencyCode,
+                        'value' => number_format($amount, 2, '.', ''),
                     ],
                 ]],
                 'application_context' => [

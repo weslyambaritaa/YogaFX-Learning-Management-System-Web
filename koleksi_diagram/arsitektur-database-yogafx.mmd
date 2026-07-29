@@ -1,0 +1,75 @@
+%% Diagram Arsitektur Database - YogaFX Learning Management System
+%% Sumber: config/database.php, config/cache.php, config/session.php, config/queue.php,
+%%         config/filesystems.php, config/services.php, config/bunny.php, .env.example,
+%%         app/Services/*, app/Http/Controllers/PayPalWebhookController.php, app/Jobs/*,
+%%         routes/console.php
+%% Catatan: driver aktual mengikuti .env.example (CACHE_STORE=file, SESSION_DRIVER=file,
+%% QUEUE_CONNECTION=database). Koneksi Redis terdefinisi di config/database.php tapi
+%% tidak aktif dipakai — sengaja tidak digambar sebagai komponen live.
+
+flowchart LR
+
+    Browser(["Browser\n(React + Inertia SPA)"])
+
+    subgraph APP["Aplikasi Laravel"]
+        direction TB
+        Controllers["Controllers / Services"]
+        PayPalWebhook["PayPalWebhookController"]
+        CertGen["CertificateGeneratorService\n(sinkron, Dompdf)"]
+        Jobs["Queued Jobs\n(SendOnboardingContinuationEmailJob,\nSendUpgradeWelcomeEmailJob)"]
+        Scheduler["Scheduler - routes/console.php\n(reminder tiap 10 menit,\nsync overdue installment tiap jam)"]
+    end
+
+    subgraph DATA["Data & Storage Layer"]
+        direction TB
+        PG[("PostgreSQL\nPrimary Database\n(41 tabel bisnis)")]
+        JobsTable[("jobs / failed_jobs\n(queue driver: database)")]
+        FileCache[["File Cache Store\nstorage/framework/cache"]]
+        FileSession[["File Session Store\nstorage/framework/sessions"]]
+    end
+
+    QueueWorker(["Queue Worker\n(php artisan queue:work)"])
+
+    subgraph EXTERNAL["Layanan Eksternal"]
+        direction TB
+        PayPal["PayPal API\n(Orders, Subscriptions, Webhooks)"]
+        BunnyStorage["Bunny Storage\n(PDF sertifikat & file)"]
+        BunnyStream["Bunny Stream\n(hosting video lesson)"]
+        MailSvc["Mail\n(driver: log, siap SMTP)"]
+    end
+
+    Browser -->|"HTTP request (Inertia)"| Controllers
+    Controllers -->|"read / write"| PG
+    Controllers --> FileCache
+    Controllers --> FileSession
+    Controllers -->|"dispatch job"| JobsTable
+    JobsTable -->|"poll"| QueueWorker
+    QueueWorker --> Jobs
+    Jobs -->|"tulis EmailLog, dll"| PG
+    Jobs --> MailSvc
+    Scheduler -->|"baca/tulis"| PG
+    Scheduler --> MailSvc
+
+    PayPal <-->|"webhook & API call"| PayPalWebhook
+    PayPalWebhook -->|"tulis invoices, payments,\npayment_subscriptions, dst"| PG
+
+    Controllers --> CertGen
+    CertGen -->|"tulis certificates"| PG
+    CertGen -->|"upload PDF"| BunnyStorage
+
+    Controllers -->|"upload video"| BunnyStream
+    Controllers -->|"upload file"| BunnyStorage
+
+    classDef client fill:#ffffff,stroke:#333333,stroke-width:1px,font-weight:bold;
+    classDef app fill:#f5f8ff,stroke:#3b5bdb,stroke-width:1px;
+    classDef data fill:#fff7e6,stroke:#d9822b,stroke-width:1px;
+    classDef external fill:#f3f0ff,stroke:#7048e8,stroke-width:1px;
+    classDef worker fill:#e6fcf5,stroke:#0ca678,stroke-width:1px;
+    classDef boundary fill:none,stroke:#333333,stroke-width:1.5px;
+
+    class Browser client;
+    class Controllers,PayPalWebhook,CertGen,Jobs,Scheduler app;
+    class PG,JobsTable,FileCache,FileSession data;
+    class PayPal,BunnyStorage,BunnyStream,MailSvc external;
+    class QueueWorker worker;
+    class APP,DATA,EXTERNAL boundary;

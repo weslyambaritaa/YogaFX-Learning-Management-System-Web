@@ -24,6 +24,7 @@ import {
     BookMarked,
     BookOpen,
     BookOpenCheck,
+    Building2,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
@@ -44,7 +45,7 @@ import {
 import { useEffect, useState } from "react";
 
 const ADMIN_SIDEBAR_STORAGE_KEY = "yogafx-admin-sidebar-collapsed";
-const ADMIN_EMAIL_GROUP_STORAGE_KEY = "yogafx-admin-email-group-open";
+const ADMIN_SIDEBAR_GROUPS_STORAGE_KEY = "yogafx-admin-sidebar-groups-open";
 const ADMIN_DESKTOP_BREAKPOINT = "(min-width: 1024px)";
 const STUDENT_DESKTOP_BREAKPOINT = "(min-width: 768px)";
 
@@ -102,6 +103,24 @@ const adminNavigationItems = [
         route: "admin.ebooks.index",
         icon: BookMarked,
         match: ["admin.ebooks.*"],
+    },
+    {
+        label: "Accommodations",
+        icon: Building2,
+        children: [
+            {
+                label: "Hotels",
+                icon: Building2,
+                route: "admin.accommodations.index",
+                match: ["admin.accommodations.*"],
+            },
+            {
+                label: "Bookings",
+                icon: FileSpreadsheet,
+                route: "admin.accommodation-bookings.index",
+                match: ["admin.accommodation-bookings.*"],
+            },
+        ],
     },
     {
         label: "Email",
@@ -233,6 +252,14 @@ const adminNavigationItems = [
                 match: ["admin.email-notifications.show"],
                 activeWhen: { notificationType: "irregular_activity_suspended" },
             },
+            {
+                label: "Accommodation",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "accommodation_booking_confirmed" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "accommodation_booking_confirmed" },
+            },
         ],
     },
 ];
@@ -345,6 +372,14 @@ const adminPageTitles = {
     "admin.ebooks.create": "Create E-Book",
     "admin.ebooks.edit": "Edit E-Book",
     "admin.ebooks.preview": "E-Book Preview",
+    "admin.accommodations.index": "Accommodations",
+    "admin.accommodations.create": "Create Accommodation",
+    "admin.accommodations.edit": "Edit Accommodation",
+    "admin.accommodations.room-types.index": "Room Types",
+    "admin.accommodations.room-types.create": "Create Room Type",
+    "admin.accommodations.room-types.edit": "Edit Room Type",
+    "admin.accommodation-bookings.index": "Bookings",
+    "admin.accommodation-bookings.show": "Booking Detail",
     "admin.student-progress.index": "Student",
     "admin.student-progress.students.show": "Student Detail",
     "admin.student-progress.completed-lessons.index": "Completed Lesson",
@@ -672,7 +707,7 @@ function SidebarGroup({ item, collapsed, open, setOpen, onNavigate }) {
     );
 }
 
-function AdminSidebar({ collapsed, emailOpen, setEmailOpen, onNavigate }) {
+function AdminSidebar({ collapsed, openGroups, onToggleGroup, onNavigate }) {
     return (
         <aside
             className={[
@@ -699,8 +734,8 @@ function AdminSidebar({ collapsed, emailOpen, setEmailOpen, onNavigate }) {
                                 key={item.label}
                                 item={item}
                                 collapsed={collapsed}
-                                open={emailOpen}
-                                setOpen={setEmailOpen}
+                                open={Boolean(openGroups[item.label])}
+                                setOpen={() => onToggleGroup(item.label)}
                                 onNavigate={onNavigate}
                             />
                         ) : (
@@ -736,7 +771,7 @@ function AdminSidebar({ collapsed, emailOpen, setEmailOpen, onNavigate }) {
     );
 }
 
-function AdminMobileSidebar({ open, setOpen, emailOpen, setEmailOpen }) {
+function AdminMobileSidebar({ open, setOpen, openGroups, onToggleGroup }) {
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -768,8 +803,8 @@ function AdminMobileSidebar({ open, setOpen, emailOpen, setEmailOpen }) {
                                     key={item.label}
                                     item={item}
                                     collapsed={false}
-                                    open={emailOpen}
-                                    setOpen={setEmailOpen}
+                                    open={Boolean(openGroups[item.label])}
+                                    setOpen={() => onToggleGroup(item.label)}
                                     onNavigate={() => setOpen(false)}
                                 />
                             ) : (
@@ -1066,7 +1101,13 @@ export default function AuthenticatedLayout({
 
     const [collapsed, setCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-    const [emailOpen, setEmailOpen] = useState(false);
+    const [openGroups, setOpenGroups] = useState({});
+
+    const toggleGroup = (label) =>
+        setOpenGroups((current) => ({
+            ...current,
+            [label]: !current[label],
+        }));
 
     useEffect(() => {
         if (!isAdmin) {
@@ -1077,10 +1118,15 @@ export default function AuthenticatedLayout({
             ADMIN_SIDEBAR_STORAGE_KEY,
         );
         setCollapsed(storedValue === "true");
-        setEmailOpen(
-            window.localStorage.getItem(ADMIN_EMAIL_GROUP_STORAGE_KEY) ===
-                "true",
-        );
+
+        try {
+            const storedGroups = window.localStorage.getItem(
+                ADMIN_SIDEBAR_GROUPS_STORAGE_KEY,
+            );
+            setOpenGroups(storedGroups ? JSON.parse(storedGroups) : {});
+        } catch {
+            setOpenGroups({});
+        }
     }, [isAdmin]);
 
     useEffect(() => {
@@ -1100,10 +1146,10 @@ export default function AuthenticatedLayout({
         }
 
         window.localStorage.setItem(
-            ADMIN_EMAIL_GROUP_STORAGE_KEY,
-            String(emailOpen),
+            ADMIN_SIDEBAR_GROUPS_STORAGE_KEY,
+            JSON.stringify(openGroups),
         );
-    }, [emailOpen, isAdmin]);
+    }, [openGroups, isAdmin]);
 
     useEffect(() => {
         if (!isAdmin) {
@@ -1155,8 +1201,8 @@ export default function AuthenticatedLayout({
             <div className="flex min-h-screen">
                 <AdminSidebar
                     collapsed={collapsed}
-                    emailOpen={emailOpen}
-                    setEmailOpen={setEmailOpen}
+                    openGroups={openGroups}
+                    onToggleGroup={toggleGroup}
                 />
 
                 <div className="flex min-h-screen min-w-0 flex-1 flex-col">
@@ -1166,8 +1212,8 @@ export default function AuthenticatedLayout({
                                 <AdminMobileSidebar
                                     open={mobileSidebarOpen}
                                     setOpen={setMobileSidebarOpen}
-                                    emailOpen={emailOpen}
-                                    setEmailOpen={setEmailOpen}
+                                    openGroups={openGroups}
+                                    onToggleGroup={toggleGroup}
                                 />
 
                                 <Button
@@ -1203,7 +1249,7 @@ export default function AuthenticatedLayout({
                         </div>
                     </header>
 
-                    {header && !isAdmin && (
+                    {header && (
                         <div className="border-b border-border bg-background">
                             <div className="px-4 py-5 sm:px-6 lg:px-8">
                                 {header}
