@@ -18,3 +18,4 @@ Artisan::command('email-notifications:send-reminders', function (EmailNotificati
 
 Schedule::command('email-notifications:send-reminders')->everyTenMinutes();
 Schedule::command('installments:sync-overdue-status')->hourly();
+Schedule::command('checkouts:purge-expired-unpaid')->hourly();

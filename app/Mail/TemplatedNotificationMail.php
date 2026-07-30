@@ -64,18 +64,25 @@ class TemplatedNotificationMail extends Mailable
 
     private function buildEmailHtml(?Email $message = null): string
     {
-        $headerHtml = $this->prepareBrandingSectionHtml(
-            $this->branding['email_header_html'] ?? '',
-            'header',
-        );
-        $footerHtml = $this->prepareBrandingSectionHtml(
-            $this->branding['email_signature_html'] ?? '',
-            'footer',
-        );
+        $rawHeaderHtml = trim($this->branding['email_header_html'] ?? '');
+        $rawFooterHtml = trim($this->branding['email_signature_html'] ?? '');
+        $headerHtml = $rawHeaderHtml === '' ? '' : $this->prepareBrandingSectionHtml($rawHeaderHtml, 'header');
+        $footerHtml = $rawFooterHtml === '' ? '' : $this->prepareBrandingSectionHtml($rawFooterHtml, 'footer');
         $contentHtml = $this->constrainImages(
     $this->htmlFragment($this->bodyHtml),
     'display:block; width:100%; max-width:100%; height:auto; box-sizing:border-box;'
 );
+
+        $headerSection = $headerHtml === '' ? '' : <<<HTML
+        <div style="padding: 24px 24px 16px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);">
+            {$headerHtml}
+        </div>
+HTML;
+        $footerSection = $footerHtml === '' ? '' : <<<HTML
+        <div style="padding: 16px 24px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
+            {$footerHtml}
+        </div>
+HTML;
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -87,15 +94,11 @@ class TemplatedNotificationMail extends Mailable
 </head>
 <body style="margin: 0; padding: 24px; background-color: #f8fafc; font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
     <div style="margin: 0 auto; max-width: 680px; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 18px; background: #ffffff;">
-        <div style="padding: 24px 24px 16px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);">
-            {$headerHtml}
-        </div>
+        {$headerSection}
         <div style="padding: 24px; overflow: hidden;">
     {$contentHtml}
 </div>
-        <div style="padding: 16px 24px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;">
-            {$footerHtml}
-        </div>
+        {$footerSection}
     </div>
 </body>
 </html>

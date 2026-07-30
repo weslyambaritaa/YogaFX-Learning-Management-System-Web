@@ -12,15 +12,15 @@ const FONT_FAMILY = "'Montserrat', sans-serif";
 const BASE_SLIDES = [
     {
         title: "Welcome to YogaFX",
-        body: "A premium learning platform built for focus with a cleaner module flow across desktop and mobile.",
+        body: "A Premium Learning Platform built for focus with a cleaner module flow across desktop and mobile.",
     },
     {
-        title: "Keep moving forward",
-        body: "Continue from your latest lesson, track what is completed, and see what is still locked before opening it.",
+        title: "Build for Progress",
+        body: "Resume your last lesson. Easily see what you've finished and what's coming next.",
     },
     {
         title: "Everything stays guided",
-        body: "Your next step, module access, and supporting resources stay visible without turning the experience into a school portal.",
+        body: "All your lessons and resources are kept simple, clean, and easy to access.",
     },
 ];
 
@@ -121,7 +121,7 @@ function OnboardingOverlay({ onDone, appDownload }) {
                         }
                         className="rounded-[5px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
                     >
-                        {isLast ? "Get Started" : "Next"}
+                        {isLast ? "Let's Get Started" : "Next"}
                     </Button>
                 </div>
             </div>

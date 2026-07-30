@@ -184,12 +184,26 @@ class EmailOtpChallengeService
         $title = $challenge->context === AuthEmailOtpChallenge::CONTEXT_SIGNUP
             ? 'Signup Verification'
             : 'Login Verification';
+        $codeHeading = $challenge->context === AuthEmailOtpChallenge::CONTEXT_SIGNUP
+            ? 'Your sign-up code'
+            : 'Your sign-in code';
+        $spacedOtpCode = implode(' ', str_split($otpCode));
+
         $body = implode('', [
-            '<p>Hi '.e($user->name ?: $user->email).',</p>',
-            '<p>Please use the OTP code below to continue your YogaFX '.e($challenge->context).' flow.</p>',
-            '<p><strong>OTP Code: '.e($otpCode).'</strong></p>',
-            '<p>This code expires in '.e((string) $expiresInMinutes).' minutes.</p>',
-            '<p>Return to the verification page that is already open in your browser to continue.</p>',
+            '<div style="text-align: center; margin: 0 0 24px;">',
+            '<span style="font-size: 22px; font-weight: 700; color: #0f172a;">Yoga</span>',
+            '<span style="font-size: 22px; font-weight: 700; color: #c00000;">FX</span>',
+            '</div>',
+            '<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 28px 24px; text-align: center;">',
+            '<p style="margin: 0 0 16px; font-size: 18px; font-weight: 700; color: #0f172a;">'.e($codeHeading).'</p>',
+            '<p style="margin: 0 0 20px; font-size: 14px; color: #475569;">Enter this code on the YogaFX page you left open:</p>',
+            '<p style="margin: 0 0 20px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a;">'.e($spacedOtpCode).'</p>',
+            '<p style="margin: 0; font-size: 13px; color: #64748b;">The code expires in '.e((string) $expiresInMinutes).' minutes.</p>',
+            '</div>',
+            '<p style="margin: 20px 0 0; font-size: 12px; color: #94a3b8; text-align: center;">',
+            'If you didn&rsquo;t request this email, you can safely ignore it. Never share this code with anyone. ',
+            '<span style="color: #94a3b8;">Yoga</span><span style="color: #c00000;">FX</span> will never ask you for it.',
+            '</p>',
         ]);
 
         dispatch(function () use ($user, $subject, $body, $title): void {
