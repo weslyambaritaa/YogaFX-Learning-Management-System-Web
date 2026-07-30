@@ -961,7 +961,7 @@ function StudentSiteHeader({ user, variant = "default" }) {
                                     className={[
                                         "text-[11px] font-semibold uppercase tracking-[0.28em]",
                                         isImmersive
-                                            ? "text-white/35"
+                                            ? "text-white"
                                             : "text-muted-foreground",
                                     ].join(" ")}
                                 >
@@ -978,7 +978,7 @@ function StudentSiteHeader({ user, variant = "default" }) {
                                                 isItemActive(item)
                                                     ? "border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]"
                                                     : isImmersive
-                                                      ? "border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white"
+                                                      ? "bg-[#c00000] text-white hover:bg-[#a30000] hover:text-white"
                                                       : "",
                                             ].join(" ")}
                                         >
