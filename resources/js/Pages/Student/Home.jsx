@@ -815,7 +815,7 @@ export default function StudentHome({
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%),linear-gradient(to_top,rgba(0,0,0,0.96)_0%,rgba(0,0,0,0.38)_32%,transparent_62%)]" />
                 </div>
 
-                <div className="relative mx-auto flex min-h-screen max-w-[1400px] flex-col justify-end gap-6 px-4 pb-20 pt-24 sm:gap-8 sm:px-6 lg:px-10 lg:pb-28">
+                <div className="relative mx-auto flex min-h-[80vh] max-w-[1400px] flex-col justify-end gap-6 px-4 pb-20 pt-24 sm:gap-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10 lg:pb-28">
                     <div className="max-w-2xl space-y-3 text-white sm:space-y-5">
                         {/* "Welcome back, Rahel" → medium 14px, tanpa uppercase */}
                         <div
