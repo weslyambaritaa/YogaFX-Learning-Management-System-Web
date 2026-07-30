@@ -91,6 +91,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
             'is_active' => 'boolean',
+            'pending_welcome_popup' => 'boolean',
             'irregular_activity_count' => 'integer',
             'irregular_activity_last_detected_at' => 'datetime',
             'total_access_duration_seconds' => 'integer',

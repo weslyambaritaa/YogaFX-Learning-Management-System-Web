@@ -47,6 +47,14 @@ class HomeController extends Controller
             return redirect()->route('profile.edit');
         }
 
+        $showWelcomePopup = false;
+
+        if ($user && $user->isTesterStudent() && (bool) $user->pending_welcome_popup) {
+            $showWelcomePopup = true;
+            $user->pending_welcome_popup = false;
+            $user->save();
+        }
+
         $displayName = trim((string) ($user?->first_name ?: $user?->name ?: 'Student'));
         $tier = $user?->accessTier;
         $availableModules = $this->availableModulesForStudent($user);
@@ -69,6 +77,7 @@ class HomeController extends Controller
 
         return Inertia::render('Student/Home', [
             'homeStage' => 12,
+            'showWelcomePopup' => $showWelcomePopup,
             'studentContext' => [
                 'display_name' => $displayName !== '' ? $displayName : 'Student',
                 'full_name' => $user?->name ?: $displayName,

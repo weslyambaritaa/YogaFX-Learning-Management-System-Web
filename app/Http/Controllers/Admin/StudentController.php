@@ -262,6 +262,7 @@ class StudentController extends Controller
         unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
         $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
         $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
+        $previousAccountStatus = $student->studentAccountStatus();
         $nextAccountStatus = (string) ($validated['account_status'] ?? $student->studentAccountStatus());
         unset($validated['account_status']);
 
@@ -269,6 +270,12 @@ class StudentController extends Controller
         $student->setStudentAccountStatus($nextAccountStatus);
         $student->birth_date = $validated['birth_date'] ?? $request->input('birth_date') ?? $student->birth_date;
         $student->syncDisplayName();
+
+        if ($previousAccountStatus === User::ACCOUNT_STATUS_INACTIVE
+            && $nextAccountStatus === User::ACCOUNT_STATUS_AVAILABLE
+            && $student->isTesterStudent()) {
+            $student->pending_welcome_popup = true;
+        }
 
         $student->profile_photo = $this->storeUploadedFileToBunny(
             $request->file('profile_photo'),
@@ -304,11 +311,19 @@ class StudentController extends Controller
             ])],
         ]);
 
+        $previousAccountStatus = $student->studentAccountStatus();
+
         $student->setStudentAccountStatus($validated['account_status']);
         $student->student_tag = $validated['student_tag'];
 
         if ($validated['account_status'] === User::ACCOUNT_STATUS_AVAILABLE) {
             $student->irregular_activity_count = 0;
+        }
+
+        if ($previousAccountStatus === User::ACCOUNT_STATUS_INACTIVE
+            && $validated['account_status'] === User::ACCOUNT_STATUS_AVAILABLE
+            && $student->student_tag === User::STUDENT_TAG_TESTER) {
+            $student->pending_welcome_popup = true;
         }
 
         $student->save();

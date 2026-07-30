@@ -1,6 +1,7 @@
 import AppStoreBadges from "@/Components/public/AppStoreBadges";
 import LockedContentDialog from "@/Components/student/LockedContentDialog";
 import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
+import WelcomeToYogaFXDialog from "@/Components/student/WelcomeToYogaFXDialog";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, usePage } from "@inertiajs/react";
@@ -632,11 +633,15 @@ export default function StudentHome({
     availableModulesSection,
     assignmentMilestone,
     homeExperience,
+    showWelcomePopup,
 }) {
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [selectedModule, setSelectedModule] = useState(null);
     const [lockedModuleOpen, setLockedModuleOpen] = useState(false);
     const [lockedLessonOpen, setLockedLessonOpen] = useState(false);
+    const [welcomePopupOpen, setWelcomePopupOpen] = useState(
+        Boolean(showWelcomePopup),
+    );
     const bootedRef = useRef(false);
     const rawModules = availableModulesSection?.items ?? [];
     const studentName = studentContext?.display_name ?? "Student";
@@ -685,6 +690,10 @@ export default function StudentHome({
                     appDownload={appDownload}
                 />
             ) : null}
+            <WelcomeToYogaFXDialog
+                open={welcomePopupOpen}
+                onOpenChange={setWelcomePopupOpen}
+            />
             <LockedContentDialog
                 open={lockedModuleOpen}
                 onOpenChange={setLockedModuleOpen}
