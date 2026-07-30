@@ -23,6 +23,20 @@ class AccommodationBookingCheckoutTest extends TestCase
         config()->set('services.paypal.secret', 'client-secret');
     }
 
+    public function test_show_page_exposes_installment_enabled_flag_and_installments_url(): void
+    {
+        $roomType = $this->createBookableRoomType();
+        $accommodation = $roomType->accommodation;
+        $accommodation->update(['installment_enabled' => true]);
+
+        $this->get(route('stay.show', $accommodation))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Public/AccommodationBooking')
+                ->where('accommodation.installment_enabled', true)
+                ->where('installmentsUrl', route('stay.installments.store', $accommodation)));
+    }
+
     public function test_create_order_creates_pending_booking_with_hold_and_paypal_order(): void
     {
         $roomType = $this->createBookableRoomType();
@@ -46,6 +60,53 @@ class AccommodationBookingCheckoutTest extends TestCase
         $this->assertNotNull($booking->hold_expires_at);
         $this->assertMatchesRegularExpression('/^BOOK-\d{4}-\d{6}$/', $booking->booking_number);
         $this->assertSame('200.00', $booking->total_amount);
+
+        // first_name + last_name merge into guest_name.
+        $this->assertSame('Jane Doe', $booking->guest_name);
+        // phone_country_code + phone_number merge into guest_phone via
+        // CountryDirectory::formatPhoneNumber().
+        $this->assertSame('+62 812345678', $booking->guest_phone);
+        // country is a new column, stored as-is.
+        $this->assertSame('Indonesia', $booking->guest_country);
+    }
+
+    public function test_create_order_allows_the_same_email_to_be_used_for_two_separate_bookings(): void
+    {
+        $roomType = $this->createBookableRoomType(totalRooms: 5);
+        $accommodation = $roomType->accommodation;
+        $this->fakePayPalOrderCreation('ORDER-DUP-001');
+
+        $firstResponse = $this->postJson(
+            route('stay.orders.store', $accommodation),
+            $this->validOrderPayload($roomType),
+        );
+        $firstResponse->assertOk();
+
+        $this->fakePayPalOrderCreation('ORDER-DUP-002');
+
+        $secondPayload = $this->validOrderPayload($roomType);
+        $secondPayload['check_in_date'] = now()->addDays(20)->toDateString();
+        $secondPayload['check_out_date'] = now()->addDays(22)->toDateString();
+
+        // Explicitly proves the deliberate deviation from LeadRegistrationRequest:
+        // no Rule::unique(User::class, 'email') was copied — a guest must be
+        // able to book more than once with the same email.
+        $secondResponse = $this->postJson(
+            route('stay.orders.store', $accommodation),
+            $secondPayload,
+        );
+
+        $secondResponse->assertOk();
+        $secondResponse->assertJsonPath('status', 'created');
+        $this->assertNotSame(
+            $firstResponse->json('booking_id'),
+            $secondResponse->json('booking_id'),
+        );
+
+        $this->assertSame(
+            2,
+            AccommodationBooking::query()->where('guest_email', 'jane@example.com')->count(),
+        );
     }
 
     public function test_create_order_returns_409_when_room_is_fully_booked(): void
@@ -302,9 +363,12 @@ class AccommodationBookingCheckoutTest extends TestCase
             'room_type_id' => $roomType->id,
             'check_in_date' => now()->addDays(5)->toDateString(),
             'check_out_date' => now()->addDays(7)->toDateString(),
-            'guest_name' => 'Jane Doe',
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
             'guest_email' => 'jane@example.com',
-            'guest_phone' => '+62812345678',
+            'phone_country_code' => '+62',
+            'phone_number' => '812345678',
+            'country' => 'Indonesia',
         ];
     }
 }

@@ -24,6 +24,7 @@ class EmailNotificationTypeRegistry
     public const INSTALLMENT_PAYMENT_COMPLETED = 'installment_payment_completed';
     public const IRREGULAR_ACTIVITY_SUSPENDED = 'irregular_activity_suspended';
     public const ACCOMMODATION_BOOKING_CONFIRMED = 'accommodation_booking_confirmed';
+    public const ACCOMMODATION_INSTALLMENT_PAYMENT_FAILED = 'accommodation_installment_payment_failed';
 
     /**
      * @return array<int, array{
@@ -329,6 +330,24 @@ class EmailNotificationTypeRegistry
                     '{{ total_amount }}',
                     '{{ currency_code }}',
                     '{{ booking_number }}',
+                ],
+            ],
+            [
+                'value' => self::ACCOMMODATION_INSTALLMENT_PAYMENT_FAILED,
+                'label' => 'Accommodation Installment Payment Failed',
+                'description' => 'Notify the guest and admins when a recurring accommodation installment charge fails.',
+                'trigger' => 'Triggered when PayPal reports a failed accommodation installment payment attempt (BILLING.SUBSCRIPTION.PAYMENT.FAILED or PAYMENT.SALE.DENIED). The booking stays confirmed regardless of how many attempts fail.',
+                'merge_tags' => [
+                    '{{ user_name }}',
+                    '{{ user_email }}',
+                    '{{ hotel_name }}',
+                    '{{ room_type }}',
+                    '{{ booking_number }}',
+                    '{{ installment_count }}',
+                    '{{ failed_installment_number }}',
+                    '{{ failed_amount }}',
+                    '{{ currency_code }}',
+                    '{{ next_due_at }}',
                 ],
             ],
             [

@@ -13,6 +13,14 @@ class RoomAvailabilityService
     public const DEFAULT_HOLD_MINUTES = 30;
 
     /**
+     * Installment checkout goes through PayPal subscription approval instead
+     * of a synchronous order capture, and confirmation only arrives later via
+     * the BILLING.SUBSCRIPTION.ACTIVATED webhook — so it gets a longer hold
+     * than the pay-full flow.
+     */
+    public const INSTALLMENT_HOLD_MINUTES = 60;
+
+    /**
      * Count rooms currently occupying the given date range: confirmed
      * bookings plus pending_payment bookings whose hold has not expired yet.
      *

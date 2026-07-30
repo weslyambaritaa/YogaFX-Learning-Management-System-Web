@@ -5,13 +5,21 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\AccommodationBooking;
+use App\Models\AccommodationPaymentSubscription;
+use App\Services\Payments\PayPalSubscriptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class AccommodationBookingController extends Controller
 {
+    public function __construct(
+        private readonly PayPalSubscriptionService $paypalSubscriptionService,
+    ) {}
+
     public function index(Request $request): Response
     {
         $search = trim((string) $request->input('search', ''));
@@ -91,6 +99,8 @@ class AccommodationBookingController extends Controller
                 ]);
         }
 
+        $this->cancelActiveInstallmentSubscription($booking);
+
         $booking->update([
             'status' => AccommodationBooking::STATUS_CANCELLED,
             'cancelled_at' => now(),
@@ -99,6 +109,56 @@ class AccommodationBookingController extends Controller
         return redirect()
             ->route('admin.accommodation-bookings.show', $booking)
             ->with('status', 'booking-cancelled');
+    }
+
+    /**
+     * Per spec §8: cancelling a booking that is still mid-installment must
+     * also cancel its PayPal subscription, so the guest is not billed for a
+     * booking that no longer exists. Best-effort — a PayPal failure here
+     * must not block the admin from cancelling the booking itself.
+     */
+    private function cancelActiveInstallmentSubscription(AccommodationBooking $booking): void
+    {
+        $activeStatuses = [
+            AccommodationPaymentSubscription::STATUS_DRAFT,
+            AccommodationPaymentSubscription::STATUS_APPROVAL_PENDING,
+            AccommodationPaymentSubscription::STATUS_ACTIVE,
+            AccommodationPaymentSubscription::STATUS_PAST_DUE,
+        ];
+
+        $subscription = AccommodationPaymentSubscription::query()
+            ->where('accommodation_booking_id', $booking->id)
+            ->whereIn('status', $activeStatuses)
+            ->latest('id')
+            ->first();
+
+        if (! $subscription instanceof AccommodationPaymentSubscription) {
+            return;
+        }
+
+        if (is_string($subscription->provider_subscription_id) && $subscription->provider_subscription_id !== '') {
+            try {
+                $this->paypalSubscriptionService->cancelSubscription(
+                    $subscription->provider_subscription_id,
+                    'Booking cancelled by admin.',
+                );
+            } catch (Throwable $throwable) {
+                Log::error('Failed to cancel the PayPal subscription for an admin-cancelled accommodation booking. The subscription may keep billing the guest — manual PayPal follow-up required.', [
+                    'booking_id' => $booking->id,
+                    'booking_number' => $booking->booking_number,
+                    'accommodation_payment_subscription_id' => $subscription->id,
+                    'provider_subscription_id' => $subscription->provider_subscription_id,
+                    'exception' => $throwable->getMessage(),
+                ]);
+
+                report($throwable);
+            }
+        }
+
+        $subscription->forceFill([
+            'status' => AccommodationPaymentSubscription::STATUS_CANCELLED,
+            'cancelled_at' => now(),
+        ])->save();
     }
 
     /**
@@ -113,6 +173,7 @@ class AccommodationBookingController extends Controller
             'room_type_title' => $booking->roomType?->title ?? '—',
             'guest_name' => $booking->guest_name,
             'guest_email' => $booking->guest_email,
+            'guest_country' => $booking->guest_country,
             'check_in_date' => $booking->check_in_date->toDateString(),
             'check_out_date' => $booking->check_out_date->toDateString(),
             'nights' => $booking->nights,
@@ -148,6 +209,7 @@ class AccommodationBookingController extends Controller
             'guest_name' => $booking->guest_name,
             'guest_email' => $booking->guest_email,
             'guest_phone' => $booking->guest_phone,
+            'guest_country' => $booking->guest_country,
             'check_in_date' => $booking->check_in_date->toDateString(),
             'check_out_date' => $booking->check_out_date->toDateString(),
             'nights' => $booking->nights,

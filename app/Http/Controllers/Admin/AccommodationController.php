@@ -116,6 +116,9 @@ class AccommodationController extends Controller
             ),
             'currency_code' => $accommodation->currency_code,
             'is_active' => $accommodation->is_active,
+            'installment_enabled' => $accommodation->installment_enabled,
+            'installment_count_mode' => $accommodation->installment_count_mode,
+            'installment_fixed_count' => $accommodation->installment_fixed_count,
             'room_types_count' => $accommodation->room_types_count,
         ];
     }

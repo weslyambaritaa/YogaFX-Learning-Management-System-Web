@@ -102,22 +102,27 @@ Route::post('/webhooks/paypal', PayPalWebhookController::class)
 Route::get('/stay/{accommodation:slug}', [AccommodationBookingController::class, 'show'])->name('stay.show');
 Route::post('/stay/{accommodation:slug}/availability', [AccommodationBookingController::class, 'availability'])->name('stay.availability');
 Route::post('/stay/{accommodation:slug}/orders', [AccommodationBookingController::class, 'createOrder'])->name('stay.orders.store');
+Route::post('/stay/{accommodation:slug}/installments', [AccommodationBookingController::class, 'createInstallmentSubscription'])->name('stay.installments.store');
 
 /*
 |--------------------------------------------------------------------------
 | Accommodation Booking — Signed Actions
 |--------------------------------------------------------------------------
 |
-| capture/cancel/success reference a specific {booking} row by numeric id.
-| These stay signed (URLs handed to the frontend by createOrder()/
-| captureOrder() above, never constructed client-side) so a guessed booking
-| id alone can't be used to confirm, cancel, or view someone else's booking —
-| same protection pattern as the LMS checkout flow below.
+| capture/cancel/success/installments.approve/installments.cancel reference
+| a specific {booking} row by numeric id. These stay signed (URLs handed to
+| the frontend by createOrder()/captureOrder()/createInstallmentSubscription()
+| above, never constructed client-side) so a guessed booking id alone can't
+| be used to confirm, cancel, or view someone else's booking — same
+| protection pattern as the LMS checkout flow below.
 */
 Route::middleware('signed')->group(function () {
     Route::post('/stay/{accommodation:slug}/orders/{booking}/capture', [AccommodationBookingController::class, 'captureOrder'])->name('stay.orders.capture');
     Route::post('/stay/{accommodation:slug}/orders/{booking}/cancel', [AccommodationBookingController::class, 'cancelOrder'])->name('stay.orders.cancel');
     Route::get('/stay/{accommodation:slug}/bookings/{booking}/success', [AccommodationBookingController::class, 'success'])->name('stay.bookings.success');
+    Route::post('/stay/{accommodation:slug}/installments/{booking}/approve', [AccommodationBookingController::class, 'approveInstallmentSubscription'])->name('stay.installments.approve');
+    Route::post('/stay/{accommodation:slug}/installments/{booking}/cancel', [AccommodationBookingController::class, 'cancelInstallmentSubscription'])->name('stay.installments.cancel');
+    Route::get('/stay/{accommodation:slug}/installments/{booking}/status', [AccommodationBookingController::class, 'installmentStatus'])->name('stay.installments.status');
 });
 
 Route::middleware('signed')->group(function () {

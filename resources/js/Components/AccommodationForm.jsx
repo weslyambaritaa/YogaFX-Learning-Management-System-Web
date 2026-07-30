@@ -21,12 +21,42 @@ export default function AccommodationForm({
             ? `${String(publicBaseUrl).replace(/\/$/, "")}/${normalizedSlug}`
             : "";
 
+    const installmentEnabled = Boolean(data.installment_enabled);
+    const isFixedMode = String(data.installment_count_mode ?? "") === "fixed";
+
     const copyPublicLink = async () => {
         if (publicLink === "") {
             return;
         }
 
         await navigator.clipboard.writeText(publicLink);
+    };
+
+    const handleInstallmentEnabledChange = (event) => {
+        const enabled = event.target.value === "1";
+
+        setData((currentData) => ({
+            ...currentData,
+            installment_enabled: enabled,
+            installment_count_mode: enabled
+                ? (currentData.installment_count_mode || "flex")
+                : "",
+            installment_fixed_count: enabled
+                ? currentData.installment_fixed_count
+                : "",
+        }));
+    };
+
+    const handleInstallmentCountModeChange = (event) => {
+        const mode = event.target.value;
+
+        setData((currentData) => ({
+            ...currentData,
+            installment_count_mode: mode,
+            installment_fixed_count: mode === "fixed"
+                ? currentData.installment_fixed_count
+                : "",
+        }));
     };
 
     return (
@@ -148,6 +178,90 @@ export default function AccommodationForm({
                     </p>
                     <InputError className="mt-2" message={errors.is_active} />
                 </div>
+            </div>
+
+            <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <InputLabel
+                            htmlFor="installment_enabled"
+                            value="Installment Ready"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                            Enable this when bookings at this hotel may offer
+                            installment checkout as an alternative to paying
+                            in full.
+                        </p>
+                    </div>
+                    <select
+                        id="installment_enabled"
+                        value={installmentEnabled ? "1" : "0"}
+                        onChange={handleInstallmentEnabledChange}
+                        className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                    >
+                        <option value="0">Disabled</option>
+                        <option value="1">Enabled</option>
+                    </select>
+                </div>
+
+                {installmentEnabled && (
+                    <div className="grid gap-6 border-t border-gray-200 pt-4 md:grid-cols-2">
+                        <div>
+                            <InputLabel
+                                htmlFor="installment_count_mode"
+                                value="Installment Count Mode"
+                            />
+                            <select
+                                id="installment_count_mode"
+                                value={data.installment_count_mode ?? ""}
+                                onChange={handleInstallmentCountModeChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-black focus:ring-black"
+                            >
+                                <option value="flex">Flex</option>
+                                <option value="fixed">Fixed</option>
+                            </select>
+                            <p className="mt-2 text-xs text-gray-500">
+                                Flex lets the guest choose how many
+                                installments, up to the maximum that fits
+                                before check-in. Fixed always uses the count
+                                below (reduced automatically if it does not
+                                fit).
+                            </p>
+                            <InputError
+                                className="mt-2"
+                                message={errors.installment_count_mode}
+                            />
+                        </div>
+
+                        {isFixedMode && (
+                            <div>
+                                <InputLabel
+                                    htmlFor="installment_fixed_count"
+                                    value="Fixed Installment Count"
+                                />
+                                <TextInput
+                                    id="installment_fixed_count"
+                                    type="number"
+                                    min="2"
+                                    max="15"
+                                    step="1"
+                                    className="mt-1 block w-full"
+                                    value={data.installment_fixed_count ?? ""}
+                                    onChange={(event) =>
+                                        setData(
+                                            "installment_fixed_count",
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.installment_fixed_count}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center gap-4">

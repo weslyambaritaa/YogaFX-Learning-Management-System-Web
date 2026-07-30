@@ -326,6 +326,31 @@ class EmailNotificationTemplateDefaults
                 ]),
                 'auto_enable' => true,
             ],
+            EmailNotificationTypeRegistry::ACCOMMODATION_INSTALLMENT_PAYMENT_FAILED => [
+                'subject_user' => 'A payment for your booking at {hotel_name} did not go through',
+                'body_user' => implode('', [
+                    '<p>Hi {user_name},</p>',
+                    '<p>Installment {failed_installment_number} of {installment_count} for your booking at <strong>{hotel_name}</strong> was not completed.</p>',
+                    '<p>Booking number: <strong>{booking_number}</strong></p>',
+                    '<p>Room type: {room_type}</p>',
+                    '<p>Amount that failed to charge: <strong>{currency_code} {failed_amount}</strong></p>',
+                    '<p>PayPal will automatically try again. Next attempt: {next_due_at}</p>',
+                    '<p>Your booking remains confirmed — no action is needed unless the payment keeps failing.</p>',
+                ]),
+                'subject_admin' => 'Accommodation installment payment failed: {booking_number}',
+                'body_admin' => implode('', [
+                    '<p>An accommodation installment payment attempt failed.</p>',
+                    '<p>Guest: <strong>{user_name}</strong> ({user_email})</p>',
+                    '<p>Hotel: <strong>{hotel_name}</strong></p>',
+                    '<p>Room type: {room_type}</p>',
+                    '<p>Booking number: <strong>{booking_number}</strong></p>',
+                    '<p>Failed installment: {failed_installment_number} of {installment_count}</p>',
+                    '<p>Failed amount: <strong>{currency_code} {failed_amount}</strong></p>',
+                    '<p>Next due date: {next_due_at}</p>',
+                    '<p>The booking remains confirmed regardless of how many attempts fail.</p>',
+                ]),
+                'auto_enable' => true,
+            ],
             EmailNotificationTypeRegistry::IRREGULAR_ACTIVITY_SUSPENDED => [
                 'subject_user' => 'Your YogaFX account has been temporarily suspended',
                 'body_user' => implode('', [
