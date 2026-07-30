@@ -10,6 +10,9 @@ export default function CreateAccommodation({ publicBaseUrl = "" }) {
         image: null,
         currency_code: "IDR",
         is_active: true,
+        installment_enabled: false,
+        installment_count_mode: "",
+        installment_fixed_count: "",
     });
 
     const submit = (event) => {

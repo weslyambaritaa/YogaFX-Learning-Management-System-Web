@@ -31,6 +31,7 @@ class AccommodationAvailabilityRequest extends FormRequest
             ],
             'check_in_date' => ['required', 'date', 'after_or_equal:today'],
             'check_out_date' => ['required', 'date', 'after:check_in_date'],
+            'installment_count' => ['nullable', 'integer', 'min:2'],
         ];
     }
 

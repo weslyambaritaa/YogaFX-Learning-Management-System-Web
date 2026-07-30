@@ -2,6 +2,7 @@ import { Button } from "@/Components/ui/button";
 import ImpersonationBanner from "@/Components/ImpersonationBanner";
 import StudentAppDownloadDialog from "@/Components/student/StudentAppDownloadDialog";
 import TransientStatusBanner from "@/Components/TransientStatusBanner";
+import useScrollDirection from "@/lib/useScrollDirection";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -839,22 +840,185 @@ function AdminMobileSidebar({ open, setOpen, openGroups, onToggleGroup }) {
     );
 }
 
-function StudentTopNavigation({
-    user,
+function StudentSiteHeader({ user, variant = "default" }) {
+    const isImmersive = variant === "immersive";
+    const studentInstantAccessItems = studentInstantAccessItemsForUser(user);
+    const showUpgradeButton = studentCanUpgrade(user);
+    const profileUpgradeHref = `${route("profile.edit")}#upgrade-class`;
+    const [instantAccessOpen, setInstantAccessOpen] = useState(false);
+
+    return (
+        <nav
+            className={[
+                isImmersive
+                    ? "border-b border-white/10 bg-black/35 backdrop-blur-xl"
+                    : "border-b border-border bg-background",
+            ].join(" ")}
+        >
+            <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
+                <div className="flex min-w-0 items-center gap-3">
+                    <Link href={route("student.dashboard")} className="shrink-0">
+                        <img
+                            src={STUDENT_LOGO_URL}
+                            alt="YogaFX"
+                            className="h-7 w-auto shrink-0 cursor-pointer object-contain transition-opacity hover:opacity-80 sm:h-10"
+                        />
+                    </Link>
+                    {user?.access_tier?.description ? (
+                        <span
+                            className={[
+                                "hidden truncate text-sm font-semibold uppercase tracking-wide sm:block",
+                                isImmersive
+                                    ? "text-white/70"
+                                    : "text-muted-foreground",
+                            ].join(" ")}
+                        >
+                            {user.access_tier.description}
+                        </span>
+                    ) : null}
+                </div>
+                <div className="min-w-0 md:hidden">
+                    {studentInstantAccessItems.length > 0 ? (
+                        <Sheet
+                            open={instantAccessOpen}
+                            onOpenChange={setInstantAccessOpen}
+                        >
+                            <SheetTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="h-11 max-w-[180px] rounded-full border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
+                                >
+                                    <span className="truncate text-sm font-medium">
+                                        Instant Access Dialog
+                                    </span>
+                                    <ChevronDown className="ml-2 size-4 shrink-0 opacity-70" />
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent
+                                side="bottom"
+                                className="rounded-t-[22px] border-white/10 bg-[#171311] px-0 text-white"
+                            >
+                                <SheetHeader className="px-4 text-left">
+                                    <SheetTitle className="text-white">
+                                        Instant Access Dialog
+                                    </SheetTitle>
+                                    <SheetDescription className="text-white/55">
+                                        Pick a dialog to open.
+                                    </SheetDescription>
+                                </SheetHeader>
+                                <div className="space-y-2 px-4 pb-6 pt-2">
+                                    {studentInstantAccessItems.map(
+                                        (item) => (
+                                            <Button
+                                                key={item.label}
+                                                type="button"
+                                                variant="ghost"
+                                                className="h-12 w-full justify-start rounded-[14px] border border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
+                                                onClick={() => {
+                                                    setInstantAccessOpen(
+                                                        false,
+                                                    );
+                                                    router.visit(
+                                                        route(item.route),
+                                                    );
+                                                }}
+                                            >
+                                                {item.label}
+                                            </Button>
+                                        ),
+                                    )}
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                    ) : null}
+                </div>
+
+                <div className="hidden min-w-0 items-center gap-2 md:flex">
+                    {studentNavigationItems.map((item) => (
+                        <Button
+                            key={item.route}
+                            asChild
+                            variant="ghost"
+                            className={
+                                isItemActive(item)
+                                    ? "text-[#ff5a3c] hover:text-[#ff5a3c] hover:bg-[#ff5a3c]/10"
+                                    : isImmersive
+                                      ? "text-white/78 hover:bg-white/10 hover:text-white"
+                                      : ""
+                            }
+                        >
+                            <Link href={route(item.route)}>
+                                {item.label}
+                            </Link>
+                        </Button>
+                    ))}
+
+                    {studentInstantAccessItems.length > 0 && (
+                        <>
+                            <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
+                            <div className="hidden flex-col items-center gap-1.5 lg:flex">
+                                <div
+                                    className={[
+                                        "text-[11px] font-semibold uppercase tracking-[0.28em]",
+                                        isImmersive
+                                            ? "text-white/35"
+                                            : "text-muted-foreground",
+                                    ].join(" ")}
+                                >
+                                    INSTANT ACCESS
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {studentInstantAccessItems.map((item) => (
+                                        <Button
+                                            key={item.label}
+                                            asChild
+                                            variant="ghost"
+                                            className={[
+                                                "rounded-lg px-4 text-xs font-medium opacity-100",
+                                                isItemActive(item)
+                                                    ? "border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]"
+                                                    : isImmersive
+                                                      ? "border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white"
+                                                      : "",
+                                            ].join(" ")}
+                                        >
+                                            <Link href={route(item.route)}>
+                                                {item.label}
+                                            </Link>
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {showUpgradeButton ? (
+                        <Button
+                            asChild
+                            className="rounded-[10px] bg-[#DB202C] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#c31c28]"
+                        >
+                            <Link href={profileUpgradeHref}>Upgrade Account</Link>
+                        </Button>
+                    ) : null}
+                    <UserMenu user={user} isImmersive={isImmersive} />
+                </div>
+            </div>
+        </nav>
+    );
+}
+
+function StudentPageBody({
     header,
     children,
     variant = "default",
     contentClassName = "",
 }) {
     const { flash = {} } = usePage().props;
-    const currentRouteName = route().current();
     const isImmersive = variant === "immersive";
     const flashMessage = flash.success ?? flash.error ?? null;
     const flashTone = flash.error ? "error" : "success";
-    const studentInstantAccessItems = studentInstantAccessItemsForUser(user);
-    const showUpgradeButton = studentCanUpgrade(user);
-    const profileUpgradeHref = `${route("profile.edit")}#upgrade-class`;
-    const [instantAccessOpen, setInstantAccessOpen] = useState(false);
     const mobileStudentNavItems = [
         {
             label: "Home",
@@ -882,173 +1046,7 @@ function StudentTopNavigation({
     ];
 
     return (
-        <div
-            className={[
-                "font-student min-h-screen",
-                isImmersive
-                    ? "bg-[radial-gradient(circle_at_top,_rgba(173,76,38,0.28),_transparent_32%),linear-gradient(180deg,_#120f0e_0%,_#0a0908_38%,_#080808_100%)] text-white"
-                    : "bg-slate-50",
-            ].join(" ")}
-        >
-            <nav
-                className={[
-                    isImmersive
-                        ? "sticky top-(--impersonation-banner-height,0px) z-40 border-b border-white/10 bg-black/35 backdrop-blur-xl"
-                        : "border-b border-border bg-background",
-                ].join(" ")}
-            >
-                <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
-                    <div className="flex min-w-0 items-center gap-3">
-                        <Link href={route("student.dashboard")} className="shrink-0">
-                            <img
-                                src={STUDENT_LOGO_URL}
-                                alt="YogaFX"
-                                className="h-7 w-auto shrink-0 cursor-pointer object-contain transition-opacity hover:opacity-80 sm:h-10"
-                            />
-                        </Link>
-                        {user?.access_tier?.description ? (
-                            <span
-                                className={[
-                                    "hidden truncate text-sm font-semibold uppercase tracking-wide sm:block",
-                                    isImmersive
-                                        ? "text-white/70"
-                                        : "text-muted-foreground",
-                                ].join(" ")}
-                            >
-                                {user.access_tier.description}
-                            </span>
-                        ) : null}
-                    </div>
-                    <div className="min-w-0 md:hidden">
-                        {studentInstantAccessItems.length > 0 ? (
-                            <Sheet
-                                open={instantAccessOpen}
-                                onOpenChange={setInstantAccessOpen}
-                            >
-                                <SheetTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        className="h-11 max-w-[180px] rounded-full border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
-                                    >
-                                        <span className="truncate text-sm font-medium">
-                                            Instant Access Dialog
-                                        </span>
-                                        <ChevronDown className="ml-2 size-4 shrink-0 opacity-70" />
-                                    </Button>
-                                </SheetTrigger>
-                                <SheetContent
-                                    side="bottom"
-                                    className="rounded-t-[22px] border-white/10 bg-[#171311] px-0 text-white"
-                                >
-                                    <SheetHeader className="px-4 text-left">
-                                        <SheetTitle className="text-white">
-                                            Instant Access Dialog
-                                        </SheetTitle>
-                                        <SheetDescription className="text-white/55">
-                                            Pick a dialog to open.
-                                        </SheetDescription>
-                                    </SheetHeader>
-                                    <div className="space-y-2 px-4 pb-6 pt-2">
-                                        {studentInstantAccessItems.map(
-                                            (item) => (
-                                                <Button
-                                                    key={item.label}
-                                                    type="button"
-                                                    variant="ghost"
-                                                    className="h-12 w-full justify-start rounded-[14px] border border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
-                                                    onClick={() => {
-                                                        setInstantAccessOpen(
-                                                            false,
-                                                        );
-                                                        router.visit(
-                                                            route(item.route),
-                                                        );
-                                                    }}
-                                                >
-                                                    {item.label}
-                                                </Button>
-                                            ),
-                                        )}
-                                    </div>
-                                </SheetContent>
-                            </Sheet>
-                        ) : null}
-                    </div>
-
-                    <div className="hidden min-w-0 items-center gap-2 md:flex">
-                        {studentNavigationItems.map((item) => (
-                            <Button
-                                key={item.route}
-                                asChild
-                                variant="ghost"
-                                className={
-                                    isItemActive(item)
-                                        ? "text-[#ff5a3c] hover:text-[#ff5a3c] hover:bg-[#ff5a3c]/10"
-                                        : isImmersive
-                                          ? "text-white/78 hover:bg-white/10 hover:text-white"
-                                          : ""
-                                }
-                            >
-                                <Link href={route(item.route)}>
-                                    {item.label}
-                                </Link>
-                            </Button>
-                        ))}
-
-                        {studentInstantAccessItems.length > 0 && (
-                            <>
-                                <div className="mx-2 hidden h-6 w-px bg-white/10 lg:block" />
-                                <div className="hidden flex-col items-center gap-1.5 lg:flex">
-                                    <div
-                                        className={[
-                                            "text-[11px] font-semibold uppercase tracking-[0.28em]",
-                                            isImmersive
-                                                ? "text-white/35"
-                                                : "text-muted-foreground",
-                                        ].join(" ")}
-                                    >
-                                        INSTANT ACCESS
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {studentInstantAccessItems.map((item) => (
-                                            <Button
-                                                key={item.label}
-                                                asChild
-                                                variant="ghost"
-                                                className={[
-                                                    "rounded-lg px-4 text-xs font-medium opacity-100",
-                                                    isItemActive(item)
-                                                        ? "border border-[#ff5a3c]/40 bg-[#ff5a3c]/10 text-[#ff5a3c] hover:bg-[#ff5a3c]/15 hover:text-[#ff5a3c]"
-                                                        : isImmersive
-                                                          ? "border border-white/12 bg-white/5 text-white/78 hover:bg-white/10 hover:text-white"
-                                                          : "",
-                                                ].join(" ")}
-                                            >
-                                                <Link href={route(item.route)}>
-                                                    {item.label}
-                                                </Link>
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        {showUpgradeButton ? (
-                            <Button
-                                asChild
-                                className="rounded-[10px] bg-[#DB202C] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#c31c28]"
-                            >
-                                <Link href={profileUpgradeHref}>Upgrade Account</Link>
-                            </Button>
-                        ) : null}
-                        <UserMenu user={user} isImmersive={isImmersive} />
-                    </div>
-                </div>
-            </nav>
-
+        <>
             {header && (
                 <header
                     className={[
@@ -1100,7 +1098,7 @@ function StudentTopNavigation({
                     })}
                 </div>
             </div>
-        </div>
+        </>
     );
 }
 
@@ -1110,9 +1108,15 @@ export default function AuthenticatedLayout({
     studentVariant = "default",
     studentContentClassName = "",
 }) {
-    const user = usePage().props.auth.user;
+    const { auth, impersonation } = usePage().props;
+    const user = auth.user;
     const currentRouteName = route().current();
     const isAdmin = ["admin", "super_admin"].includes(user?.role);
+    const isImmersive = studentVariant === "immersive";
+    const isImpersonating = Boolean(impersonation?.active);
+    const { direction: scrollDirection, isAtTop } = useScrollDirection();
+    const isStudentHeaderVisible =
+        !isImpersonating || isAtTop || scrollDirection === "up";
     const pageTitle = adminPageTitles[currentRouteName] ?? "Admin";
 
     const [collapsed, setCollapsed] = useState(false);
@@ -1197,17 +1201,34 @@ export default function AuthenticatedLayout({
 
     if (!isAdmin) {
         return (
-            <>
-                <ImpersonationBanner />
-                <StudentTopNavigation
-                    user={user}
+            <div
+                className={[
+                    "font-student min-h-screen",
+                    isImmersive
+                        ? "bg-[radial-gradient(circle_at_top,_rgba(173,76,38,0.28),_transparent_32%),linear-gradient(180deg,_#120f0e_0%,_#0a0908_38%,_#080808_100%)] text-white"
+                        : "bg-slate-50",
+                ].join(" ")}
+            >
+                <div
+                    className={[
+                        "sticky top-0 z-50 transition-transform duration-300 ease-in-out",
+                        isStudentHeaderVisible
+                            ? "translate-y-0 pointer-events-auto"
+                            : "-translate-y-full pointer-events-none",
+                    ].join(" ")}
+                >
+                    <ImpersonationBanner />
+                    <StudentSiteHeader user={user} variant={studentVariant} />
+                </div>
+
+                <StudentPageBody
                     header={header}
                     variant={studentVariant}
                     contentClassName={studentContentClassName}
                 >
                     {children}
-                </StudentTopNavigation>
-            </>
+                </StudentPageBody>
+            </div>
         );
     }
 

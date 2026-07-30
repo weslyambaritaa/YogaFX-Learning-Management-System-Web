@@ -1,38 +1,9 @@
 import { Button } from "@/Components/ui/button";
 import { router, usePage } from "@inertiajs/react";
-import { useEffect, useRef } from "react";
 
 export default function ImpersonationBanner() {
     const { impersonation } = usePage().props;
-    const bannerRef = useRef(null);
     const isActive = Boolean(impersonation?.active);
-
-    useEffect(() => {
-        const root = document.documentElement;
-
-        if (!isActive || !bannerRef.current) {
-            root.style.setProperty("--impersonation-banner-height", "0px");
-            return;
-        }
-
-        const element = bannerRef.current;
-        const updateHeight = () => {
-            root.style.setProperty(
-                "--impersonation-banner-height",
-                `${element.offsetHeight}px`,
-            );
-        };
-
-        updateHeight();
-
-        const resizeObserver = new ResizeObserver(updateHeight);
-        resizeObserver.observe(element);
-
-        return () => {
-            resizeObserver.disconnect();
-            root.style.setProperty("--impersonation-banner-height", "0px");
-        };
-    }, [isActive]);
 
     if (!isActive) {
         return null;
@@ -43,10 +14,7 @@ export default function ImpersonationBanner() {
     };
 
     return (
-        <div
-            ref={bannerRef}
-            className="sticky top-0 z-50 flex flex-wrap items-center justify-center gap-2 bg-amber-500 px-4 py-2 text-sm font-medium text-amber-950"
-        >
+        <div className="flex flex-wrap items-center justify-center gap-2 bg-amber-500 px-4 py-2 text-sm font-medium text-amber-950">
             <span>
                 Sedang login sebagai{" "}
                 <strong>{impersonation.student_name ?? "student"}</strong> —

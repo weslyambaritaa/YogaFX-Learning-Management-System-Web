@@ -36,6 +36,7 @@ class AccommodationBookingFactory extends Factory
             'guest_name' => fake()->name(),
             'guest_email' => fake()->safeEmail(),
             'guest_phone' => fake()->phoneNumber(),
+            'guest_country' => fake()->country(),
             'check_in_date' => $checkIn->format('Y-m-d'),
             'check_out_date' => $checkOut->format('Y-m-d'),
             'nights' => $nights,

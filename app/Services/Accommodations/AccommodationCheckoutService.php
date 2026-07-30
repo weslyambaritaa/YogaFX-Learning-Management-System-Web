@@ -23,7 +23,7 @@ class AccommodationCheckoutService
     ) {}
 
     /**
-     * @param  array{user_id: ?int, guest_name: string, guest_email: string, guest_phone: string}  $guestData
+     * @param  array{user_id: ?int, guest_name: string, guest_email: string, guest_phone: string, guest_country: string}  $guestData
      * @return array{booking: AccommodationBooking, order_id: string}
      */
     public function createOrder(
@@ -60,6 +60,7 @@ class AccommodationCheckoutService
                     'guest_name' => $guestData['guest_name'],
                     'guest_email' => $guestData['guest_email'],
                     'guest_phone' => $guestData['guest_phone'],
+                    'guest_country' => $guestData['guest_country'],
                     'nights' => $nights,
                     'price_per_night' => $pricePerNight,
                     'total_amount' => $totalAmount,

@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Accommodation;
 use App\Models\AccommodationRoomType;
 use App\Support\CountryDirectory;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class AccommodationOrderRequest extends FormRequest
+class AccommodationInstallmentOrderRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -62,6 +63,7 @@ class AccommodationOrderRequest extends FormRequest
             'phone_number' => ['required', 'string', 'max:50'],
             'guest_phone' => ['required', 'string', 'max:50'],
             'country' => ['required', 'string', 'max:255'],
+            'installment_count' => ['nullable', 'integer', 'min:'.Accommodation::MIN_INSTALLMENT_COUNT],
         ];
     }
 

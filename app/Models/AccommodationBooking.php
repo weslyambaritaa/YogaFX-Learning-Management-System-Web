@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'booking_number',
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'guest_name',
     'guest_email',
     'guest_phone',
+    'guest_country',
     'check_in_date',
     'check_out_date',
     'nights',
@@ -65,6 +67,11 @@ class AccommodationBooking extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function paymentSubscriptions(): HasMany
+    {
+        return $this->hasMany(AccommodationPaymentSubscription::class);
     }
 
     public function isActiveHold(): bool

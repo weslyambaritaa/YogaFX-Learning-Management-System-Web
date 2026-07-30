@@ -321,6 +321,7 @@ class RoomAvailabilityServiceTest extends TestCase
             'guest_name' => 'Jane Doe',
             'guest_email' => 'jane@example.com',
             'guest_phone' => '+62812345678',
+            'guest_country' => 'Indonesia',
             'nights' => 2,
             'price_per_night' => 100,
             'total_amount' => 200,

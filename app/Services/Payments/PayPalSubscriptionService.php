@@ -35,7 +35,28 @@ class PayPalSubscriptionService
      */
     public function createProduct(Package $package, array $installmentPlan): array
     {
-        $payload = $this->createProductPayload($package, $installmentPlan);
+        return $this->createProductFromReference(
+            $this->productName($package),
+            $this->productDescription($package, $installmentPlan),
+        );
+    }
+
+    /**
+     * Generic PayPal catalog product creation for domains that are not
+     * backed by a Package (e.g. accommodation installment subscriptions).
+     * createProduct() above keeps its exact original behavior and now just
+     * delegates here.
+     *
+     * @return array{id: string, status: string}
+     */
+    public function createProductFromReference(string $name, string $description): array
+    {
+        $payload = [
+            'name' => mb_substr($name, 0, self::PRODUCT_NAME_MAX_LENGTH),
+            'description' => mb_substr($description, 0, self::PRODUCT_DESCRIPTION_MAX_LENGTH),
+            'type' => self::PRODUCT_TYPE,
+            'category' => self::PRODUCT_CATEGORY,
+        ];
 
         try {
             $response = $this->authenticatedHttp()
@@ -83,7 +104,6 @@ class PayPalSubscriptionService
             Package::MAX_PROVIDER_INSTALLMENT_COUNT,
             max(Package::MIN_INSTALLMENT_COUNT, (int) ($installmentPlan['installment_count'] ?? Package::MIN_INSTALLMENT_COUNT)),
         );
-        $regularCycles = max(1, $installmentCount - 1);
 
         /*
         |--------------------------------------------------------------------------
@@ -99,37 +119,70 @@ class PayPalSubscriptionService
         | - 3 recurring billing bulanan setelahnya
         |
         */
-        $intervalUnit = strtoupper((string) ($installmentPlan['billing_interval_unit'] ?? 'MONTH'));
-        $intervalCount = max(1, (int) ($installmentPlan['billing_interval_count'] ?? 1));
+        return $this->createPlanFromReference(
+            productId: $productId,
+            name: $this->planName($package, $installmentPlan),
+            description: $this->planDescription($installmentPlan),
+            currencyCode: (string) $installmentPlan['currency_code'],
+            installmentCount: $installmentCount,
+            intervalUnit: (string) ($installmentPlan['billing_interval_unit'] ?? 'MONTH'),
+            intervalCount: (int) ($installmentPlan['billing_interval_count'] ?? 1),
+            recurringAmount: $installmentPlan['recurring_payment_amount'],
+            firstPaymentAmount: $installmentPlan['first_payment_amount'],
+            paymentFailureThreshold: 1,
+        );
+    }
+
+    /**
+     * Generic PayPal billing plan creation for domains that are not backed
+     * by a Package (e.g. accommodation installment subscriptions).
+     * createPlan() above keeps its exact original behavior (including the
+     * payment_failure_threshold=1 Package uses) and now just delegates here.
+     *
+     * @return array{id: string, status: string}
+     */
+    public function createPlanFromReference(
+        string $productId,
+        string $name,
+        string $description,
+        string $currencyCode,
+        int $installmentCount,
+        string $intervalUnit,
+        int $intervalCount,
+        float|int|string $recurringAmount,
+        float|int|string $firstPaymentAmount,
+        int $paymentFailureThreshold,
+    ): array {
+        $regularCycles = max(1, $installmentCount - 1);
 
         $payload = [
             'product_id' => $productId,
-            'name' => $this->planName($package, $installmentPlan),
-            'description' => $this->planDescription($installmentPlan),
+            'name' => mb_substr($name, 0, self::PLAN_NAME_MAX_LENGTH),
+            'description' => mb_substr($description, 0, self::PLAN_DESCRIPTION_MAX_LENGTH),
             'status' => 'ACTIVE',
             'billing_cycles' => [[
                 'frequency' => [
-                    'interval_unit' => $intervalUnit,
-                    'interval_count' => $intervalCount,
+                    'interval_unit' => strtoupper($intervalUnit),
+                    'interval_count' => max(1, $intervalCount),
                 ],
                 'tenure_type' => 'REGULAR',
                 'sequence' => 1,
                 'total_cycles' => $regularCycles,
                 'pricing_scheme' => [
                     'fixed_price' => [
-                        'currency_code' => (string) $installmentPlan['currency_code'],
-                        'value' => $this->paypalAmount($installmentPlan['recurring_payment_amount']),
+                        'currency_code' => $currencyCode,
+                        'value' => $this->paypalAmount($recurringAmount),
                     ],
                 ],
             ]],
             'payment_preferences' => [
                 'auto_bill_outstanding' => true,
                 'setup_fee' => [
-                    'currency_code' => (string) $installmentPlan['currency_code'],
-                    'value' => $this->paypalAmount($installmentPlan['first_payment_amount']),
+                    'currency_code' => $currencyCode,
+                    'value' => $this->paypalAmount($firstPaymentAmount),
                 ],
                 'setup_fee_failure_action' => 'CANCEL',
-                'payment_failure_threshold' => 1,
+                'payment_failure_threshold' => $paymentFailureThreshold,
             ],
         ];
 
@@ -396,20 +449,6 @@ class PayPalSubscriptionService
         }
 
         return null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $installmentPlan
-     * @return array<string, mixed>
-     */
-    private function createProductPayload(Package $package, array $installmentPlan): array
-    {
-        return [
-            'name' => $this->productName($package),
-            'description' => $this->productDescription($package, $installmentPlan),
-            'type' => self::PRODUCT_TYPE,
-            'category' => self::PRODUCT_CATEGORY,
-        ];
     }
 
     private function productName(Package $package): string
