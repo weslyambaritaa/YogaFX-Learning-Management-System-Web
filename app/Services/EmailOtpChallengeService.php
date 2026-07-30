@@ -191,8 +191,9 @@ class EmailOtpChallengeService
 
         $body = implode('', [
             '<div style="text-align: center; margin: 0 0 24px;">',
-            '<span style="font-size: 22px; font-weight: 700; color: #0f172a;">Yoga</span>',
-            '<span style="font-size: 22px; font-weight: 700; color: #c00000;">FX</span>',
+            '<table role="presentation" width="160" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; border-collapse: collapse;"><tr><td style="width: 160px;">',
+            '<img src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png" alt="YogaFX" style="display: block; width: 100%; max-width: 100%; height: auto;">',
+            '</td></tr></table>',
             '</div>',
             '<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 28px 24px; text-align: center;">',
             '<p style="margin: 0 0 16px; font-size: 18px; font-weight: 700; color: #0f172a;">'.e($codeHeading).'</p>',
