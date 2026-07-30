@@ -28,10 +28,6 @@ export default function WelcomeToYogaFXDialog({ open, onOpenChange }) {
                             <DialogTitle className="text-2xl font-semibold text-white sm:text-3xl">
                                 Welcome to YogaFX
                             </DialogTitle>
-                            <p className="text-sm text-white/70 sm:text-base">
-                                Your account is active again. Let&rsquo;s get
-                                back to your practice.
-                            </p>
                         </div>
                     </DialogHeader>
                 </div>
