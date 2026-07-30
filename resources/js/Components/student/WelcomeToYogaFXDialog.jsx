@@ -27,7 +27,7 @@ export default function WelcomeToYogaFXDialog({ open, onOpenChange }) {
                         <div className="space-y-2">
                             <DialogTitle className="text-2xl font-semibold text-white sm:text-3xl">
                                 Welcome to Yoga
-                                <span className="text-[#c00000]">FX</span>.
+                                <span className="text-[#c00000]">FX</span>
                             </DialogTitle>
                         </div>
                     </DialogHeader>
