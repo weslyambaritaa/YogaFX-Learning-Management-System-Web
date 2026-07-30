@@ -187,8 +187,6 @@ class EmailOtpChallengeService
         $codeHeading = $challenge->context === AuthEmailOtpChallenge::CONTEXT_SIGNUP
             ? 'Your sign-up code'
             : 'Your sign-in code';
-        $spacedOtpCode = implode(' ', str_split($otpCode));
-
         $body = implode('', [
             // Bleeds past the shared wrapper's 24px content padding so this card's dark
             // background reaches the rounded outer edge — the YogaFX mark here is the
@@ -201,8 +199,8 @@ class EmailOtpChallengeService
             '</div>',
             '<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 28px 24px; text-align: center;">',
             '<p style="margin: 0 0 16px; font-size: 18px; font-weight: 700; color: #0f172a;">'.e($codeHeading).'</p>',
-            '<p style="margin: 0 0 20px; font-size: 14px; color: #475569;">Enter this code on the YogaFX page you left open:</p>',
-            '<p style="margin: 0 0 20px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a;">'.e($spacedOtpCode).'</p>',
+            '<p style="margin: 0 0 20px; font-size: 14px; color: #475569;">Enter this code:</p>',
+            '<p style="margin: 0 0 20px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a;">'.e($otpCode).'</p>',
             '<p style="margin: 0; font-size: 13px; color: #64748b;">The code expires in '.e((string) $expiresInMinutes).' minutes.</p>',
             '</div>',
             '<p style="margin: 20px 0 0; font-size: 12px; color: #94a3b8; text-align: center;">',
