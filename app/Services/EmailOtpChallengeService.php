@@ -190,6 +190,10 @@ class EmailOtpChallengeService
         $spacedOtpCode = implode(' ', str_split($otpCode));
 
         $body = implode('', [
+            // Bleeds past the shared wrapper's 24px content padding so this card's dark
+            // background reaches the rounded outer edge — the YogaFX mark here is the
+            // light/white logo variant, which needs a dark backdrop to be visible.
+            '<div style="margin: -24px; padding: 32px 24px; background: #141110; border-radius: 18px;">',
             '<div style="text-align: center; margin: 0 0 24px;">',
             '<table role="presentation" width="160" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; border-collapse: collapse;"><tr><td style="width: 160px;">',
             '<img src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png" alt="YogaFX" style="display: block; width: 100%; max-width: 100%; height: auto;">',
@@ -205,6 +209,7 @@ class EmailOtpChallengeService
             'If you didn&rsquo;t request this email, you can safely ignore it. Never share this code with anyone. ',
             '<span style="color: #94a3b8;">Yoga</span><span style="color: #c00000;">FX</span> will never ask you for it.',
             '</p>',
+            '</div>',
         ]);
 
         dispatch(function () use ($user, $subject, $body, $title): void {
