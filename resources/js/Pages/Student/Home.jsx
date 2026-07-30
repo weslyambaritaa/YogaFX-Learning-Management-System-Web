@@ -894,7 +894,7 @@ export default function StudentHome({
                 </div>
             </section>
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:gap-10 sm:px-6 sm:pt-10 lg:px-10">
+            <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:gap-10 sm:px-6 sm:-mt-10 lg:px-10">
                 <section className="space-y-2.5 sm:space-y-4">
                     <div className="px-3.5 md:px-0">
                         <h1
