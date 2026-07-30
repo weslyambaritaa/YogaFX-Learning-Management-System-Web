@@ -56,6 +56,10 @@ class EmailOtpChallengeService
 
             if (! ($user->isStudent() && ! $user->isStudentAccountActive())) {
                 $this->sessionTrackingService->startStudentSession($request, $user);
+
+                if ($user->isTesterStudent()) {
+                    $request->session()->put('show_welcome_popup', true);
+                }
             }
 
             return $user;

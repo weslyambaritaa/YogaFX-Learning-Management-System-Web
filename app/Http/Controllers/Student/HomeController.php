@@ -47,13 +47,8 @@ class HomeController extends Controller
             return redirect()->route('profile.edit');
         }
 
-        $showWelcomePopup = false;
-
-        if ($user && $user->isTesterStudent() && (bool) $user->pending_welcome_popup) {
-            $showWelcomePopup = true;
-            $user->pending_welcome_popup = false;
-            $user->save();
-        }
+        $hasPendingWelcomePopup = (bool) $request->session()->pull('show_welcome_popup', false);
+        $showWelcomePopup = $user && $user->isTesterStudent() && $hasPendingWelcomePopup;
 
         $displayName = trim((string) ($user?->first_name ?: $user?->name ?: 'Student'));
         $tier = $user?->accessTier;
