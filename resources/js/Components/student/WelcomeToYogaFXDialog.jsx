@@ -6,6 +6,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/Components/ui/dialog";
+import AppStoreBadges from "@/Components/public/AppStoreBadges";
 
 const STUDENT_LOGO_URL = "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png";
 
@@ -40,7 +41,7 @@ export default function WelcomeToYogaFXDialog({
 
                     {showQr ? (
                         <div className="mt-6 space-y-3 text-center">
-                            <div className="mx-auto flex w-fit max-w-full items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white p-3 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+                            <div className="mx-auto hidden w-fit max-w-full items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white p-3 shadow-[0_18px_50px_rgba(0,0,0,0.28)] sm:flex">
                                 {appDownload?.qr_image_url ? (
                                     <img
                                         src={appDownload.qr_image_url}
@@ -53,7 +54,13 @@ export default function WelcomeToYogaFXDialog({
                                     </div>
                                 )}
                             </div>
-                            <p className="text-sm text-white/60">
+                            <div className="sm:hidden">
+                                <AppStoreBadges
+                                    googlePlayUrl={appDownload?.google_play_url}
+                                    appStoreUrl={appDownload?.app_store_url}
+                                />
+                            </div>
+                            <p className="text-sm text-white">
                                 Get app on your mobile!
                             </p>
                         </div>
@@ -62,10 +69,10 @@ export default function WelcomeToYogaFXDialog({
                 <DialogFooter className="border-t border-white/10 bg-black/20 px-6 pb-6 pt-4 sm:justify-center">
                     <Button
                         type="button"
-                        className="w-full sm:w-auto"
+                        className="w-full bg-[#c00000] text-white hover:bg-[#a00000] sm:w-auto"
                         onClick={() => onOpenChange(false)}
                     >
-                        Continue
+                        Let's get started
                     </Button>
                 </DialogFooter>
             </DialogContent>
