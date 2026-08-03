@@ -54,7 +54,7 @@ export default function WelcomeToYogaFXDialog({
                                 )}
                             </div>
                             <p className="text-sm text-white/60">
-                                Scan to get the YogaFX app on your mobile.
+                                Get app on your mobile!
                             </p>
                         </div>
                     ) : null}
