@@ -47,8 +47,17 @@ class HomeController extends Controller
             return redirect()->route('profile.edit');
         }
 
-        $hasPendingWelcomePopup = (bool) $request->session()->pull('show_welcome_popup', false);
-        $showWelcomePopup = $user && $user->isTesterStudent() && $hasPendingWelcomePopup;
+        $showWelcomePopup = false;
+
+        if ($user && $user->isStudent()) {
+            if ($user->isTesterStudent()) {
+                // Tester accounts intentionally see this every login as a QA visual cue.
+                $showWelcomePopup = (bool) $request->session()->pull('show_welcome_popup', false);
+            } elseif ($user->welcome_screen_shown_at === null) {
+                $showWelcomePopup = true;
+                $user->forceFill(['welcome_screen_shown_at' => now()])->save();
+            }
+        }
 
         $displayName = trim((string) ($user?->first_name ?: $user?->name ?: 'Student'));
         $tier = $user?->accessTier;

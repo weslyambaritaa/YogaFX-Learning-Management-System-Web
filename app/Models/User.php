@@ -93,6 +93,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'irregular_activity_count' => 'integer',
             'irregular_activity_last_detected_at' => 'datetime',
+            'welcome_screen_shown_at' => 'datetime',
             'total_access_duration_seconds' => 'integer',
             'password' => 'hashed',
         ];
