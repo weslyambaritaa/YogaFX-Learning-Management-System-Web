@@ -989,7 +989,7 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Enrollment Form
+                            Your Details
                         </h3>
                         <p
                             className={`${descriptionClassName} italic`}
@@ -1388,21 +1388,15 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Learning Background
+                            Current Yoga Experience
                         </h3>
-                        <p
-                            className={descriptionClassName}
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            Your practice background.
-                        </p>
+            
                     </div>
 
                     <div className="space-y-10">
                         <ChoiceGrid
                             id="practicing_yoga_for"
-                            label="Current Yoga Experience"
-                            description="Practicing Yoga For (Years & Months)"
+                            label="Practicing Yoga For (Years & Months)"
                             value={data.practicing_yoga_for}
                             error={firstError(
                                 formErrors,
@@ -1480,14 +1474,8 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Motivation
+                            What is Your Motivation In Becoming A Yoga Teacher?
                         </h3>
-                        <p
-                            className={descriptionClassName}
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            Keep each answer within 50 words.
-                        </p>
                     </div>
 
                     <div className="space-y-10">
