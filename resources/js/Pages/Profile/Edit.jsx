@@ -2,37 +2,163 @@ import StudentProfileForm from "@/Components/StudentProfileForm";
 import TransientStatusBanner from "@/Components/TransientStatusBanner";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
-import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
+import {
+    Head,
+    Link,
+    router,
+    useForm,
+    usePage,
+} from "@inertiajs/react";
 import { useEffect, useState } from "react";
+
+function normalizeYesNoFormValue(value) {
+    if (
+        value === true ||
+        value === 1 ||
+        value === "1" ||
+        value === "yes"
+    ) {
+        return "yes";
+    }
+
+    if (
+        value === false ||
+        value === 0 ||
+        value === "0" ||
+        value === "no"
+    ) {
+        return "no";
+    }
+
+    return "";
+}
+
+function isMasterClassSlug(value) {
+    const normalized = String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[-\s]+/g, "_");
+
+    return (
+        normalized === "master_class" ||
+        normalized === "masterclass"
+    );
+}
 
 function buildProfileFormData(user) {
     return {
         first_name: user.first_name ?? "",
         last_name: user.last_name ?? "",
         email: user.email ?? "",
-        whatsapp_country_code: user.whatsapp_country_code ?? "+62",
-        whatsapp_number: user.whatsapp_number ?? "",
+
+        whatsapp_country_code:
+            user.whatsapp_country_code ?? "+62",
+
+        whatsapp_number:
+            user.whatsapp_number ?? "",
+
         profile_photo: null,
-        instagram: user.instagram ?? "",
-        country: user.country ?? "",
-        birth_date: user.birth_date ?? "",
-        gender: user.gender ?? "",
-        practicing_yoga_for: user.practicing_yoga_for ?? "",
-        yoga_sequence_experience: user.yoga_sequence_experience ?? [],
-        hours_per_week: user.hours_per_week ?? "",
-        current_fitness_level: user.current_fitness_level ?? "",
-        flexibility_rating: user.flexibility_rating ?? "",
-        motivation: user.motivation ?? "",
-        why_yogafx: user.why_yogafx ?? "",
-        how_did_you_find_us: user.how_did_you_find_us ?? [],
+
+        instagram:
+            user.instagram ?? "",
+
+        country:
+            user.country ?? "",
+
+        birth_date:
+            user.birth_date ?? "",
+
+        gender:
+            user.gender ?? "",
+
+        /*
+         * MasterClass-only fields.
+         */
+        tshirt_size:
+            user.tshirt_size ?? "",
+
+        favorite_song:
+            user.favorite_song ?? "",
+
+        emergency_contact_name:
+            user.emergency_contact_name ?? "",
+
+        emergency_contact_relationship:
+            user.emergency_contact_relationship ?? "",
+
+        emergency_contact_country_code:
+            user.emergency_contact_country_code ?? "+62",
+
+        emergency_contact_number:
+            user.emergency_contact_number ?? "",
+
+        has_medical_issues:
+            normalizeYesNoFormValue(
+                user.has_medical_issues,
+            ),
+
+        medical_issues_details:
+            user.medical_issues_details ?? "",
+
+        is_taking_medication:
+            normalizeYesNoFormValue(
+                user.is_taking_medication,
+            ),
+
+        medication_details:
+            user.medication_details ?? "",
+
+        /*
+         * Existing yoga profile fields.
+         */
+        practicing_yoga_for:
+            user.practicing_yoga_for ?? "",
+
+        yoga_sequence_experience:
+            user.yoga_sequence_experience ?? [],
+
+        hours_per_week:
+            user.hours_per_week ?? "",
+
+        current_fitness_level:
+            user.current_fitness_level ?? "",
+
+        flexibility_rating:
+            user.flexibility_rating ?? "",
+
+        motivation:
+            user.motivation ?? "",
+
+        why_yogafx:
+            user.why_yogafx ?? "",
+
+        how_did_you_find_us:
+            user.how_did_you_find_us ?? [],
     };
 }
 
-export default function Edit({ status, upgradeOptions = [] }) {
+export default function Edit({
+    status,
+    upgradeOptions = [],
+}) {
     const { auth } = usePage().props;
     const user = auth.user;
-    const [submitNotice, setSubmitNotice] = useState(null);
-    const { data, setData, post, errors, processing, transform } = useForm(
+
+    const isMasterClass = isMasterClassSlug(
+        user.access_tier?.slug,
+    );
+
+    const [submitNotice, setSubmitNotice] =
+        useState(null);
+
+    const {
+        data,
+        setData,
+        post,
+        errors,
+        processing,
+        transform,
+    } = useForm(
         buildProfileFormData(user),
     );
 
@@ -48,10 +174,17 @@ export default function Edit({ status, upgradeOptions = [] }) {
             forceFormData: true,
             preserveScroll: true,
             preserveState: true,
+
             onSuccess: (page) => {
                 setSubmitNotice(null);
-                setData(buildProfileFormData(page.props.auth.user));
+
+                setData(
+                    buildProfileFormData(
+                        page.props.auth.user,
+                    ),
+                );
             },
+
             onError: () => {
                 setSubmitNotice({
                     id: Date.now(),
@@ -60,18 +193,31 @@ export default function Edit({ status, upgradeOptions = [] }) {
                         "Profile could not be updated. Please review the highlighted fields.",
                 });
             },
-            onFinish: () => transform((current) => current),
+
+            onFinish: () => {
+                transform((current) => current);
+            },
         });
     };
 
     useEffect(() => {
-        if (window.location.hash !== "#upgrade-class") {
+        if (
+            window.location.hash !==
+            "#upgrade-class"
+        ) {
             return;
         }
 
-        const upgradeSection = document.getElementById("upgrade-class");
+        const upgradeSection =
+            document.getElementById(
+                "upgrade-class",
+            );
 
-        if (upgradeSection && typeof upgradeSection.scrollIntoView === "function") {
+        if (
+            upgradeSection &&
+            typeof upgradeSection.scrollIntoView ===
+                "function"
+        ) {
             window.requestAnimationFrame(() => {
                 upgradeSection.scrollIntoView({
                     behavior: "smooth",
@@ -93,14 +239,17 @@ export default function Edit({ status, upgradeOptions = [] }) {
                     message={submitNotice?.message}
                     tone={submitNotice?.tone}
                     noticeKey={submitNotice?.id}
-                    onDismiss={() => setSubmitNotice(null)}
+                    onDismiss={() =>
+                        setSubmitNotice(null)
+                    }
                     className="shadow-[0_10px_30px_rgba(244,63,94,0.12)]"
                 />
 
-                {status === "student-password-change-email-sent" ? (
+                {status ===
+                "student-password-change-email-sent" ? (
                     <div className="rounded-[5px] border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-                        Password change instructions have been sent to your
-                        email.
+                        Password change instructions
+                        have been sent to your email.
                     </div>
                 ) : null}
 
@@ -110,15 +259,24 @@ export default function Edit({ status, upgradeOptions = [] }) {
                             <h1 className="font-['Montserrat'] text-[22px] font-semibold text-white">
                                 Profile
                             </h1>
+
                             <p className="mt-2 font-['Montserrat'] text-sm leading-7 text-white/70">
-                                Keep your student profile complete so YogaFX can
-                                personalize your learning path correctly.
+                                Keep your student profile
+                                complete so YogaFX can
+                                personalize your learning
+                                path correctly.
                             </p>
                         </div>
 
                         <Button
                             type="button"
-                            onClick={() => router.post(route("profile.password.request"))}
+                            onClick={() =>
+                                router.post(
+                                    route(
+                                        "profile.password.request",
+                                    ),
+                                )
+                            }
                             className="rounded-[5px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
                         >
                             Change Password
@@ -128,7 +286,8 @@ export default function Edit({ status, upgradeOptions = [] }) {
 
                 <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
                     <p className="font-['Montserrat'] text-sm font-medium text-white">
-                        {user.access_tier?.name ?? "No Access Tier"}
+                        {user.access_tier?.name ??
+                            "No Access Tier"}
                     </p>
                 </div>
 
@@ -142,38 +301,57 @@ export default function Edit({ status, upgradeOptions = [] }) {
                                 <h2 className="font-['Montserrat'] text-lg font-semibold text-white">
                                     Upgrade Class
                                 </h2>
+
                                 <p className="mt-1 text-sm text-white/60">
                                     Choose your next tier.
                                 </p>
                             </div>
 
                             <div className="grid gap-3 md:grid-cols-2">
-                                {upgradeOptions.map((option) => (
-                                    <div
-                                        key={option.id}
-                                        className="rounded-[5px] border border-white/10 bg-black/20 p-4"
-                                    >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div>
-                                                <p className="font-['Montserrat'] text-base font-semibold text-white">
-                                                    {option.name}
-                                                </p>
-                                                <p className="mt-1 text-sm text-white/55">
-                                                    {option.currency_code} {Number(option.price).toFixed(2)}
-                                                </p>
-                                            </div>
+                                {upgradeOptions.map(
+                                    (option) => (
+                                        <div
+                                            key={
+                                                option.id
+                                            }
+                                            className="rounded-[5px] border border-white/10 bg-black/20 p-4"
+                                        >
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div>
+                                                    <p className="font-['Montserrat'] text-base font-semibold text-white">
+                                                        {
+                                                            option.name
+                                                        }
+                                                    </p>
 
-                                            <Button
-                                                asChild
-                                                className="rounded-[5px] bg-[#DB202C] px-4 text-white hover:bg-[#c31c28]"
-                                            >
-                                                <Link href={option.upgrade_url}>
-                                                    Upgrade
-                                                </Link>
-                                            </Button>
+                                                    <p className="mt-1 text-sm text-white/55">
+                                                        {
+                                                            option.currency_code
+                                                        }{" "}
+                                                        {Number(
+                                                            option.price,
+                                                        ).toFixed(
+                                                            2,
+                                                        )}
+                                                    </p>
+                                                </div>
+
+                                                <Button
+                                                    asChild
+                                                    className="rounded-[5px] bg-[#DB202C] px-4 text-white hover:bg-[#c31c28]"
+                                                >
+                                                    <Link
+                                                        href={
+                                                            option.upgrade_url
+                                                        }
+                                                    >
+                                                        Upgrade
+                                                    </Link>
+                                                </Button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ),
+                                )}
                             </div>
                         </div>
                     </div>
@@ -188,7 +366,12 @@ export default function Edit({ status, upgradeOptions = [] }) {
                         onSubmit={submit}
                         submitLabel="Save Profile"
                         mode="profile"
-                        currentProfilePhotoUrl={user.profile_photo}
+                        currentProfilePhotoUrl={
+                            user.profile_photo
+                        }
+                        isMasterClass={
+                            isMasterClass
+                        }
                     />
                 </div>
             </div>

@@ -62,7 +62,13 @@ class ProfileController extends Controller
             ]);
         }
 
-        unset($validated['profile_photo'], $validated['whatsapp_country_code'], $validated['whatsapp_number']);
+        unset(
+    $validated['profile_photo'],
+    $validated['whatsapp_country_code'],
+    $validated['whatsapp_number'],
+    $validated['emergency_contact_country_code'],
+    $validated['emergency_contact_number'],
+);
         $validated['yoga_sequence_experience'] = StudentProfileValue::encodeMultiSelect($validated['yoga_sequence_experience'] ?? null);
         $validated['how_did_you_find_us'] = StudentProfileValue::encodeMultiSelect($validated['how_did_you_find_us'] ?? null);
 

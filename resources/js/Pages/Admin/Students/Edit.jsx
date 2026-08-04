@@ -3,92 +3,286 @@ import StudentManagementLayout from '@/Components/admin/students/StudentManageme
 import StudentProgressStudentLayout from '@/Components/admin/student-progress/StudentProgressStudentLayout';
 import { router, useForm } from '@inertiajs/react';
 
+function normalizeYesNoFormValue(value) {
+    if (
+        value === true ||
+        value === 1 ||
+        value === '1' ||
+        value === 'yes'
+    ) {
+        return 'yes';
+    }
+
+    if (
+        value === false ||
+        value === 0 ||
+        value === '0' ||
+        value === 'no'
+    ) {
+        return 'no';
+    }
+
+    return '';
+}
+
+function isMasterClassSlug(value) {
+    const normalized = String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[-\s]+/g, '_');
+
+    return (
+        normalized === 'master_class' ||
+        normalized === 'masterclass'
+    );
+}
+
 export default function EditStudent({
     student,
     accessTiers,
     managementContext = 'students',
     status,
 }) {
-    const isStudentProgressContext = managementContext === 'student_progress';
+    const isStudentProgressContext =
+        managementContext === 'student_progress';
+
     const LayoutComponent = isStudentProgressContext
         ? StudentProgressStudentLayout
         : StudentManagementLayout;
 
-    const { data, setData, post, errors, processing } = useForm({
+    const {
+        data,
+        setData,
+        post,
+        errors,
+        processing,
+    } = useForm({
         _method: 'patch',
-        management_context: managementContext,
-        account_status: student.account_status ?? 'available',
-        student_tag: student.student_tag ?? 'normal',
-        access_tier_id: student.access_tier_id ?? '',
-        first_name: student.first_name ?? '',
-        last_name: student.last_name ?? '',
-        email: student.email ?? '',
-        whatsapp_country_code: student.whatsapp_country_code ?? '+62',
-        whatsapp_number: student.whatsapp_number ?? '',
+
+        management_context:
+            managementContext,
+
+        account_status:
+            student.account_status ?? 'available',
+
+        student_tag:
+            student.student_tag ?? 'normal',
+
+        access_tier_id:
+            student.access_tier_id ?? '',
+
+        first_name:
+            student.first_name ?? '',
+
+        last_name:
+            student.last_name ?? '',
+
+        email:
+            student.email ?? '',
+
+        whatsapp_country_code:
+            student.whatsapp_country_code ?? '+62',
+
+        whatsapp_number:
+            student.whatsapp_number ?? '',
+
         profile_photo: null,
-        instagram: student.instagram ?? '',
-        country: student.country ?? '',
-        birth_date: student.birth_date ?? '',
-        gender: student.gender ?? '',
-        practicing_yoga_for: student.practicing_yoga_for ?? '',
-        yoga_sequence_experience: student.yoga_sequence_experience ?? [],
-        hours_per_week: student.hours_per_week ?? '',
-        current_fitness_level: student.current_fitness_level ?? '',
-        flexibility_rating: student.flexibility_rating ?? '',
-        motivation: student.motivation ?? '',
-        why_yogafx: student.why_yogafx ?? '',
-        how_did_you_find_us: student.how_did_you_find_us ?? [],
+
+        instagram:
+            student.instagram ?? '',
+
+        country:
+            student.country ?? '',
+
+        birth_date:
+            student.birth_date ?? '',
+
+        gender:
+            student.gender ?? '',
+
+        /*
+         * MasterClass-only fields.
+         */
+        tshirt_size:
+            student.tshirt_size ?? '',
+
+        favorite_song:
+            student.favorite_song ?? '',
+
+        emergency_contact_name:
+            student.emergency_contact_name ?? '',
+
+        emergency_contact_relationship:
+            student.emergency_contact_relationship ?? '',
+
+        emergency_contact_country_code:
+            student.emergency_contact_country_code ?? '+62',
+
+        emergency_contact_number:
+            student.emergency_contact_number ?? '',
+
+        has_medical_issues:
+            normalizeYesNoFormValue(
+                student.has_medical_issues,
+            ),
+
+        medical_issues_details:
+            student.medical_issues_details ?? '',
+
+        is_taking_medication:
+            normalizeYesNoFormValue(
+                student.is_taking_medication,
+            ),
+
+        medication_details:
+            student.medication_details ?? '',
+
+        /*
+         * Existing yoga profile fields.
+         */
+        practicing_yoga_for:
+            student.practicing_yoga_for ?? '',
+
+        yoga_sequence_experience:
+            student.yoga_sequence_experience ?? [],
+
+        hours_per_week:
+            student.hours_per_week ?? '',
+
+        current_fitness_level:
+            student.current_fitness_level ?? '',
+
+        flexibility_rating:
+            student.flexibility_rating ?? '',
+
+        motivation:
+            student.motivation ?? '',
+
+        why_yogafx:
+            student.why_yogafx ?? '',
+
+        how_did_you_find_us:
+            student.how_did_you_find_us ?? [],
     });
+
+    /*
+     * Gunakan access tier yang sedang dipilih pada form,
+     * bukan hanya access tier lama milik student.
+     */
+    const selectedAccessTier = accessTiers.find(
+        (accessTier) =>
+            String(accessTier.id) ===
+            String(data.access_tier_id),
+    );
+
+    const isMasterClass = isMasterClassSlug(
+        selectedAccessTier?.slug,
+    );
 
     const submit = (event) => {
         event.preventDefault();
-        post(route('admin.students.update', student.id), {
-            forceFormData: true,
-        });
+
+        post(
+            route(
+                'admin.students.update',
+                student.id,
+            ),
+            {
+                forceFormData: true,
+            },
+        );
     };
 
     const submitStatus = (event) => {
         event.preventDefault();
-        router.patch(route('admin.students.status', student.id), {
-            management_context: managementContext,
-            account_status: data.account_status,
-            student_tag: data.student_tag,
-        });
+
+        router.patch(
+            route(
+                'admin.students.status',
+                student.id,
+            ),
+            {
+                management_context:
+                    managementContext,
+
+                account_status:
+                    data.account_status,
+
+                student_tag:
+                    data.student_tag,
+            },
+        );
     };
 
     const resetProgress = () => {
-        if (!window.confirm('Delete all learning progress for this student?')) {
+        if (
+            !window.confirm(
+                'Delete all learning progress for this student?',
+            )
+        ) {
             return;
         }
 
-        router.post(route('admin.students.reset-progress', student.id), {
-            management_context: managementContext,
-        });
+        router.post(
+            route(
+                'admin.students.reset-progress',
+                student.id,
+            ),
+            {
+                management_context:
+                    managementContext,
+            },
+        );
     };
 
-    const resetProgressScope = (scope, label) => {
-        if (!window.confirm(`Delete ${label.toLowerCase()} for this student?`)) {
+    const resetProgressScope = (
+        scope,
+        label,
+    ) => {
+        if (
+            !window.confirm(
+                `Delete ${label.toLowerCase()} for this student?`,
+            )
+        ) {
             return;
         }
 
-        router.post(route('admin.students.reset-progress.scope', {
-            student: student.id,
-            scope,
-        }), {
-            management_context: managementContext,
-        });
+        router.post(
+            route(
+                'admin.students.reset-progress.scope',
+                {
+                    student: student.id,
+                    scope,
+                },
+            ),
+            {
+                management_context:
+                    managementContext,
+            },
+        );
     };
 
     const deleteAccount = () => {
-        if (!window.confirm('Delete this student account permanently?')) {
+        if (
+            !window.confirm(
+                'Delete this student account permanently?',
+            )
+        ) {
             return;
         }
 
-        router.delete(route('admin.students.destroy', student.id), {
-            data: {
-                management_context: managementContext,
+        router.delete(
+            route(
+                'admin.students.destroy',
+                student.id,
+            ),
+            {
+                data: {
+                    management_context:
+                        managementContext,
+                },
             },
-        });
+        );
     };
 
     return (
@@ -101,43 +295,60 @@ export default function EditStudent({
             }
             pageTitle="Student Detail"
             student={student}
-            activeSection={isStudentProgressContext ? 'detail' : undefined}
+            activeSection={
+                isStudentProgressContext
+                    ? 'detail'
+                    : undefined
+            }
         >
-            {status === 'student-profile-updated' && (
+            {status ===
+            'student-profile-updated' ? (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                     Student profile has been updated.
                 </div>
-            )}
-            {status === 'student-status-updated' && (
+            ) : null}
+
+            {status ===
+            'student-status-updated' ? (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                     Student status has been updated.
                 </div>
-            )}
-            {status === 'student-learning-progress-reset' && (
+            ) : null}
+
+            {status ===
+            'student-learning-progress-reset' ? (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                     Student learning progress has been deleted.
                 </div>
-            )}
-            {status === 'student-progress-reset-video' && (
+            ) : null}
+
+            {status ===
+            'student-progress-reset-video' ? (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                     Student video progress has been deleted.
                 </div>
-            )}
-            {status === 'student-progress-reset-assessment' && (
+            ) : null}
+
+            {status ===
+            'student-progress-reset-assessment' ? (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                     Student assessment progress has been deleted.
                 </div>
-            )}
-            {status === 'student-progress-reset-lesson' && (
+            ) : null}
+
+            {status ===
+            'student-progress-reset-lesson' ? (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                     Student lesson progress has been deleted.
                 </div>
-            )}
-            {status === 'student-progress-reset-module' && (
+            ) : null}
+
+            {status ===
+            'student-progress-reset-module' ? (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
                     Student module progress has been deleted.
                 </div>
-            )}
+            ) : null}
 
             <div className="rounded-lg bg-white p-6 shadow-sm">
                 <div className="grid gap-6 lg:grid-cols-2">
@@ -146,8 +357,10 @@ export default function EditStudent({
                             <h3 className="text-lg font-medium text-gray-900">
                                 Access Tier Assignment
                             </h3>
+
                             <p className="mt-1 text-sm text-gray-600">
-                                Assign one learning tier to this student account.
+                                Assign one learning tier to
+                                this student account.
                             </p>
                         </div>
 
@@ -158,45 +371,85 @@ export default function EditStudent({
                             >
                                 Access Tier
                             </label>
+
                             <select
                                 id="access_tier_id"
-                                value={data.access_tier_id ?? ''}
+                                value={
+                                    data.access_tier_id ??
+                                    ''
+                                }
                                 onChange={(event) =>
                                     setData(
                                         'access_tier_id',
-                                        event.target.value === ''
+                                        event.target
+                                            .value === ''
                                             ? ''
-                                            : Number(event.target.value),
+                                            : Number(
+                                                  event
+                                                      .target
+                                                      .value,
+                                              ),
                                     )
                                 }
                                 className="mt-1 block w-full rounded-md border border-slate-400 bg-white text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
-                                <option value="">Not assigned</option>
-                                {accessTiers.map((accessTier) => (
-                                    <option key={accessTier.id} value={accessTier.id}>
-                                        {accessTier.name}
-                                        {!accessTier.is_active ? ' (Inactive)' : ''}
-                                    </option>
-                                ))}
+                                <option value="">
+                                    Not assigned
+                                </option>
+
+                                {accessTiers.map(
+                                    (accessTier) => (
+                                        <option
+                                            key={
+                                                accessTier.id
+                                            }
+                                            value={
+                                                accessTier.id
+                                            }
+                                        >
+                                            {
+                                                accessTier.name
+                                            }
+
+                                            {!accessTier.is_active
+                                                ? ' (Inactive)'
+                                                : ''}
+                                        </option>
+                                    ),
+                                )}
                             </select>
-                            {errors.access_tier_id && (
+
+                            {errors.access_tier_id ? (
                                 <div className="mt-2 text-sm text-rose-600">
-                                    {errors.access_tier_id}
+                                    {
+                                        errors.access_tier_id
+                                    }
                                 </div>
-                            )}
+                            ) : null}
                         </div>
                     </div>
 
-                    <form onSubmit={submitStatus} className="space-y-4">
+                    <form
+                        onSubmit={submitStatus}
+                        className="space-y-4"
+                    >
                         <div>
                             <h3 className="text-lg font-medium text-gray-900">
                                 Student Status
                             </h3>
+
                             <p className="mt-1 text-sm text-gray-600">
-                                Available students can access the LMS. Inactive and suspended students are redirected into the blocked state after login.
+                                Available students can access
+                                the LMS. Inactive and
+                                suspended students are
+                                redirected into the blocked
+                                state after login.
                             </p>
+
                             <p className="mt-1 text-sm text-gray-600">
-                                Irregular activity count: {student.irregular_activity_count ?? 0}
+                                Irregular activity count:{' '}
+                                {student.irregular_activity_count ??
+                                    0}
                             </p>
                         </div>
 
@@ -207,25 +460,44 @@ export default function EditStudent({
                             >
                                 Student Tag
                             </label>
+
                             <select
                                 id="student_tag"
-                                value={data.student_tag}
+                                value={
+                                    data.student_tag
+                                }
                                 onChange={(event) =>
-                                    setData('student_tag', event.target.value)
+                                    setData(
+                                        'student_tag',
+                                        event.target
+                                            .value,
+                                    )
                                 }
                                 className="mt-1 block w-full rounded-md border border-slate-400 bg-white text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
-                                <option value="normal">Normal</option>
-                                <option value="tester">Tester</option>
+                                <option value="normal">
+                                    Normal
+                                </option>
+
+                                <option value="tester">
+                                    Tester
+                                </option>
                             </select>
+
                             <p className="mt-1 text-sm text-gray-600">
-                                Tester accounts bypass video violation warning and auto-block behavior for manual QA.
+                                Tester accounts bypass video
+                                violation warning and
+                                auto-block behaviour for
+                                manual QA.
                             </p>
-                            {errors.student_tag && (
+
+                            {errors.student_tag ? (
                                 <div className="mt-2 text-sm text-rose-600">
-                                    {errors.student_tag}
+                                    {
+                                        errors.student_tag
+                                    }
                                 </div>
-                            )}
+                            ) : null}
                         </div>
 
                         <div>
@@ -235,23 +507,41 @@ export default function EditStudent({
                             >
                                 Status
                             </label>
+
                             <select
                                 id="account_status"
-                                value={data.account_status}
+                                value={
+                                    data.account_status
+                                }
                                 onChange={(event) =>
-                                    setData('account_status', event.target.value)
+                                    setData(
+                                        'account_status',
+                                        event.target
+                                            .value,
+                                    )
                                 }
                                 className="mt-1 block w-full rounded-md border border-slate-400 bg-white text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
-                                <option value="available">Available</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="suspended">Suspended</option>
+                                <option value="available">
+                                    Available
+                                </option>
+
+                                <option value="inactive">
+                                    Inactive
+                                </option>
+
+                                <option value="suspended">
+                                    Suspended
+                                </option>
                             </select>
-                            {errors.account_status && (
+
+                            {errors.account_status ? (
                                 <div className="mt-2 text-sm text-rose-600">
-                                    {errors.account_status}
+                                    {
+                                        errors.account_status
+                                    }
                                 </div>
-                            )}
+                            ) : null}
                         </div>
 
                         <button
@@ -273,7 +563,12 @@ export default function EditStudent({
                     onSubmit={submit}
                     submitLabel="Save Student Profile"
                     mode="admin"
-                    currentProfilePhotoUrl={student.profile_photo_url}
+                    currentProfilePhotoUrl={
+                        student.profile_photo_url
+                    }
+                    isMasterClass={
+                        isMasterClass
+                    }
                 />
             </div>
 
@@ -282,50 +577,87 @@ export default function EditStudent({
                     <h3 className="text-lg font-medium text-rose-900">
                         Danger Zone
                     </h3>
+
                     <p className="text-sm text-rose-700">
-                        Reset progress removes lesson progress, assignment submissions, certificate download completion, and open-once module completion records. Generated certificates and access-time data stay intact. Delete account removes the student and all related records permanently.
+                        Reset progress removes lesson
+                        progress, assignment submissions,
+                        certificate download completion,
+                        and open-once module completion
+                        records. Generated certificates and
+                        access-time data stay intact. Delete
+                        account removes the student and all
+                        related records permanently.
                     </p>
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-3">
                     <button
                         type="button"
-                        onClick={() => resetProgressScope('video', 'Video Progress')}
+                        onClick={() =>
+                            resetProgressScope(
+                                'video',
+                                'Video Progress',
+                            )
+                        }
                         className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
                     >
                         Reset Video Progress
                     </button>
+
                     <button
                         type="button"
-                        onClick={() => resetProgressScope('assessment', 'Assessment Progress')}
+                        onClick={() =>
+                            resetProgressScope(
+                                'assessment',
+                                'Assessment Progress',
+                            )
+                        }
                         className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
                     >
                         Reset Assessment Progress
                     </button>
+
                     <button
                         type="button"
-                        onClick={() => resetProgressScope('lesson', 'Lesson Progress')}
+                        onClick={() =>
+                            resetProgressScope(
+                                'lesson',
+                                'Lesson Progress',
+                            )
+                        }
                         className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
                     >
                         Reset Lesson Progress
                     </button>
+
                     <button
                         type="button"
-                        onClick={() => resetProgressScope('module', 'Module Progress')}
+                        onClick={() =>
+                            resetProgressScope(
+                                'module',
+                                'Module Progress',
+                            )
+                        }
                         className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
                     >
                         Reset Module Progress
                     </button>
+
                     <button
                         type="button"
-                        onClick={resetProgress}
+                        onClick={
+                            resetProgress
+                        }
                         className="inline-flex items-center rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 hover:bg-rose-100"
                     >
                         Reset Student Progress
                     </button>
+
                     <button
                         type="button"
-                        onClick={deleteAccount}
+                        onClick={
+                            deleteAccount
+                        }
                         className="inline-flex items-center rounded-md bg-rose-700 px-4 py-2 text-sm font-medium text-white hover:bg-rose-800"
                     >
                         Delete Student Account

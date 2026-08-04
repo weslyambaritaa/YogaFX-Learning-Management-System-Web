@@ -696,12 +696,9 @@ export default function StudentProfileForm({
               selectPlaceholderColor: "#FFFFFF",
               textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS}`,
               helperClassName: "mt-2 text-sm font-semibold text-white/60",
-              sectionDividerClassName: isEnrollment
-                  ? "mb-6 border-t-[4px] border-[#DB202C] pt-5"
-                  : "mb-6 border-b border-white pb-4",
-              footerDividerClassName: isEnrollment
-                  ? "flex items-center pt-8"
-                  : "flex items-center border-t border-white pt-8",
+              sectionDividerClassName: "mb-6 border-b border-white pb-4",
+              footerDividerClassName:
+                  "flex items-center border-t border-white pt-8",
               dialogContentClassName:
                   "max-w-xl border-white bg-[#141110] text-white",
               dialogTitleClassName: "text-xl font-bold text-white",
@@ -991,7 +988,7 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Your Details
+                            Enrollment Form
                         </h3>
                         <p
                             className={`${descriptionClassName} italic`}
@@ -1342,8 +1339,7 @@ export default function StudentProfileForm({
                                                 fontWeight: 700,
                                             }}
                                         >
-                                            Upload a clear portrait photo (max
-                                            10 MB)
+                                            Upload a clear portrait photo (max 10 MB)
                                         </p>
                                     </div>
 
@@ -1381,6 +1377,7 @@ export default function StudentProfileForm({
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </section>
 
@@ -1390,14 +1387,21 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Current Yoga Experience
+                            Learning Background
                         </h3>
+                        <p
+                            className={descriptionClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
+                            Your practice background.
+                        </p>
                     </div>
 
                     <div className="space-y-10">
                         <ChoiceGrid
                             id="practicing_yoga_for"
-                            label="Practicing Yoga For (Years & Months)"
+                            label="Current Yoga Experience"
+                            description="Practicing Yoga For (Years & Months)"
                             value={data.practicing_yoga_for}
                             error={firstError(
                                 formErrors,
@@ -1477,6 +1481,12 @@ export default function StudentProfileForm({
                         >
                             Motivation
                         </h3>
+                        <p
+                            className={descriptionClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
+                            Keep each answer within 50 words.
+                        </p>
                     </div>
 
                     <div className="space-y-10">
@@ -1527,6 +1537,12 @@ export default function StudentProfileForm({
                             >
                                 Terms & Confirmation
                             </h3>
+                            <p
+                                className={descriptionClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
+                            >
+                                Confirm your final enrollment details.
+                            </p>
                         </div>
 
                         <div className="space-y-6">
@@ -1584,7 +1600,7 @@ export default function StudentProfileForm({
                                         className="text-sm font-medium text-white/70"
                                         style={{ fontFamily: FONT_FAMILY }}
                                     >
-                                       Today's Date
+                                        Date
                                     </div>
                                     <div
                                         className="mt-2 text-sm font-normal"

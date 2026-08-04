@@ -36,8 +36,22 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'instagram',
     'country',
     'birth_date',
-    'gender',
-    'practicing_yoga_for',
+'gender',
+
+'tshirt_size',
+'favorite_song',
+
+'emergency_contact_name',
+'emergency_contact_relationship',
+'emergency_contact_whatsapp',
+
+'has_medical_issues',
+'medical_issues_details',
+
+'is_taking_medication',
+'medication_details',
+
+'practicing_yoga_for',
     'yoga_sequence_experience',
     'hours_per_week',
     'current_fitness_level',
@@ -80,6 +94,15 @@ class User extends Authenticatable
         'how_did_you_find_us',
     ];
 
+    public const MASTER_CLASS_PROFILE_COMPLETION_FIELDS = [
+    'tshirt_size',
+    'favorite_song',
+    'emergency_contact_name',
+    'emergency_contact_relationship',
+    'emergency_contact_whatsapp',
+    'has_medical_issues',
+    'is_taking_medication',
+];
     /**
      * Get the attributes that should be cast.
      *
@@ -90,7 +113,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'birth_date' => 'date',
-            'is_active' => 'boolean',
+'has_medical_issues' => 'boolean',
+'is_taking_medication' => 'boolean',
+'is_active' => 'boolean',
             'irregular_activity_count' => 'integer',
             'irregular_activity_last_detected_at' => 'datetime',
             'welcome_screen_shown_at' => 'datetime',
@@ -287,6 +312,16 @@ class User extends Authenticatable
         return $this->dashboardRouteName();
     }
 
+    public function isMasterClassStudent(): bool
+{
+    $this->loadMissing('accessTier');
+
+    $slug = (string) ($this->accessTier?->slug ?? '');
+
+    return AccessTier::canonicalSlug($slug)
+        === AccessTier::SLUG_MASTER_CLASS;
+}
+
     public function hasCompletedStudentProfile(): bool
     {
         if (! $this->isStudent()) {
@@ -300,20 +335,35 @@ class User extends Authenticatable
      * @return array<int, string>
      */
     public function missingStudentProfileFields(): array
-    {
-        if (! $this->isStudent()) {
-            return [];
+{
+    if (! $this->isStudent()) {
+        return [];
+    }
+
+    $fields = self::STUDENT_PROFILE_COMPLETION_FIELDS;
+
+    if ($this->isMasterClassStudent()) {
+        $fields = [
+            ...$fields,
+            ...self::MASTER_CLASS_PROFILE_COMPLETION_FIELDS,
+        ];
+
+        if ($this->has_medical_issues === true) {
+            $fields[] = 'medical_issues_details';
         }
 
-        return collect(self::STUDENT_PROFILE_COMPLETION_FIELDS)
-            ->filter(function (string $field) {
-                $value = $this->{$field};
-
-                return ! StudentProfileValue::isFilled($value);
-            })
-            ->values()
-            ->all();
+        if ($this->is_taking_medication === true) {
+            $fields[] = 'medication_details';
+        }
     }
+
+    return collect($fields)
+        ->filter(function (string $field) {
+            return ! StudentProfileValue::isFilled($this->{$field});
+        })
+        ->values()
+        ->all();
+}
 
     public function syncDisplayName(): void
     {
