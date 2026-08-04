@@ -2401,7 +2401,7 @@ export default function PublicCheckoutPanel({
                         <div className="divide-y divide-white/10">
                             {[
                                 {
-                                    label: "Course Price",
+                                    label: checkout.package?.title ?? "Package",
                                     value: formatCurrency(
                                         Number(
                                             activeInstallmentSummary?.total_amount ??
