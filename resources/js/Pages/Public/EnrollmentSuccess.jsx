@@ -82,7 +82,7 @@ export default function EnrollmentSuccess({ onboarding }) {
                             <div className="mt-8 flex justify-center">
                                 <Button
                                     asChild
-                                    className="h-auto w-full max-w-[460px] rounded-[5px] bg-[#DB202C] px-6 py-4 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28]"
+                                    className="h-auto w-full max-w-[500px] rounded-[5px] bg-[#DB202C] px-8 py-5 text-center text-base font-bold leading-6 text-white hover:bg-[#c31c28]"
                                 >
                                     <Link
                                         href={onboarding.continue_url}
