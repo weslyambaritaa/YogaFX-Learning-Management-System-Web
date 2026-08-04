@@ -2,76 +2,46 @@ import { Button } from "@/Components/ui/button";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { Link } from "@inertiajs/react";
 import { Check, LoaderCircle } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
 export default function EnrollmentSuccess({ onboarding }) {
-    const [phase, setPhase] = useState("loading");
     const [secondsRemaining, setSecondsRemaining] = useState(
         COUNTDOWN_SECONDS,
     );
 
+    const isLoading = secondsRemaining > 0;
+
     useEffect(() => {
-        if (phase !== "loading") {
+        if (!isLoading) {
             return undefined;
         }
 
         const timeoutId = window.setTimeout(() => {
-            if (secondsRemaining <= 1) {
-                setPhase("success");
-                return;
-            }
-
-            setSecondsRemaining((current) => current - 1);
+            setSecondsRemaining((current) => Math.max(current - 1, 0));
         }, 1000);
 
         return () => {
             window.clearTimeout(timeoutId);
         };
-    }, [phase, secondsRemaining]);
-
-    const progressPercentage = useMemo(() => {
-        if (COUNTDOWN_SECONDS <= 1) {
-            return 100;
-        }
-
-        return (
-            ((COUNTDOWN_SECONDS - secondsRemaining) /
-                (COUNTDOWN_SECONDS - 1)) *
-            100
-        );
-    }, [secondsRemaining]);
-
-    const isLoading = phase === "loading";
+    }, [isLoading, secondsRemaining]);
 
     return (
         <PublicFlowLayout
-            title={
-                isLoading
-                    ? "Enrollment Submitted"
-                    : "Enrollment Success"
-            }
-            eyebrow={
-                isLoading
-                    ? "Enrollment Submitted"
-                    : "Application Successful"
-            }
-            heading={
-                isLoading
-                    ? "Preparing your next step"
-                    : "Congratulations on Your Enrollment Application Success"
-            }
+            title="Enrollment Success"
+            heading={null}
+            description={null}
         >
             <div
-                className="flex justify-center pb-6 pt-0"
+                className="flex justify-center py-6"
                 style={{ fontFamily: FONT_FAMILY }}
             >
-                <div className="w-full max-w-xl text-center">
+                <div className="w-full max-w-lg">
                     {isLoading ? (
                         <div
-                            className="rounded-[18px] border border-white/15 bg-[#111111] px-6 py-8 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8"
+                            className="rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8"
                             role="status"
                             aria-live="polite"
                         >
@@ -92,75 +62,30 @@ export default function EnrollmentSuccess({ onboarding }) {
                                 </div>
                             </div>
 
-                            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-[#ffb8bf]">
-                                Enrollment successfully submitted
+                            <p className="mt-6 text-sm font-semibold text-white">
+                                Loading...
                             </p>
-
-                            <h2 className="mt-3 text-2xl font-semibold text-white">
-                                Preparing your account setup
-                            </h2>
-
-                            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-white/70">
-                                Your enrollment information has been saved.
-                                We are preparing the final account setup
-                                step.
-                            </p>
-
-                            <p className="mt-5 text-sm font-semibold text-white">
-                                Continuing in{" "}
-                                <span className="text-[#DB202C]">
-                                    {secondsRemaining}
-                                </span>{" "}
-                                {secondsRemaining === 1
-                                    ? "second"
-                                    : "seconds"}
-                            </p>
-
-                            <div className="mt-6 overflow-hidden rounded-full bg-white/10">
-                                <div
-                                    className="h-1.5 rounded-full bg-[#DB202C] transition-[width] duration-1000 ease-linear motion-reduce:transition-none"
-                                    style={{
-                                        width: `${progressPercentage}%`,
-                                    }}
-                                />
-                            </div>
                         </div>
                     ) : (
-                        <div className="rounded-[18px] border border-white/15 bg-[#111111] px-6 py-8 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8">
-                            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500">
+                        <div className="rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8">
+                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500">
                                 <Check
-                                    className="h-14 w-14 text-white"
-                                    strokeWidth={3.2}
+                                    className="h-11 w-11 text-white"
+                                    strokeWidth={3}
                                     aria-hidden="true"
                                 />
                             </div>
 
-                            <p className="mt-7 text-xs font-semibold uppercase tracking-[0.2em] text-[#ffb8bf]">
-                                Enrollment application successful
-                            </p>
-
-                            <h2 className="mx-auto mt-3 max-w-lg text-2xl font-bold leading-tight text-white sm:text-3xl">
-                                Congratulations on Your Enrollment
-                                Application Success
-                            </h2>
-
-                            <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-white/70">
-                                Your enrollment details have been
-                                successfully recorded. Continue to create
-                                your password and access your next
-                                preparation step.
-                            </p>
-
                             <Button
                                 asChild
-                                className="mt-7 h-auto w-full max-w-full whitespace-normal rounded-[5px] bg-[#DB202C] px-6 py-4 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28] sm:w-auto sm:min-w-[320px]"
+                                className="mt-8 h-auto w-full rounded-[5px] bg-[#DB202C] px-6 py-4 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28] sm:w-auto sm:min-w-[320px]"
                             >
                                 <Link
                                     href={onboarding.continue_url}
                                     className="inline-flex items-center justify-center"
                                 >
                                     Click here to access your masterclass
-                                    pre course preparation
+                                    pre-course preparation
                                 </Link>
                             </Button>
                         </div>
