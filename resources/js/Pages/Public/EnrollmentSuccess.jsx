@@ -8,9 +8,7 @@ const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
 export default function EnrollmentSuccess({ onboarding }) {
-    const [secondsRemaining, setSecondsRemaining] = useState(
-        COUNTDOWN_SECONDS,
-    );
+    const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
     const isLoading = secondsRemaining > 0;
 
@@ -75,6 +73,11 @@ export default function EnrollmentSuccess({ onboarding }) {
                                     aria-hidden="true"
                                 />
                             </div>
+
+                            <h2 className="mx-auto mt-6 max-w-md text-2xl font-bold leading-tight text-white sm:text-3xl">
+                                Congratulations on Your Enrollment Application
+                                Success
+                            </h2>
 
                             <Button
                                 asChild
