@@ -33,13 +33,13 @@ export default function Signup({ onboarding, student }) {
                         <InputLabel
                             htmlFor="name"
                             value="Name"
-                            className="text-gray-700"
+                            className="text-white/80"
                         />
                         <input
                             id="name"
                             disabled
                             value={student.name}
-                            className="mt-2 block w-full rounded-md border border-gray-700 bg-black px-3 py-2 text-white"
+                            className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS} cursor-not-allowed disabled:opacity-100 disabled:text-white/70`}
                         />
                     </div>
 
@@ -54,7 +54,7 @@ export default function Signup({ onboarding, student }) {
                             id="email"
                             disabled
                             value={student.email}
-                            className="mt-2 block w-full rounded-md border border-gray-700 bg-black px-3 py-2 text-white"
+                            className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS} cursor-not-allowed disabled:opacity-100 disabled:text-white/70`}
                         />
                     </div>
 
@@ -69,11 +69,11 @@ export default function Signup({ onboarding, student }) {
                             id="password"
                             value={data.password}
                             className="mt-2 block w-full"
-                            inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                            inputClassName={PUBLIC_FORM_FIELD_CLASS}
                             onChange={(event) =>
                                 setData("password", event.target.value)
                             }
-                            buttonClassName="text-white/60 hover:text-white"
+                            buttonClassName="text-white/70 hover:text-white"
                             autoComplete="new-password"
                             required
                         />
@@ -96,14 +96,14 @@ export default function Signup({ onboarding, student }) {
                             id="password_confirmation"
                             value={data.password_confirmation}
                             className="mt-2 block w-full"
-                            inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                            inputClassName={PUBLIC_FORM_FIELD_CLASS}
                             onChange={(event) =>
                                 setData(
                                     "password_confirmation",
                                     event.target.value,
                                 )
                             }
-                            buttonClassName="text-white/60 hover:text-white"
+                            buttonClassName="text-white/70 hover:text-white"
                             autoComplete="new-password"
                             required
                         />
