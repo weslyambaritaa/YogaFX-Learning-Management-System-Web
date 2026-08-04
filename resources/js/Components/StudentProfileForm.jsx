@@ -1585,7 +1585,7 @@ export default function StudentProfileForm({
                                         className="text-sm font-medium text-white/70"
                                         style={{ fontFamily: FONT_FAMILY }}
                                     >
-                                        Date
+                                       Today's Date
                                     </div>
                                     <div
                                         className="mt-2 text-sm font-normal"
