@@ -922,7 +922,7 @@ export default function Scoreboard({
             }
             description={
                 <span
-                    className="block text-balance"
+                    className="block text-balance !text-[#FFFFFF]"
                     style={{
                         fontFamily: FONT_FAMILY,
                         fontSize: "18px",

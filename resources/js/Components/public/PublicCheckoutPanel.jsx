@@ -2476,7 +2476,7 @@ export default function PublicCheckoutPanel({
 
             <div>
                 <label
-                    className="flex cursor-pointer items-start gap-4 text-sm font-normal text-white/80"
+                    className="flex cursor-pointer items-start gap-4 text-sm font-normal !text-[#FFFFFF]"
                     style={{
                         fontFamily: FONT_FAMILY,
                         fontSize: "14px",
@@ -2498,6 +2498,7 @@ export default function PublicCheckoutPanel({
                                     ? "I agree to continue and activate this free YogaFX access."
                                     : "I agree to continue with YogaFX payment processing secured by PayPal"
                             }
+                            fxClassName="!text-[#DB202C]"
                         />
                     </span>
                     {fieldErrors.terms_accepted && (
