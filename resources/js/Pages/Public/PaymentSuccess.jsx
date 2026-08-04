@@ -1,4 +1,5 @@
 import { Button } from "@/Components/ui/button";
+import YogaFXText from "@/Components/YogaFXText";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { Check } from "lucide-react";
 import { Link } from "@inertiajs/react";
@@ -20,15 +21,22 @@ export default function PaymentSuccess({ onboarding }) {
                     </div>
 
                     <p className="mt-9 text-base font-semibold leading-relaxed text-white">
-                        {onboarding.message ??
-                            "Continue to enrollment to complete your YogaFX account."}
+                        <YogaFXText
+                            text={
+                                onboarding.message ??
+                                "Continue to enrollment to complete your YogaFX account."
+                            }
+                        />
                     </p>
 
                     <Button
                         asChild
-                        className="mt-6 w-full rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
+                        className="mt-6 w-auto min-w-[220px] max-w-full rounded-md bg-[#DB202C] px-8 py-6 text-sm font-bold text-white hover:bg-[#c01a25]"
                     >
-                        <Link href={onboarding.continue_url}>
+                        <Link
+                            href={onboarding.continue_url}
+                            className="inline-flex items-center justify-center whitespace-nowrap"
+                        >
                             Continue to Enrollment
                         </Link>
                     </Button>
