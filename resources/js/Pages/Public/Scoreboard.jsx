@@ -3,6 +3,7 @@ import FlagOptionSelect from "@/Components/FlagOptionSelect";
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
+import YogaFXText from "@/Components/YogaFXText";
 import { Button } from "@/Components/ui/button";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import {
@@ -489,7 +490,7 @@ export default function Scoreboard({
         if (paymentType === "paid" && selectedPackageInstallmentEnabled) {
             paymentOptions.push({
                 type: "installment",
-                label: "Pay in installment",
+                label: "Pay in installments",
                 amount_due_today:
                     previewInstallmentSummary?.first_payment_amount ??
                     (amount > 0 ? (amount / 2).toFixed(2) : "0.00"),
@@ -902,7 +903,10 @@ export default function Scoreboard({
                         lineHeight: 1.2,
                     }}
                 >
-                    {`We Are Thrilled That You Will Be Joining Our ${packageTitle}`}
+                    <>
+                        We Are Thrilled That You Will Be Joining Our{" "}
+                        <YogaFXText text={packageTitle} />
+                    </>
                 </span>
             }
             description={
@@ -1219,7 +1223,7 @@ export default function Scoreboard({
                                                     fontWeight: 500,
                                                 }}
                                             >
-                                                {selectedPackage.title}
+                                                <YogaFXText text={selectedPackage.title} />
                                             </div>
                                         </div>
                                         <div

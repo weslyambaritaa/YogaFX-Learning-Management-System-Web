@@ -1,5 +1,6 @@
 import InputError from "@/Components/InputError";
 import { Button } from "@/Components/ui/button";
+import YogaFXText from "@/Components/YogaFXText";
 import { formatCurrency } from "@/lib/currency";
 import { AlertCircle, LoaderCircle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -44,22 +45,55 @@ async function parseJsonSafely(response) {
     }
 }
 
+function getOrdinalSuffix(day) {
+    const remainder100 = day % 100;
+
+    if (remainder100 >= 11 && remainder100 <= 13) {
+        return "th";
+    }
+
+    switch (day % 10) {
+        case 1:
+            return "st";
+        case 2:
+            return "nd";
+        case 3:
+            return "rd";
+        default:
+            return "th";
+    }
+}
+
 function formatScheduleDate(value) {
     if (!value) {
         return "-";
     }
 
-    const parsed = new Date(value);
+    const rawValue = String(value).trim();
+    const dateOnlyMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+    let parsed;
+
+    if (dateOnlyMatch) {
+        const [, year, month, day] = dateOnlyMatch;
+
+        parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    } else {
+        parsed = new Date(rawValue);
+    }
 
     if (Number.isNaN(parsed.getTime())) {
         return value;
     }
 
-    return new Intl.DateTimeFormat("en-US", {
-        day: "numeric",
+    const month = new Intl.DateTimeFormat("en-US", {
         month: "short",
-        year: "numeric",
     }).format(parsed);
+
+    const day = parsed.getDate();
+    const year = parsed.getFullYear();
+
+    return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
 }
 
 function formatBillingDayLabel(value) {
@@ -102,6 +136,33 @@ function normalizeMinimumInstallmentCount(value, fallback = 2) {
     }
 
     return Math.trunc(numericValue);
+}
+
+function formatInstallmentCount(value) {
+    const count = normalizeInstallmentCount(value);
+
+    if (!count) {
+        return "";
+    }
+
+    return `${count} ${count === 1 ? "Installment" : "Installments"}`;
+}
+
+function formatInstallmentCountDisplay(value, maximumValue) {
+    const count = normalizeInstallmentCount(value);
+    const maximum = normalizeMaximumInstallmentCount(maximumValue);
+
+    if (!count) {
+        return "";
+    }
+
+    const formattedCount = formatInstallmentCount(count);
+
+    if (maximum !== null && count === maximum) {
+        return `${formattedCount} (Maximum)`;
+    }
+
+    return formattedCount;
 }
 
 function toDateString(date) {
@@ -2112,7 +2173,7 @@ export default function PublicCheckoutPanel({
                                 >
                                     {option.label ??
                                         (optionIsInstallment
-                                            ? "Pay in installment"
+                                            ? "Pay in installments"
                                             : "Pay in full")}
                                 </button>
 
@@ -2241,11 +2302,14 @@ export default function PublicCheckoutPanel({
                         availableInstallmentCounts.length > 0 && (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between gap-4">
-                                    <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                        Number of installments
+                                    <p className="text-sm font-bold text-white">
+                                        Maximum Number of Installments
                                     </p>
                                     <p className="rounded-full bg-[#DB202C] px-4 py-1.5 text-sm font-semibold text-white">
-                                        {selectedInstallmentCount} payments
+                                        {formatInstallmentCountDisplay(
+                                            selectedInstallmentCount,
+                                            maximumInstallmentCount,
+                                        )}
                                     </p>
                                 </div>
 
@@ -2279,12 +2343,18 @@ export default function PublicCheckoutPanel({
                                     />
                                 </div>
 
-                                <div className="flex items-center justify-between text-xs font-medium text-white/55">
+                                <div className="flex items-center justify-between text-xs font-medium text-white/70">
                                     <span>
-                                        {minimumInstallmentCount} payments
+                                        {formatInstallmentCountDisplay(
+                                            minimumInstallmentCount,
+                                            maximumInstallmentCount,
+                                        )}
                                     </span>
                                     <span>
-                                        {maximumInstallmentCount} payments
+                                        {formatInstallmentCountDisplay(
+                                            maximumInstallmentCount,
+                                            maximumInstallmentCount,
+                                        )}
                                     </span>
                                 </div>
 
@@ -2298,11 +2368,14 @@ export default function PublicCheckoutPanel({
 
                     {installmentCountSelectable === false && (
                         <div className="space-y-2">
-                            <p className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                Number of installments
+                            <p className="text-sm font-bold text-white">
+                                Maximum Number of Installments
                             </p>
                             <div className="rounded-[8px] border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-white">
-                                {selectedInstallmentCount} payments
+                                {formatInstallmentCountDisplay(
+                                    selectedInstallmentCount,
+                                    maximumInstallmentCount,
+                                )}
                             </div>
                         </div>
                     )}
@@ -2350,7 +2423,9 @@ export default function PublicCheckoutPanel({
                                 },
                                 {
                                     label: "Number of Installments",
-                                    value: `${installmentCount || 2}`,
+                                    value: formatInstallmentCount(
+                                        installmentCount || 2,
+                                    ),
                                 },
                                 {
                                     label: usesMonthlyInstallmentSchedule
@@ -2442,9 +2517,13 @@ export default function PublicCheckoutPanel({
                         className="mt-1 h-5 w-5 flex-shrink-0 rounded border-white/20 bg-black/20 text-[#DB202C] transition-colors focus:ring-[#DB202C] focus:ring-offset-gray-900"
                     />
                     <span className="flex-1 leading-relaxed">
-                        {isFreeCheckout
-                            ? "I agree to continue and activate this free YogaFX access."
-                            : "I agree to continue with YogaFX payment processing and understand that sensitive card data is handled directly by PayPal-hosted secure components."}
+                        <YogaFXText
+                            text={
+                                isFreeCheckout
+                                    ? "I agree to continue and activate this free YogaFX access."
+                                    : "I agree to continue with YogaFX payment processing secured by PayPal"
+                            }
+                        />
                     </span>
                     {fieldErrors.terms_accepted && (
                         <AlertCircle className="mt-1 h-5 w-5 flex-shrink-0 text-rose-400" />
