@@ -212,7 +212,7 @@ export default function Enrollment({
                 errors={errors}
                 processing={processing}
                 onSubmit={submit}
-                submitLabel="Save Enrollment and Continue"
+                submitLabel="Enroll Now"
                 variant="scoreboard"
                 mode="enrollment"
                 currentProfilePhotoUrl={
