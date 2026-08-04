@@ -2,6 +2,7 @@ import InputError from "@/Components/InputError";
 import FlagOptionSelect from "@/Components/FlagOptionSelect";
 import InputLabel from "@/Components/InputLabel";
 import TextInput from "@/Components/TextInput";
+import { PUBLIC_FORM_FIELD_CLASS } from "@/lib/publicFormStyles";
 import { Button } from "@/Components/ui/button";
 import {
     enrichCountryOptions,

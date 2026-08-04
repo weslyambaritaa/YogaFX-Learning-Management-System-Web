@@ -1,0 +1,2 @@
+export const PUBLIC_FORM_FIELD_CLASS =
+    "min-h-[52px] rounded-[5px] border-2 border-white/50 bg-black/45 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/55 shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 focus:border-white focus:bg-black/60 focus:ring-2 focus:ring-white/35 focus-visible:border-white focus-visible:bg-black/60 focus-visible:ring-2 focus-visible:ring-white/35";
