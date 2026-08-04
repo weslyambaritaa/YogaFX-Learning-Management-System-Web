@@ -1526,12 +1526,6 @@ export default function StudentProfileForm({
                             >
                                 Terms & Confirmation
                             </h3>
-                            <p
-                                className={descriptionClassName}
-                                style={{ fontFamily: FONT_FAMILY }}
-                            >
-                                Confirm your final enrollment details.
-                            </p>
                         </div>
 
                         <div className="space-y-6">
