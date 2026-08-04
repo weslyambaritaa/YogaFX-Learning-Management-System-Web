@@ -1,5 +1,6 @@
 import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
+import YogaFXText from "@/Components/YogaFXText";
 import PasswordField from "@/Components/PasswordField";
 import PasswordRequirementsCard from "@/Components/PasswordRequirementsCard";
 import { Button } from "@/Components/ui/button";
@@ -23,23 +24,37 @@ export default function Signup({ onboarding, student }) {
     return (
         <PublicFlowLayout
             title="Create Password"
-            heading="Create your final YogaFX password to activate your account"
-            description="Enrollment is complete. This last step activates your YogaFX account so you can sign in with your new password."
+            heading={
+                <span className="text-[#FFFFFF]">
+                    <YogaFXText
+                        text="Create your final YogaFX password to activate your account"
+                        fxClassName="!text-[#DB202C]"
+                    />
+                </span>
+            }
+            description={
+                <span className="text-[#FFFFFF]">
+                    <YogaFXText
+                        text="Enrollment is complete. This last step activates your YogaFX account so you can sign in with your new password."
+                        fxClassName="!text-[#DB202C]"
+                    />
+                </span>
+            }
         >
-            <form onSubmit={submit} className="space-y-6">
+            <form onSubmit={submit} className="space-y-6 text-[#FFFFFF]">
                 <div className="grid gap-5">
                     {/* Name — disabled, style sama dengan Checkout */}
                     <div>
                         <InputLabel
                             htmlFor="name"
                             value="Name"
-                            className="text-white/80"
+                            className="!text-[#FFFFFF]"
                         />
                         <input
                             id="name"
                             disabled
                             value={student.name}
-                            className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS} cursor-not-allowed disabled:opacity-100 disabled:text-white/70`}
+                            className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS} cursor-not-allowed !text-[#FFFFFF] disabled:opacity-100`}
                         />
                     </div>
 
@@ -48,13 +63,13 @@ export default function Signup({ onboarding, student }) {
                         <InputLabel
                             htmlFor="email"
                             value="Email"
-                            className="text-gray-700"
+                            className="!text-[#FFFFFF]"
                         />
                         <input
                             id="email"
                             disabled
                             value={student.email}
-                            className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS} cursor-not-allowed disabled:opacity-100 disabled:text-white/70`}
+                            className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS} cursor-not-allowed !text-[#FFFFFF] disabled:opacity-100`}
                         />
                     </div>
 
@@ -63,13 +78,13 @@ export default function Signup({ onboarding, student }) {
                         <InputLabel
                             htmlFor="password"
                             value="Create Password"
-                            className="text-white/80"
+                            className="!text-[#FFFFFF]"
                         />
                         <PasswordField
                             id="password"
                             value={data.password}
                             className="mt-2 block w-full"
-                            inputClassName={PUBLIC_FORM_FIELD_CLASS}
+                            inputClassName={`${PUBLIC_FORM_FIELD_CLASS} !text-[#FFFFFF]`}
                             onChange={(event) =>
                                 setData("password", event.target.value)
                             }
@@ -78,37 +93,36 @@ export default function Signup({ onboarding, student }) {
                             required
                         />
                         <InputError
-                            className="mt-2 text-red-400"
+                            className="mt-2 !text-[#FFFFFF]"
                             message={errors.password}
                         />
                     </div>
 
-                    <PasswordRequirementsCard password={data.password} />
+                    <div className="text-[#FFFFFF] [&_div]:!text-[#FFFFFF] [&_p]:!text-[#FFFFFF] [&_li]:!text-[#FFFFFF] [&_span]:!text-[#FFFFFF] [&_h2]:!text-[#FFFFFF] [&_h3]:!text-[#FFFFFF]">
+    <PasswordRequirementsCard password={data.password} />
+</div>
 
                     {/* Confirm Password */}
                     <div>
                         <InputLabel
                             htmlFor="password_confirmation"
                             value="Confirm Password"
-                            className="text-white/80"
+                            className="!text-[#FFFFFF]"
                         />
                         <PasswordField
-                            id="password_confirmation"
-                            value={data.password_confirmation}
+                            id="password"
+                            value={data.password}
                             className="mt-2 block w-full"
-                            inputClassName={PUBLIC_FORM_FIELD_CLASS}
+                            inputClassName={`${PUBLIC_FORM_FIELD_CLASS} !text-[#FFFFFF]`}
                             onChange={(event) =>
-                                setData(
-                                    "password_confirmation",
-                                    event.target.value,
-                                )
+                                setData("password", event.target.value)
                             }
                             buttonClassName="text-white/70 hover:text-white"
                             autoComplete="new-password"
                             required
                         />
                         <InputError
-                            className="mt-2 text-red-400"
+                            className="mt-2 !text-[#FFFFFF]"
                             message={errors.password_confirmation}
                         />
                     </div>
@@ -119,7 +133,7 @@ export default function Signup({ onboarding, student }) {
                     <Button
                         type="submit"
                         disabled={processing}
-                        className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
+                        className="rounded-md bg-[#DB202C] px-6 !text-[#FFFFFF] hover:bg-[#c01a25]"
                     >
                         Create Password and Activate Account
                     </Button>
