@@ -1476,7 +1476,7 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            What is Your Motivation In Becoming A Yoga Teacher?
+                            Motivation
                         </h3>
                     </div>
 
