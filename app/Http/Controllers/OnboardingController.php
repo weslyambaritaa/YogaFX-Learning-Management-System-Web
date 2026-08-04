@@ -294,59 +294,105 @@ class OnboardingController extends Controller
     }
 
     public function storeEnrollment(
-        EnrollmentUpdateRequest $request,
-        OnboardingState $onboardingState,
-    ): RedirectResponse {
-        $validated = $request->validated();
+    EnrollmentUpdateRequest $request,
+    OnboardingState $onboardingState,
+): RedirectResponse {
+    $onboardingState->refresh();
 
-        unset(
-            $validated['profile_photo'],
-            $validated['whatsapp_country_code'],
-            $validated['whatsapp_number'],
-            $validated['emergency_contact_country_code'],
-            $validated['emergency_contact_number'],
-        );
-
-        $validated['yoga_sequence_experience'] =
-            StudentProfileValue::encodeMultiSelect(
-                $validated['yoga_sequence_experience'] ?? null,
-            );
-
-        $validated['how_did_you_find_us'] =
-            StudentProfileValue::encodeMultiSelect(
-                $validated['how_did_you_find_us'] ?? null,
-            );
-
-        $user = $onboardingState->user;
-
-        $validated['birth_date'] =
-            $validated['birth_date']
-            ?? $request->input('birth_date');
-
-        $validated['profile_photo'] =
-            $this->storeUploadedFileToBunnyWithLocalFallback(
-                $request->file('profile_photo'),
-                'users/profile-photos',
-                $user->profile_photo,
-            );
-
-        $onboardingState =
-            $this->paymentFlow->completeEnrollment(
-                $onboardingState,
-                $validated,
-            );
-
-        $this->emailNotifications
-            ->sendEnrollmentSuccessNotification(
-                $onboardingState,
-            );
-
+    /*
+     * Membuat endpoint enrollment aman ketika request
+     * sebelumnya sebenarnya sudah berhasil.
+     */
+    if (
+        $onboardingState->status ===
+        OnboardingState::STATUS_AWAITING_SIGNUP
+    ) {
         return redirect()->away(
             $this->paymentFlow->enrollmentSuccessUrl(
                 $onboardingState,
             ),
         );
     }
+
+    if (
+        $onboardingState->status ===
+        OnboardingState::STATUS_COMPLETED
+    ) {
+        return redirect()
+            ->route('login')
+            ->with(
+                'status',
+                'Your YogaFX account is ready. Please sign in.',
+            );
+    }
+
+    abort_unless(
+        $onboardingState->status ===
+            OnboardingState::STATUS_AWAITING_ENROLLMENT,
+        409,
+        'Enrollment is no longer available for this onboarding flow.',
+    );
+
+    $validated = $request->validated();
+
+    unset(
+        $validated['profile_photo'],
+        $validated['whatsapp_country_code'],
+        $validated['whatsapp_number'],
+        $validated['emergency_contact_country_code'],
+        $validated['emergency_contact_number'],
+    );
+
+    $validated['yoga_sequence_experience'] =
+        StudentProfileValue::encodeMultiSelect(
+            $validated['yoga_sequence_experience']
+                ?? null,
+        );
+
+    $validated['how_did_you_find_us'] =
+        StudentProfileValue::encodeMultiSelect(
+            $validated['how_did_you_find_us']
+                ?? null,
+        );
+
+    $user = $onboardingState->user;
+
+    $validated['birth_date'] =
+        $validated['birth_date']
+        ?? $request->input('birth_date');
+
+    $validated['profile_photo'] =
+        $this->storeUploadedFileToBunnyWithLocalFallback(
+            $request->file('profile_photo'),
+            'users/profile-photos',
+            $user->profile_photo,
+        );
+
+    $onboardingState =
+        $this->paymentFlow->completeEnrollment(
+            $onboardingState,
+            $validated,
+        );
+
+    /*
+     * Kegagalan email tidak boleh membatalkan alur
+     * enrollment yang sudah berhasil disimpan.
+     */
+    try {
+        $this->emailNotifications
+            ->sendEnrollmentSuccessNotification(
+                $onboardingState,
+            );
+    } catch (\Throwable $exception) {
+        report($exception);
+    }
+
+    return redirect()->away(
+        $this->paymentFlow->enrollmentSuccessUrl(
+            $onboardingState,
+        ),
+    );
+}
 
     public function showEnrollmentSuccess(
         OnboardingState $onboardingState,
