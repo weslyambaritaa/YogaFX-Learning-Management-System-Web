@@ -81,6 +81,20 @@ const GENDER_OPTIONS = [
     { value: "female", label: "Female" },
 ];
 
+const YES_NO_OPTIONS = [
+    { value: "yes", label: "Yes" },
+    { value: "no", label: "No" },
+];
+
+const TSHIRT_SIZE_OPTIONS = [
+    { value: "XXL", label: "XXL" },
+    { value: "XL", label: "XL" },
+    { value: "L", label: "L" },
+    { value: "M", label: "M" },
+    { value: "S", label: "S" },
+    { value: "XS", label: "XS" },
+];
+
 const SEQUENCE_OPTIONS = [
     { value: "bikram", label: "Bikram" },
     { value: "hatha", label: "Hatha" },
@@ -255,6 +269,13 @@ function firstAvailableErrorKey(errors) {
         "country",
         "birth_date",
         "gender",
+        "tshirt_size",
+        "favorite_song",
+        "emergency_contact_name",
+        "emergency_contact_relationship",
+        "emergency_contact_country_code",
+        "emergency_contact_number",
+        "emergency_contact_whatsapp",
         "practicing_yoga_for",
         "yoga_sequence_experience",
         "hours_per_week",
@@ -263,6 +284,10 @@ function firstAvailableErrorKey(errors) {
         "motivation",
         "why_yogafx",
         "how_did_you_find_us",
+        "has_medical_issues",
+        "medical_issues_details",
+        "is_taking_medication",
+        "medication_details",
         "terms_accepted",
         "recaptcha_confirmed",
     ];
@@ -531,6 +556,7 @@ export default function StudentProfileForm({
     variant = "default",
     mode = "profile",
     currentProfilePhotoUrl = null,
+    isMasterClass = false,
 }) {
     const { directory = {} } = usePage().props;
     const countryOptions = enrichCountryOptions(directory.countries ?? []);
@@ -542,6 +568,11 @@ export default function StudentProfileForm({
     const selectedPhoneCountryOption = findCountryOptionByDialCode(
         phoneCountryCodeOptions,
         data.whatsapp_country_code ?? "+62",
+        data.country ?? "",
+    );
+    const selectedEmergencyPhoneCountryOption = findCountryOptionByDialCode(
+        phoneCountryCodeOptions,
+        data.emergency_contact_country_code ?? "+62",
         data.country ?? "",
     );
     const isScoreboard = variant === "scoreboard";
@@ -696,9 +727,12 @@ export default function StudentProfileForm({
               selectPlaceholderColor: "#FFFFFF",
               textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS}`,
               helperClassName: "mt-2 text-sm font-semibold text-white/60",
-              sectionDividerClassName: "mb-6 border-b border-white pb-4",
-              footerDividerClassName:
-                  "flex items-center border-t border-white pt-8",
+              sectionDividerClassName: isEnrollment
+                  ? "mb-6 border-t-[4px] border-[#DB202C] pt-5"
+                  : "mb-6 border-b border-white pb-4",
+              footerDividerClassName: isEnrollment
+                  ? "flex items-center pt-8"
+                  : "flex items-center border-t border-white pt-8",
               dialogContentClassName:
                   "max-w-xl border-white bg-[#141110] text-white",
               dialogTitleClassName: "text-xl font-bold text-white",
@@ -812,6 +846,37 @@ export default function StudentProfileForm({
                 nextLocalErrors.gender = "Gender is required.";
             }
 
+            if (isMasterClass) {
+                if (isBlankString(data.tshirt_size)) {
+                    nextLocalErrors.tshirt_size = "T-shirt size is required.";
+                }
+
+                if (isBlankString(data.favorite_song)) {
+                    nextLocalErrors.favorite_song =
+                        "Favorite song is required.";
+                }
+
+                if (isBlankString(data.emergency_contact_name)) {
+                    nextLocalErrors.emergency_contact_name =
+                        "Emergency contact name is required.";
+                }
+
+                if (isBlankString(data.emergency_contact_relationship)) {
+                    nextLocalErrors.emergency_contact_relationship =
+                        "Relationship is required.";
+                }
+
+                if (isBlankString(data.emergency_contact_country_code)) {
+                    nextLocalErrors.emergency_contact_country_code =
+                        "Emergency WhatsApp country code is required.";
+                }
+
+                if (isBlankString(data.emergency_contact_number)) {
+                    nextLocalErrors.emergency_contact_number =
+                        "Emergency WhatsApp number is required.";
+                }
+            }
+
             if (isBlankString(data.practicing_yoga_for)) {
                 nextLocalErrors.practicing_yoga_for =
                     "Current yoga experience is required.";
@@ -854,6 +919,34 @@ export default function StudentProfileForm({
             ) {
                 nextLocalErrors.how_did_you_find_us =
                     "Select at least one discovery source.";
+            }
+
+            if (isMasterClass) {
+                if (isBlankString(data.has_medical_issues)) {
+                    nextLocalErrors.has_medical_issues =
+                        "Please select Yes or No.";
+                }
+
+                if (
+                    data.has_medical_issues === "yes" &&
+                    isBlankString(data.medical_issues_details)
+                ) {
+                    nextLocalErrors.medical_issues_details =
+                        "Brief medical details are required.";
+                }
+
+                if (isBlankString(data.is_taking_medication)) {
+                    nextLocalErrors.is_taking_medication =
+                        "Please select Yes or No.";
+                }
+
+                if (
+                    data.is_taking_medication === "yes" &&
+                    isBlankString(data.medication_details)
+                ) {
+                    nextLocalErrors.medication_details =
+                        "Brief medication details are required.";
+                }
             }
 
             if (!data.terms_accepted) {
@@ -988,7 +1081,7 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Enrollment Form
+                            Your Details
                         </h3>
                         <p
                             className={`${descriptionClassName} italic`}
@@ -1339,7 +1432,8 @@ export default function StudentProfileForm({
                                                 fontWeight: 700,
                                             }}
                                         >
-                                            Upload a clear portrait photo (max 10 MB)
+                                            Upload a clear portrait photo (max
+                                            10 MB)
                                         </p>
                                     </div>
 
@@ -1378,8 +1472,222 @@ export default function StudentProfileForm({
                             </div>
                         </div>
 
+                        {isMasterClass ? (
+                            <>
+                                <div className="md:col-span-2">
+                                    <ChoiceGrid
+                                        id="tshirt_size"
+                                        label="T-Shirt Size *"
+                                        value={data.tshirt_size ?? ""}
+                                        error={firstError(
+                                            formErrors,
+                                            "tshirt_size",
+                                        )}
+                                        options={TSHIRT_SIZE_OPTIONS}
+                                        onChange={(value) =>
+                                            setData("tshirt_size", value)
+                                        }
+                                        theme={theme}
+                                        optionsGridClassName="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4"
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <TextAreaField
+                                        id="favorite_song"
+                                        label="Favorite Song *"
+                                        value={data.favorite_song ?? ""}
+                                        onChange={(value) =>
+                                            setData("favorite_song", value)
+                                        }
+                                        error={firstError(
+                                            formErrors,
+                                            "favorite_song",
+                                        )}
+                                        theme={theme}
+                                    />
+                                </div>
+                            </>
+                        ) : null}
                     </div>
                 </section>
+
+                {isMasterClass ? (
+                    <section className={sectionClassName}>
+                        <div className={theme.sectionDividerClassName}>
+                            <h3
+                                className={titleClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
+                            >
+                                Emergency Contact
+                            </h3>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <InputLabel
+                                    htmlFor="emergency_contact_name"
+                                    value="Emergency Contact Name *"
+                                    className={theme.labelClassName}
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                />
+
+                                <TextInput
+                                    id="emergency_contact_name"
+                                    className={`mt-2 block w-full ${inputClassName}`}
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                    value={data.emergency_contact_name ?? ""}
+                                    onChange={(event) =>
+                                        setData(
+                                            "emergency_contact_name",
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+
+                                <InputError
+                                    message={firstError(
+                                        formErrors,
+                                        "emergency_contact_name",
+                                    )}
+                                    className={`${theme.errorClassName} mt-2`}
+                                />
+                            </div>
+
+                            <div>
+                                <InputLabel
+                                    htmlFor="emergency_contact_relationship"
+                                    value="Relationship *"
+                                    className={theme.labelClassName}
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                />
+
+                                <TextInput
+                                    id="emergency_contact_relationship"
+                                    className={`mt-2 block w-full ${inputClassName}`}
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                    value={
+                                        data.emergency_contact_relationship ??
+                                        ""
+                                    }
+                                    onChange={(event) =>
+                                        setData(
+                                            "emergency_contact_relationship",
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+
+                                <InputError
+                                    message={firstError(
+                                        formErrors,
+                                        "emergency_contact_relationship",
+                                    )}
+                                    className={`${theme.errorClassName} mt-2`}
+                                />
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <InputLabel
+                                    htmlFor="emergency_contact_number"
+                                    value="WhatsApp Number *"
+                                    className={theme.labelClassName}
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                />
+
+                                <div className="mt-2 grid grid-cols-[112px_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[128px_minmax(0,1fr)] md:grid-cols-[136px_minmax(0,1fr)]">
+                                    <FlagOptionSelect
+                                        id="emergency_contact_country_code"
+                                        value={
+                                            data.emergency_contact_country_code ??
+                                            "+62"
+                                        }
+                                        selectedOption={
+                                            selectedEmergencyPhoneCountryOption
+                                        }
+                                        options={phoneCountryCodeOptions}
+                                        onChange={(option) =>
+                                            setData(
+                                                "emergency_contact_country_code",
+                                                option.value,
+                                            )
+                                        }
+                                        displayMode="phone-code"
+                                        searchPlaceholder="Search phone code or country"
+                                        buttonClassName={theme.selectClassName}
+                                        buttonTextClassName="text-sm font-normal text-white"
+                                        placeholderClassName={
+                                            isAdminMode
+                                                ? "text-sm font-normal text-slate-400"
+                                                : "text-sm font-normal text-white/50"
+                                        }
+                                        panelClassName={
+                                            isAdminMode
+                                                ? "border-slate-200 bg-white text-slate-900"
+                                                : PUBLIC_FORM_SELECT_PANEL_CLASS
+                                        }
+                                        optionClassName="px-4 py-3 text-sm"
+                                        optionActiveClassName={
+                                            isAdminMode
+                                                ? "bg-rose-50"
+                                                : "bg-white/10"
+                                        }
+                                        optionSelectedClassName="text-[#DB202C]"
+                                        optionTextClassName="text-sm font-normal"
+                                        chevronClassName={
+                                            isAdminMode
+                                                ? "text-slate-500"
+                                                : "text-white/60"
+                                        }
+                                        fallbackClassName={
+                                            isAdminMode
+                                                ? "bg-slate-100 text-slate-500"
+                                                : "bg-white/10 text-white/70"
+                                        }
+                                    />
+
+                                    <TextInput
+                                        id="emergency_contact_number"
+                                        className={`block w-full min-w-0 ${inputClassName}`}
+                                        style={{
+                                            fontFamily: FONT_FAMILY,
+                                        }}
+                                        value={
+                                            data.emergency_contact_number ?? ""
+                                        }
+                                        onChange={(event) =>
+                                            setData(
+                                                "emergency_contact_number",
+                                                normalizePhoneNumberInput(
+                                                    event.target.value,
+                                                ),
+                                            )
+                                        }
+                                        placeholder="81233456788"
+                                    />
+                                </div>
+
+                                <InputError
+                                    message={
+                                        firstError(
+                                            formErrors,
+                                            "emergency_contact_number",
+                                        ) ??
+                                        firstError(
+                                            formErrors,
+                                            "emergency_contact_country_code",
+                                        ) ??
+                                        firstError(
+                                            formErrors,
+                                            "emergency_contact_whatsapp",
+                                        )
+                                    }
+                                    className={`${theme.errorClassName} mt-2`}
+                                />
+                            </div>
+                        </div>
+                    </section>
+                ) : null}
 
                 <section className={sectionClassName}>
                     <div className={theme.sectionDividerClassName}>
@@ -1387,21 +1695,14 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Learning Background
+                            Current Yoga Experience
                         </h3>
-                        <p
-                            className={descriptionClassName}
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            Your practice background.
-                        </p>
                     </div>
 
                     <div className="space-y-10">
                         <ChoiceGrid
                             id="practicing_yoga_for"
-                            label="Current Yoga Experience"
-                            description="Practicing Yoga For (Years & Months)"
+                            label="Practicing Yoga For (Years & Months)"
                             value={data.practicing_yoga_for}
                             error={firstError(
                                 formErrors,
@@ -1481,12 +1782,6 @@ export default function StudentProfileForm({
                         >
                             Motivation
                         </h3>
-                        <p
-                            className={descriptionClassName}
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            Keep each answer within 50 words.
-                        </p>
                     </div>
 
                     <div className="space-y-10">
@@ -1528,6 +1823,93 @@ export default function StudentProfileForm({
                     </div>
                 </section>
 
+                {isMasterClass ? (
+                    <section className={sectionClassName}>
+                        <div className={theme.sectionDividerClassName}>
+                            <h3
+                                className={titleClassName}
+                                style={{ fontFamily: FONT_FAMILY }}
+                            >
+                                Medical History
+                            </h3>
+                        </div>
+
+                        <div className="space-y-10">
+                            <ChoiceGrid
+                                id="has_medical_issues"
+                                label="Any Medical Existing Issues? *"
+                                value={data.has_medical_issues ?? ""}
+                                error={firstError(
+                                    formErrors,
+                                    "has_medical_issues",
+                                )}
+                                options={YES_NO_OPTIONS}
+                                onChange={(value) => {
+                                    setData("has_medical_issues", value);
+
+                                    if (value === "no") {
+                                        setData("medical_issues_details", "");
+                                    }
+                                }}
+                                theme={theme}
+                                optionsGridClassName="grid grid-cols-2 gap-4"
+                            />
+
+                            {data.has_medical_issues === "yes" ? (
+                                <TextAreaField
+                                    id="medical_issues_details"
+                                    label="Brief Details Please *"
+                                    value={data.medical_issues_details ?? ""}
+                                    onChange={(value) =>
+                                        setData("medical_issues_details", value)
+                                    }
+                                    error={firstError(
+                                        formErrors,
+                                        "medical_issues_details",
+                                    )}
+                                    theme={theme}
+                                />
+                            ) : null}
+
+                            <ChoiceGrid
+                                id="is_taking_medication"
+                                label="Are You Taking Any Medication? *"
+                                value={data.is_taking_medication ?? ""}
+                                error={firstError(
+                                    formErrors,
+                                    "is_taking_medication",
+                                )}
+                                options={YES_NO_OPTIONS}
+                                onChange={(value) => {
+                                    setData("is_taking_medication", value);
+
+                                    if (value === "no") {
+                                        setData("medication_details", "");
+                                    }
+                                }}
+                                theme={theme}
+                                optionsGridClassName="grid grid-cols-2 gap-4"
+                            />
+
+                            {data.is_taking_medication === "yes" ? (
+                                <TextAreaField
+                                    id="medication_details"
+                                    label="Brief Details Please *"
+                                    value={data.medication_details ?? ""}
+                                    onChange={(value) =>
+                                        setData("medication_details", value)
+                                    }
+                                    error={firstError(
+                                        formErrors,
+                                        "medication_details",
+                                    )}
+                                    theme={theme}
+                                />
+                            ) : null}
+                        </div>
+                    </section>
+                ) : null}
+
                 {isEnrollment ? (
                     <section className={sectionClassName}>
                         <div className={theme.sectionDividerClassName}>
@@ -1537,12 +1919,6 @@ export default function StudentProfileForm({
                             >
                                 Terms & Confirmation
                             </h3>
-                            <p
-                                className={descriptionClassName}
-                                style={{ fontFamily: FONT_FAMILY }}
-                            >
-                                Confirm your final enrollment details.
-                            </p>
                         </div>
 
                         <div className="space-y-6">
@@ -1600,7 +1976,7 @@ export default function StudentProfileForm({
                                         className="text-sm font-medium text-white/70"
                                         style={{ fontFamily: FONT_FAMILY }}
                                     >
-                                        Date
+                                        Today's Date
                                     </div>
                                     <div
                                         className="mt-2 text-sm font-normal"
