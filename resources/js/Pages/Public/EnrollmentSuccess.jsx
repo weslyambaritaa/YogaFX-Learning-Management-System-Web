@@ -10,6 +10,11 @@ const COUNTDOWN_SECONDS = 5;
 export default function EnrollmentSuccess({ onboarding }) {
     const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
+    const packageTitle =
+        onboarding?.package?.title ??
+        onboarding?.access_tier?.name ??
+        "Your Package";
+
     const isLoading = secondsRemaining > 0;
 
     useEffect(() => {
@@ -82,7 +87,7 @@ export default function EnrollmentSuccess({ onboarding }) {
                             <div className="mt-8 flex justify-center px-4">
                                 <Button
                                     asChild
-                                    className="h-auto w-auto max-w-full overflow-hidden rounded-[5px] bg-[#DB202C] px-7 py-3.5 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28]"
+                                    className="h-auto max-w-full rounded-[5px] bg-[#DB202C] px-6 py-3.5 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28]"
                                 >
                                     <Link
                                         href={onboarding.continue_url}
