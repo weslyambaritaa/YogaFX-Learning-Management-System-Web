@@ -578,6 +578,31 @@ export default function StudentProfileForm({
     const isScoreboard = variant === "scoreboard";
     const isEnrollment = mode === "enrollment";
     const isAdminMode = mode === "admin";
+
+    const flagSelectButtonTextClassName = isAdminMode
+        ? "text-sm font-normal text-slate-900"
+        : "text-sm font-normal text-white";
+
+    const flagSelectPlaceholderClassName = isAdminMode
+        ? "text-sm font-normal text-slate-400"
+        : "text-sm font-normal text-white/50";
+
+    const flagSelectPanelClassName = isAdminMode
+        ? "border-slate-200 bg-white text-slate-900"
+        : PUBLIC_FORM_SELECT_PANEL_CLASS;
+
+    const flagSelectActiveClassName = isAdminMode
+        ? "bg-rose-50"
+        : "bg-white/10";
+
+    const flagSelectChevronClassName = isAdminMode
+        ? "text-slate-500"
+        : "text-white/60";
+
+    const flagSelectFallbackClassName = isAdminMode
+        ? "bg-slate-100 text-slate-500"
+        : "bg-white/10 text-white/70";
+
     const [localErrors, setLocalErrors] = useState({});
 
     // --- State Cropper Gambar ---
@@ -651,11 +676,11 @@ export default function StudentProfileForm({
               choiceDescriptionClassName:
                   "mt-1 text-sm font-normal text-slate-600",
               choiceCheckedClassName:
-                  "border-2 border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_2px_rgba(219,32,44,0.35),0_0_18px_rgba(219,32,44,0.28)]",
+                  "border-2 border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_2px_rgba(219,32,44,0.18)]",
               choiceUncheckedClassName:
-                  "border-2 border-white/50 bg-black/45 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 hover:border-white hover:bg-white/10",
+                  "border border-slate-300 bg-white text-slate-900 shadow-sm transition-all duration-200 hover:border-[#DB202C] hover:bg-rose-50",
               choiceIndicatorCheckedClassName:
-                  "border-[#DB202C] bg-[#DB202C] text-white",
+                  "border-white bg-white text-[#DB202C]",
               choiceIndicatorUncheckedClassName:
                   "border-slate-400 bg-white text-transparent",
               errorClassName: "font-semibold text-rose-600",
@@ -669,8 +694,8 @@ export default function StudentProfileForm({
                   "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
               selectOptionClassName:
                   "bg-white text-slate-900 text-sm font-normal",
-              selectActiveColor: "#DB202C",
-              selectPlaceholderColor: "#0f172a",
+              selectActiveColor: "#0f172a",
+              selectPlaceholderColor: "#64748b",
               textareaClassName:
                   "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
               helperClassName: "mt-2 text-sm font-medium text-slate-500",
@@ -1109,7 +1134,7 @@ export default function StudentProfileForm({
                                 }
                             />
                             <InputError
-                                message={errors.email}
+                                message={firstError(formErrors, "first_name")}
                                 className={`${theme.errorClassName} mt-2`}
                             />
                         </div>
@@ -1187,34 +1212,24 @@ export default function StudentProfileForm({
                                     displayMode="phone-code"
                                     searchPlaceholder="Search phone code or country"
                                     buttonClassName={theme.selectClassName}
-                                    buttonTextClassName="text-sm font-normal text-white"
+                                    buttonTextClassName={
+                                        flagSelectButtonTextClassName
+                                    }
                                     placeholderClassName={
-                                        isAdminMode
-                                            ? "text-sm font-normal text-slate-400"
-                                            : "text-sm font-normal text-white/50"
+                                        flagSelectPlaceholderClassName
                                     }
-                                    panelClassName={
-                                        isAdminMode
-                                            ? "border-slate-200 bg-white text-slate-900"
-                                            : PUBLIC_FORM_SELECT_PANEL_CLASS
-                                    }
+                                    panelClassName={flagSelectPanelClassName}
                                     optionClassName="px-4 py-3 text-sm"
                                     optionActiveClassName={
-                                        isAdminMode
-                                            ? "bg-rose-50"
-                                            : "bg-white/10"
+                                        flagSelectActiveClassName
                                     }
                                     optionSelectedClassName="text-[#DB202C]"
                                     optionTextClassName="text-sm font-normal"
                                     chevronClassName={
-                                        isAdminMode
-                                            ? "text-slate-500"
-                                            : "text-white/60"
+                                        flagSelectChevronClassName
                                     }
                                     fallbackClassName={
-                                        isAdminMode
-                                            ? "bg-slate-100 text-slate-500"
-                                            : "bg-white/10 text-white/70"
+                                        flagSelectFallbackClassName
                                     }
                                 />
                                 <TextInput
@@ -1285,33 +1300,21 @@ export default function StudentProfileForm({
                                 }
                                 placeholder="Select a country"
                                 buttonClassName={theme.selectClassName}
-                                buttonTextClassName="text-sm font-normal text-white"
+                                buttonTextClassName={
+                                    flagSelectButtonTextClassName
+                                }
                                 placeholderClassName={
-                                    isAdminMode
-                                        ? "text-sm font-normal text-slate-400"
-                                        : "text-sm font-normal text-white/50"
+                                    flagSelectPlaceholderClassName
                                 }
-                                panelClassName={
-                                    isAdminMode
-                                        ? "border-slate-200 bg-white text-slate-900"
-                                        : PUBLIC_FORM_SELECT_PANEL_CLASS
-                                }
+                                panelClassName={flagSelectPanelClassName}
                                 optionClassName="px-4 py-3 text-sm"
                                 optionActiveClassName={
-                                    isAdminMode ? "bg-rose-50" : "bg-white/10"
+                                    flagSelectActiveClassName
                                 }
                                 optionSelectedClassName="text-[#DB202C]"
                                 optionTextClassName="text-sm font-normal"
-                                chevronClassName={
-                                    isAdminMode
-                                        ? "text-slate-500"
-                                        : "text-white/60"
-                                }
-                                fallbackClassName={
-                                    isAdminMode
-                                        ? "bg-slate-100 text-slate-500"
-                                        : "bg-white/10 text-white/70"
-                                }
+                                chevronClassName={flagSelectChevronClassName}
+                                fallbackClassName={flagSelectFallbackClassName}
                             />
                             <InputError
                                 message={firstError(formErrors, "country")}
@@ -1615,34 +1618,26 @@ export default function StudentProfileForm({
                                         displayMode="phone-code"
                                         searchPlaceholder="Search phone code or country"
                                         buttonClassName={theme.selectClassName}
-                                        buttonTextClassName="text-sm font-normal text-white"
+                                        buttonTextClassName={
+                                            flagSelectButtonTextClassName
+                                        }
                                         placeholderClassName={
-                                            isAdminMode
-                                                ? "text-sm font-normal text-slate-400"
-                                                : "text-sm font-normal text-white/50"
+                                            flagSelectPlaceholderClassName
                                         }
                                         panelClassName={
-                                            isAdminMode
-                                                ? "border-slate-200 bg-white text-slate-900"
-                                                : PUBLIC_FORM_SELECT_PANEL_CLASS
+                                            flagSelectPanelClassName
                                         }
                                         optionClassName="px-4 py-3 text-sm"
                                         optionActiveClassName={
-                                            isAdminMode
-                                                ? "bg-rose-50"
-                                                : "bg-white/10"
+                                            flagSelectActiveClassName
                                         }
                                         optionSelectedClassName="text-[#DB202C]"
                                         optionTextClassName="text-sm font-normal"
                                         chevronClassName={
-                                            isAdminMode
-                                                ? "text-slate-500"
-                                                : "text-white/60"
+                                            flagSelectChevronClassName
                                         }
                                         fallbackClassName={
-                                            isAdminMode
-                                                ? "bg-slate-100 text-slate-500"
-                                                : "bg-white/10 text-white/70"
+                                            flagSelectFallbackClassName
                                         }
                                     />
 
