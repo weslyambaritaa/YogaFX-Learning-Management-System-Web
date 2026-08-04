@@ -45,25 +45,6 @@ async function parseJsonSafely(response) {
     }
 }
 
-function getOrdinalSuffix(day) {
-    const remainder100 = day % 100;
-
-    if (remainder100 >= 11 && remainder100 <= 13) {
-        return "th";
-    }
-
-    switch (day % 10) {
-        case 1:
-            return "st";
-        case 2:
-            return "nd";
-        case 3:
-            return "rd";
-        default:
-            return "th";
-    }
-}
-
 function formatScheduleDate(value) {
     if (!value) {
         return "-";
@@ -93,7 +74,9 @@ function formatScheduleDate(value) {
     const day = parsed.getDate();
     const year = parsed.getFullYear();
 
-    return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
+    const ordinalSuffix = day === 1 ? "st" : "th";
+
+    return `${month} ${day}${ordinalSuffix}, ${year}`;
 }
 
 function formatBillingDayLabel(value) {
@@ -538,6 +521,16 @@ function buildInstallmentSummaryForCount(
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
     const requiredRecurringCount = effectiveInstallmentCount - 1;
 
+    const billingDay =
+        Number(activeBillingDay) === 1 || Number(activeBillingDay) === 15
+            ? Number(activeBillingDay)
+            : resolveBillingDay(summary, checkout, selectedPaymentOption);
+
+    const summaryBillingDay = Number(summary.billing_day);
+
+    const summaryMatchesSelectedBillingDay =
+        [1, 15].includes(summaryBillingDay) && summaryBillingDay === billingDay;
+
     const existingRecurringDueDates = Array.isArray(
         summary.available_recurring_due_dates,
     )
@@ -546,14 +539,11 @@ function buildInstallmentSummaryForCount(
           ? summary.recurring_due_dates
           : [];
 
-    const backendRecurringDueDates = existingRecurringDueDates
-        .filter(Boolean)
-        .slice(0, requiredRecurringCount);
-
-    const billingDay =
-        Number(activeBillingDay) === 1 || Number(activeBillingDay) === 15
-            ? Number(activeBillingDay)
-            : resolveBillingDay(summary, checkout, selectedPaymentOption);
+    const backendRecurringDueDates = summaryMatchesSelectedBillingDay
+        ? existingRecurringDueDates
+              .filter(Boolean)
+              .slice(0, requiredRecurringCount)
+        : [];
 
     const summaryStartDate =
         normalizeDateInput(summary.first_payment_date) ??

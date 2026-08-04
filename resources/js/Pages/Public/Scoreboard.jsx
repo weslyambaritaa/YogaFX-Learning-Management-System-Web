@@ -425,8 +425,14 @@ export default function Scoreboard({
                   : Number(selectedPackage?.price ?? 0);
         const currencyCode =
             selectedPackage?.currency_code ?? paypal?.currency_code ?? "USD";
-        const billingDay = selectedPackageAllowedBillingDays[0] ?? 15;
+        const previewBillingDays =
+            selectedPackageAllowedBillingDays.length > 0
+                ? selectedPackageAllowedBillingDays
+                : [15];
+
+        const billingDay = previewBillingDays[0];
         const maximumInstallmentCount = selectedPackageMaximumInstallmentCount;
+
         const previewInstallmentCount =
             selectedPackageInstallmentCountSelectable === false
                 ? normalizeInstallmentMaximumCount(
@@ -436,21 +442,30 @@ export default function Scoreboard({
                   )
                 : maximumInstallmentCount;
 
-        const previewInstallmentSummary = buildPreviewInstallmentSummary({
-            amount,
-            installmentCount: previewInstallmentCount,
-            maximumInstallmentCount,
-            minimumInstallmentCount: selectedPackageMinimumInstallmentCount,
-            billingDay,
-            installmentCalculationMethod:
-                selectedPackageInstallmentCalculationMethod,
-            installmentCountMode: selectedPackageInstallmentCountMode,
-            installmentCountSelectable:
-                selectedPackageInstallmentCountSelectable,
-            configuredInstallmentCount:
-                selectedPackageConfiguredInstallmentCount,
-            fixedInstallmentCount: selectedPackageFixedInstallmentCount,
-        });
+        const previewInstallmentSummaries = Object.fromEntries(
+            previewBillingDays.map((day) => [
+                String(day),
+                buildPreviewInstallmentSummary({
+                    amount,
+                    installmentCount: previewInstallmentCount,
+                    maximumInstallmentCount,
+                    minimumInstallmentCount:
+                        selectedPackageMinimumInstallmentCount,
+                    billingDay: day,
+                    installmentCalculationMethod:
+                        selectedPackageInstallmentCalculationMethod,
+                    installmentCountMode: selectedPackageInstallmentCountMode,
+                    installmentCountSelectable:
+                        selectedPackageInstallmentCountSelectable,
+                    configuredInstallmentCount:
+                        selectedPackageConfiguredInstallmentCount,
+                    fixedInstallmentCount: selectedPackageFixedInstallmentCount,
+                }),
+            ]),
+        );
+
+        const previewInstallmentSummary =
+            previewInstallmentSummaries[String(billingDay)] ?? null;
 
         const paymentOptions =
             paymentType === "free"
@@ -569,11 +584,7 @@ export default function Scoreboard({
                     : [{ value: "paypal", label: "PayPal" }]),
             ],
             installment_summary: previewInstallmentSummary,
-            installment_summaries: billingDay
-                ? {
-                      [String(billingDay)]: previewInstallmentSummary,
-                  }
-                : {},
+            installment_summaries: previewInstallmentSummaries,
             installment_allowed_billing_days: selectedPackageAllowedBillingDays,
             installment_selected_billing_day: billingDay,
             installment_accepts_billing_day: selectedPackageInstallmentEnabled,
@@ -1223,7 +1234,9 @@ export default function Scoreboard({
                                                     fontWeight: 500,
                                                 }}
                                             >
-                                                <YogaFXText text={selectedPackage.title} />
+                                                <YogaFXText
+                                                    text={selectedPackage.title}
+                                                />
                                             </div>
                                         </div>
                                         <div
