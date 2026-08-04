@@ -34,7 +34,9 @@ class OnboardingController extends Controller
         }
 
         if ($onboardingState->status === OnboardingState::STATUS_AWAITING_SIGNUP) {
-            return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
+            return redirect()->away(
+    $this->paymentFlow->enrollmentSuccessUrl($onboardingState),
+);
         }
 
         $latestInvoice = $onboardingState->pendingRegistration->invoices()
@@ -90,9 +92,16 @@ class OnboardingController extends Controller
     {
         $onboardingState->loadMissing('user', 'pendingRegistration.accessTier');
 
-        if ($onboardingState->status === OnboardingState::STATUS_AWAITING_SIGNUP) {
-            return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
-        }
+        if (
+    $onboardingState->status ===
+    OnboardingState::STATUS_AWAITING_SIGNUP
+) {
+    return redirect()->away(
+        $this->paymentFlow->enrollmentSuccessUrl(
+            $onboardingState,
+        ),
+    );
+}
 
         if ($onboardingState->status === OnboardingState::STATUS_COMPLETED) {
             return redirect()->route('login')->with('status', 'Your YogaFX account is ready. Please sign in.');
@@ -159,11 +168,75 @@ class OnboardingController extends Controller
             $user->profile_photo,
         );
 
-        $onboardingState = $this->paymentFlow->completeEnrollment($onboardingState, $validated);
-        $this->emailNotifications->sendEnrollmentSuccessNotification($onboardingState);
+        $onboardingState = $this->paymentFlow->completeEnrollment(
+    $onboardingState,
+    $validated,
+);
 
-        return redirect()->away($this->paymentFlow->signupUrl($onboardingState));
+$this->emailNotifications->sendEnrollmentSuccessNotification(
+    $onboardingState,
+);
+
+return redirect()->away(
+    $this->paymentFlow->enrollmentSuccessUrl($onboardingState),
+);
     }
+
+    public function showEnrollmentSuccess(
+    OnboardingState $onboardingState,
+): Response|RedirectResponse {
+    $onboardingState->loadMissing(
+        'user',
+        'pendingRegistration.accessTier',
+    );
+
+    if (
+        $onboardingState->status ===
+        OnboardingState::STATUS_AWAITING_ENROLLMENT
+    ) {
+        return redirect()->away(
+            $this->paymentFlow->enrollmentUrl($onboardingState),
+        );
+    }
+
+    if (
+        $onboardingState->status ===
+        OnboardingState::STATUS_COMPLETED
+    ) {
+        return redirect()
+            ->route('login')
+            ->with(
+                'status',
+                'Your YogaFX account is ready. Please sign in.',
+            );
+    }
+
+    return Inertia::render('Public/EnrollmentSuccess', [
+        'onboarding' => [
+            'id' => $onboardingState->id,
+            'status' => $onboardingState->status,
+            'continue_url' => $this->paymentFlow->signupUrl(
+                $onboardingState,
+            ),
+            'access_tier' => [
+                'name' =>
+                    $onboardingState
+                        ->pendingRegistration
+                        ->accessTier
+                        ->name,
+                'slug' =>
+                    $onboardingState
+                        ->pendingRegistration
+                        ->accessTier
+                        ->slug,
+            ],
+        ],
+        'student' => [
+            'name' => $onboardingState->user->name,
+            'email' => $onboardingState->user->email,
+        ],
+    ]);
+}
 
     public function showSignup(OnboardingState $onboardingState): Response|RedirectResponse
     {

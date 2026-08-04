@@ -138,9 +138,17 @@ Route::middleware('signed')->group(function () {
     Route::get('/checkout/invoices/{invoice}/status', [CheckoutController::class, 'status'])->name('checkout.status');
     Route::get('/onboarding/{onboardingState}/payment-success', [OnboardingController::class, 'showPaymentSuccess'])->name('onboarding.payment-success.show');
     Route::get('/upgrades/{invoice}/payment-success', [UpgradeController::class, 'success'])->name('student.upgrades.success');
-    Route::get('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'showEnrollment'])->name('onboarding.enrollment.show');
-    Route::post('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'storeEnrollment'])->name('onboarding.enrollment.store');
-    Route::get('/onboarding/{onboardingState}/signup', [OnboardingController::class, 'showSignup'])->name('onboarding.signup.show');
+    Route::get('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'showEnrollment'])
+        ->name('onboarding.enrollment.show');
+
+    Route::post('/onboarding/{onboardingState}/enrollment', [OnboardingController::class, 'storeEnrollment'])
+        ->name('onboarding.enrollment.store');
+
+    Route::get('/onboarding/{onboardingState}/enrollment-success', [OnboardingController::class, 'showEnrollmentSuccess'])
+        ->name('onboarding.enrollment-success.show');
+
+    Route::get('/onboarding/{onboardingState}/signup', [OnboardingController::class, 'showSignup'])
+        ->name('onboarding.signup.show');
     Route::post('/onboarding/{onboardingState}/signup', [OnboardingController::class, 'storeSignup'])->name('onboarding.signup.store');
 });
 

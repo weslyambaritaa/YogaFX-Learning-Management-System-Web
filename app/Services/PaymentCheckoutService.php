@@ -695,6 +695,15 @@ class PaymentCheckoutService
         );
     }
 
+    public function enrollmentSuccessUrl(OnboardingState $onboardingState): string
+{
+    return URL::temporarySignedRoute(
+        'onboarding.enrollment-success.show',
+        now()->addDays(7),
+        ['onboardingState' => $onboardingState->id],
+    );
+}
+
     public function signupUrl(OnboardingState $onboardingState): string
     {
         return URL::temporarySignedRoute(
