@@ -70,7 +70,7 @@ export default function EnrollmentSuccess({ onboarding }) {
                             </p>
                         </div>
                     ) : (
-                        <div className="rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8">
+                        <div className="px-4 py-8 text-center sm:px-8">
                             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500">
                                 <Check
                                     className="h-11 w-11 text-white"
@@ -79,7 +79,7 @@ export default function EnrollmentSuccess({ onboarding }) {
                                 />
                             </div>
 
-                            <h2 className="mx-auto mt-6 max-w-md text-2xl font-bold leading-tight text-white sm:text-3xl">
+                            <h2 className="mx-auto mt-6 max-w-xl text-2xl font-bold leading-tight text-white sm:text-3xl">
                                 Congratulations on Your Enrollment Application
                                 Success
                             </h2>
