@@ -186,9 +186,10 @@ return redirect()->away(
     OnboardingState $onboardingState,
 ): Response|RedirectResponse {
     $onboardingState->loadMissing(
-        'user',
-        'pendingRegistration.accessTier',
-    );
+    'user',
+    'pendingRegistration.accessTier',
+    'pendingRegistration.package',
+);
 
     if (
         $onboardingState->status ===
@@ -213,24 +214,32 @@ return redirect()->away(
 
     return Inertia::render('Public/EnrollmentSuccess', [
         'onboarding' => [
-            'id' => $onboardingState->id,
-            'status' => $onboardingState->status,
-            'continue_url' => $this->paymentFlow->signupUrl(
-                $onboardingState,
-            ),
-            'access_tier' => [
-                'name' =>
-                    $onboardingState
-                        ->pendingRegistration
-                        ->accessTier
-                        ->name,
-                'slug' =>
-                    $onboardingState
-                        ->pendingRegistration
-                        ->accessTier
-                        ->slug,
-            ],
-        ],
+    'id' => $onboardingState->id,
+    'status' => $onboardingState->status,
+    'continue_url' => $this->paymentFlow->signupUrl(
+        $onboardingState,
+    ),
+    'package' => [
+        'title' => $onboardingState
+            ->pendingRegistration
+            ->package
+            ?->title,
+        'slug' => $onboardingState
+            ->pendingRegistration
+            ->package
+            ?->slug,
+    ],
+    'access_tier' => [
+        'name' => $onboardingState
+            ->pendingRegistration
+            ->accessTier
+            ->name,
+        'slug' => $onboardingState
+            ->pendingRegistration
+            ->accessTier
+            ->slug,
+    ],
+],
         'student' => [
             'name' => $onboardingState->user->name,
             'email' => $onboardingState->user->email,

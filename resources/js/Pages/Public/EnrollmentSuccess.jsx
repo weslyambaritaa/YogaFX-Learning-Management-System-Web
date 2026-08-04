@@ -79,17 +79,16 @@ export default function EnrollmentSuccess({ onboarding }) {
                                 Success
                             </h2>
 
-                            <div className="mt-8 flex justify-center px-2">
+                            <div className="mt-8 flex justify-center px-4">
                                 <Button
                                     asChild
-                                    className="h-auto w-full max-w-[560px] overflow-hidden rounded-[5px] bg-[#DB202C] px-8 py-5 text-center text-sm font-bold leading-6 text-white hover:bg-[#c31c28]"
+                                    className="h-auto w-auto max-w-full overflow-hidden rounded-[5px] bg-[#DB202C] px-7 py-3.5 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28]"
                                 >
                                     <Link
                                         href={onboarding.continue_url}
-                                        className="inline-flex w-full items-center justify-center break-words text-center !whitespace-normal"
+                                        className="inline-flex items-center justify-center text-center !whitespace-normal"
                                     >
-                                        Click here to access your masterclass
-                                        pre-course preparation
+                                        Access {packageTitle} Pre-Course
                                     </Link>
                                 </Button>
                             </div>
