@@ -16,6 +16,8 @@ const INITIAL_ERRORS = {
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const PAYPAL_FULL_NAMESPACE = "paypalPayFullCheckout";
 const PAYPAL_INSTALLMENT_NAMESPACE = "paypalInstallmentCheckout";
+const INSTALLMENT_WATERMARK_URL =
+    "https://yogafx-training.b-cdn.net/branding/pdf-watermark-20260309072713-dc4ffc1e.png";
 
 function firstErrorMessage(nextErrors) {
     return (
@@ -2384,10 +2386,18 @@ export default function PublicCheckoutPanel({
                     </div>
 
                     <div
-                        className="overflow-hidden rounded-[8px] border border-white/10 bg-white/5"
+                        className="relative isolate overflow-hidden rounded-[8px] border border-white/10 bg-white/5"
                         style={{ fontFamily: FONT_FAMILY }}
                     >
-                        <div className="divide-y divide-white/10">
+                        <img
+                            src={INSTALLMENT_WATERMARK_URL}
+                            alt=""
+                            aria-hidden="true"
+                            draggable="false"
+                            className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[82%] w-auto max-w-[48%] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.08]"
+                        />
+
+                        <div className="relative z-10 divide-y divide-white/10">
                             {[
                                 {
                                     label: checkout.package?.title ?? "Package",
