@@ -973,7 +973,7 @@ export default function StudentProfileForm({
                     </div>
                 ) : null}
 
-                {isEnrollment ? (
+                {/* {isEnrollment ? (
                     <div
                         className="rounded-[5px] border border-amber-300/35 bg-amber-500/10 px-[10px] py-[8px] text-sm text-white/90"
                         style={{ fontFamily: FONT_FAMILY }}
@@ -981,7 +981,7 @@ export default function StudentProfileForm({
                         All enrollment fields are required, including your
                         profile photo and Instagram.
                     </div>
-                ) : null}
+                ) : null} */}
 
                 <section className={sectionClassName}>
                     <div className="mb-6">
@@ -992,11 +992,10 @@ export default function StudentProfileForm({
                             Enrollment Form
                         </h3>
                         <p
-                            className={descriptionClassName}
+                            className={`${descriptionClassName} italic`}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Basic account details and your preferred certificate
-                            picture.
+                            Only 1 minutes to complete
                         </p>
                     </div>
 
@@ -1155,95 +1154,6 @@ export default function StudentProfileForm({
                             />
                         </div>
 
-                        {/* Certificate Photo Section */}
-                        <div className="md:col-span-2 mt-2">
-                            <InputLabel
-                                htmlFor="profile_photo"
-                                value="Please Upload Your Preferred Certificate Picture"
-                                className={theme.labelClassName}
-                                style={{
-                                    fontFamily: FONT_FAMILY,
-                                    fontSize: "14px",
-                                    fontWeight: 600,
-                                }}
-                            />
-
-                            <div className="mt-4 flex flex-row gap-4 items-center">
-                                {/* Area Preview Berbentuk Lonjong (Oval) */}
-                                <div
-                                    className={theme.photoPreviewFrameClassName}
-                                >
-                                    {photoPreview ? (
-                                        <img
-                                            src={photoPreview}
-                                            alt="Preferred certificate"
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <div
-                                            className={
-                                                theme.photoFallbackClassName
-                                            }
-                                        >
-                                            <UploadCloud className="size-8 mb-2 text-[#DB202C]" />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="flex-1 space-y-4">
-                                    <div>
-                                        <p
-                                            className={
-                                                theme.photoHelperClassName
-                                            }
-                                            style={{
-                                                fontFamily: FONT_FAMILY,
-                                                fontSize: "12px",
-                                                fontWeight: 400,
-                                            }}
-                                        >
-                                            Upload a clear portrait photo. Click
-                                            the button below to upload and
-                                            adjust your photo perfectly into the
-                                            oval shape.
-                                        </p>
-                                    </div>
-
-                                    <input
-                                        ref={fileInputRef}
-                                        id="profile_photo"
-                                        type="file"
-                                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                        className="hidden"
-                                        onChange={onFileChange}
-                                    />
-
-                                    <Button
-                                        type="button"
-                                        onClick={() =>
-                                            fileInputRef.current?.click()
-                                        }
-                                        style={{
-                                            fontFamily: FONT_FAMILY,
-                                            fontSize: "14px",
-                                            fontWeight: 500,
-                                        }}
-                                        className={theme.uploadButtonClassName}
-                                    >
-                                        Choose Photo
-                                    </Button>
-
-                                    <InputError
-                                        message={firstError(
-                                            formErrors,
-                                            "profile_photo",
-                                        )}
-                                        className={theme.errorClassName}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
                         <div>
                             <InputLabel
                                 htmlFor="instagram"
@@ -1382,6 +1292,93 @@ export default function StudentProfileForm({
                                 optionsGridClassName="grid grid-cols-2 gap-4"
                             />
                         </div>
+
+                        {/* Certificate Photo Section */}
+                        <div className="md:col-span-2 mt-2">
+                            <InputLabel
+                                htmlFor="profile_photo"
+                                value="Please Upload Your Preferred Certificate Picture"
+                                className={theme.labelClassName}
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 600,
+                                }}
+                            />
+
+                            <div className="mt-4 flex flex-row gap-4 items-center">
+                                {/* Area Preview Berbentuk Lonjong (Oval) */}
+                                <div
+                                    className={theme.photoPreviewFrameClassName}
+                                >
+                                    {photoPreview ? (
+                                        <img
+                                            src={photoPreview}
+                                            alt="Preferred certificate"
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <div
+                                            className={
+                                                theme.photoFallbackClassName
+                                            }
+                                        >
+                                            <UploadCloud className="size-8 mb-2 text-[#DB202C]" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex-1 space-y-4">
+                                    <div>
+                                        <p
+                                            className={
+                                                theme.photoHelperClassName
+                                            }
+                                            style={{
+                                                fontFamily: FONT_FAMILY,
+                                                fontSize: "12px",
+                                                fontWeight: 700,
+                                            }}
+                                        >
+                                            Upload a clear portrait photo (max 10 MB)
+                                        </p>
+                                    </div>
+
+                                    <input
+                                        ref={fileInputRef}
+                                        id="profile_photo"
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                        className="hidden"
+                                        onChange={onFileChange}
+                                    />
+
+                                    <Button
+                                        type="button"
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                        style={{
+                                            fontFamily: FONT_FAMILY,
+                                            fontSize: "14px",
+                                            fontWeight: 500,
+                                        }}
+                                        className={theme.uploadButtonClassName}
+                                    >
+                                        Choose Photo
+                                    </Button>
+
+                                    <InputError
+                                        message={firstError(
+                                            formErrors,
+                                            "profile_photo",
+                                        )}
+                                        className={theme.errorClassName}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </section>
 
