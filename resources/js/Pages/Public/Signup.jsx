@@ -2,7 +2,6 @@ import InputError from "@/Components/InputError";
 import InputLabel from "@/Components/InputLabel";
 import PasswordField from "@/Components/PasswordField";
 import PasswordRequirementsCard from "@/Components/PasswordRequirementsCard";
-import { PUBLIC_FORM_FIELD_CLASS } from "@/lib/publicFormStyles";
 import { Button } from "@/Components/ui/button";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { useForm } from "@inertiajs/react";
@@ -69,11 +68,11 @@ export default function Signup({ onboarding, student }) {
                             id="password"
                             value={data.password}
                             className="mt-2 block w-full"
-                            inputClassName={`${PUBLIC_FORM_FIELD_CLASS} pr-11`}
+                            inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
                             onChange={(event) =>
                                 setData("password", event.target.value)
                             }
-                            buttonClassName="text-white/70 hover:text-white"
+                            buttonClassName="text-white/60 hover:text-white"
                             autoComplete="new-password"
                             required
                         />
@@ -96,14 +95,14 @@ export default function Signup({ onboarding, student }) {
                             id="password_confirmation"
                             value={data.password_confirmation}
                             className="mt-2 block w-full"
-                            inputClassName={`${PUBLIC_FORM_FIELD_CLASS} pr-11`}
+                            inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
                             onChange={(event) =>
                                 setData(
                                     "password_confirmation",
                                     event.target.value,
                                 )
                             }
-                            buttonClassName="text-white/70 hover:text-white"
+                            buttonClassName="text-white/60 hover:text-white"
                             autoComplete="new-password"
                             required
                         />
