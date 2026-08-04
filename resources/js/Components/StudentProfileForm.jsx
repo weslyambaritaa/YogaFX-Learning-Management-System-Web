@@ -700,8 +700,9 @@ export default function StudentProfileForm({
               sectionDividerClassName: isEnrollment
                   ? "mb-6 border-t-[4px] border-[#DB202C] pt-5"
                   : "mb-6 border-b border-white pb-4",
-              footerDividerClassName:
-                  "flex items-center border-t border-white pt-8",
+              footerDividerClassName: isEnrollment
+                  ? "flex items-center pt-8"
+                  : "flex items-center border-t border-white pt-8",
               dialogContentClassName:
                   "max-w-xl border-white bg-[#141110] text-white",
               dialogTitleClassName: "text-xl font-bold text-white",
@@ -1392,7 +1393,6 @@ export default function StudentProfileForm({
                         >
                             Current Yoga Experience
                         </h3>
-            
                     </div>
 
                     <div className="space-y-10">
