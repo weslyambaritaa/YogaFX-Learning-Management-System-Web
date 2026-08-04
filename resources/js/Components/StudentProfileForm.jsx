@@ -222,8 +222,6 @@ function isValidEmail(value) {
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const PUBLIC_FORM_LABEL_CLASS = "text-sm font-medium text-white/90";
-const PUBLIC_FORM_FIELD_CLASS =
-    "min-h-[52px] rounded-[5px] border-2 border-white/50 bg-black/45 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/55 shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 focus:border-white focus:bg-black/60 focus:ring-2 focus:ring-white/35";
 const PUBLIC_FORM_SELECT_PANEL_CLASS =
     "border-white/10 bg-[#161616] text-white";
 

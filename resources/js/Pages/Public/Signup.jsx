@@ -3,6 +3,7 @@ import InputLabel from "@/Components/InputLabel";
 import PasswordField from "@/Components/PasswordField";
 import PasswordRequirementsCard from "@/Components/PasswordRequirementsCard";
 import { Button } from "@/Components/ui/button";
+import { PUBLIC_FORM_FIELD_CLASS } from "@/lib/publicFormStyles";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { useForm } from "@inertiajs/react";
 
