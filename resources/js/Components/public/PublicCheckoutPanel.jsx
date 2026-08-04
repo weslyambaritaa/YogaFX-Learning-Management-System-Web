@@ -239,16 +239,6 @@ function resolveBillingDay(summary, checkout, selectedPaymentOption) {
     return Number(value) === 1 ? 1 : 15;
 }
 
-function formatInstallmentDateAmount(dueAt, amount, currencyCode) {
-    const formattedAmount = formatCurrency(Number(amount ?? 0), currencyCode);
-
-    if (!dueAt) {
-        return `Date will be confirmed — ${formattedAmount}`;
-    }
-
-    return `${formatScheduleDate(dueAt)} — ${formattedAmount}`;
-}
-
 function resolveMaximumInstallmentCount(
     summary,
     checkout,
@@ -879,6 +869,12 @@ export default function PublicCheckoutPanel({
 
     const maximumInstallmentCount =
         availableInstallmentCounts[availableInstallmentCounts.length - 1] ?? 2;
+
+    const shouldShowInstallmentSlider =
+        installmentCountSelectable !== false &&
+        availableInstallmentCounts.length > 1 &&
+        minimumInstallmentCount < maximumInstallmentCount;
+
     const defaultInstallmentCount = resolveDefaultInstallmentCount(
         baseInstallmentSummary,
         checkout,
@@ -966,13 +962,6 @@ export default function PublicCheckoutPanel({
             .at(-1) ??
         installmentScheduleBreakdown[installmentScheduleBreakdown.length - 1] ??
         null;
-
-    const nextInstallmentAmount = Number(
-        nextInstallment?.amount ??
-            activeInstallmentSummary?.recurring_payment_amount ??
-            recurringAmount ??
-            amountDueToday,
-    );
 
     const lastInstallmentAmount = Number(
         lastInstallment?.amount ??
@@ -2288,87 +2277,87 @@ export default function PublicCheckoutPanel({
                         </div>
                     )}
 
-                    {installmentCountSelectable !== false &&
-                        availableInstallmentCounts.length > 0 && (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between gap-4">
-                                    <p className="text-sm font-bold text-white">
-                                        Maximum Number of Installments
-                                    </p>
-                                    <p className="rounded-full bg-[#DB202C] px-4 py-1.5 text-sm font-semibold text-white">
-                                        {formatInstallmentCountDisplay(
-                                            selectedInstallmentCount,
-                                            maximumInstallmentCount,
-                                        )}
-                                    </p>
+                    {shouldShowInstallmentSlider && (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between gap-4">
+                                <p className="text-sm font-bold text-white">
+                                    Maximum Number of Installments
+                                </p>
+                                <p className="rounded-full bg-[#DB202C] px-4 py-1.5 text-sm font-semibold text-white">
+                                    {formatInstallmentCountDisplay(
+                                        selectedInstallmentCount,
+                                        maximumInstallmentCount,
+                                    )}
+                                </p>
+                            </div>
+
+                            <div className="relative pt-7">
+                                <div
+                                    className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-full bg-[#DB202C] px-2 py-0.5 text-xs font-semibold text-white"
+                                    style={{
+                                        left: `${sliderProgressPercent}%`,
+                                    }}
+                                >
+                                    {selectedInstallmentCount}
                                 </div>
 
-                                <div className="relative pt-7">
-                                    <div
-                                        className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-full bg-[#DB202C] px-2 py-0.5 text-xs font-semibold text-white"
-                                        style={{
-                                            left: `${sliderProgressPercent}%`,
-                                        }}
-                                    >
-                                        {selectedInstallmentCount}
-                                    </div>
-
-                                    <input
-                                        type="range"
-                                        min={minimumInstallmentCount}
-                                        max={maximumInstallmentCount}
-                                        step="1"
-                                        value={selectedInstallmentCount}
-                                        disabled={paymentIsLocked}
-                                        onChange={(event) => {
-                                            setSelectedInstallmentCount(
-                                                Number(event.target.value),
-                                            );
-                                            setFieldErrors((current) => ({
-                                                ...current,
-                                                installment_count: "",
-                                            }));
-                                        }}
-                                        className="yogafx-installment-slider w-full disabled:opacity-60"
-                                    />
-                                </div>
-
-                                <div className="flex items-center justify-between text-xs font-medium text-white/70">
-                                    <span>
-                                        {formatInstallmentCountDisplay(
-                                            minimumInstallmentCount,
-                                            maximumInstallmentCount,
-                                        )}
-                                    </span>
-                                    <span>
-                                        {formatInstallmentCountDisplay(
-                                            maximumInstallmentCount,
-                                            maximumInstallmentCount,
-                                        )}
-                                    </span>
-                                </div>
-
-                                <InputError
-                                    className="mt-2 text-sm font-medium text-rose-400"
-                                    style={{ fontFamily: FONT_FAMILY }}
-                                    message={fieldErrors.installment_count}
+                                <input
+                                    type="range"
+                                    min={minimumInstallmentCount}
+                                    max={maximumInstallmentCount}
+                                    step="1"
+                                    value={selectedInstallmentCount}
+                                    disabled={paymentIsLocked}
+                                    onChange={(event) => {
+                                        setSelectedInstallmentCount(
+                                            Number(event.target.value),
+                                        );
+                                        setFieldErrors((current) => ({
+                                            ...current,
+                                            installment_count: "",
+                                        }));
+                                    }}
+                                    className="yogafx-installment-slider w-full disabled:opacity-60"
                                 />
                             </div>
-                        )}
 
-                    {installmentCountSelectable === false && (
-                        <div className="space-y-2">
-                            <p className="text-sm font-bold text-white">
-                                Maximum Number of Installments
-                            </p>
-                            <div className="rounded-[8px] border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-white">
-                                {formatInstallmentCountDisplay(
-                                    selectedInstallmentCount,
-                                    maximumInstallmentCount,
-                                )}
+                            <div className="flex items-center justify-between text-xs font-medium text-white/70">
+                                <span>
+                                    {formatInstallmentCountDisplay(
+                                        minimumInstallmentCount,
+                                        maximumInstallmentCount,
+                                    )}
+                                </span>
+                                <span>
+                                    {formatInstallmentCountDisplay(
+                                        maximumInstallmentCount,
+                                        maximumInstallmentCount,
+                                    )}
+                                </span>
                             </div>
+
+                            <InputError
+                                className="mt-2 text-sm font-medium text-rose-400"
+                                style={{ fontFamily: FONT_FAMILY }}
+                                message={fieldErrors.installment_count}
+                            />
                         </div>
                     )}
+
+                    {!shouldShowInstallmentSlider &&
+                        availableInstallmentCounts.length > 0 && (
+                            <div className="space-y-2">
+                                <p className="text-sm font-bold text-white">
+                                    Maximum Number of Installments
+                                </p>
+                                <div className="rounded-[8px] border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-white">
+                                    {formatInstallmentCountDisplay(
+                                        selectedInstallmentCount,
+                                        maximumInstallmentCount,
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                     <div>
                         <p
@@ -2464,10 +2453,8 @@ export default function PublicCheckoutPanel({
                                     Next Installment
                                 </p>
                                 <p className="text-right text-[15px] font-semibold text-white">
-                                    {formatInstallmentDateAmount(
+                                    {formatScheduleDate(
                                         nextInstallment?.due_at,
-                                        nextInstallmentAmount,
-                                        activeCurrencyCode,
                                     )}
                                 </p>
                             </div>
@@ -2477,10 +2464,8 @@ export default function PublicCheckoutPanel({
                                     Last Installment
                                 </p>
                                 <p className="text-right text-[15px] font-semibold text-white">
-                                    {formatInstallmentDateAmount(
+                                    {formatScheduleDate(
                                         finalDueAt ?? lastInstallment?.due_at,
-                                        lastInstallmentAmount,
-                                        activeCurrencyCode,
                                     )}
                                 </p>
                             </div>
