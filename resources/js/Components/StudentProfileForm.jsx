@@ -697,7 +697,9 @@ export default function StudentProfileForm({
               selectPlaceholderColor: "#FFFFFF",
               textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS}`,
               helperClassName: "mt-2 text-sm font-semibold text-white/60",
-              sectionDividerClassName: "mb-6 border-b border-white pb-4",
+              sectionDividerClassName: isEnrollment
+                  ? "mb-6 border-t-[4px] border-[#DB202C] pt-5"
+                  : "mb-6 border-b border-white pb-4",
               footerDividerClassName:
                   "flex items-center border-t border-white pt-8",
               dialogContentClassName:
@@ -1340,7 +1342,8 @@ export default function StudentProfileForm({
                                                 fontWeight: 700,
                                             }}
                                         >
-                                            Upload a clear portrait photo (max 10 MB)
+                                            Upload a clear portrait photo (max
+                                            10 MB)
                                         </p>
                                     </div>
 
@@ -1378,7 +1381,6 @@ export default function StudentProfileForm({
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </section>
 
