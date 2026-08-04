@@ -98,9 +98,9 @@ export default function Signup({ onboarding, student }) {
                         />
                     </div>
 
-                    <div className="text-[#FFFFFF] [&_div]:!text-[#FFFFFF] [&_p]:!text-[#FFFFFF] [&_li]:!text-[#FFFFFF] [&_span]:!text-[#FFFFFF] [&_h2]:!text-[#FFFFFF] [&_h3]:!text-[#FFFFFF]">
-    <PasswordRequirementsCard password={data.password} />
-</div>
+                    <div className="text-[#000000] [&_div]:!text-[#000000] [&_p]:!text-[#000000] [&_li]:!text-[#000000] [&_span]:!text-[#000000] [&_h2]:!text-[#000000] [&_h3]:!text-[#000000]">
+                        <PasswordRequirementsCard password={data.password} />
+                    </div>
 
                     {/* Confirm Password */}
                     <div>
