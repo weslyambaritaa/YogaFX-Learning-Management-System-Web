@@ -1399,35 +1399,112 @@ class HomeController extends Controller
     }
 
     protected function moduleAccessMap(
-        User $user,
-        Collection $modules,
-        Collection $lessonProgressMap,
-        Collection $completedAssessmentIds,
-        Collection $assignmentSubmissionMap,
-        Collection $resourceModuleVisitMap,
-    ): Collection {
-        $accessMap = collect();
-        $allPreviousModulesComplete = true;
+    User $user,
+    Collection $modules,
+    Collection $lessonProgressMap,
+    Collection $completedAssessmentIds,
+    Collection $assignmentSubmissionMap,
+    Collection $resourceModuleVisitMap,
+): Collection {
+    $accessMap = collect();
 
-        foreach ($modules as $module) {
-            if ($this->isCertificateDownloadModule($module)) {
-                $certificateState = $this->certificateAccessState($user);
+    /*
+     * Module pertama tersedia secara default.
+     * Module setelahnya hanya tersedia jika seluruh
+     * module sebelumnya sudah selesai.
+     */
+    $allPreviousModulesComplete = true;
 
-                $accessMap->put($module->id, [
-                    'is_visible' => (bool) ($certificateState['is_visible'] ?? false),
-                    'status' => $certificateState['module_status'] ?? 'locked',
-                    'description' => $certificateState['module_description'] ?? $module->description,
-                    'is_complete' => (bool) ($certificateState['is_complete'] ?? false),
-                    'certificate_state' => $certificateState,
-                ]);
+    foreach ($modules as $module) {
+        /*
+         * Certificate module tetap harus mengikuti
+         * urutan module seperti module lainnya.
+         */
+        if ($this->isCertificateDownloadModule($module)) {
+            $certificateState =
+                $this->certificateAccessState($user);
 
-                $allPreviousModulesComplete = $allPreviousModulesComplete
-                    && (bool) ($certificateState['is_complete'] ?? false);
+            $previousModulesComplete =
+                $allPreviousModulesComplete;
 
-                continue;
-            }
+            /*
+             * Certificate eligibility berasal dari
+             * CertificateEligibilityService.
+             */
+            $certificateEligible = (bool) (
+                $certificateState['is_visible'] ?? false
+            );
 
-            $isComplete = $this->isModuleFullyComplete(
+            $certificateGenerated = (bool) (
+                $certificateState['is_complete'] ?? false
+            );
+
+            /*
+             * Certificate baru dapat dibuka jika:
+             *
+             * 1. Semua module sebelumnya selesai.
+             * 2. Student sudah eligible untuk certificate
+             *    atau certificate sudah dibuat.
+             */
+            $isVisible =
+                $previousModulesComplete
+                && $certificateEligible;
+
+            $isComplete =
+                $isVisible
+                && $certificateGenerated;
+
+            $status = $isComplete
+                ? 'completed'
+                : ($isVisible
+                    ? 'available'
+                    : 'locked');
+
+            $description = ! $previousModulesComplete
+                ? 'Complete the previous module before accessing your certificate.'
+                : (
+                    $certificateState['module_description']
+                    ?? $module->description
+                );
+
+            /*
+             * Samakan certificate state dengan hasil
+             * sequential module gate.
+             */
+            $certificateState['is_visible'] =
+                $isVisible;
+
+            $certificateState['is_complete'] =
+                $isComplete;
+
+            $certificateState['module_status'] =
+                $status;
+
+            $certificateState['module_description'] =
+                $description;
+
+            $accessMap->put($module->id, [
+                'is_visible' => $isVisible,
+                'status' => $status,
+                'description' => $description,
+                'is_complete' => $isComplete,
+                'certificate_state' =>
+                    $certificateState,
+            ]);
+
+            /*
+             * Module setelah Certificate juga tetap
+             * terkunci sampai Certificate selesai.
+             */
+            $allPreviousModulesComplete =
+                $allPreviousModulesComplete
+                && $isComplete;
+
+            continue;
+        }
+
+        $isComplete =
+            $this->isModuleFullyComplete(
                 $module,
                 $lessonProgressMap,
                 $completedAssessmentIds,
@@ -1435,20 +1512,32 @@ class HomeController extends Controller
                 $resourceModuleVisitMap,
             );
 
-            $accessMap->put($module->id, [
-                'is_visible' => $allPreviousModulesComplete,
-                'status' => $isComplete
-                    ? 'completed'
-                    : ($allPreviousModulesComplete ? 'available' : 'locked'),
-                'description' => $module->description,
-                'is_complete' => $isComplete,
-            ]);
+        $accessMap->put($module->id, [
+            'is_visible' =>
+                $allPreviousModulesComplete,
 
-            $allPreviousModulesComplete = $allPreviousModulesComplete && $isComplete;
-        }
+            'status' => $isComplete
+                ? 'completed'
+                : (
+                    $allPreviousModulesComplete
+                        ? 'available'
+                        : 'locked'
+                ),
 
-        return $accessMap;
+            'description' =>
+                $module->description,
+
+            'is_complete' =>
+                $isComplete,
+        ]);
+
+        $allPreviousModulesComplete =
+            $allPreviousModulesComplete
+            && $isComplete;
     }
+
+    return $accessMap;
+}
 
     protected function lessonUnlockMap(?int $userId, Collection $modules, Collection $lessonProgressMap): Collection
     {
