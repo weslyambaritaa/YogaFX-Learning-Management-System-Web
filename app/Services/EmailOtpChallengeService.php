@@ -56,6 +56,10 @@ class EmailOtpChallengeService
 
             if (! ($user->isStudent() && ! $user->isStudentAccountActive())) {
                 $this->sessionTrackingService->startStudentSession($request, $user);
+
+                if ($user->isTesterStudent()) {
+                    $request->session()->put('show_welcome_popup', true);
+                }
             }
 
             return $user;
@@ -184,12 +188,30 @@ class EmailOtpChallengeService
         $title = $challenge->context === AuthEmailOtpChallenge::CONTEXT_SIGNUP
             ? 'Signup Verification'
             : 'Login Verification';
+        $codeHeading = $challenge->context === AuthEmailOtpChallenge::CONTEXT_SIGNUP
+            ? 'Your sign-up code'
+            : 'Your sign-in code';
         $body = implode('', [
-            '<p>Hi '.e($user->name ?: $user->email).',</p>',
-            '<p>Please use the OTP code below to continue your YogaFX '.e($challenge->context).' flow.</p>',
-            '<p><strong>OTP Code: '.e($otpCode).'</strong></p>',
-            '<p>This code expires in '.e((string) $expiresInMinutes).' minutes.</p>',
-            '<p>Return to the verification page that is already open in your browser to continue.</p>',
+            // Bleeds past the shared wrapper's 24px content padding so this card's dark
+            // background reaches the rounded outer edge — the YogaFX mark here is the
+            // light/white logo variant, which needs a dark backdrop to be visible.
+            '<div style="margin: -24px; padding: 32px 24px; background: #141110; border-radius: 18px;">',
+            '<div style="text-align: center; margin: 0 0 24px;">',
+            '<table role="presentation" width="160" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; border-collapse: collapse;"><tr><td style="width: 160px;">',
+            '<img src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png" alt="YogaFX" style="display: block; width: 100%; max-width: 100%; height: auto;">',
+            '</td></tr></table>',
+            '</div>',
+            '<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 28px 24px; text-align: center;">',
+            '<p style="margin: 0 0 16px; font-size: 18px; font-weight: 700; color: #0f172a;">'.e($codeHeading).'</p>',
+            '<p style="margin: 0 0 20px; font-size: 14px; color: #475569;">Enter this code:</p>',
+            '<p style="margin: 0 0 20px; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a;">'.e($otpCode).'</p>',
+            '<p style="margin: 0; font-size: 13px; color: #64748b;">The code expires in '.e((string) $expiresInMinutes).' minutes.</p>',
+            '</div>',
+            '<p style="margin: 20px 0 0; font-size: 12px; color: #94a3b8; text-align: center;">',
+            'If you didn&rsquo;t request this email, you can safely ignore it. Never share this code with anyone. ',
+            '<span style="color: #94a3b8;">Yoga</span><span style="color: #c00000;">FX</span> will never ask you for it.',
+            '</p>',
+            '</div>',
         ]);
 
         dispatch(function () use ($user, $subject, $body, $title): void {

@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Storage;
 class PublicPageMeta
 {
     private const DEFAULT_SITE_NAME = 'YogaFX';
-    private const DEFAULT_DESCRIPTION = 'YogaFX adalah platform pembelajaran premium dengan pengalaman belajar yoga yang tenang, terpandu, dan content-first.';
+    private const DEFAULT_DESCRIPTION = 'YogaFX is a premium learning platform with a calm, guided, content-first yoga learning experience.';
     private const DEFAULT_TYPE = 'website';
     private const DEFAULT_TWITTER_CARD = 'summary_large_image';
 
@@ -33,7 +33,7 @@ class PublicPageMeta
         $tierName = $package->accessTier?->name;
         $description = $this->normalizeDescription(
             $package->description
-            ?: ($tierName ? sprintf('Join %s di YogaFX dan lanjutkan perjalanan belajar yoga Anda dengan alur yang tenang dan terpandu.', $tierName) : null)
+            ?: ($tierName ? sprintf('Join %s on YogaFX and continue your yoga learning journey in a calm, guided flow.', $tierName) : null)
         );
 
         return $this->defaults($request, [

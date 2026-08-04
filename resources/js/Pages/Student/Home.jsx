@@ -1,28 +1,14 @@
 import AppStoreBadges from "@/Components/public/AppStoreBadges";
 import LockedContentDialog from "@/Components/student/LockedContentDialog";
 import StudentStatusBadge from "@/Components/student/StudentStatusBadge";
+import WelcomeToYogaFXDialog from "@/Components/student/WelcomeToYogaFXDialog";
 import { Button } from "@/Components/ui/button";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, usePage } from "@inertiajs/react";
 import { ChevronRight, Play, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-const ONBOARDING_KEY = "yogafx_onboarding_done_v2";
 const FONT_FAMILY = "'Montserrat', sans-serif";
-const BASE_SLIDES = [
-    {
-        title: "Welcome to YogaFX",
-        body: "A premium learning platform built for focus with a cleaner module flow across desktop and mobile.",
-    },
-    {
-        title: "Keep moving forward",
-        body: "Continue from your latest lesson, track what is completed, and see what is still locked before opening it.",
-    },
-    {
-        title: "Everything stays guided",
-        body: "Your next step, module access, and supporting resources stay visible without turning the experience into a school portal.",
-    },
-];
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
@@ -31,102 +17,6 @@ function formatDurationParts(totalSeconds) {
         minutes: String(Math.floor((safeSeconds % 3600) / 60)).padStart(2, "0"),
         seconds: String(Math.floor(safeSeconds % 60)).padStart(2, "0"),
     };
-}
-
-function OnboardingOverlay({ onDone, appDownload }) {
-    const [slide, setSlide] = useState(0);
-    const slides = [
-        ...BASE_SLIDES,
-        ...(appDownload?.has_any_link && appDownload?.qr_image_url
-            ? [
-                  {
-                      title: "Get it on your mobile!",
-                      type: "app-download",
-                  },
-              ]
-            : []),
-    ];
-    const current = slides[slide];
-    const isLast = slide === slides.length - 1;
-
-    const finish = () => {
-        localStorage.setItem(ONBOARDING_KEY, "1");
-        onDone();
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
-            <div
-                className="relative w-full max-w-md rounded-[5px] border border-white/10 bg-[#141110] p-8 text-white"
-                style={{ fontFamily: FONT_FAMILY }}
-            >
-                <button
-                    type="button"
-                    onClick={finish}
-                    className="absolute right-5 top-5 text-white/45 transition hover:text-white"
-                >
-                    <X className="size-4" />
-                </button>
-                <div className="mb-8 flex gap-2">
-                    {slides.map((_, index) => (
-                        <div
-                            key={index}
-                            className={[
-                                "h-1 rounded-full transition-all",
-                                index === slide
-                                    ? "w-10 bg-[#DB202C]"
-                                    : "w-4 bg-white/15",
-                            ].join(" ")}
-                        />
-                    ))}
-                </div>
-                <div className="space-y-3 text-center">
-                    {current.type === "app-download" ? (
-                        <div className="space-y-5">
-                            <div className="mx-auto flex w-fit max-w-full items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white p-3 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
-                                {appDownload?.qr_image_url ? (
-                                    <img
-                                        src={appDownload.qr_image_url}
-                                        alt="YogaFX mobile app QR code"
-                                        className="h-48 w-48 object-contain sm:h-52 sm:w-52"
-                                    />
-                                ) : (
-                                    <div className="flex h-48 w-48 items-center justify-center rounded-[12px] border border-dashed border-slate-300 text-center text-sm text-slate-500 sm:h-52 sm:w-52">
-                                        QR code is not available yet.
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-3">
-                                <h2 className="text-2xl font-semibold">
-                                    {current.title}
-                                </h2>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <h2 className="text-2xl font-semibold">
-                                {current.title}
-                            </h2>
-                            <p className="text-sm leading-7 text-white/60">
-                                {current.body}
-                            </p>
-                        </>
-                    )}
-                </div>
-                <div className="mt-8 flex items-center justify-between">
-                    <Button
-                        type="button"
-                        onClick={() =>
-                            isLast ? finish() : setSlide((value) => value + 1)
-                        }
-                        className="rounded-[5px] bg-[#DB202C] text-white hover:bg-[#c31c28]"
-                    >
-                        {isLast ? "Get Started" : "Next"}
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
 }
 
 function AccessTimeCard({ accessTimeSummary }) {
@@ -632,12 +522,14 @@ export default function StudentHome({
     availableModulesSection,
     assignmentMilestone,
     homeExperience,
+    showWelcomePopup,
 }) {
-    const [showOnboarding, setShowOnboarding] = useState(false);
     const [selectedModule, setSelectedModule] = useState(null);
     const [lockedModuleOpen, setLockedModuleOpen] = useState(false);
     const [lockedLessonOpen, setLockedLessonOpen] = useState(false);
-    const bootedRef = useRef(false);
+    const [welcomePopupOpen, setWelcomePopupOpen] = useState(
+        Boolean(showWelcomePopup),
+    );
     const rawModules = availableModulesSection?.items ?? [];
     const studentName = studentContext?.display_name ?? "Student";
     const { auth, appDownload } = usePage().props;
@@ -660,18 +552,6 @@ export default function StudentHome({
         .filter(Boolean)
         .join(" - ");
 
-    useEffect(() => {
-        if (
-            !bootedRef.current &&
-            typeof window !== "undefined" &&
-            window.matchMedia("(min-width: 768px)").matches &&
-            !localStorage.getItem(ONBOARDING_KEY)
-        ) {
-            setShowOnboarding(true);
-        }
-        bootedRef.current = true;
-    }, []);
-
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
@@ -679,12 +559,11 @@ export default function StudentHome({
         >
             <Head title="Home" />
 
-            {showOnboarding ? (
-                <OnboardingOverlay
-                    onDone={() => setShowOnboarding(false)}
-                    appDownload={appDownload}
-                />
-            ) : null}
+            <WelcomeToYogaFXDialog
+                open={welcomePopupOpen}
+                onOpenChange={setWelcomePopupOpen}
+                appDownload={appDownload}
+            />
             <LockedContentDialog
                 open={lockedModuleOpen}
                 onOpenChange={setLockedModuleOpen}
@@ -806,7 +685,7 @@ export default function StudentHome({
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%),linear-gradient(to_top,rgba(0,0,0,0.96)_0%,rgba(0,0,0,0.38)_32%,transparent_62%)]" />
                 </div>
 
-                <div className="relative mx-auto flex min-h-screen max-w-[1400px] flex-col justify-end gap-6 px-4 pb-20 pt-24 sm:gap-8 sm:px-6 lg:px-10 lg:pb-28">
+                <div className="relative mx-auto flex min-h-[80vh] max-w-[1400px] flex-col justify-end gap-6 px-4 pb-20 pt-24 sm:gap-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10 lg:pb-28">
                     <div className="max-w-2xl space-y-3 text-white sm:space-y-5">
                         {/* "Welcome back, Rahel" → medium 14px, tanpa uppercase */}
                         <div
@@ -885,7 +764,7 @@ export default function StudentHome({
                 </div>
             </section>
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:gap-10 sm:px-6 sm:pt-10 lg:px-10">
+            <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:gap-10 sm:px-6 sm:-mt-10 lg:px-10">
                 <section className="space-y-2.5 sm:space-y-4">
                     <div className="px-3.5 md:px-0">
                         <h1

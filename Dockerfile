@@ -32,7 +32,7 @@ RUN git config --global --add safe.directory /var/www/html
 RUN mkdir -p storage/framework/views storage/framework/cache/data storage/framework/sessions storage/logs bootstrap/cache
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-interaction --prefer-source --optimize-autoloader --no-scripts
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 COPY package.json package-lock.json ./
 RUN npm ci
