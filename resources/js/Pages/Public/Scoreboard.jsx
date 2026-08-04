@@ -35,6 +35,9 @@ async function parseJsonSafely(response) {
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
 
+const PUBLIC_FORM_FIELD_CLASS =
+    "min-h-[52px] rounded-[5px] border-2 border-white/50 bg-black/45 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/55 shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 focus:border-white focus:bg-black/60 focus:ring-2 focus:ring-white/35 disabled:opacity-60";
+
 const FIELD_ORDER = [
     "first_name",
     "last_name",
@@ -331,7 +334,10 @@ export default function Scoreboard({
                     selectedPackage?.currency_code ?? "USD",
                 )}`
               : selectedPackageHasPrice
-                ? formatCurrency(selectedPackage.price, selectedPackage.currency_code)
+                ? formatCurrency(
+                      selectedPackage.price,
+                      selectedPackage.currency_code,
+                  )
                 : "Price not set yet";
 
     const normalizedEmail = (data.email ?? "").trim().toLowerCase();
@@ -499,12 +505,10 @@ export default function Scoreboard({
                     selectedPackageInstallmentCountSelectable,
                 configured_installment_count:
                     selectedPackageConfiguredInstallmentCount,
-                fixed_installment_count:
-                    selectedPackageFixedInstallmentCount,
+                fixed_installment_count: selectedPackageFixedInstallmentCount,
                 installment_calculation_method:
                     selectedPackageInstallmentCalculationMethod,
-                installment_count_mode:
-                    selectedPackageInstallmentCountMode,
+                installment_count_mode: selectedPackageInstallmentCountMode,
                 summary: previewInstallmentSummary,
                 checkout_variant: "paid",
             });
@@ -584,10 +588,8 @@ export default function Scoreboard({
                 selectedPackageInstallmentCountSelectable,
             configured_installment_count:
                 selectedPackageConfiguredInstallmentCount,
-            minimum_installment_count:
-                selectedPackageMinimumInstallmentCount,
-            fixed_installment_count:
-                selectedPackageFixedInstallmentCount,
+            minimum_installment_count: selectedPackageMinimumInstallmentCount,
+            fixed_installment_count: selectedPackageFixedInstallmentCount,
             installment_count:
                 previewInstallmentSummary?.installment_count ??
                 previewInstallmentCount,
@@ -913,7 +915,7 @@ export default function Scoreboard({
                         lineHeight: 1.6,
                     }}
                 >
-                    {`Please Continue Your ${packagePrice} Transfer Below.`}
+                    {`Let's Get Started!`}
                 </span>
             }
             aside={<div className="space-y-6" />}
@@ -972,7 +974,7 @@ export default function Scoreboard({
                                 id="first_name"
                                 value={data.first_name}
                                 disabled={isIdentityLocked}
-                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS}`}
                                 style={{
                                     fontFamily: FONT_FAMILY,
                                     fontSize: "14px",
@@ -1012,7 +1014,7 @@ export default function Scoreboard({
                                 id="last_name"
                                 value={data.last_name}
                                 disabled={isIdentityLocked}
-                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS}`}
                                 style={{
                                     fontFamily: FONT_FAMILY,
                                     fontSize: "14px",
@@ -1052,7 +1054,7 @@ export default function Scoreboard({
                                 type="email"
                                 value={data.email}
                                 disabled={isIdentityLocked}
-                                className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                className={`mt-2 block w-full ${PUBLIC_FORM_FIELD_CLASS}`}
                                 style={{
                                     fontFamily: FONT_FAMILY,
                                     fontSize: "14px",
@@ -1101,7 +1103,7 @@ export default function Scoreboard({
                                     displayMode="phone-code"
                                     searchPlaceholder="Search phone code or country"
                                     disabled={isIdentityLocked}
-                                    buttonClassName="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    buttonClassName={`block w-full ${PUBLIC_FORM_FIELD_CLASS}`}
                                     buttonTextClassName="text-sm font-normal text-white"
                                     placeholderClassName="text-sm font-normal text-white/50"
                                     panelClassName="border-white/10 bg-[#161616] text-white"
@@ -1116,7 +1118,7 @@ export default function Scoreboard({
                                     id="phone_number"
                                     value={data.phone_number}
                                     disabled={isIdentityLocked}
-                                    className="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white placeholder:text-white/30 shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    className={`block w-full ${PUBLIC_FORM_FIELD_CLASS}`}
                                     style={{
                                         fontFamily: FONT_FAMILY,
                                         fontSize: "14px",
@@ -1172,7 +1174,7 @@ export default function Scoreboard({
                                     }
                                     placeholder="Select a country"
                                     disabled={isIdentityLocked}
-                                    buttonClassName="block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    buttonClassName={`block w-full ${PUBLIC_FORM_FIELD_CLASS}`}
                                     buttonTextClassName="text-sm font-normal text-white"
                                     placeholderClassName="text-sm font-normal text-white/50"
                                     panelClassName="border-white/10 bg-[#161616] text-white"
@@ -1240,7 +1242,9 @@ export default function Scoreboard({
                                                         ),
                                                         selectedPackage.currency_code,
                                                     )}`
-                                                  : Number(selectedPackage.price) > 0
+                                                  : Number(
+                                                          selectedPackage.price,
+                                                      ) > 0
                                                     ? formatCurrency(
                                                           selectedPackage.price,
                                                           selectedPackage.currency_code,

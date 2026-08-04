@@ -97,7 +97,7 @@ class PackageController extends Controller
     {
         return Inertia::render('Admin/Packages/Create', [
             'accessTiers' => $this->accessTierOptions(),
-            'packagePublicBaseUrl' => url('/p'),
+            'packagePublicBaseUrl' => url('/'),
         ]);
     }
 

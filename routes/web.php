@@ -367,13 +367,16 @@ require __DIR__.'/auth.php';
 
 Route::get('/p/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
     ->where('packageSlug', '[A-Za-z0-9\-]+')
-    ->name('lead-registration.packages.show');
+    ->name('lead-registration.packages.legacy-show');
+
 Route::post('/p/{packageSlug}', [LeadRegistrationController::class, 'store'])
     ->where('packageSlug', '[A-Za-z0-9\-]+')
-    ->name('lead-registration.packages.store');
+    ->name('lead-registration.packages.legacy-store');
+
 Route::get('/{packageSlug}', [LeadRegistrationController::class, 'showPackagePaymentLink'])
     ->where('packageSlug', '[A-Za-z0-9\-]+')
-    ->name('lead-registration.packages.legacy-show');
+    ->name('lead-registration.packages.show');
+
 Route::post('/{packageSlug}', [LeadRegistrationController::class, 'store'])
     ->where('packageSlug', '[A-Za-z0-9\-]+')
-    ->name('lead-registration.packages.legacy-store');
+    ->name('lead-registration.packages.store');
