@@ -93,7 +93,7 @@ export default function EnrollmentSuccess({ onboarding }) {
                                         href={onboarding.continue_url}
                                         className="inline-flex items-center justify-center text-center !whitespace-normal"
                                     >
-                                        Access {packageTitle} Pre-Course
+                                         Click Here to Access {packageTitle} Pre-Course Preparation
                                     </Link>
                                 </Button>
                             </div>
