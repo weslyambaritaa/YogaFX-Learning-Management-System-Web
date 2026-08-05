@@ -219,7 +219,7 @@ export default function PublicFlowLayout({
                             Bikram Hot Yoga 26&amp;2 Yoga Teacher Training
                         </p>
 
-                        <p className="mt-6 text-lg font-medium italic text-white/75 sm:text-xl">
+                        <p className="mt-6 text-lg font-medium italic text-white sm:text-xl">
                             Your Enrollment Starts Now
                         </p>
 
