@@ -1208,69 +1208,19 @@ export default function Scoreboard({
                             />
                         </div>
 
-                        <div className="md:col-span-2">
-                            <InputLabel
-                                htmlFor="package_id"
-                                value="Package"
-                                className="text-sm font-medium text-white/90"
-                                style={{
-                                    fontFamily: FONT_FAMILY,
-                                    fontSize: "14px",
-                                    fontWeight: 500,
-                                }}
-                            />
-                            {is_package_locked && selectedPackage ? (
-                                <div
-                                    className="mt-2 min-h-[52px] rounded-[5px] bg-[#ffffff] px-5 py-4 text-black shadow-sm"
-                                    style={{ fontFamily: FONT_FAMILY }}
-                                >
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="min-w-0">
-                                            <div
-                                                className="text-sm font-medium text-black"
-                                                style={{
-                                                    fontFamily: FONT_FAMILY,
-                                                    fontSize: "14px",
-                                                    fontWeight: 500,
-                                                }}
-                                            >
-                                                <YogaFXText
-                                                    text={selectedPackage.title}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div
-                                            className="shrink-0 text-right text-sm font-medium text-black"
-                                            style={{
-                                                fontFamily: FONT_FAMILY,
-                                                fontSize: "14px",
-                                                fontWeight: 500,
-                                            }}
-                                        >
-                                            {selectedPackage.payment_type ===
-                                            "free"
-                                                ? "Free"
-                                                : selectedPackage.payment_type ===
-                                                    "donation"
-                                                  ? `Minimum ${formatCurrency(
-                                                        Number(
-                                                            selectedPackage.minimum_donation_amount ??
-                                                                0,
-                                                        ),
-                                                        selectedPackage.currency_code,
-                                                    )}`
-                                                  : Number(
-                                                          selectedPackage.price,
-                                                      ) > 0
-                                                    ? formatCurrency(
-                                                          selectedPackage.price,
-                                                          selectedPackage.currency_code,
-                                                      )
-                                                    : "Price not set yet"}
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
+                        {!is_package_locked ? (
+                            <div className="md:col-span-2">
+                                <InputLabel
+                                    htmlFor="package_id"
+                                    value="Package"
+                                    className="text-sm font-medium text-white/90"
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                    }}
+                                />
+
                                 <select
                                     id="package_id"
                                     value={data.package_id}
@@ -1281,7 +1231,7 @@ export default function Scoreboard({
                                             event.target.value,
                                         )
                                     }
-                                    className="mt-2 block w-full min-h-[52px] rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
+                                    className="mt-2 block min-h-[52px] w-full rounded-[5px] border border-white/20 bg-black/20 px-4 py-3.5 text-sm font-normal text-white shadow-sm transition-all duration-200 focus:border-white/40 focus:ring-2 focus:ring-white/20 disabled:opacity-60"
                                     style={{
                                         fontFamily: FONT_FAMILY,
                                         fontSize: "14px",
@@ -1294,7 +1244,9 @@ export default function Scoreboard({
                                             key={pkg.id}
                                             value={pkg.id}
                                             className="bg-gray-900 text-white"
-                                            style={{ fontFamily: FONT_FAMILY }}
+                                            style={{
+                                                fontFamily: FONT_FAMILY,
+                                            }}
                                         >
                                             {pkg.title}
                                             {pkg.access_tier?.name
@@ -1321,13 +1273,16 @@ export default function Scoreboard({
                                         </option>
                                     ))}
                                 </select>
-                            )}
-                            <InputError
-                                className="mt-2 text-sm font-medium text-rose-400"
-                                style={{ fontFamily: FONT_FAMILY }}
-                                message={errors.package_id}
-                            />
-                        </div>
+
+                                <InputError
+                                    className="mt-2 text-sm font-medium text-rose-400"
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                    }}
+                                    message={errors.package_id}
+                                />
+                            </div>
+                        ) : null}
                     </div>
 
                     <button type="submit" className="hidden" aria-hidden="true">
