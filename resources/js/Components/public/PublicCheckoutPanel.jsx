@@ -17,7 +17,7 @@ const FONT_FAMILY = "'Montserrat', sans-serif";
 const PAYPAL_FULL_NAMESPACE = "paypalPayFullCheckout";
 const PAYPAL_INSTALLMENT_NAMESPACE = "paypalInstallmentCheckout";
 const INSTALLMENT_WATERMARK_URL =
-    "https://yogafx-training.b-cdn.net/branding/pdf-watermark-20260309072713-dc4ffc1e.png";
+    "https://yogafx-training.b-cdn.net/branding/yogafx-white-icon.png";
 
 function firstErrorMessage(nextErrors) {
     return (
@@ -2386,18 +2386,18 @@ export default function PublicCheckoutPanel({
                     </div>
 
                     <div
-    className="relative isolate overflow-hidden rounded-[8px] border border-white/15 bg-[#0b0b0b]"
-    style={{ fontFamily: FONT_FAMILY }}
->
-    <img
-        src={INSTALLMENT_WATERMARK_URL}
-        alt=""
-        aria-hidden="true"
-        draggable="false"
-        className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[94%] w-auto max-w-[64%] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.16] mix-blend-screen brightness-[1.65] contrast-[1.15] saturate-[1.15]"
-    />
+                        className="relative isolate overflow-hidden rounded-[8px] border border-white/15 bg-[#0b0b0b]"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
+                        <img
+                            src={INSTALLMENT_WATERMARK_URL}
+                            alt=""
+                            aria-hidden="true"
+                            draggable="false"
+                            className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[94%] w-auto max-w-[64%] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.16] mix-blend-screen brightness-[1.65] contrast-[1.15] saturate-[1.15]"
+                        />
 
-    <div className="relative z-10 divide-y divide-white/10">
+                        <div className="relative z-10 divide-y divide-white/10">
                             {[
                                 {
                                     label: checkout.package?.title ?? "Package",
