@@ -17,6 +17,7 @@ export default function PackageForm({
         currency_code: "IDR",
         is_active: true,
         installment_enabled: false,
+        setup_fee: "",
         installment_calculation_method: "date",
         installment_count_mode: "",
         installment_count: "",
@@ -88,6 +89,7 @@ export default function PackageForm({
         setData((currentData) => ({
             ...currentData,
             installment_enabled: enabled,
+            setup_fee: enabled ? (currentData.setup_fee ?? "") : "",
             installment_calculation_method: enabled
                 ? (currentData.installment_calculation_method ?? "date")
                 : "date",
@@ -158,6 +160,11 @@ export default function PackageForm({
                     nextPaymentType === "paid"
                         ? currentData.installment_enabled
                         : false,
+
+                setup_fee:
+                    nextPaymentType === "paid"
+                        ? (currentData.setup_fee ?? "")
+                        : "",
 
                 installment_calculation_method:
                     nextPaymentType === "paid"
@@ -439,6 +446,36 @@ export default function PackageForm({
 
                 {isPaidPackage && installmentEnabled && (
                     <div className="grid gap-6 md:grid-cols-2">
+                        <div>
+                            <InputLabel
+                                htmlFor="setup_fee"
+                                value="Setup Fee (First Installment)"
+                            />
+
+                            <TextInput
+                                id="setup_fee"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                className="mt-1 block w-full"
+                                value={data.setup_fee ?? ""}
+                                onChange={(event) =>
+                                    setData("setup_fee", event.target.value)
+                                }
+                            />
+
+                            <p className="mt-2 text-xs text-gray-500">
+                                Optional. This amount will be charged as the
+                                first installment. Leave blank or enter 0 to use
+                                the standard equal installment calculation. The
+                                currency follows the package currency.
+                            </p>
+
+                            <InputError
+                                className="mt-2"
+                                message={errors.setup_fee}
+                            />
+                        </div>
                         <div>
                             <InputLabel
                                 htmlFor="installment_calculation_method"

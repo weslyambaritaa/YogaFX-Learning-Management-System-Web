@@ -68,24 +68,36 @@ class PackageRequest extends FormRequest
         }
 
         if ($this->has('installment_count')) {
-            $installmentCount = $this->input('installment_count');
+    $installmentCount = $this->input('installment_count');
 
-            $this->merge([
-                'installment_count' => $installmentCount === null || $installmentCount === ''
-                    ? null
-                    : (int) $installmentCount,
-            ]);
-        }
+    $this->merge([
+        'installment_count' => $installmentCount === null || $installmentCount === ''
+            ? null
+            : (int) $installmentCount,
+    ]);
+}
 
-        if ($this->has('minimum_donation_amount')) {
-            $minimumDonationAmount = $this->input('minimum_donation_amount');
+if ($this->has('setup_fee')) {
+    $setupFee = $this->input('setup_fee');
 
-            $this->merge([
-                'minimum_donation_amount' => $minimumDonationAmount === null || $minimumDonationAmount === ''
-                    ? null
-                    : (float) $minimumDonationAmount,
-            ]);
-        }
+    $this->merge([
+        'setup_fee' => $setupFee === null || $setupFee === ''
+            ? null
+            : (is_numeric($setupFee)
+                ? round((float) $setupFee, 2)
+                : $setupFee),
+    ]);
+}
+
+if ($this->has('minimum_donation_amount')) {
+    $minimumDonationAmount = $this->input('minimum_donation_amount');
+
+    $this->merge([
+        'minimum_donation_amount' => $minimumDonationAmount === null || $minimumDonationAmount === ''
+            ? null
+            : (float) $minimumDonationAmount,
+    ]);
+}
 
         if ($this->has('suggested_donation_amount')) {
             $suggestedDonationAmount = $this->input('suggested_donation_amount');
@@ -134,9 +146,14 @@ class PackageRequest extends FormRequest
             ]);
         }
 
-        $paymentType = strtolower(trim((string) $this->input('payment_type', Package::PAYMENT_TYPE_PAID)));
+        $paymentType = strtolower(trim(
+    (string) $this->input(
+        'payment_type',
+        Package::PAYMENT_TYPE_PAID,
+    ),
+));
 
-        if ($paymentType === Package::PAYMENT_TYPE_PAID) {
+if ($paymentType === Package::PAYMENT_TYPE_PAID) {
     $this->merge([
         'minimum_donation_amount' => null,
         'suggested_donation_amount' => null,
@@ -149,34 +166,41 @@ if ($paymentType === Package::PAYMENT_TYPE_FREE) {
         'minimum_donation_amount' => null,
         'suggested_donation_amount' => null,
         'installment_enabled' => false,
+        'setup_fee' => null,
     ]);
 }
 
 if ($paymentType === Package::PAYMENT_TYPE_DONATION) {
-    $minimumDonationAmount = $this->input('minimum_donation_amount');
+    $minimumDonationAmount = $this->input(
+        'minimum_donation_amount',
+    );
 
     $this->merge([
         'price' => 0,
 
         // Keep the legacy/internal field equal to the minimum amount.
         'suggested_donation_amount' =>
-            $minimumDonationAmount === null || $minimumDonationAmount === ''
+            $minimumDonationAmount === null
+            || $minimumDonationAmount === ''
                 ? null
                 : (float) $minimumDonationAmount,
 
         'installment_enabled' => false,
+        'setup_fee' => null,
     ]);
 }
 
-        if (! $this->boolean('installment_enabled')) {
-            $this->merge([
-                'installment_calculation_method' => Package::INSTALLMENT_CALCULATION_DATE,
-                'installment_count_mode' => null,
-                'installment_count' => null,
-                'installment_deadline_date' => null,
-                'allowed_billing_days' => null,
-            ]);
-        }
+if (! $this->boolean('installment_enabled')) {
+    $this->merge([
+        'setup_fee' => null,
+        'installment_calculation_method' =>
+            Package::INSTALLMENT_CALCULATION_DATE,
+        'installment_count_mode' => null,
+        'installment_count' => null,
+        'installment_deadline_date' => null,
+        'allowed_billing_days' => null,
+    ]);
+}
     }
 
     /**
@@ -225,7 +249,12 @@ if ($paymentType === Package::PAYMENT_TYPE_DONATION) {
             'currency_code' => ['required', 'string', Rule::in(AccessTier::CURRENCY_OPTIONS)],
             'is_active' => ['required', 'boolean'],
             'installment_enabled' => ['required', 'boolean'],
-            'installment_calculation_method' => [
+'setup_fee' => [
+    'nullable',
+    'numeric',
+    'min:0',
+],
+'installment_calculation_method' => [
                 $installmentEnabled ? 'required' : 'nullable',
                 'string',
                 Rule::in([
@@ -311,8 +340,10 @@ if ($paymentType === Package::PAYMENT_TYPE_DONATION) {
             'installment_count.min' => 'Installment count must be at least '.Package::MIN_INSTALLMENT_COUNT.'.',
             'installment_count.max' => 'Installment count cannot be greater than '.Package::MAX_INSTALLMENT_COUNT.'.',
             'price.gt' => 'Paid packages must have a price greater than 0.',
-            'price.in' => 'Free and donation packages must keep the fixed price at 0.',
-            'minimum_donation_amount.required' => 'Minimum donation amount is required for donation packages.',
+'price.in' => 'Free and donation packages must keep the fixed price at 0.',
+'setup_fee.numeric' => 'Setup fee must be a valid number.',
+'setup_fee.min' => 'Setup fee cannot be less than 0.',
+'minimum_donation_amount.required' => 'Minimum donation amount is required for donation packages.',
 
             'allowed_billing_days.required' => 'Please enable at least one billing day for installment.',
             'allowed_billing_days.array' => 'The allowed billing days must be a valid list.',
@@ -322,27 +353,41 @@ if ($paymentType === Package::PAYMENT_TYPE_DONATION) {
     }
 
     public function after(): array
-    {
-        return [
-            function ($validator): void {
-                $paymentType = $this->input('payment_type', Package::PAYMENT_TYPE_PAID);
-                $price = round((float) ($this->input('price') ?? 0), 2);
-                $installmentEnabled = $this->boolean('installment_enabled');
+{
+    return [
+        function ($validator): void {
+            $paymentType = $this->input('payment_type', Package::PAYMENT_TYPE_PAID);
+            $price = round((float) ($this->input('price') ?? 0), 2);
+            $installmentEnabled = $this->boolean('installment_enabled');
+            $setupFee = $this->input('setup_fee');
 
-                if ($paymentType !== Package::PAYMENT_TYPE_PAID && $price !== 0.0) {
-                    $validator->errors()->add(
-                        'price',
-                        'Free and donation packages must keep the fixed price at 0.',
-                    );
-                }
+            if ($paymentType !== Package::PAYMENT_TYPE_PAID && $price !== 0.0) {
+                $validator->errors()->add(
+                    'price',
+                    'Free and donation packages must keep the fixed price at 0.',
+                );
+            }
 
-                if ($paymentType !== Package::PAYMENT_TYPE_PAID && $installmentEnabled) {
-                    $validator->errors()->add(
-                        'installment_enabled',
-                        'Installment is only available for paid packages.',
-                    );
-                }
-            },
-        ];
-    }
+            if ($paymentType !== Package::PAYMENT_TYPE_PAID && $installmentEnabled) {
+                $validator->errors()->add(
+                    'installment_enabled',
+                    'Installment is only available for paid packages.',
+                );
+            }
+
+            if (
+                $paymentType === Package::PAYMENT_TYPE_PAID
+                && $installmentEnabled
+                && $setupFee !== null
+                && $setupFee !== ''
+                && round((float) $setupFee, 2) >= $price
+            ) {
+                $validator->errors()->add(
+                    'setup_fee',
+                    'Setup fee must be less than the package price.',
+                );
+            }
+        },
+    ];
+}
 }

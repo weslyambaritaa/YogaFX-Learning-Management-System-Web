@@ -331,8 +331,60 @@ class InstallmentWebhookHandler
             $paidCount++;
         }
 
-        $nextSchedule = $this->nextScheduleAfterPaidCount($subscription, $paidCount);
-        $isCompleted = ((float) $result['invoice']->balance_due) <= 0 || $paidCount >= (int) $subscription->installment_count;
+        $nextSchedule = $this->nextScheduleAfterPaidCount(
+    $subscription,
+    $paidCount,
+);
+
+$finalizedInvoice = $result['invoice'] instanceof Invoice
+    ? $result['invoice']
+    : $invoice;
+
+$remainingBalance = round(
+    (float) $finalizedInvoice->balance_due,
+    2,
+);
+
+$isLastInstallment =
+    $paidCount >= (int) $subscription->installment_count;
+
+$shouldWriteOffSmallFinalBalance =
+    $isLastInstallment
+    && $remainingBalance > 0
+    && $remainingBalance < 1;
+
+if ($shouldWriteOffSmallFinalBalance) {
+    $finalizedInvoice->forceFill([
+        'balance_due' => 0,
+        'status' => Invoice::STATUS_PAID_FULL,
+        'paid_at' => $finalizedInvoice->paid_at ?? $paidAt,
+    ])->save();
+
+    $finalizedInvoice = $finalizedInvoice->fresh();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Keep the downstream result consistent
+    |--------------------------------------------------------------------------
+    |
+    | Notifications and subscription completion below read the invoice from
+    | this result, so it must contain the written-off invoice state.
+    |
+    */
+    $result['invoice'] = $finalizedInvoice;
+    $remainingBalance = 0.0;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Completion depends on the invoice balance
+|--------------------------------------------------------------------------
+|
+| Reaching installment_count alone must not complete the subscription when
+| the invoice still has a balance of 1.00 or more.
+|
+*/
+$isCompleted = $remainingBalance <= 0;
 
         $user = $result['user'] instanceof User ? $result['user'] : $subscription->user;
         $reactivationBlocked = in_array($currentStatus, [
@@ -375,8 +427,15 @@ class InstallmentWebhookHandler
             'first_payment_paid_at' => $subscription->first_payment_paid_at ?? $paidAt,
             'started_at' => $subscription->started_at ?? $paidAt,
             'completed_at' => (! $reactivationBlocked && $isCompleted) ? $paidAt : null,
-            'next_due_at' => (! $reactivationBlocked && $isCompleted) ? null : $nextSchedule['due_at'],
-            'grace_deadline_at' => (! $reactivationBlocked && $isCompleted) ? null : $nextSchedule['grace_deadline'],
+            'next_billing_amount' => (! $reactivationBlocked && $isCompleted)
+    ? null
+    : $nextSchedule['amount'],
+'next_due_at' => (! $reactivationBlocked && $isCompleted)
+    ? null
+    : $nextSchedule['due_at'],
+'grace_deadline_at' => (! $reactivationBlocked && $isCompleted)
+    ? null
+    : $nextSchedule['grace_deadline'],
             'last_payment_failed_at' => null,
             'last_synced_at' => now(),
             'metadata' => $metadata,
@@ -545,28 +604,89 @@ class InstallmentWebhookHandler
     }
 
     /**
-     * @return array{due_at: Carbon|null, grace_deadline: Carbon|null}
-     */
-    private function nextScheduleAfterPaidCount(PaymentSubscription $subscription, int $paidCount): array
-    {
-        $plan = $subscription->metadata['installment_plan'] ?? [];
-        $recurringDueDates = $plan['recurring_due_dates'] ?? [];
-        $graceDeadlines = $plan['grace_deadlines'] ?? [];
+ * @return array{
+ *     amount: float|null,
+ *     due_at: Carbon|null,
+ *     grace_deadline: Carbon|null
+ * }
+ */
+private function nextScheduleAfterPaidCount(
+    PaymentSubscription $subscription,
+    int $paidCount,
+): array {
+    $plan = is_array(
+        $subscription->metadata['installment_plan'] ?? null,
+    )
+        ? $subscription->metadata['installment_plan']
+        : [];
 
-        $index = max(0, $paidCount - 1);
+    $recurringDueDates = is_array(
+        $plan['recurring_due_dates'] ?? null,
+    )
+        ? $plan['recurring_due_dates']
+        : [];
 
-        $dueAt = isset($recurringDueDates[$index]) && is_string($recurringDueDates[$index])
-            ? Carbon::parse($recurringDueDates[$index])->startOfDay()
-            : null;
-        $graceDeadline = isset($graceDeadlines[$index]) && is_string($graceDeadlines[$index])
-            ? Carbon::parse($graceDeadlines[$index])->startOfDay()
-            : null;
+    $graceDeadlines = is_array(
+        $plan['grace_deadlines'] ?? null,
+    )
+        ? $plan['grace_deadlines']
+        : [];
 
-        return [
-            'due_at' => $dueAt,
-            'grace_deadline' => $graceDeadline,
-        ];
+    $scheduleBreakdown = is_array(
+        $plan['schedule_breakdown'] ?? null,
+    )
+        ? $plan['schedule_breakdown']
+        : [];
+
+    $index = max(0, $paidCount - 1);
+    $nextCycleNumber = $paidCount + 1;
+
+    $nextScheduleItem = collect($scheduleBreakdown)
+        ->first(function ($item) use ($nextCycleNumber): bool {
+            return is_array($item)
+                && (int) ($item['cycle_number'] ?? 0)
+                    === $nextCycleNumber;
+        });
+
+    $dueAtValue = is_array($nextScheduleItem)
+        ? ($nextScheduleItem['due_at'] ?? null)
+        : ($recurringDueDates[$index] ?? null);
+
+    $graceDeadlineValue = is_array($nextScheduleItem)
+        ? ($nextScheduleItem['grace_deadline'] ?? null)
+        : ($graceDeadlines[$index] ?? null);
+
+    $amountValue = is_array($nextScheduleItem)
+        ? ($nextScheduleItem['amount'] ?? null)
+        : null;
+
+    if (! is_numeric($amountValue)) {
+        $amountValue = $paidCount <= 1
+            ? (
+                $plan['first_recurring_payment_amount']
+                    ?? $plan['recurring_payment_amount']
+                    ?? $subscription->monthly_base_amount
+            )
+            : (
+                $plan['recurring_payment_amount']
+                    ?? $subscription->monthly_base_amount
+            );
     }
+
+    return [
+        'amount' => is_numeric($amountValue)
+            ? round((float) $amountValue, 2)
+            : null,
+        'due_at' => is_string($dueAtValue) && $dueAtValue !== ''
+            ? Carbon::parse($dueAtValue)->startOfDay()
+            : null,
+        'grace_deadline' =>
+            is_string($graceDeadlineValue)
+            && $graceDeadlineValue !== ''
+                ? Carbon::parse($graceDeadlineValue)->startOfDay()
+                : null,
+    ];
+}
 
     /**
      * @param  array<string, mixed>  $payload

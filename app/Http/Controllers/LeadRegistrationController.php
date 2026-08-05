@@ -151,8 +151,9 @@ class LeadRegistrationController extends Controller
             'slug' => $package->slug,
             'description' => $package->description,
             'payment_type' => $package->normalizedPaymentType(),
-            'price' => (float) $package->price,
-            'minimum_donation_amount' => $package->minimumDonationAmount(),
+'price' => (float) $package->price,
+'setup_fee' => $package->initialInstallmentSetupFee(),
+'minimum_donation_amount' => $package->minimumDonationAmount(),
             'suggested_donation_amount' => $package->suggestedDonationAmount(),
             'currency_code' => $package->currency_code,
 

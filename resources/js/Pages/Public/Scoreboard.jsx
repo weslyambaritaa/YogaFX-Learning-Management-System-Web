@@ -184,6 +184,7 @@ function buildRecurringDueDates({
 
 function buildPreviewInstallmentSummary({
     amount,
+    setupFee = null,
     installmentCount,
     maximumInstallmentCount,
     minimumInstallmentCount = 2,
@@ -207,14 +208,48 @@ function buildPreviewInstallmentSummary({
     }
 
     const totalAmountCents = amountToCents(normalizedAmount);
-    const recurringAmountCents = Math.floor(
-        totalAmountCents / normalizedInstallmentCount,
-    );
-    const firstPaymentAmountCents =
-        totalAmountCents -
-        recurringAmountCents * (normalizedInstallmentCount - 1);
+    const recurringPaymentCount = normalizedInstallmentCount - 1;
+    const configuredSetupFeeCents = amountToCents(setupFee);
+
+    const setupFeeApplied =
+        configuredSetupFeeCents > 0 &&
+        configuredSetupFeeCents < totalAmountCents;
+
+    let firstPaymentAmountCents;
+    let firstRecurringPaymentAmountCents;
+    let recurringAmountCents;
+    let roundingAdjustmentCents = 0;
+
+    if (setupFeeApplied) {
+        const remainingAmountCents = totalAmountCents - configuredSetupFeeCents;
+
+        recurringAmountCents = Math.round(
+            remainingAmountCents / recurringPaymentCount,
+        );
+
+        roundingAdjustmentCents =
+            remainingAmountCents - recurringAmountCents * recurringPaymentCount;
+
+        firstRecurringPaymentAmountCents =
+            recurringAmountCents + roundingAdjustmentCents;
+
+        firstPaymentAmountCents = configuredSetupFeeCents;
+    } else {
+        recurringAmountCents = Math.floor(
+            totalAmountCents / normalizedInstallmentCount,
+        );
+
+        firstPaymentAmountCents =
+            totalAmountCents -
+            recurringAmountCents * (normalizedInstallmentCount - 1);
+
+        firstRecurringPaymentAmountCents = recurringAmountCents;
+    }
 
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
+    const firstRecurringPaymentAmount = centsToAmount(
+        firstRecurringPaymentAmountCents,
+    );
     const recurringAmount = centsToAmount(recurringAmountCents);
     const firstPaymentDate = toDateString(new Date());
     const recurringDueDates = buildRecurringDueDates({
@@ -226,10 +261,17 @@ function buildPreviewInstallmentSummary({
 
     return {
         total_amount: normalizedAmount.toFixed(2),
+        setup_fee_applied: setupFeeApplied,
+        configured_setup_fee: setupFeeApplied
+            ? firstPaymentAmount.toFixed(2)
+            : null,
         first_payment_amount: firstPaymentAmount.toFixed(2),
         first_payment_date: firstPaymentDate,
+        first_recurring_payment_amount: firstRecurringPaymentAmount.toFixed(2),
         recurring_payment_amount: recurringAmount.toFixed(2),
         monthly_base_amount: recurringAmount.toFixed(2),
+        last_payment_amount: recurringAmount.toFixed(2),
+        rounding_adjustment_cents: roundingAdjustmentCents,
         installment_calculation_method: installmentCalculationMethod,
         installment_count_mode: installmentCountMode,
         installment_count: normalizedInstallmentCount,
@@ -255,7 +297,10 @@ function buildPreviewInstallmentSummary({
                 (_, index) => ({
                     cycle_number: index + 2,
                     type: "recurring",
-                    amount: recurringAmount.toFixed(2),
+                    amount:
+                        index === 0
+                            ? firstRecurringPaymentAmount.toFixed(2)
+                            : recurringAmount.toFixed(2),
                     due_at: recurringDueDates[index] ?? null,
                     grace_deadline: null,
                 }),
@@ -425,6 +470,12 @@ export default function Scoreboard({
                   : Number(selectedPackage?.price ?? 0);
         const currencyCode =
             selectedPackage?.currency_code ?? paypal?.currency_code ?? "USD";
+
+        const setupFee =
+            paymentType === "paid" && selectedPackageInstallmentEnabled
+                ? Number(selectedPackage?.setup_fee ?? 0)
+                : 0;
+
         const previewBillingDays =
             selectedPackageAllowedBillingDays.length > 0
                 ? selectedPackageAllowedBillingDays
@@ -447,6 +498,7 @@ export default function Scoreboard({
                 String(day),
                 buildPreviewInstallmentSummary({
                     amount,
+                    setupFee,
                     installmentCount: previewInstallmentCount,
                     maximumInstallmentCount,
                     minimumInstallmentCount:
@@ -509,6 +561,17 @@ export default function Scoreboard({
                 amount_due_today:
                     previewInstallmentSummary?.first_payment_amount ??
                     (amount > 0 ? (amount / 2).toFixed(2) : "0.00"),
+                setup_fee:
+                    previewInstallmentSummary?.configured_setup_fee ?? null,
+                setup_fee_applied:
+                    previewInstallmentSummary?.setup_fee_applied ?? false,
+                first_recurring_payment_amount:
+                    previewInstallmentSummary?.first_recurring_payment_amount ??
+                    null,
+                recurring_amount:
+                    previewInstallmentSummary?.recurring_payment_amount ?? null,
+                last_payment_amount:
+                    previewInstallmentSummary?.last_payment_amount ?? null,
                 currency_code: currencyCode,
                 billing_day: billingDay,
                 allowed_billing_days: selectedPackageAllowedBillingDays,
@@ -543,6 +606,7 @@ export default function Scoreboard({
                       description: selectedPackage.description,
                       payment_type: paymentType,
                       price: amount,
+                      setup_fee: setupFee > 0 ? setupFee : null,
                       minimum_donation_amount: Number(
                           selectedPackage.minimum_donation_amount ?? 0,
                       ),

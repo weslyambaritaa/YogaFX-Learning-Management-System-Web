@@ -2,7 +2,10 @@ import PackageForm from "@/Components/PackageForm";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, Link, useForm } from "@inertiajs/react";
 
-export default function CreatePackage({ accessTiers = [], packagePublicBaseUrl = "" }) {
+export default function CreatePackage({
+    accessTiers = [],
+    packagePublicBaseUrl = "",
+}) {
     const { data, setData, post, processing, errors } = useForm({
         title: "",
         slug: "",
@@ -15,6 +18,7 @@ export default function CreatePackage({ accessTiers = [], packagePublicBaseUrl =
         currency_code: "IDR",
         is_active: true,
         installment_enabled: false,
+        setup_fee: "",
         installment_calculation_method: "date",
         installment_count_mode: "",
         installment_count: "",

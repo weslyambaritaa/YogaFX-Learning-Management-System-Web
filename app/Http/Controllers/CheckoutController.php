@@ -167,8 +167,16 @@ class CheckoutController extends Controller
                 */
                 'billing_day' => $paymentSubscription->billing_day,
                 'installment_count' => $paymentSubscription->installment_count,
-                'first_payment_amount' => (float) $paymentSubscription->first_payment_amount,
-                'recurring_payment_amount' => (float) $paymentSubscription->next_billing_amount,
+                'first_payment_amount' =>
+    (float) $paymentSubscription->first_payment_amount,
+'first_recurring_payment_amount' => (float) (
+    $installmentPlan['first_recurring_payment_amount']
+        ?? $paymentSubscription->next_billing_amount
+),
+'recurring_payment_amount' => (float) (
+    $installmentPlan['recurring_payment_amount']
+        ?? $paymentSubscription->monthly_base_amount
+),
                 'total_amount' => (float) $paymentSubscription->total_amount,
                 'currency_code' => $paymentSubscription->currency_code,
                 'next_due_at' => $paymentSubscription->next_due_at?->toDateString(),

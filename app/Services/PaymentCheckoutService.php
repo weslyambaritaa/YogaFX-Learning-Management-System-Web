@@ -596,9 +596,10 @@ class PaymentCheckoutService
                 'slug' => $package->slug,
                 'description' => $package->description,
                 'payment_type' => $package->normalizedPaymentType(),
-                'image_url' => null,
-                'price' => (float) $package->price,
-                'minimum_donation_amount' => $package->minimumDonationAmount(),
+'image_url' => null,
+'price' => (float) $package->price,
+'setup_fee' => $package->initialInstallmentSetupFee(),
+'minimum_donation_amount' => $package->minimumDonationAmount(),
                 'suggested_donation_amount' => $package->suggestedDonationAmount(),
                 'currency_code' => $package->currency_code,
                 'installment_enabled' => $package->supportsInstallments(),
@@ -633,10 +634,16 @@ class PaymentCheckoutService
             'fixed_installment_count' => $installmentSummary['fixed_installment_count'] ?? $package?->fixedInstallmentCount(),
             'installment_count' => $installmentSummary['installment_count'] ?? null,
             'total_amount' => $installmentSummary['total_amount'] ?? null,
-            'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
-            'first_payment_date' => $installmentSummary['first_payment_date'] ?? null,
-            'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
-            'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+'setup_fee' => $package?->initialInstallmentSetupFee(),
+'setup_fee_applied' => $installmentSummary['setup_fee_applied'] ?? false,
+'configured_setup_fee' => $installmentSummary['configured_setup_fee'] ?? null,
+'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
+'first_payment_date' => $installmentSummary['first_payment_date'] ?? null,
+'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
+'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+'last_payment_amount' => $installmentSummary['last_payment_amount']
+    ?? $installmentSummary['recurring_payment_amount']
+    ?? null,
             'billing_day' => $installmentSummary['billing_day'] ?? null,
             'recurring_due_dates' => $installmentSummary['recurring_due_dates'] ?? [],
             'available_recurring_due_dates' => $installmentSummary['available_recurring_due_dates'] ?? [],
@@ -1059,12 +1066,12 @@ class PaymentCheckoutService
         }
 
         try {
-            $this->installmentPlanCalculator->calculate(
-                $package,
-                $pendingRegistration->checkout_opened_at ?? now(),
-                $resolvedBillingDay,
-                $installmentCount,
-            );
+            $this->installmentPlanCalculator->calculateInitial(
+    package: $package,
+    checkoutAt: $pendingRegistration->checkout_opened_at ?? now(),
+    billingDay: $resolvedBillingDay,
+    installmentCount: $installmentCount,
+);
         } catch (\DomainException|\InvalidArgumentException $exception) {
             abort(422, $exception->getMessage() ?: 'This package is not eligible for installment checkout.');
         }
@@ -1189,12 +1196,12 @@ class PaymentCheckoutService
 
         foreach ($calculationBillingDays as $billingDay) {
             try {
-                $summary = $this->installmentPlanCalculator->calculate(
-                    $package,
-                    $pendingRegistration->checkout_opened_at ?? now(),
-                    $billingDay,
-                    null,
-                );
+                $summary = $this->installmentPlanCalculator->calculateInitial(
+    package: $package,
+    checkoutAt: $pendingRegistration->checkout_opened_at ?? now(),
+    billingDay: $billingDay,
+    installmentCount: null,
+);
 
                 $summaries[(string) $billingDay] = $summary;
             } catch (\DomainException|\InvalidArgumentException) {
@@ -1452,10 +1459,15 @@ class PaymentCheckoutService
                 'installment_calculation_method' => $installmentSummary['installment_calculation_method'] ?? Package::INSTALLMENT_CALCULATION_DATE,
                 'installment_count_mode' => $installmentSummary['installment_count_mode'] ?? null,
                 'total_amount' => $installmentSummary['total_amount'] ?? null,
-                'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
-                'recurring_amount' => $installmentSummary['recurring_payment_amount'],
-                'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
-                'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+'setup_fee' => $installmentSummary['configured_setup_fee'] ?? null,
+'setup_fee_applied' => $installmentSummary['setup_fee_applied'] ?? false,
+'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
+'recurring_amount' => $installmentSummary['recurring_payment_amount'],
+'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
+'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+'last_payment_amount' => $installmentSummary['last_payment_amount']
+    ?? $installmentSummary['recurring_payment_amount']
+    ?? null,
                 'billing_day' => $installmentSummary['billing_day'],
                 'allowed_billing_days' => $allowedBillingDays,
                 'deadline_date' => $installmentSummary['deadline_date'] ?? null,
@@ -1579,9 +1591,14 @@ class PaymentCheckoutService
         return [
             ...$installmentSummary,
             'total_amount' => $installmentSummary['total_amount'] ?? null,
-            'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
-            'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
-            'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+'setup_fee_applied' => $installmentSummary['setup_fee_applied'] ?? false,
+'configured_setup_fee' => $installmentSummary['configured_setup_fee'] ?? null,
+'first_payment_amount' => $installmentSummary['first_payment_amount'] ?? null,
+'recurring_payment_amount' => $installmentSummary['recurring_payment_amount'] ?? null,
+'monthly_base_amount' => $installmentSummary['monthly_base_amount'] ?? null,
+'last_payment_amount' => $installmentSummary['last_payment_amount']
+    ?? $installmentSummary['recurring_payment_amount']
+    ?? null,
             'installment_count' => $normalizedInstallmentCount,
             'maximum_installment_count' => $maximumInstallmentCount,
             'installment_maximum_count' => $maximumInstallmentCount,

@@ -6,9 +6,11 @@ use App\Models\AccessTier;
 use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Payment;
+use App\Models\PaymentSubscription;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Services\PaymentCheckoutService;
+use App\Services\Payments\PayPalSubscriptionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -236,5 +238,91 @@ class PackagePaymentFlowTest extends TestCase
             1750.0,
             app(PaymentCheckoutService::class)->upgradePayload($user, $masterTier, $targetPackage->id)['amount_due'],
         );
+    }
+
+    public function test_upgrade_installment_ignores_package_setup_fee(): void
+{
+    $currentTier = AccessTier::factory()->create([
+        'slug' => AccessTier::SLUG_ONLINE,
+        'level' => 1,
+        'currency_code' => AccessTier::CURRENCY_USD,
+    ]);
+
+    $targetTier = AccessTier::factory()->create([
+        'slug' => AccessTier::SLUG_MASTER_CLASS,
+        'level' => 2,
+        'currency_code' => AccessTier::CURRENCY_USD,
+    ]);
+
+    $user = User::factory()->student()->create([
+        'access_tier_id' => $currentTier->id,
+        'is_active' => true,
+    ]);
+
+    $targetPackage = Package::factory()->create([
+        'access_tier_id' => $targetTier->id,
+        'payment_type' => Package::PAYMENT_TYPE_PAID,
+        'price' => 2799,
+        'setup_fee' => 350,
+        'currency_code' => AccessTier::CURRENCY_USD,
+        'installment_enabled' => true,
+        'installment_calculation_method' =>
+            Package::INSTALLMENT_CALCULATION_NUMBER,
+        'installment_count_mode' =>
+            Package::INSTALLMENT_COUNT_MODE_FIXED,
+        'installment_count' => 22,
+        'billing_interval_unit' => 'MONTH',
+        'billing_interval_count' => 1,
+        'fixed_billing_day' => 15,
+        'allowed_billing_days' => [15],
+        'installment_deadline_date' => null,
+    ]);
+
+    $this->mock(PayPalSubscriptionService::class, function ($mock): void {
+        $mock->shouldReceive('createProduct')
+            ->once()
+            ->andReturn([
+                'id' => 'PROD-UPGRADE',
+                'status' => 'ACTIVE',
+            ]);
+
+        $mock->shouldReceive('createPlan')
+            ->once()
+            ->andReturn([
+                'id' => 'P-UPGRADE',
+                'status' => 'ACTIVE',
+            ]);
+    });
+
+    $result = app(PaymentCheckoutService::class)
+        ->startUpgradeCheckout($user, $targetTier, [
+            'package_id' => $targetPackage->id,
+            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+            'payment_method' => Payment::METHOD_PAYPAL,
+            'billing_day' => 15,
+            'installment_count' => 22,
+        ]);
+
+    $subscription = $result['payment_subscription']->fresh();
+
+    $this->assertInstanceOf(
+        PaymentSubscription::class,
+        $subscription,
+    );
+
+    $this->assertSame('2799.00', $subscription->total_amount);
+    $this->assertSame('127.38', $subscription->first_payment_amount);
+    $this->assertSame('127.22', $subscription->monthly_base_amount);
+    $this->assertSame('127.22', $subscription->next_billing_amount);
+
+    $this->assertFalse(
+        $subscription->metadata['installment_plan']
+            ['setup_fee_applied'] ?? true,
+    );
+
+    $this->assertNull(
+        $subscription->metadata['installment_plan']
+            ['configured_setup_fee'] ?? null,
+    );
     }
 }
