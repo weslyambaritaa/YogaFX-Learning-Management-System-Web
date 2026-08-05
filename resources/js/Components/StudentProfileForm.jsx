@@ -1435,8 +1435,8 @@ export default function StudentProfileForm({
                                                 fontWeight: 700,
                                             }}
                                         >
-                                            Upload a clear portrait photo (max
-                                            10 MB)
+                                            Please Upload Screenshot Picture. File size 10MB or Less Please.
+                                            Don't Worry This Pic Can Be Changed Later if necessary  
                                         </p>
                                     </div>
 
