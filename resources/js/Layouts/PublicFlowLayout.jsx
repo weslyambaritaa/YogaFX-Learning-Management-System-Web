@@ -10,6 +10,7 @@ export default function PublicFlowLayout({
     children,
     footer,
     showBackButton = false,
+    largeLogo = false,
 }) {
     return (
         <>
@@ -25,20 +26,31 @@ export default function PublicFlowLayout({
                         </div>
                     ) : null}
 
-                    {/* Wrapper utama diubah menjadi flex-col untuk menengahkan semua elemen */}
                     <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-6 lg:pt-8">
-                        <header className="mb-8 flex items-center justify-center">
-                            <Link href="/">
+                        <header
+                            className={
+                                largeLogo
+                                    ? "mb-10 flex items-center justify-center"
+                                    : "mb-8 flex items-center justify-center"
+                            }
+                        >
+                            <Link
+                                href="/"
+                                className="inline-flex items-center justify-center"
+                            >
                                 <img
                                     src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
                                     alt="YogaFX"
-                                    className="h-16 w-auto object-contain"
+                                    className={
+                                        largeLogo
+                                            ? "h-28 w-auto object-contain sm:h-32"
+                                            : "h-16 w-auto object-contain"
+                                    }
                                 />
                             </Link>
                         </header>
 
                         <main className="flex w-full flex-col items-center justify-center">
-                            {/* Menghapus grid dan menggunakan flex-col max-w-xl agar form tidak melebar dan tetap di tengah */}
                             <div className="flex w-full max-w-xl flex-col items-center gap-8">
                                 <section className="w-full">
                                     <div className="flex w-full flex-col space-y-5 text-center">
@@ -51,11 +63,13 @@ export default function PublicFlowLayout({
                                                         {eyebrow}
                                                     </p>
                                                 )}
+
                                                 {heading && (
                                                     <h1 className="mx-auto max-w-3xl text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl">
                                                         {heading}
                                                     </h1>
                                                 )}
+
                                                 {description && (
                                                     <p className="mx-auto max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
                                                         {description}
@@ -64,7 +78,6 @@ export default function PublicFlowLayout({
                                             </div>
                                         )}
 
-                                        {/* Class text-left ditambahkan agar label/input form normal, meski box-nya ditengah */}
                                         <div className="w-full py-4 text-left">
                                             {children}
                                         </div>
@@ -77,7 +90,6 @@ export default function PublicFlowLayout({
                                     </div>
                                 </section>
 
-                                {/* Jika ada aside, akan dirender di bawah form secara sejajar */}
                                 {aside && (
                                     <aside className="w-full text-center">
                                         {aside}
