@@ -930,7 +930,7 @@ export default function Scoreboard({
                         lineHeight: 1.6,
                     }}
                 >
-                    {`Let's Get Started by filling the form down here!`}
+                    {`Let's Get Started`}
                 </span>
             }
             aside={<div className="space-y-6" />}

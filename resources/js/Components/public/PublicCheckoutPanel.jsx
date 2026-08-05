@@ -2399,17 +2399,17 @@ export default function PublicCheckoutPanel({
 
     <div className="relative z-10 divide-y divide-white/10">
                             {[
-                                {
-                                    label: checkout.package?.title ?? "Package",
-                                    value: formatCurrency(
-                                        Number(
-                                            activeInstallmentSummary?.total_amount ??
-                                                checkout.amount ??
-                                                0,
-                                        ),
-                                        activeCurrencyCode,
-                                    ),
-                                },
+                                // {
+                                //     label: checkout.package?.title ?? "Package",
+                                //     value: formatCurrency(
+                                //         Number(
+                                //             activeInstallmentSummary?.total_amount ??
+                                //                 checkout.amount ??
+                                //                 0,
+                                //         ),
+                                //         activeCurrencyCode,
+                                //     ),
+                                // },
                                 {
                                     label: "Number of Installments",
                                     value: formatInstallmentCount(
