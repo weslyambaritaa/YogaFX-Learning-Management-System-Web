@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class PaymentSubscriptionService
 {
-    private const PLAN_CACHE_VERSION = 'v3';
+    private const PLAN_CACHE_VERSION = 'v5';
 
     private const CONTEXT_INITIAL = 'initial';
 
@@ -68,12 +68,12 @@ class PaymentSubscriptionService
             ->first();
 
         try {
-            $installmentPlan = $this->installmentPlanCalculator->calculate(
-                package: $package,
-                checkoutAt: $pendingRegistration->checkout_opened_at ?? now(),
-                billingDay: $billingDay,
-                installmentCount: $installmentCount,
-            );
+            $installmentPlan = $this->installmentPlanCalculator->calculateInitial(
+    package: $package,
+    checkoutAt: $pendingRegistration->checkout_opened_at ?? now(),
+    billingDay: $billingDay,
+    installmentCount: $installmentCount,
+);
         } catch (DomainException|InvalidArgumentException $exception) {
             abort(422, $exception->getMessage() ?: 'This package is not eligible for installment checkout.');
         }
@@ -161,7 +161,10 @@ class PaymentSubscriptionService
                     'total_amount' => (float) $installmentPlan['total_amount'],
                     'monthly_base_amount' => (float) $installmentPlan['monthly_base_amount'],
                     'first_payment_amount' => (float) $installmentPlan['first_payment_amount'],
-                    'next_billing_amount' => (float) $installmentPlan['recurring_payment_amount'],
+                    'next_billing_amount' => (float) (
+    $installmentPlan['first_recurring_payment_amount']
+        ?? $installmentPlan['recurring_payment_amount']
+),
                     'billing_day' => $billingDay,
                     'started_at' => null,
                     'first_payment_paid_at' => null,
@@ -221,7 +224,10 @@ class PaymentSubscriptionService
                 'total_amount' => (float) $installmentPlan['total_amount'],
                 'monthly_base_amount' => (float) $installmentPlan['monthly_base_amount'],
                 'first_payment_amount' => (float) $installmentPlan['first_payment_amount'],
-                'next_billing_amount' => (float) $installmentPlan['recurring_payment_amount'],
+                'next_billing_amount' => (float) (
+    $installmentPlan['first_recurring_payment_amount']
+        ?? $installmentPlan['recurring_payment_amount']
+),
                 'billing_day' => $billingDay,
                 'next_due_at' => $installmentPlan['recurring_due_dates'][0] ?? null,
                 'final_due_at' => $installmentPlan['final_due_at'],
@@ -391,7 +397,10 @@ class PaymentSubscriptionService
                     'total_amount' => (float) $installmentPlan['total_amount'],
                     'monthly_base_amount' => (float) $installmentPlan['monthly_base_amount'],
                     'first_payment_amount' => (float) $installmentPlan['first_payment_amount'],
-                    'next_billing_amount' => (float) $installmentPlan['recurring_payment_amount'],
+                    'next_billing_amount' => (float) (
+    $installmentPlan['first_recurring_payment_amount']
+        ?? $installmentPlan['recurring_payment_amount']
+),
                     'billing_day' => $billingDay,
                     'started_at' => null,
                     'first_payment_paid_at' => null,
@@ -451,7 +460,10 @@ class PaymentSubscriptionService
                 'total_amount' => (float) $installmentPlan['total_amount'],
                 'monthly_base_amount' => (float) $installmentPlan['monthly_base_amount'],
                 'first_payment_amount' => (float) $installmentPlan['first_payment_amount'],
-                'next_billing_amount' => (float) $installmentPlan['recurring_payment_amount'],
+                'next_billing_amount' => (float) (
+    $installmentPlan['first_recurring_payment_amount']
+        ?? $installmentPlan['recurring_payment_amount']
+),
                 'billing_day' => $billingDay,
                 'next_due_at' => $installmentPlan['recurring_due_dates'][0] ?? null,
                 'final_due_at' => $installmentPlan['final_due_at'],
@@ -674,7 +686,13 @@ class PaymentSubscriptionService
             && (string) $paymentSubscription->currency_code === (string) ($installmentPlan['currency_code'] ?? '')
             && $this->amountToCents($paymentSubscription->total_amount) === $this->amountToCents($installmentPlan['total_amount'] ?? 0)
             && $this->amountToCents($paymentSubscription->first_payment_amount) === $this->amountToCents($installmentPlan['first_payment_amount'] ?? 0)
-            && $this->amountToCents($paymentSubscription->next_billing_amount) === $this->amountToCents($installmentPlan['recurring_payment_amount'] ?? 0);
+            && $this->amountToCents(
+    $paymentSubscription->next_billing_amount,
+) === $this->amountToCents(
+    $installmentPlan['first_recurring_payment_amount']
+        ?? $installmentPlan['recurring_payment_amount']
+        ?? 0,
+);
     }
 
     /**
@@ -719,19 +737,26 @@ class PaymentSubscriptionService
         $intervalCount = max(1, (int) ($installmentPlan['billing_interval_count'] ?? 1));
 
         return sprintf(
-            '%s_%s_pkg%s_day%s_%sx_%s_total%s_first%s_rec%s_%s%s',
-            self::PLAN_CACHE_VERSION,
-            strtolower($context),
-            (string) $package->getKey(),
-            $billingDayKey,
-            (int) ($installmentPlan['installment_count'] ?? 0),
-            strtoupper((string) ($installmentPlan['currency_code'] ?? '')),
-            $this->amountToCents($installmentPlan['total_amount'] ?? 0),
-            $this->amountToCents($installmentPlan['first_payment_amount'] ?? 0),
-            $this->amountToCents($installmentPlan['recurring_payment_amount'] ?? 0),
-            $intervalUnit,
-            $intervalCount,
-        );
+    '%s_%s_pkg%s_day%s_%sx_%s_total%s_first%s_next%s_rec%s_%s%s',
+    self::PLAN_CACHE_VERSION,
+    strtolower($context),
+    (string) $package->getKey(),
+    $billingDayKey,
+    (int) ($installmentPlan['installment_count'] ?? 0),
+    strtoupper((string) ($installmentPlan['currency_code'] ?? '')),
+    $this->amountToCents($installmentPlan['total_amount'] ?? 0),
+    $this->amountToCents($installmentPlan['first_payment_amount'] ?? 0),
+    $this->amountToCents(
+        $installmentPlan['first_recurring_payment_amount']
+            ?? $installmentPlan['recurring_payment_amount']
+            ?? 0,
+    ),
+    $this->amountToCents(
+        $installmentPlan['recurring_payment_amount'] ?? 0,
+    ),
+    $intervalUnit,
+    $intervalCount,
+);
     }
 
     private function providerPlanIdForInstallmentFingerprint(

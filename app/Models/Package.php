@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'currency_code',
     'is_active',
     'installment_enabled',
+    'setup_fee',
+
 
     /*
     |--------------------------------------------------------------------------
@@ -80,7 +82,7 @@ class Package extends Model
 
     public const MIN_INSTALLMENT_COUNT = 2;
     public const MAX_INSTALLMENT_COUNT = 99;
-    public const MAX_PROVIDER_INSTALLMENT_COUNT = 15;
+    public const MAX_PROVIDER_INSTALLMENT_COUNT = 99;
 
     public const CUSTOMER_BILLING_DAY_OPTIONS = [1, 15];
 
@@ -92,6 +94,7 @@ class Package extends Model
             'minimum_donation_amount' => 'decimal:2',
             'suggested_donation_amount' => 'decimal:2',
             'is_active' => 'boolean',
+            'setup_fee' => 'decimal:2',
             'installment_enabled' => 'boolean',
             'installment_count' => 'integer',
 
@@ -205,14 +208,30 @@ class Package extends Model
 }
 
     public function supportsInstallments(): bool
-    {
-        return $this->isPaidPackage() && $this->installment_enabled;
+{
+    return $this->isPaidPackage() && $this->installment_enabled;
+}
+
+public function initialInstallmentSetupFee(): ?float
+{
+    if (! $this->supportsInstallments()) {
+        return null;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Legacy Billing Interval Helpers
-    |--------------------------------------------------------------------------
+    if ($this->setup_fee === null || $this->setup_fee === '') {
+        return null;
+    }
+
+    $setupFee = round((float) $this->setup_fee, 2);
+
+    return $setupFee > 0
+        ? $setupFee
+        : null;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Legacy Billing Interval Helpers
     |
     | Method ini masih dipertahankan sementara untuk menjaga kompatibilitas.
     | Flow baru tidak lagi membutuhkan billing_interval_count.

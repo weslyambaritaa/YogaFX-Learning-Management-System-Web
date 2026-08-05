@@ -19,30 +19,53 @@ class InstallmentPlanCalculator
      * @return array<string, mixed>
      */
     public function calculate(
-        Package $package,
-        CarbonInterface|string|null $checkoutAt = null,
-        ?int $billingDay = null,
-        ?int $installmentCount = null,
-    ): array {
-        return $this->calculateForAmount(
-            $package,
-            (float) $package->price,
-            $checkoutAt,
-            $billingDay,
-            $installmentCount,
-        );
-    }
+    Package $package,
+    CarbonInterface|string|null $checkoutAt = null,
+    ?int $billingDay = null,
+    ?int $installmentCount = null,
+): array {
+    return $this->calculateInitial(
+        package: $package,
+        checkoutAt: $checkoutAt,
+        billingDay: $billingDay,
+        installmentCount: $installmentCount,
+    );
+}
+
+/**
+ * Calculator khusus initial package purchase.
+ *
+ * Setup fee hanya diterapkan melalui method ini.
+ *
+ * @return array<string, mixed>
+ */
+public function calculateInitial(
+    Package $package,
+    CarbonInterface|string|null $checkoutAt = null,
+    ?int $billingDay = null,
+    ?int $installmentCount = null,
+): array {
+    return $this->calculateForAmount(
+        package: $package,
+        totalAmountOverride: (float) $package->price,
+        checkoutAt: $checkoutAt,
+        billingDay: $billingDay,
+        installmentCount: $installmentCount,
+        firstPaymentAmountOverride: $package->initialInstallmentSetupFee(),
+    );
+}
 
     /**
      * @return array<string, mixed>
      */
     public function calculateForAmount(
-        Package $package,
-        float|int|string $totalAmountOverride,
-        CarbonInterface|string|null $checkoutAt = null,
-        ?int $billingDay = null,
-        ?int $installmentCount = null,
-    ): array {
+    Package $package,
+    float|int|string $totalAmountOverride,
+    CarbonInterface|string|null $checkoutAt = null,
+    ?int $billingDay = null,
+    ?int $installmentCount = null,
+    float|int|string|null $firstPaymentAmountOverride = null,
+): array {
         if (! $this->isEligible($package)) {
             throw new DomainException('This package is not eligible for installment checkout.');
         }
@@ -52,33 +75,36 @@ class InstallmentPlanCalculator
 
         if ($package->usesNumberBasedInstallment()) {
             return $this->calculateNumberBasedPlan(
-                $package,
-                $totalAmountOverride,
-                $checkoutDate,
-                $billingDay,
-                $installmentCount,
-            );
+    $package,
+    $totalAmountOverride,
+    $checkoutDate,
+    $billingDay,
+    $installmentCount,
+    $firstPaymentAmountOverride,
+);
         }
 
         return $this->calculateDateBasedPlan(
-            $package,
-            $totalAmountOverride,
-            $checkoutDate,
-            $billingDay,
-            $installmentCount,
-        );
+    $package,
+    $totalAmountOverride,
+    $checkoutDate,
+    $billingDay,
+    $installmentCount,
+    $firstPaymentAmountOverride,
+);
     }
 
     /**
      * @return array<string, mixed>
      */
     private function calculateDateBasedPlan(
-        Package $package,
-        float|int|string $totalAmountOverride,
-        CarbonImmutable $checkoutDate,
-        int $billingDay,
-        ?int $installmentCount,
-    ): array {
+    Package $package,
+    float|int|string $totalAmountOverride,
+    CarbonImmutable $checkoutDate,
+    int $billingDay,
+    ?int $installmentCount,
+    float|int|string|null $firstPaymentAmountOverride,
+): array {
         $deadlineDate = $this->resolveDeadlineDate($package);
 
         if ($checkoutDate->greaterThan($deadlineDate)) {
@@ -130,20 +156,22 @@ class InstallmentPlanCalculator
             selectable: true,
             fixedInstallmentCount: null,
             calculationMethod: Package::INSTALLMENT_CALCULATION_DATE,
-            countMode: null,
-        );
+countMode: null,
+firstPaymentAmountOverride: $firstPaymentAmountOverride,
+);
     }
 
     /**
      * @return array<string, mixed>
      */
     private function calculateNumberBasedPlan(
-        Package $package,
-        float|int|string $totalAmountOverride,
-        CarbonImmutable $checkoutDate,
-        int $billingDay,
-        ?int $installmentCount,
-    ): array {
+    Package $package,
+    float|int|string $totalAmountOverride,
+    CarbonImmutable $checkoutDate,
+    int $billingDay,
+    ?int $installmentCount,
+    float|int|string|null $firstPaymentAmountOverride,
+): array {
         $configuredInstallmentCount = $package->configuredInstallmentCount();
 
         if ($configuredInstallmentCount === null) {
@@ -197,8 +225,9 @@ class InstallmentPlanCalculator
             selectable: $selectable,
             fixedInstallmentCount: $fixedInstallmentCount,
             calculationMethod: Package::INSTALLMENT_CALCULATION_NUMBER,
-            countMode: $package->normalizedInstallmentCountMode(),
-        );
+countMode: $package->normalizedInstallmentCountMode(),
+firstPaymentAmountOverride: $firstPaymentAmountOverride,
+);
     }
 
     /**
@@ -207,22 +236,23 @@ class InstallmentPlanCalculator
      * @return array<string, mixed>
      */
     private function buildPlanPayload(
-        Package $package,
-        float|int|string $totalAmountOverride,
-        CarbonImmutable $checkoutDate,
-        int $billingDay,
-        int $selectedInstallmentCount,
-        int $minimumInstallmentCount,
-        int $maximumInstallmentCount,
-        array $recurringDueDates,
-        array $availableRecurringDueDates,
-        ?CarbonImmutable $deadlineDate,
-        ?int $configuredInstallmentCount,
-        bool $selectable,
-        ?int $fixedInstallmentCount,
-        string $calculationMethod,
-        ?string $countMode,
-    ): array {
+    Package $package,
+    float|int|string $totalAmountOverride,
+    CarbonImmutable $checkoutDate,
+    int $billingDay,
+    int $selectedInstallmentCount,
+    int $minimumInstallmentCount,
+    int $maximumInstallmentCount,
+    array $recurringDueDates,
+    array $availableRecurringDueDates,
+    ?CarbonImmutable $deadlineDate,
+    ?int $configuredInstallmentCount,
+    bool $selectable,
+    ?int $fixedInstallmentCount,
+    string $calculationMethod,
+    ?string $countMode,
+    float|int|string|null $firstPaymentAmountOverride,
+): array {
         $finalDueAt = $recurringDueDates !== []
             ? end($recurringDueDates)
             : $checkoutDate;
@@ -232,12 +262,94 @@ class InstallmentPlanCalculator
         }
 
         $totalAmount = $this->normalizeAmount($totalAmountOverride);
-        $totalAmountCents = $this->amountToCents($totalAmount);
-        $recurringAmountCents = intdiv($totalAmountCents, $selectedInstallmentCount);
-        $firstPaymentAmountCents = $totalAmountCents - ($recurringAmountCents * ($selectedInstallmentCount - 1));
+$totalAmountCents = $this->amountToCents($totalAmount);
+$recurringPaymentCount = max(1, $selectedInstallmentCount - 1);
 
-        $recurringAmount = $this->centsToAmount($recurringAmountCents);
-        $firstPaymentAmount = $this->centsToAmount($firstPaymentAmountCents);
+$setupFeeCents = null;
+
+if (
+    $firstPaymentAmountOverride !== null
+    && $firstPaymentAmountOverride !== ''
+) {
+    $setupFeeCents = $this->amountToCents(
+        $this->normalizeAmount($firstPaymentAmountOverride),
+    );
+}
+
+$setupFeeApplied = $setupFeeCents !== null && $setupFeeCents > 0;
+$roundingAdjustmentCents = 0;
+
+if ($setupFeeApplied) {
+    if ($setupFeeCents >= $totalAmountCents) {
+        throw new InvalidArgumentException(
+            'Setup fee must be less than the package total amount.',
+        );
+    }
+
+    $remainingAmountCents = $totalAmountCents - $setupFeeCents;
+
+    if ($remainingAmountCents < $recurringPaymentCount) {
+        throw new InvalidArgumentException(
+            'The remaining package balance is too small for the selected installment count.',
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Exact PayPal recurring total
+    |--------------------------------------------------------------------------
+    |
+    | recurringAmountCents menjadi nominal bulanan normal.
+    | Selisih pembulatan dimasukkan ke recurring payment pertama karena
+    | PayPal tidak mendukung nominal khusus hanya pada recurring cycle terakhir.
+    |
+    */
+    $recurringAmountCents = (int) round(
+        $remainingAmountCents / $recurringPaymentCount,
+    );
+
+    $roundingAdjustmentCents = $remainingAmountCents
+        - ($recurringAmountCents * $recurringPaymentCount);
+
+    $firstRecurringPaymentAmountCents =
+        $recurringAmountCents + $roundingAdjustmentCents;
+
+    if (
+        $recurringAmountCents <= 0
+        || $firstRecurringPaymentAmountCents <= 0
+    ) {
+        throw new InvalidArgumentException(
+            'The recurring installment amount must be greater than zero.',
+        );
+    }
+
+    $firstPaymentAmountCents = $setupFeeCents;
+} else {
+    /*
+    |--------------------------------------------------------------------------
+    | Legacy fallback
+    |--------------------------------------------------------------------------
+    |
+    | Tidak ada setup fee: pertahankan logic lama. Selisih pembulatan
+    | tetap ditempatkan pada pembayaran pertama.
+    |
+    */
+    $recurringAmountCents = intdiv(
+        $totalAmountCents,
+        $selectedInstallmentCount,
+    );
+
+    $firstPaymentAmountCents = $totalAmountCents
+        - ($recurringAmountCents * ($selectedInstallmentCount - 1));
+
+    $firstRecurringPaymentAmountCents = $recurringAmountCents;
+}
+
+$recurringAmount = $this->centsToAmount($recurringAmountCents);
+$firstPaymentAmount = $this->centsToAmount($firstPaymentAmountCents);
+$firstRecurringPaymentAmount = $this->centsToAmount(
+    $firstRecurringPaymentAmountCents,
+);  
 
         $graceDeadlines = array_map(
             fn (CarbonImmutable $dueDate) => $dueDate->addDays(3)->format('Y-m-d'),
@@ -252,15 +364,21 @@ class InstallmentPlanCalculator
             'grace_deadline' => null,
         ]];
 
-        foreach ($recurringDueDates as $index => $dueDate) {
-            $scheduleBreakdown[] = [
-                'cycle_number' => $index + 2,
-                'type' => 'recurring',
-                'amount' => $this->formatAmount($recurringAmount),
-                'due_at' => $dueDate->format('Y-m-d'),
-                'grace_deadline' => $dueDate->addDays(3)->format('Y-m-d'),
-            ];
-        }
+        $lastRecurringIndex = count($recurringDueDates) - 1;
+
+foreach ($recurringDueDates as $index => $dueDate) {
+    $cycleAmount = $index === 0
+        ? $firstRecurringPaymentAmount
+        : $recurringAmount;
+
+    $scheduleBreakdown[] = [
+        'cycle_number' => $index + 2,
+        'type' => 'recurring',
+        'amount' => $this->formatAmount($cycleAmount),
+        'due_at' => $dueDate->format('Y-m-d'),
+        'grace_deadline' => $dueDate->addDays(3)->format('Y-m-d'),
+    ];
+}   
 
         return [
             'total_amount' => $this->formatAmount($totalAmount),
@@ -275,9 +393,18 @@ class InstallmentPlanCalculator
             'installment_calculation_method' => $calculationMethod,
             'installment_count_mode' => $countMode,
             'first_payment_amount' => $this->formatAmount($firstPaymentAmount),
-            'monthly_base_amount' => $this->formatAmount($recurringAmount),
-            'recurring_payment_amount' => $this->formatAmount($recurringAmount),
-            'billing_day' => $billingDay,
+'first_recurring_payment_amount' => $this->formatAmount(
+    $firstRecurringPaymentAmount,
+),
+'monthly_base_amount' => $this->formatAmount($recurringAmount),
+'recurring_payment_amount' => $this->formatAmount($recurringAmount),
+'last_payment_amount' => $this->formatAmount($recurringAmount),
+'rounding_adjustment_cents' => $roundingAdjustmentCents,
+'setup_fee_applied' => $setupFeeApplied,
+'configured_setup_fee' => $setupFeeApplied
+    ? $this->formatAmount($firstPaymentAmount)
+    : null,
+'billing_day' => $billingDay,
             'billing_interval_unit' => 'MONTH',
             'billing_interval_count' => 1,
             'first_payment_date' => $checkoutDate->format('Y-m-d'),

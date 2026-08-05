@@ -299,6 +299,130 @@ class PackageDomainTest extends TestCase
                 ->where('packages.0.installment_deadline_date', null));
     }
 
+    public function test_admin_can_save_setup_fee_for_paid_installment_package(): void
+{
+    $admin = User::factory()->admin()->create();
+    $tier = AccessTier::factory()->create();
+
+    $this->actingAs($admin)->post(route('admin.packages.store'), [
+        'title' => 'Masterclass Setup Fee',
+        'slug' => 'masterclass-setup-fee',
+        'description' => 'Package with setup fee.',
+        'payment_type' => Package::PAYMENT_TYPE_PAID,
+        'price' => 2799,
+        'setup_fee' => 350,
+        'currency_code' => AccessTier::CURRENCY_USD,
+        'is_active' => true,
+        'installment_enabled' => true,
+        'installment_calculation_method' =>
+            Package::INSTALLMENT_CALCULATION_NUMBER,
+        'installment_count_mode' =>
+            Package::INSTALLMENT_COUNT_MODE_FIXED,
+        'installment_count' => 22,
+        'billing_interval_unit' => 'MONTH',
+        'billing_interval_count' => 1,
+        'fixed_billing_day' => 15,
+        'allowed_billing_days' => [15],
+        'installment_deadline_date' => '',
+        'installment_deadline_month' => '',
+        'installment_deadline_day' => '',
+        'access_tier_id' => $tier->id,
+    ])->assertRedirect(route('admin.packages.index'));
+
+    $this->assertDatabaseHas('packages', [
+        'slug' => 'masterclass-setup-fee',
+        'price' => 2799,
+        'setup_fee' => 350,
+        'installment_enabled' => true,
+        'installment_count' => 22,
+    ]);
+}
+
+public function test_admin_cannot_save_setup_fee_equal_to_package_price(): void
+{
+    $admin = User::factory()->admin()->create();
+    $tier = AccessTier::factory()->create();
+
+    $this->actingAs($admin)
+        ->from(route('admin.packages.create'))
+        ->post(route('admin.packages.store'), [
+            'title' => 'Invalid Setup Fee',
+            'slug' => 'invalid-setup-fee',
+            'description' => 'Invalid package.',
+            'payment_type' => Package::PAYMENT_TYPE_PAID,
+            'price' => 2799,
+            'setup_fee' => 2799,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'is_active' => true,
+            'installment_enabled' => true,
+            'installment_calculation_method' =>
+                Package::INSTALLMENT_CALCULATION_NUMBER,
+            'installment_count_mode' =>
+                Package::INSTALLMENT_COUNT_MODE_FIXED,
+            'installment_count' => 22,
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
+            'fixed_billing_day' => 15,
+            'allowed_billing_days' => [15],
+            'installment_deadline_date' => '',
+            'installment_deadline_month' => '',
+            'installment_deadline_day' => '',
+            'access_tier_id' => $tier->id,
+        ])
+        ->assertRedirect(route('admin.packages.create'))
+        ->assertSessionHasErrors(['setup_fee']);
+
+    $this->assertDatabaseMissing('packages', [
+        'slug' => 'invalid-setup-fee',
+    ]);
+}
+
+public function test_setup_fee_is_cleared_when_installment_is_disabled(): void
+{
+    $admin = User::factory()->admin()->create();
+    $tier = AccessTier::factory()->create();
+
+    $package = Package::factory()->create([
+        'access_tier_id' => $tier->id,
+        'title' => 'Setup Fee Package',
+        'slug' => 'setup-fee-package',
+        'payment_type' => Package::PAYMENT_TYPE_PAID,
+        'price' => 2799,
+        'setup_fee' => 350,
+        'installment_enabled' => true,
+    ]);
+
+    $this->actingAs($admin)->patch(
+        route('admin.packages.update', $package),
+        [
+            'title' => 'Setup Fee Package',
+            'slug' => 'setup-fee-package',
+            'description' => 'Installment disabled.',
+            'payment_type' => Package::PAYMENT_TYPE_PAID,
+            'price' => 2799,
+            'setup_fee' => 350,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'is_active' => true,
+            'installment_enabled' => false,
+            'installment_calculation_method' =>
+                Package::INSTALLMENT_CALCULATION_DATE,
+            'installment_count_mode' => '',
+            'installment_count' => '',
+            'billing_interval_unit' => '',
+            'billing_interval_count' => '',
+            'fixed_billing_day' => '',
+            'allowed_billing_days' => [],
+            'installment_deadline_date' => '',
+            'installment_deadline_month' => '',
+            'installment_deadline_day' => '',
+            'access_tier_id' => $tier->id,
+        ],
+    )->assertRedirect(route('admin.packages.index'));
+
+    $this->assertNull($package->fresh()->setup_fee);
+}
+
+
     public function test_non_admin_cannot_access_package_admin_routes(): void
     {
         $student = User::factory()->student()->create();

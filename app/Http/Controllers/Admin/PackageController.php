@@ -182,7 +182,10 @@ class PackageController extends Controller
                 |--------------------------------------------------------------------------
                 */
                 'installment_enabled' => $package->installment_enabled,
-                'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
+'setup_fee' => $package->setup_fee !== null
+    ? (float) $package->setup_fee
+    : null,
+'installment_calculation_method' => $package->normalizedInstallmentCalculationMethod(),
                 'installment_count_mode' => $package->normalizedInstallmentCountMode(),
                 'installment_count' => $package->configuredInstallmentCount(),
                 'installment_count_selectable' => $package->installmentCountSelectable(),
@@ -361,8 +364,9 @@ class PackageController extends Controller
         $method = strtolower(trim((string) ($data['installment_calculation_method'] ?? Package::INSTALLMENT_CALCULATION_DATE)));
 
         if (! $installmentEnabled) {
-            $data['installment_calculation_method'] = Package::INSTALLMENT_CALCULATION_DATE;
-            $data['installment_count_mode'] = null;
+    $data['setup_fee'] = null;
+    $data['installment_calculation_method'] = Package::INSTALLMENT_CALCULATION_DATE;
+    $data['installment_count_mode'] = null;
             $data['installment_count'] = null;
             $data['installment_deadline_date'] = null;
             $data['allowed_billing_days'] = null;

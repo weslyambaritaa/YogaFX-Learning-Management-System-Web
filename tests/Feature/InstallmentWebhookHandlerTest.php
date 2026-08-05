@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class InstallmentWebhookHandlerTest extends TestCase
@@ -412,6 +413,178 @@ class InstallmentWebhookHandlerTest extends TestCase
         ]);
     }
 
+
+    public function test_first_recurring_payment_updates_next_billing_amount_to_regular_amount(): void
+{
+    Queue::fake();
+
+    [$subscription, $pendingRegistration, $invoice] =
+        $this->createSubscriptionFixture([
+            'installment_count' => 22,
+            'installments_paid_count' => 1,
+            'status' => PaymentSubscription::STATUS_ACTIVE,
+            'total_amount' => 2799,
+            'first_payment_amount' => 350,
+            'monthly_base_amount' => 116.62,
+            'next_billing_amount' => 116.60,
+            'first_payment_paid_at' => now()->subMonth(),
+            'next_due_at' => '2026-08-15',
+            'final_due_at' => '2028-04-15',
+            'grace_deadline_at' => '2026-08-18',
+            'metadata' => [
+                'installment_plan' => [
+                    'first_payment_amount' => '350.00',
+                    'first_recurring_payment_amount' => '116.60',
+                    'recurring_payment_amount' => '116.62',
+                    'recurring_due_dates' => [
+                        '2026-08-15',
+                        '2026-09-15',
+                    ],
+                    'grace_deadlines' => [
+                        '2026-08-18',
+                        '2026-09-18',
+                    ],
+                    'schedule_breakdown' => [
+                        [
+                            'cycle_number' => 1,
+                            'type' => 'first_payment',
+                            'amount' => '350.00',
+                            'due_at' => '2026-07-10',
+                            'grace_deadline' => null,
+                        ],
+                        [
+                            'cycle_number' => 2,
+                            'type' => 'recurring',
+                            'amount' => '116.60',
+                            'due_at' => '2026-08-15',
+                            'grace_deadline' => '2026-08-18',
+                        ],
+                        [
+                            'cycle_number' => 3,
+                            'type' => 'recurring',
+                            'amount' => '116.62',
+                            'due_at' => '2026-09-15',
+                            'grace_deadline' => '2026-09-18',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+    $user = User::factory()->student()->create([
+        'email' => $pendingRegistration->email,
+        'access_tier_id' => $subscription->access_tier_id,
+        'is_active' => true,
+    ]);
+
+    $pendingRegistration->forceFill([
+        'amount_snapshot' => 2799,
+    ])->save();
+
+    $invoice->forceFill([
+        'user_id' => $user->id,
+        'total_amount' => 2799,
+        'balance_due' => 2449,
+        'status' => Invoice::STATUS_INSTALLMENT,
+    ])->save();
+
+    $subscription->forceFill([
+        'user_id' => $user->id,
+    ])->save();
+
+    $event = PaymentSubscriptionEvent::query()->create([
+        'payment_subscription_id' => $subscription->id,
+        'invoice_id' => $invoice->id,
+        'provider' => PaymentSubscription::PROVIDER_PAYPAL,
+        'provider_event_id' => 'WH-FIRST-RECURRING-SETUP-001',
+        'provider_event_type' => 'PAYMENT.SALE.COMPLETED',
+        'provider_subscription_id' =>
+            $subscription->provider_subscription_id,
+        'provider_capture_id' => 'CAPTURE-FIRST-RECURRING-001',
+        'occurred_at' => now(),
+        'status' => PaymentSubscriptionEvent::STATUS_RECEIVED,
+        'payload' => [
+            'resource' => [
+                'amount' => [
+                    'total' => '116.60',
+                    'currency' => AccessTier::CURRENCY_USD,
+                ],
+            ],
+        ],
+    ]);
+
+    app(InstallmentWebhookHandler::class)->handle($event);
+
+    $subscription->refresh();
+    $invoice->refresh();
+
+    $this->assertSame(2, $subscription->installments_paid_count);
+    $this->assertSame('116.62', $subscription->next_billing_amount);
+    $this->assertSame(
+        '2026-09-15',
+        optional($subscription->next_due_at)->format('Y-m-d'),
+    );
+    $this->assertSame('2332.40', $invoice->balance_due);
+}
+
+
+#[DataProvider('smallFinalBalanceProvider')]
+public function test_small_remaining_balance_after_last_installment_is_written_off(
+    float $remainingBalance,
+): void {
+    Queue::fake();
+
+    $paymentAmount = 42.00;
+
+    [$subscription, $invoice] =
+        $this->processRecurringPaymentBalanceScenario(
+            installmentsPaidCount: 6,
+            balanceDue: $paymentAmount + $remainingBalance,
+            paymentAmount: $paymentAmount,
+            referenceSuffix: 'SMALL-FINAL-'
+                .str_replace('.', '-', number_format(
+                    $remainingBalance,
+                    2,
+                    '.',
+                    '',
+                )),
+        );
+
+    $this->assertSame(
+        7,
+        (int) $subscription->installments_paid_count,
+    );
+
+    $this->assertSame(
+        PaymentSubscription::STATUS_COMPLETED,
+        $subscription->status,
+    );
+
+    $this->assertNotNull($subscription->completed_at);
+    $this->assertNull($subscription->next_due_at);
+    $this->assertNull($subscription->grace_deadline_at);
+
+    $this->assertSame(
+        Invoice::STATUS_PAID_FULL,
+        $invoice->status,
+    );
+
+    $this->assertSame(
+        '0.00',
+        number_format((float) $invoice->balance_due, 2, '.', ''),
+    );
+
+    $this->assertNotNull($invoice->paid_at);
+}
+
+public static function smallFinalBalanceProvider(): array
+{
+    return [
+        'one cent remaining' => [0.01],
+        'ninety nine cents remaining' => [0.99],
+    ];
+}
+
     public function test_failed_payment_marks_subscription_past_due_and_sets_grace_deadline(): void
     {
         Mail::fake();
@@ -470,6 +643,79 @@ class InstallmentWebhookHandlerTest extends TestCase
         ]);
     }
 
+    public function test_small_remaining_balance_before_last_installment_is_not_written_off(): void
+{
+    Queue::fake();
+
+    [$subscription, $invoice] =
+        $this->processRecurringPaymentBalanceScenario(
+            installmentsPaidCount: 5,
+            balanceDue: 42.50,
+            paymentAmount: 42.00,
+            referenceSuffix: 'SMALL-NOT-FINAL',
+        );
+
+    $this->assertSame(
+        6,
+        (int) $subscription->installments_paid_count,
+    );
+
+    $this->assertSame(
+        PaymentSubscription::STATUS_ACTIVE,
+        $subscription->status,
+    );
+
+    $this->assertNull($subscription->completed_at);
+
+    $this->assertSame(
+        Invoice::STATUS_INSTALLMENT,
+        $invoice->status,
+    );
+
+    $this->assertSame(
+        '0.50',
+        number_format((float) $invoice->balance_due, 2, '.', ''),
+    );
+
+    $this->assertNull($invoice->paid_at);
+}
+
+public function test_remaining_balance_of_one_dollar_after_last_installment_is_not_written_off(): void
+{
+    Queue::fake();
+
+    [$subscription, $invoice] =
+        $this->processRecurringPaymentBalanceScenario(
+            installmentsPaidCount: 6,
+            balanceDue: 43.00,
+            paymentAmount: 42.00,
+            referenceSuffix: 'ONE-DOLLAR-FINAL',
+        );
+
+    $this->assertSame(
+        7,
+        (int) $subscription->installments_paid_count,
+    );
+
+    $this->assertSame(
+        PaymentSubscription::STATUS_ACTIVE,
+        $subscription->status,
+    );
+
+    $this->assertNull($subscription->completed_at);
+
+    $this->assertSame(
+        Invoice::STATUS_INSTALLMENT,
+        $invoice->status,
+    );
+
+    $this->assertSame(
+        '1.00',
+        number_format((float) $invoice->balance_due, 2, '.', ''),
+    );
+
+    $this->assertNull($invoice->paid_at);
+}
     public function test_duplicate_provider_capture_does_not_create_second_ledger_row_or_double_reduce_invoice_balance(): void
     {
         Queue::fake();
@@ -555,6 +801,78 @@ class InstallmentWebhookHandlerTest extends TestCase
             'status' => PaymentSubscriptionEvent::STATUS_PROCESSED,
         ]);
     }
+
+    /**
+ * @return array{0: PaymentSubscription, 1: Invoice}
+ */
+private function processRecurringPaymentBalanceScenario(
+    int $installmentsPaidCount,
+    float $balanceDue,
+    float $paymentAmount,
+    string $referenceSuffix,
+): array {
+    [$subscription, $pendingRegistration, $invoice] =
+        $this->createSubscriptionFixture([
+            'installment_count' => 7,
+            'installments_paid_count' => $installmentsPaidCount,
+            'status' => PaymentSubscription::STATUS_ACTIVE,
+            'first_payment_paid_at' => now()->subMonths(
+                max(1, $installmentsPaidCount - 1),
+            ),
+        ]);
+
+    $user = User::factory()->student()->create([
+        'email' => $pendingRegistration->email,
+        'access_tier_id' => $subscription->access_tier_id,
+        'is_active' => true,
+    ]);
+
+    $invoice->forceFill([
+        'user_id' => $user->id,
+        'balance_due' => round($balanceDue, 2),
+        'status' => Invoice::STATUS_INSTALLMENT,
+        'paid_at' => null,
+    ])->save();
+
+    $subscription->forceFill([
+        'user_id' => $user->id,
+        'completed_at' => null,
+    ])->save();
+
+    $event = PaymentSubscriptionEvent::query()->create([
+        'payment_subscription_id' => $subscription->id,
+        'invoice_id' => $invoice->id,
+        'provider' => PaymentSubscription::PROVIDER_PAYPAL,
+        'provider_event_id' => 'WH-'.$referenceSuffix,
+        'provider_event_type' => 'PAYMENT.SALE.COMPLETED',
+        'provider_subscription_id' =>
+            $subscription->provider_subscription_id,
+        'provider_capture_id' => 'CAPTURE-'.$referenceSuffix,
+        'occurred_at' => now(),
+        'status' => PaymentSubscriptionEvent::STATUS_RECEIVED,
+        'payload' => [
+            'resource' => [
+                'amount' => [
+                    'total' => number_format(
+                        $paymentAmount,
+                        2,
+                        '.',
+                        '',
+                    ),
+                    'currency' => AccessTier::CURRENCY_USD,
+                ],
+            ],
+        ],
+    ]);
+
+    app(InstallmentWebhookHandler::class)->handle($event);
+
+    return [
+        $subscription->fresh(),
+        $invoice->fresh(),
+    ];
+}
+
 
     private function createSubscriptionFixture(array $subscriptionOverrides = []): array
     {
