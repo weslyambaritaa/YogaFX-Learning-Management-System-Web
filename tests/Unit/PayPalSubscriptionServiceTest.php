@@ -122,6 +122,84 @@ class PayPalSubscriptionServiceTest extends TestCase
         });
     }
 
+
+    public function test_it_creates_paypal_plan_for_twenty_two_installments_with_setup_fee(): void
+{
+    Http::fake([
+        'https://api-m.sandbox.paypal.com/v1/oauth2/token' =>
+            Http::response([
+                'access_token' => 'paypal-access-token',
+            ]),
+        'https://api-m.sandbox.paypal.com/v1/billing/plans' =>
+            Http::response([
+                'id' => 'P-22-INSTALLMENTS',
+                'status' => 'ACTIVE',
+            ], 201),
+    ]);
+
+    $package = new Package([
+        'access_tier_id' => 1,
+        'title' => 'Masterclass 22 Installments',
+        'slug' => 'masterclass-22-installments',
+        'description' => 'Masterclass installment package.',
+        'price' => 2799,
+        'setup_fee' => 350,
+        'currency_code' => AccessTier::CURRENCY_USD,
+        'installment_enabled' => true,
+    ]);
+
+    $result = $this->service()->createPlan(
+        $package,
+        [
+            'total_amount' => '2799.00',
+            'currency_code' => 'USD',
+            'installment_count' => 22,
+            'first_payment_amount' => '350.00',
+            'first_recurring_payment_amount' => '116.60',
+            'monthly_base_amount' => '116.62',
+            'recurring_payment_amount' => '116.62',
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
+            'final_due_at' => '2028-04-15',
+        ],
+        'PROD-22-INSTALLMENTS',
+    );
+
+    $this->assertSame([
+        'id' => 'P-22-INSTALLMENTS',
+        'status' => 'ACTIVE',
+    ], $result);
+
+    Http::assertSent(function ($request): bool {
+        if (
+            $request->url() !==
+            'https://api-m.sandbox.paypal.com/v1/billing/plans'
+        ) {
+            return false;
+        }
+
+        $data = $request->data();
+        $billingCycles = $data['billing_cycles'] ?? [];
+
+        return count($billingCycles) === 2
+            && $billingCycles[0]['tenure_type'] === 'TRIAL'
+            && $billingCycles[0]['sequence'] === 1
+            && $billingCycles[0]['total_cycles'] === 1
+            && $billingCycles[0]['pricing_scheme']['fixed_price']['value']
+                === '116.60'
+            && $billingCycles[1]['tenure_type'] === 'REGULAR'
+            && $billingCycles[1]['sequence'] === 2
+            && $billingCycles[1]['total_cycles'] === 20
+            && $billingCycles[1]['pricing_scheme']['fixed_price']['value']
+                === '116.62'
+            && $data['payment_preferences']['setup_fee']['value']
+                === '350.00'
+            && $data['payment_preferences']['setup_fee']['currency_code']
+                === 'USD';
+    });
+}
+
+
     public function test_it_creates_paypal_subscription_and_returns_approval_url(): void
     {
         Http::fake([
@@ -233,7 +311,8 @@ class PayPalSubscriptionServiceTest extends TestCase
             return $data['product_id'] === 'PROD-DAILY-123'
                 && $data['billing_cycles'][0]['frequency']['interval_unit'] === 'DAY'
                 && $data['billing_cycles'][0]['frequency']['interval_count'] === 1
-                && $data['billing_cycles'][0]['total_cycles'] === 14
+                && $data['billing_cycles'][0]['total_cycles']
+    === (Package::MAX_PROVIDER_INSTALLMENT_COUNT - 1)
                 && $data['billing_cycles'][0]['pricing_scheme']['fixed_price']['value'] === '0.09'
                 && $data['payment_preferences']['setup_fee']['value'] === '1.37';
         });

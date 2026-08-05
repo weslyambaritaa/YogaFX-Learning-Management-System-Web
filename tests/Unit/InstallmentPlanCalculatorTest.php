@@ -77,19 +77,30 @@ class InstallmentPlanCalculatorTest extends TestCase
     }
 
     public function test_date_strategy_caps_maximum_installment_count_to_provider_limit(): void
-    {
-        $plan = $this->calculator()->calculate(
-            $this->eligiblePackage(overrides: [
-                'installment_deadline_date' => '2028-12-15',
-            ]),
-            '2026-07-08',
-            15,
-        );
+{
+    $plan = $this->calculator()->calculate(
+        $this->eligiblePackage(overrides: [
+            'installment_deadline_date' => '2040-12-15',
+        ]),
+        '2026-07-08',
+        15,
+    );
 
-        $this->assertSame(Package::MAX_PROVIDER_INSTALLMENT_COUNT, $plan['maximum_installment_count']);
-        $this->assertSame(Package::MAX_PROVIDER_INSTALLMENT_COUNT, $plan['installment_count']);
-        $this->assertCount(Package::MAX_PROVIDER_INSTALLMENT_COUNT - 1, $plan['available_recurring_due_dates']);
-    }
+    $this->assertSame(
+        Package::MAX_PROVIDER_INSTALLMENT_COUNT,
+        $plan['maximum_installment_count'],
+    );
+
+    $this->assertSame(
+        Package::MAX_PROVIDER_INSTALLMENT_COUNT,
+        $plan['installment_count'],
+    );
+
+    $this->assertCount(
+        Package::MAX_PROVIDER_INSTALLMENT_COUNT - 1,
+        $plan['available_recurring_due_dates'],
+    );
+}
 
     public function test_number_flex_accepts_selected_values_within_configured_limit(): void
     {
@@ -171,6 +182,113 @@ class InstallmentPlanCalculatorTest extends TestCase
 
         $this->calculator()->calculate($package, '2026-07-08', 15, 5);
     }
+
+
+    public function test_initial_checkout_uses_setup_fee_as_first_installment(): void
+{
+    $package = $this->eligiblePackage(overrides: [
+        'price' => 2799,
+        'setup_fee' => 350,
+        'installment_calculation_method' =>
+            Package::INSTALLMENT_CALCULATION_NUMBER,
+        'installment_count_mode' =>
+            Package::INSTALLMENT_COUNT_MODE_FIXED,
+        'installment_count' => 22,
+        'installment_deadline_date' => null,
+    ]);
+
+    $plan = $this->calculator()->calculateInitial(
+        package: $package,
+        checkoutAt: '2026-07-08',
+        billingDay: 15,
+        installmentCount: 22,
+    );
+
+    $this->assertSame(22, $plan['installment_count']);
+    $this->assertSame('2799.00', $plan['total_amount']);
+    $this->assertSame('350.00', $plan['first_payment_amount']);
+    $this->assertSame('116.60', $plan['first_recurring_payment_amount']);
+    $this->assertSame('116.62', $plan['recurring_payment_amount']);
+    $this->assertSame('116.62', $plan['monthly_base_amount']);
+    $this->assertSame(-2, $plan['rounding_adjustment_cents']);
+    $this->assertTrue($plan['setup_fee_applied']);
+    $this->assertSame('350.00', $plan['configured_setup_fee']);
+
+    $this->assertCount(22, $plan['schedule_breakdown']);
+    $this->assertSame(
+        '350.00',
+        $plan['schedule_breakdown'][0]['amount'],
+    );
+    $this->assertSame(
+        '116.60',
+        $plan['schedule_breakdown'][1]['amount'],
+    );
+    $this->assertSame(
+        '116.62',
+        $plan['schedule_breakdown'][2]['amount'],
+    );
+    $this->assertSame(
+        '116.62',
+        $plan['schedule_breakdown'][21]['amount'],
+    );
+
+    $scheduleTotalCents = collect($plan['schedule_breakdown'])
+        ->sum(
+            fn (array $cycle): int =>
+                (int) round((float) $cycle['amount'] * 100),
+        );
+
+    $this->assertSame(279900, $scheduleTotalCents);
+}
+
+public function test_initial_checkout_without_setup_fee_uses_legacy_calculation(): void
+{
+    $plan = $this->calculator()->calculateInitial(
+        package: $this->eligiblePackage(overrides: [
+            'price' => 300,
+            'setup_fee' => null,
+            'installment_deadline_date' => '2027-01-15',
+        ]),
+        checkoutAt: '2026-07-08',
+        billingDay: 15,
+        installmentCount: 7,
+    );
+
+    $this->assertSame('42.90', $plan['first_payment_amount']);
+    $this->assertSame('42.85', $plan['first_recurring_payment_amount']);
+    $this->assertSame('42.85', $plan['recurring_payment_amount']);
+    $this->assertFalse($plan['setup_fee_applied']);
+    $this->assertNull($plan['configured_setup_fee']);
+}
+
+public function test_upgrade_calculation_ignores_package_setup_fee(): void
+{
+    $package = $this->eligiblePackage(overrides: [
+        'price' => 2799,
+        'setup_fee' => 350,
+        'installment_calculation_method' =>
+            Package::INSTALLMENT_CALCULATION_NUMBER,
+        'installment_count_mode' =>
+            Package::INSTALLMENT_COUNT_MODE_FIXED,
+        'installment_count' => 22,
+        'installment_deadline_date' => null,
+    ]);
+
+    $plan = $this->calculator()->calculateForAmount(
+        package: $package,
+        totalAmountOverride: 2799,
+        checkoutAt: '2026-07-08',
+        billingDay: 15,
+        installmentCount: 22,
+    );
+
+    $this->assertSame('127.38', $plan['first_payment_amount']);
+    $this->assertSame('127.22', $plan['recurring_payment_amount']);
+    $this->assertSame('127.22', $plan['first_recurring_payment_amount']);
+    $this->assertFalse($plan['setup_fee_applied']);
+    $this->assertNull($plan['configured_setup_fee']);
+}
+
 
     private function calculator(): InstallmentPlanCalculator
     {

@@ -31,6 +31,7 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
         ]);
+
         $package = Package::factory()->create([
             'access_tier_id' => $tier->id,
             'title' => 'Masterclass Standard',
@@ -67,57 +68,163 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $this->mock(PayPalSubscriptionService::class, function ($mock): void {
             $mock->shouldReceive('createProduct')
                 ->once()
-                ->andReturn(['id' => 'PROD-001', 'status' => 'ACTIVE']);
+                ->andReturn([
+                    'id' => 'PROD-001',
+                    'status' => 'ACTIVE',
+                ]);
+
             $mock->shouldReceive('createPlan')
                 ->once()
-                ->andReturn(['id' => 'P-001', 'status' => 'ACTIVE']);
+                ->andReturn([
+                    'id' => 'P-001',
+                    'status' => 'ACTIVE',
+                ]);
         });
 
-        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
-            'pendingRegistration' => $pendingRegistration->id,
-            'accessTierSlug' => $tier->slug,
-        ]), [
-            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
-            'payment_method' => 'paypal',
-            'checkout_mode' => 'paypal',
-            'billing_day' => 15,
-            'installment_count' => 7,
-            'terms_accepted' => true,
-        ])
+        $this->postJson(
+            URL::temporarySignedRoute(
+                'checkout.orders.store',
+                now()->addDay(),
+                [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => $tier->slug,
+                ],
+            ),
+            [
+                'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+                'payment_method' => 'paypal',
+                'checkout_mode' => 'paypal',
+                'billing_day' => 15,
+                'installment_count' => 7,
+                'terms_accepted' => true,
+            ],
+        )
             ->assertOk()
             ->assertJsonPath('status', 'prepared')
             ->assertJsonPath('flow', 'subscription')
             ->assertJsonPath('payment_subscription_id', 1)
             ->assertJsonPath('provider_plan_id', 'P-001')
-            ->assertJsonPath('paypal_subscription_start_time', '2026-08-15T00:00:00Z')
+            ->assertJsonPath(
+                'paypal_subscription_start_time',
+                '2026-08-15T00:00:00Z',
+            )
             ->assertJsonPath('provider_subscription_id', null);
 
-        $invoice = Invoice::query()->latest('id')->firstOrFail();
-        $subscription = PaymentSubscription::query()->latest('id')->firstOrFail();
+        $invoice = Invoice::query()
+            ->latest('id')
+            ->firstOrFail();
 
-        $this->assertSame(Invoice::PAYMENT_TYPE_INSTALLMENT, $invoice->payment_type);
-        $this->assertSame(Invoice::STATUS_UNPAID, $invoice->status);
-        $this->assertSame('300.00', $invoice->total_amount);
-        $this->assertSame($package->id, $invoice->package_id);
+        $subscription = PaymentSubscription::query()
+            ->latest('id')
+            ->firstOrFail();
 
-        $this->assertSame(PaymentSubscription::PROVIDER_PAYPAL, $subscription->provider);
-        $this->assertSame(PaymentSubscription::STATUS_DRAFT, $subscription->status);
-        $this->assertSame('PROD-001', $subscription->provider_product_id);
-        $this->assertSame('P-001', $subscription->provider_plan_id);
-        $this->assertNull($subscription->provider_subscription_id);
-        $this->assertSame(15, $subscription->billing_day);
-        $this->assertSame(7, $subscription->installment_count);
-        $this->assertSame(0, $subscription->installments_paid_count);
-        $this->assertSame('42.90', $subscription->first_payment_amount);
-        $this->assertSame('42.85', $subscription->monthly_base_amount);
-        $this->assertSame('42.85', $subscription->next_billing_amount);
-        $this->assertSame('2026-08-15 00:00:00', optional($subscription->next_due_at)->format('Y-m-d H:i:s'));
-        $this->assertSame('2027-01-15 00:00:00', optional($subscription->final_due_at)->format('Y-m-d H:i:s'));
-        $this->assertSame('2026-08-18 00:00:00', optional($subscription->grace_deadline_at)->format('Y-m-d H:i:s'));
-        $this->assertSame('plan_ready', $subscription->metadata['provider_prepare_stage'] ?? null);
-        $this->assertSame('v2', $subscription->metadata['provider_plan_cache_version'] ?? null);
         $this->assertSame(
-            sprintf('v2_initial_pkg%s_day15_7x_USD_total30000_first4290_rec4285_month1', $package->id),
+            Invoice::PAYMENT_TYPE_INSTALLMENT,
+            $invoice->payment_type,
+        );
+
+        $this->assertSame(
+            Invoice::STATUS_UNPAID,
+            $invoice->status,
+        );
+
+        $this->assertSame(
+            '300.00',
+            $invoice->total_amount,
+        );
+
+        $this->assertSame(
+            $package->id,
+            $invoice->package_id,
+        );
+
+        $this->assertSame(
+            PaymentSubscription::PROVIDER_PAYPAL,
+            $subscription->provider,
+        );
+
+        $this->assertSame(
+            PaymentSubscription::STATUS_DRAFT,
+            $subscription->status,
+        );
+
+        $this->assertSame(
+            'PROD-001',
+            $subscription->provider_product_id,
+        );
+
+        $this->assertSame(
+            'P-001',
+            $subscription->provider_plan_id,
+        );
+
+        $this->assertNull(
+            $subscription->provider_subscription_id,
+        );
+
+        $this->assertSame(
+            15,
+            $subscription->billing_day,
+        );
+
+        $this->assertSame(
+            7,
+            $subscription->installment_count,
+        );
+
+        $this->assertSame(
+            0,
+            $subscription->installments_paid_count,
+        );
+
+        $this->assertSame(
+            '42.90',
+            $subscription->first_payment_amount,
+        );
+
+        $this->assertSame(
+            '42.85',
+            $subscription->monthly_base_amount,
+        );
+
+        $this->assertSame(
+            '42.85',
+            $subscription->next_billing_amount,
+        );
+
+        $this->assertSame(
+            '2026-08-15 00:00:00',
+            optional($subscription->next_due_at)
+                ->format('Y-m-d H:i:s'),
+        );
+
+        $this->assertSame(
+            '2027-01-15 00:00:00',
+            optional($subscription->final_due_at)
+                ->format('Y-m-d H:i:s'),
+        );
+
+        $this->assertSame(
+            '2026-08-18 00:00:00',
+            optional($subscription->grace_deadline_at)
+                ->format('Y-m-d H:i:s'),
+        );
+
+        $this->assertSame(
+            'plan_ready',
+            $subscription->metadata['provider_prepare_stage'] ?? null,
+        );
+
+        $this->assertSame(
+            'v5',
+            $subscription->metadata['provider_plan_cache_version'] ?? null,
+        );
+
+        $this->assertSame(
+            sprintf(
+                'v5_initial_pkg%s_day15_7x_USD_total30000_first4290_next4285_rec4285_month1',
+                $package->id,
+            ),
             $subscription->metadata['provider_plan_fingerprint'] ?? null,
         );
 
@@ -128,6 +235,154 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         ]);
     }
 
+    public function test_initial_installment_checkout_uses_package_setup_fee(): void
+    {
+        Carbon::setTestNow('2026-07-10 09:00:00');
+
+        $tier = AccessTier::factory()->create([
+            'slug' => AccessTier::SLUG_MASTER_CLASS,
+            'currency_code' => AccessTier::CURRENCY_USD,
+        ]);
+
+        $package = Package::factory()->create([
+            'access_tier_id' => $tier->id,
+            'title' => 'Masterclass 22 Installments',
+            'slug' => 'masterclass-22-installments',
+            'description' => 'Masterclass with setup fee.',
+            'payment_type' => Package::PAYMENT_TYPE_PAID,
+            'price' => 2799,
+            'setup_fee' => 350,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'installment_enabled' => true,
+            'installment_calculation_method' =>
+                Package::INSTALLMENT_CALCULATION_NUMBER,
+            'installment_count_mode' =>
+                Package::INSTALLMENT_COUNT_MODE_FIXED,
+            'installment_count' => 22,
+            'billing_interval_unit' => 'MONTH',
+            'billing_interval_count' => 1,
+            'fixed_billing_day' => 15,
+            'allowed_billing_days' => [15],
+            'installment_deadline_date' => null,
+            'paypal_product_id' => null,
+            'paypal_plan_id' => null,
+        ]);
+
+        $pendingRegistration = PendingRegistration::query()->create([
+            'access_tier_id' => $tier->id,
+            'package_id' => $package->id,
+            'first_name' => 'Ava',
+            'last_name' => 'Stone',
+            'email' => 'ava-setup-fee@example.com',
+            'phone' => '+6281234567890',
+            'country' => 'Indonesia',
+            'amount_snapshot' => 2799,
+            'currency_code' => AccessTier::CURRENCY_USD,
+            'status' => PendingRegistration::STATUS_CHECKOUT_OPENED,
+            'checkout_opened_at' => now(),
+        ]);
+
+        $this->mock(
+            PayPalSubscriptionService::class,
+            function ($mock): void {
+                $mock->shouldReceive('createProduct')
+                    ->once()
+                    ->andReturn([
+                        'id' => 'PROD-SETUP-FEE',
+                        'status' => 'ACTIVE',
+                    ]);
+
+                $mock->shouldReceive('createPlan')
+                    ->once()
+                    ->andReturn([
+                        'id' => 'P-SETUP-FEE',
+                        'status' => 'ACTIVE',
+                    ]);
+            },
+        );
+
+        $this->postJson(
+            URL::temporarySignedRoute(
+                'checkout.orders.store',
+                now()->addDay(),
+                [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => $tier->slug,
+                ],
+            ),
+            [
+                'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+                'payment_method' => 'paypal',
+                'checkout_mode' => 'paypal',
+                'billing_day' => 15,
+                'installment_count' => 22,
+                'terms_accepted' => true,
+            ],
+        )
+            ->assertOk()
+            ->assertJsonPath('status', 'prepared')
+            ->assertJsonPath('installment_count', 22)
+            ->assertJsonPath(
+                'installment_plan.first_payment_amount',
+                '350.00',
+            )
+            ->assertJsonPath(
+                'installment_plan.first_recurring_payment_amount',
+                '116.60',
+            )
+            ->assertJsonPath(
+                'installment_plan.recurring_payment_amount',
+                '116.62',
+            )
+            ->assertJsonPath(
+                'installment_plan.setup_fee_applied',
+                true,
+            );
+
+        $subscription = PaymentSubscription::query()
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame(
+            22,
+            $subscription->installment_count,
+        );
+
+        $this->assertSame(
+            '2799.00',
+            $subscription->total_amount,
+        );
+
+        $this->assertSame(
+            '350.00',
+            $subscription->first_payment_amount,
+        );
+
+        $this->assertSame(
+            '116.62',
+            $subscription->monthly_base_amount,
+        );
+
+        $this->assertSame(
+            '116.60',
+            $subscription->next_billing_amount,
+        );
+
+        $this->assertSame(
+            '350.00',
+            $subscription->metadata['installment_plan']
+                ['configured_setup_fee'] ?? null,
+        );
+
+        $this->assertSame(
+            sprintf(
+                'v5_initial_pkg%s_day15_22x_USD_total279900_first35000_next11660_rec11662_month1',
+                $package->id,
+            ),
+            $subscription->metadata['provider_plan_fingerprint'] ?? null,
+        );
+    }
+
     public function test_backend_reuses_existing_prepared_subscription_session_for_same_pending_registration(): void
     {
         Carbon::setTestNow('2026-07-10 09:00:00');
@@ -135,6 +390,7 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
         ]);
+
         $package = Package::factory()->create([
             'access_tier_id' => $tier->id,
             'price' => 300,
@@ -202,9 +458,9 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
             'metadata' => [
                 'provider_prepare_stage' => 'plan_ready',
                 'context' => 'initial',
-                'provider_plan_cache_version' => 'v2',
+                'provider_plan_cache_version' => 'v5',
                 'provider_plan_fingerprint' => sprintf(
-                    'v2_initial_pkg%s_day15_7x_USD_total30000_first4290_rec4285_month1',
+                    'v5_initial_pkg%s_day15_7x_USD_total30000_first4290_next4285_rec4285_month1',
                     $package->id,
                 ),
             ],
@@ -213,36 +469,59 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $package->forceFill([
             'metadata' => [
                 'paypal_plan_ids_v2' => [
-                    sprintf('v2_initial_pkg%s_day15_7x_USD_total30000_first4290_rec4285_month1', $package->id) => 'P-001',
+                    sprintf(
+                        'v5_initial_pkg%s_day15_7x_USD_total30000_first4290_next4285_rec4285_month1',
+                        $package->id,
+                    ) => 'P-001',
                 ],
             ],
         ])->save();
 
-        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
-            $mock->shouldNotReceive('createProduct');
-            $mock->shouldNotReceive('createPlan');
-        });
+        $this->mock(
+            PayPalSubscriptionService::class,
+            function ($mock): void {
+                $mock->shouldNotReceive('createProduct');
+                $mock->shouldNotReceive('createPlan');
+            },
+        );
 
-        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
-            'pendingRegistration' => $pendingRegistration->id,
-            'accessTierSlug' => $tier->slug,
-        ]), [
-            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
-            'payment_method' => 'paypal',
-            'checkout_mode' => 'paypal',
-            'billing_day' => 15,
-            'installment_count' => 7,
-            'terms_accepted' => true,
-        ])
+        $this->postJson(
+            URL::temporarySignedRoute(
+                'checkout.orders.store',
+                now()->addDay(),
+                [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => $tier->slug,
+                ],
+            ),
+            [
+                'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+                'payment_method' => 'paypal',
+                'checkout_mode' => 'paypal',
+                'billing_day' => 15,
+                'installment_count' => 7,
+                'terms_accepted' => true,
+            ],
+        )
             ->assertOk()
             ->assertJsonPath('status', 'prepared')
             ->assertJsonPath('payment_subscription_id', 1)
             ->assertJsonPath('provider_plan_id', 'P-001')
-            ->assertJsonPath('paypal_subscription_start_time', '2026-08-15T00:00:00Z')
+            ->assertJsonPath(
+                'paypal_subscription_start_time',
+                '2026-08-15T00:00:00Z',
+            )
             ->assertJsonPath('provider_subscription_id', null);
 
-        $this->assertSame(1, PaymentSubscription::query()->count());
-        $this->assertSame(1, Invoice::query()->count());
+        $this->assertSame(
+            1,
+            PaymentSubscription::query()->count(),
+        );
+
+        $this->assertSame(
+            1,
+            Invoice::query()->count(),
+        );
     }
 
     public function test_backend_does_not_reuse_legacy_plan_cache_for_new_installment_checkout(): void
@@ -252,6 +531,7 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
         ]);
+
         $package = Package::factory()->create([
             'access_tier_id' => $tier->id,
             'price' => 300,
@@ -288,33 +568,63 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
             'checkout_opened_at' => now(),
         ]);
 
-        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
-            $mock->shouldNotReceive('createProduct');
-            $mock->shouldReceive('createPlan')
-                ->once()
-                ->andReturn(['id' => 'P-V2-001', 'status' => 'ACTIVE']);
-        });
+        $this->mock(
+            PayPalSubscriptionService::class,
+            function ($mock): void {
+                $mock->shouldNotReceive('createProduct');
 
-        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
-            'pendingRegistration' => $pendingRegistration->id,
-            'accessTierSlug' => $tier->slug,
-        ]), [
-            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
-            'payment_method' => 'paypal',
-            'checkout_mode' => 'paypal',
-            'billing_day' => 15,
-            'installment_count' => 7,
-            'terms_accepted' => true,
-        ])
+                $mock->shouldReceive('createPlan')
+                    ->once()
+                    ->andReturn([
+                        'id' => 'P-V2-001',
+                        'status' => 'ACTIVE',
+                    ]);
+            },
+        );
+
+        $this->postJson(
+            URL::temporarySignedRoute(
+                'checkout.orders.store',
+                now()->addDay(),
+                [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => $tier->slug,
+                ],
+            ),
+            [
+                'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+                'payment_method' => 'paypal',
+                'checkout_mode' => 'paypal',
+                'billing_day' => 15,
+                'installment_count' => 7,
+                'terms_accepted' => true,
+            ],
+        )
             ->assertOk()
-            ->assertJsonPath('provider_plan_id', 'P-V2-001');
+            ->assertJsonPath(
+                'provider_plan_id',
+                'P-V2-001',
+            );
 
-        $subscription = PaymentSubscription::query()->latest('id')->firstOrFail();
+        $subscription = PaymentSubscription::query()
+            ->latest('id')
+            ->firstOrFail();
 
-        $this->assertSame('P-V2-001', $subscription->provider_plan_id);
-        $this->assertSame('v2', $subscription->metadata['provider_plan_cache_version'] ?? null);
         $this->assertSame(
-            sprintf('v2_initial_pkg%s_day15_7x_USD_total30000_first4290_rec4285_month1', $package->id),
+            'P-V2-001',
+            $subscription->provider_plan_id,
+        );
+
+        $this->assertSame(
+            'v5',
+            $subscription->metadata['provider_plan_cache_version'] ?? null,
+        );
+
+        $this->assertSame(
+            sprintf(
+                'v5_initial_pkg%s_day15_7x_USD_total30000_first4290_next4285_rec4285_month1',
+                $package->id,
+            ),
             $subscription->metadata['provider_plan_fingerprint'] ?? null,
         );
     }
@@ -326,6 +636,7 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
         ]);
+
         $package = Package::factory()->create([
             'access_tier_id' => $tier->id,
             'price' => 300,
@@ -395,34 +706,66 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
             ],
         ]);
 
-        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
-            $mock->shouldNotReceive('createProduct');
-            $mock->shouldReceive('createPlan')
-                ->once()
-                ->andReturn(['id' => 'P-V2-REBUILT', 'status' => 'ACTIVE']);
-        });
+        $this->mock(
+            PayPalSubscriptionService::class,
+            function ($mock): void {
+                $mock->shouldNotReceive('createProduct');
 
-        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
-            'pendingRegistration' => $pendingRegistration->id,
-            'accessTierSlug' => $tier->slug,
-        ]), [
-            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
-            'payment_method' => 'paypal',
-            'checkout_mode' => 'paypal',
-            'billing_day' => 15,
-            'installment_count' => 7,
-            'terms_accepted' => true,
-        ])
+                $mock->shouldReceive('createPlan')
+                    ->once()
+                    ->andReturn([
+                        'id' => 'P-V2-REBUILT',
+                        'status' => 'ACTIVE',
+                    ]);
+            },
+        );
+
+        $this->postJson(
+            URL::temporarySignedRoute(
+                'checkout.orders.store',
+                now()->addDay(),
+                [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => $tier->slug,
+                ],
+            ),
+            [
+                'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+                'payment_method' => 'paypal',
+                'checkout_mode' => 'paypal',
+                'billing_day' => 15,
+                'installment_count' => 7,
+                'terms_accepted' => true,
+            ],
+        )
             ->assertOk()
-            ->assertJsonPath('payment_subscription_id', 1)
-            ->assertJsonPath('provider_plan_id', 'P-V2-REBUILT');
+            ->assertJsonPath(
+                'payment_subscription_id',
+                1,
+            )
+            ->assertJsonPath(
+                'provider_plan_id',
+                'P-V2-REBUILT',
+            );
 
-        $subscription = PaymentSubscription::query()->findOrFail(1);
+        $subscription = PaymentSubscription::query()
+            ->findOrFail(1);
 
-        $this->assertSame('P-V2-REBUILT', $subscription->provider_plan_id);
-        $this->assertSame('v2', $subscription->metadata['provider_plan_cache_version'] ?? null);
         $this->assertSame(
-            sprintf('v2_initial_pkg%s_day15_7x_USD_total30000_first4290_rec4285_month1', $package->id),
+            'P-V2-REBUILT',
+            $subscription->provider_plan_id,
+        );
+
+        $this->assertSame(
+            'v5',
+            $subscription->metadata['provider_plan_cache_version'] ?? null,
+        );
+
+        $this->assertSame(
+            sprintf(
+                'v5_initial_pkg%s_day15_7x_USD_total30000_first4290_next4285_rec4285_month1',
+                $package->id,
+            ),
             $subscription->metadata['provider_plan_fingerprint'] ?? null,
         );
     }
@@ -434,6 +777,7 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
         ]);
+
         $package = Package::factory()->create([
             'access_tier_id' => $tier->id,
             'title' => 'Masterclass Standard',
@@ -466,33 +810,55 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
             'checkout_opened_at' => now(),
         ]);
 
-        $this->mock(PayPalSubscriptionService::class, function ($mock): void {
-            $mock->shouldReceive('createProduct')
-                ->once()
-                ->andThrow(\Illuminate\Validation\ValidationException::withMessages([
-                    'payment_method' => 'PayPal product request failed. Debug ID: debug-product-422.',
-                ]));
-            $mock->shouldNotReceive('createPlan');
-            $mock->shouldNotReceive('createSubscription');
-        });
+        $this->mock(
+            PayPalSubscriptionService::class,
+            function ($mock): void {
+                $mock->shouldReceive('createProduct')
+                    ->once()
+                    ->andThrow(
+                        \Illuminate\Validation\ValidationException::withMessages([
+                            'payment_method' => 'PayPal product request failed. Debug ID: debug-product-422.',
+                        ]),
+                    );
 
-        $this->postJson(URL::temporarySignedRoute('checkout.orders.store', now()->addDay(), [
-            'pendingRegistration' => $pendingRegistration->id,
-            'accessTierSlug' => $tier->slug,
-        ]), [
-            'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
-            'payment_method' => 'paypal',
-            'checkout_mode' => 'paypal',
-            'billing_day' => 15,
-            'installment_count' => 7,
-            'terms_accepted' => true,
-        ])
+                $mock->shouldNotReceive('createPlan');
+                $mock->shouldNotReceive('createSubscription');
+            },
+        );
+
+        $this->postJson(
+            URL::temporarySignedRoute(
+                'checkout.orders.store',
+                now()->addDay(),
+                [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => $tier->slug,
+                ],
+            ),
+            [
+                'payment_type' => Invoice::PAYMENT_TYPE_INSTALLMENT,
+                'payment_method' => 'paypal',
+                'checkout_mode' => 'paypal',
+                'billing_day' => 15,
+                'installment_count' => 7,
+                'terms_accepted' => true,
+            ],
+        )
             ->assertStatus(422)
-            ->assertJsonPath('message', 'PayPal product request failed. Debug ID: debug-product-422.');
+            ->assertJsonPath(
+                'message',
+                'PayPal product request failed. Debug ID: debug-product-422.',
+            );
 
-        $subscription = PaymentSubscription::query()->latest('id')->firstOrFail();
+        $subscription = PaymentSubscription::query()
+            ->latest('id')
+            ->firstOrFail();
 
-        $this->assertSame(PaymentSubscription::STATUS_FAILED, $subscription->status);
+        $this->assertSame(
+            PaymentSubscription::STATUS_FAILED,
+            $subscription->status,
+        );
+
         $this->assertSame(
             'PayPal product request failed. Debug ID: debug-product-422.',
             $subscription->metadata['provider_error'] ?? null,
@@ -506,6 +872,7 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
         ]);
+
         $package = Package::factory()->create([
             'access_tier_id' => $tier->id,
             'title' => 'Masterclass Standard',
@@ -575,16 +942,26 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
             'metadata' => [],
         ]);
 
-        $this->postJson(URL::temporarySignedRoute('checkout.installments.approve', now()->addDay(), [
-            'pendingRegistration' => $pendingRegistration->id,
-            'accessTierSlug' => $tier->slug,
-        ]), [
-            'payment_subscription_id' => $paymentSubscription->id,
-            'provider_subscription_id' => 'I-SUBSCRIPTION-001',
-        ])
+        $this->postJson(
+            URL::temporarySignedRoute(
+                'checkout.installments.approve',
+                now()->addDay(),
+                [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => $tier->slug,
+                ],
+            ),
+            [
+                'payment_subscription_id' => $paymentSubscription->id,
+                'provider_subscription_id' => 'I-SUBSCRIPTION-001',
+            ],
+        )
             ->assertOk()
             ->assertJsonPath('status', 'approval_attached')
-            ->assertJsonPath('provider_subscription_id', 'I-SUBSCRIPTION-001')
+            ->assertJsonPath(
+                'provider_subscription_id',
+                'I-SUBSCRIPTION-001',
+            )
             ->assertJsonPath('awaiting_webhook', true)
             ->assertJsonPath('onboarding_ready', false);
 
@@ -606,6 +983,7 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
         $tier = AccessTier::factory()->create([
             'slug' => AccessTier::SLUG_MASTER_CLASS,
         ]);
+
         $package = Package::factory()->create([
             'access_tier_id' => $tier->id,
             'price' => 300,
@@ -663,12 +1041,21 @@ class InstallmentCheckoutOrchestrationTest extends TestCase
             'metadata' => [],
         ]);
 
-        $this->getJson(URL::temporarySignedRoute('checkout.installments.status', now()->addDay(), [
-            'pendingRegistration' => $pendingRegistration->id,
-            'accessTierSlug' => $tier->slug,
-        ]))
+        $this->getJson(
+            URL::temporarySignedRoute(
+                'checkout.installments.status',
+                now()->addDay(),
+                [
+                    'pendingRegistration' => $pendingRegistration->id,
+                    'accessTierSlug' => $tier->slug,
+                ],
+            ),
+        )
             ->assertOk()
-            ->assertJsonPath('status', 'waiting_for_first_payment')
+            ->assertJsonPath(
+                'status',
+                'waiting_for_first_payment',
+            )
             ->assertJsonPath('onboarding_ready', false)
             ->assertJsonPath('onboarding_url', null);
     }

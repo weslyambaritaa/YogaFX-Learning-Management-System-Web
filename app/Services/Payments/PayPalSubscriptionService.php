@@ -128,8 +128,11 @@ class PayPalSubscriptionService
             intervalUnit: (string) ($installmentPlan['billing_interval_unit'] ?? 'MONTH'),
             intervalCount: (int) ($installmentPlan['billing_interval_count'] ?? 1),
             recurringAmount: $installmentPlan['recurring_payment_amount'],
-            firstPaymentAmount: $installmentPlan['first_payment_amount'],
-            paymentFailureThreshold: 1,
+firstPaymentAmount: $installmentPlan['first_payment_amount'],
+paymentFailureThreshold: 1,
+firstRecurringAmount:
+    $installmentPlan['first_recurring_payment_amount']
+        ?? $installmentPlan['recurring_payment_amount'],
         );
     }
 
@@ -142,39 +145,97 @@ class PayPalSubscriptionService
      * @return array{id: string, status: string}
      */
     public function createPlanFromReference(
-        string $productId,
-        string $name,
-        string $description,
-        string $currencyCode,
-        int $installmentCount,
-        string $intervalUnit,
-        int $intervalCount,
-        float|int|string $recurringAmount,
-        float|int|string $firstPaymentAmount,
-        int $paymentFailureThreshold,
-    ): array {
-        $regularCycles = max(1, $installmentCount - 1);
+    string $productId,
+    string $name,
+    string $description,
+    string $currencyCode,
+    int $installmentCount,
+    string $intervalUnit,
+    int $intervalCount,
+    float|int|string $recurringAmount,
+    float|int|string $firstPaymentAmount,
+    int $paymentFailureThreshold,
+    float|int|string|null $firstRecurringAmount = null,
+): array {
+        $recurringCycles = max(1, $installmentCount - 1);
 
-        $payload = [
-            'product_id' => $productId,
-            'name' => mb_substr($name, 0, self::PLAN_NAME_MAX_LENGTH),
-            'description' => mb_substr($description, 0, self::PLAN_DESCRIPTION_MAX_LENGTH),
-            'status' => 'ACTIVE',
-            'billing_cycles' => [[
-                'frequency' => [
-                    'interval_unit' => strtoupper($intervalUnit),
-                    'interval_count' => max(1, $intervalCount),
-                ],
-                'tenure_type' => 'REGULAR',
-                'sequence' => 1,
-                'total_cycles' => $regularCycles,
-                'pricing_scheme' => [
-                    'fixed_price' => [
-                        'currency_code' => $currencyCode,
-                        'value' => $this->paypalAmount($recurringAmount),
-                    ],
-                ],
-            ]],
+$frequency = [
+    'interval_unit' => strtoupper($intervalUnit),
+    'interval_count' => max(1, $intervalCount),
+];
+
+$regularAmount = $this->paypalAmount($recurringAmount);
+$adjustedFirstRecurringAmount = $this->paypalAmount(
+    $firstRecurringAmount ?? $recurringAmount,
+);
+
+$billingCycles = [];
+
+if (
+    $recurringCycles > 1
+    && $adjustedFirstRecurringAmount !== $regularAmount
+) {
+    /*
+    |--------------------------------------------------------------------------
+    | Paid adjustment cycle
+    |--------------------------------------------------------------------------
+    |
+    | PayPal hanya mengizinkan satu REGULAR cycle. Satu TRIAL cycle berbayar
+    | dipakai untuk menyerap selisih pembulatan recurring payment pertama.
+    |
+    */
+    $billingCycles[] = [
+        'frequency' => $frequency,
+        'tenure_type' => 'TRIAL',
+        'sequence' => 1,
+        'total_cycles' => 1,
+        'pricing_scheme' => [
+            'fixed_price' => [
+                'currency_code' => $currencyCode,
+                'value' => $adjustedFirstRecurringAmount,
+            ],
+        ],
+    ];
+
+    $billingCycles[] = [
+        'frequency' => $frequency,
+        'tenure_type' => 'REGULAR',
+        'sequence' => 2,
+        'total_cycles' => $recurringCycles - 1,
+        'pricing_scheme' => [
+            'fixed_price' => [
+                'currency_code' => $currencyCode,
+                'value' => $regularAmount,
+            ],
+        ],
+    ];
+} else {
+    $billingCycles[] = [
+        'frequency' => $frequency,
+        'tenure_type' => 'REGULAR',
+        'sequence' => 1,
+        'total_cycles' => $recurringCycles,
+        'pricing_scheme' => [
+            'fixed_price' => [
+                'currency_code' => $currencyCode,
+                'value' => $recurringCycles === 1
+                    ? $adjustedFirstRecurringAmount
+                    : $regularAmount,
+            ],
+        ],
+    ];
+}
+
+$payload = [
+    'product_id' => $productId,
+    'name' => mb_substr($name, 0, self::PLAN_NAME_MAX_LENGTH),
+    'description' => mb_substr(
+        $description,
+        0,
+        self::PLAN_DESCRIPTION_MAX_LENGTH,
+    ),
+    'status' => 'ACTIVE',
+    'billing_cycles' => $billingCycles,
             'payment_preferences' => [
                 'auto_bill_outstanding' => true,
                 'setup_fee' => [

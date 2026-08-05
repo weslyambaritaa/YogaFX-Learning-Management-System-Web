@@ -20,6 +20,7 @@ export default function EditPackage({
         currency_code: pkg.currency_code ?? "IDR",
         is_active: pkg.is_active ?? true,
         installment_enabled: pkg.installment_enabled ?? false,
+        setup_fee: pkg.setup_fee ?? "",
         installment_calculation_method:
             pkg.installment_calculation_method ?? "date",
         installment_count_mode: pkg.installment_count_mode ?? "",
