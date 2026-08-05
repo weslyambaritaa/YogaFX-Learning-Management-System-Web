@@ -395,7 +395,11 @@ function resolveDefaultInstallmentCount(
         return fixedInstallmentCount;
     }
 
-    return availableInstallmentCounts[0] ?? 2;
+    return (
+    availableInstallmentCounts[
+        availableInstallmentCounts.length - 1
+    ] ?? 2
+);
 }
 
 function buildInstallmentPolicySignature(
