@@ -395,7 +395,11 @@ function resolveDefaultInstallmentCount(
         return fixedInstallmentCount;
     }
 
-    return availableInstallmentCounts[0] ?? 2;
+    return (
+        availableInstallmentCounts[
+            availableInstallmentCounts.length - 1
+        ] ?? 2
+    );
 }
 
 function buildInstallmentPolicySignature(
@@ -448,8 +452,22 @@ function buildInstallmentPolicySignature(
             checkout,
             selectedPaymentOption,
         ),
+        setup_fee: resolveSetupFee(summary, checkout, selectedPaymentOption),
         available_installment_counts: availableInstallmentCounts,
     });
+}
+
+function resolveSetupFee(summary, checkout, selectedPaymentOption) {
+    const value =
+        summary?.configured_setup_fee ??
+        checkout?.setup_fee ??
+        checkout?.package?.setup_fee ??
+        selectedPaymentOption?.setup_fee ??
+        0;
+
+    const numericValue = Number(value);
+
+    return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : 0;
 }
 
 function buildInstallmentSummaryForCount(
@@ -502,16 +520,52 @@ function buildInstallmentSummaryForCount(
     }
 
     const totalAmountCents = amountToCents(summary.total_amount ?? 0);
-    const recurringAmountCents = Math.floor(
-        totalAmountCents / effectiveInstallmentCount,
+    const requiredRecurringCount = effectiveInstallmentCount - 1;
+
+    const setupFeeCents = amountToCents(
+        resolveSetupFee(summary, checkout, selectedPaymentOption),
     );
-    const firstPaymentAmountCents =
-        totalAmountCents -
-        recurringAmountCents * (effectiveInstallmentCount - 1);
+
+    const setupFeeApplied =
+        setupFeeCents > 0 && setupFeeCents < totalAmountCents;
+
+    let firstPaymentAmountCents;
+    let firstRecurringPaymentAmountCents;
+    let recurringAmountCents;
+    let roundingAdjustmentCents = 0;
+
+    if (setupFeeApplied) {
+        const remainingAmountCents = totalAmountCents - setupFeeCents;
+
+        recurringAmountCents = Math.round(
+            remainingAmountCents / requiredRecurringCount,
+        );
+
+        roundingAdjustmentCents =
+            remainingAmountCents -
+            recurringAmountCents * requiredRecurringCount;
+
+        firstRecurringPaymentAmountCents =
+            recurringAmountCents + roundingAdjustmentCents;
+
+        firstPaymentAmountCents = setupFeeCents;
+    } else {
+        recurringAmountCents = Math.floor(
+            totalAmountCents / effectiveInstallmentCount,
+        );
+
+        firstPaymentAmountCents =
+            totalAmountCents -
+            recurringAmountCents * (effectiveInstallmentCount - 1);
+
+        firstRecurringPaymentAmountCents = recurringAmountCents;
+    }
 
     const recurringAmount = centsToAmount(recurringAmountCents);
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
-    const requiredRecurringCount = effectiveInstallmentCount - 1;
+    const firstRecurringPaymentAmount = centsToAmount(
+        firstRecurringPaymentAmountCents,
+    );
 
     const billingDay =
         Number(activeBillingDay) === 1 || Number(activeBillingDay) === 15
@@ -575,7 +629,10 @@ function buildInstallmentSummaryForCount(
         ...Array.from({ length: requiredRecurringCount }, (_, index) => ({
             cycle_number: index + 2,
             type: "recurring",
-            amount: recurringAmount.toFixed(2),
+            amount:
+                index === 0
+                    ? firstRecurringPaymentAmount.toFixed(2)
+                    : recurringAmount.toFixed(2),
             due_at: selectedRecurringDueDates[index] ?? null,
             grace_deadline: null,
         })),
@@ -588,9 +645,16 @@ function buildInstallmentSummaryForCount(
         maximum_installment_count: maximumInstallmentCount,
         installment_maximum_count: maximumInstallmentCount,
         minimum_installment_count: minimumInstallmentCount,
+        setup_fee_applied: setupFeeApplied,
+        configured_setup_fee: setupFeeApplied
+            ? firstPaymentAmount.toFixed(2)
+            : null,
         first_payment_amount: firstPaymentAmount.toFixed(2),
+        first_recurring_payment_amount: firstRecurringPaymentAmount.toFixed(2),
         monthly_base_amount: recurringAmount.toFixed(2),
         recurring_payment_amount: recurringAmount.toFixed(2),
+        last_payment_amount: recurringAmount.toFixed(2),
+        rounding_adjustment_cents: roundingAdjustmentCents,
         recurring_due_dates: selectedRecurringDueDates,
         available_recurring_due_dates: selectedRecurringDueDates,
         final_due_at: finalDueAt,
@@ -967,6 +1031,7 @@ export default function PublicCheckoutPanel({
 
     const lastInstallmentAmount = Number(
         lastInstallment?.amount ??
+            activeInstallmentSummary?.last_payment_amount ??
             activeInstallmentSummary?.recurring_payment_amount ??
             recurringAmount ??
             amountDueToday,
