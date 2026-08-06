@@ -77,8 +77,17 @@ RUN composer install \
 
 COPY . .
 
-# Ambil hasil build Vite dari frontend-builder.
-COPY --from=frontend-builder /app/public/build ./public/build
+# Hapus build lama dari source repository agar manifest dan assets
+# selalu berasal dari build yang sama.
+RUN rm -rf public/build
+
+# Ambil seluruh hasil build Vite dari frontend-builder.
+COPY --from=frontend-builder /app/public/build/ ./public/build/
+
+# Pastikan manifest dan asset hasil build benar-benar tersedia.
+RUN test -f public/build/manifest.json \
+    && test -d public/build/assets \
+    && test -n "$(find public/build/assets -maxdepth 1 -type f -print -quit)"
 
 RUN mkdir -p \
     storage/framework/views \
@@ -86,6 +95,7 @@ RUN mkdir -p \
     storage/framework/sessions \
     storage/logs \
     bootstrap/cache \
+    && php artisan optimize:clear \
     && composer dump-autoload \
         --no-dev \
         --optimize \
