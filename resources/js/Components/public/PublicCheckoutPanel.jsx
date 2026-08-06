@@ -17,7 +17,7 @@ const FONT_FAMILY = "'Montserrat', sans-serif";
 const PAYPAL_FULL_NAMESPACE = "paypalPayFullCheckout";
 const PAYPAL_INSTALLMENT_NAMESPACE = "paypalInstallmentCheckout";
 const INSTALLMENT_WATERMARK_URL =
-    "https://yogafx-training.b-cdn.net/branding/yogafx-white-icon.png";
+    "https://yogafx-training.b-cdn.net/branding/pdf-watermark-20260309072713-dc4ffc1e.png";
 
 function firstErrorMessage(nextErrors) {
     return (
@@ -395,11 +395,7 @@ function resolveDefaultInstallmentCount(
         return fixedInstallmentCount;
     }
 
-    return (
-    availableInstallmentCounts[
-        availableInstallmentCounts.length - 1
-    ] ?? 2
-);
+    return availableInstallmentCounts[0] ?? 2;
 }
 
 function buildInstallmentPolicySignature(
@@ -452,22 +448,8 @@ function buildInstallmentPolicySignature(
             checkout,
             selectedPaymentOption,
         ),
-        setup_fee: resolveSetupFee(summary, checkout, selectedPaymentOption),
         available_installment_counts: availableInstallmentCounts,
     });
-}
-
-function resolveSetupFee(summary, checkout, selectedPaymentOption) {
-    const value =
-        summary?.configured_setup_fee ??
-        checkout?.setup_fee ??
-        checkout?.package?.setup_fee ??
-        selectedPaymentOption?.setup_fee ??
-        0;
-
-    const numericValue = Number(value);
-
-    return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : 0;
 }
 
 function buildInstallmentSummaryForCount(
@@ -520,52 +502,16 @@ function buildInstallmentSummaryForCount(
     }
 
     const totalAmountCents = amountToCents(summary.total_amount ?? 0);
-    const requiredRecurringCount = effectiveInstallmentCount - 1;
-
-    const setupFeeCents = amountToCents(
-        resolveSetupFee(summary, checkout, selectedPaymentOption),
+    const recurringAmountCents = Math.floor(
+        totalAmountCents / effectiveInstallmentCount,
     );
-
-    const setupFeeApplied =
-        setupFeeCents > 0 && setupFeeCents < totalAmountCents;
-
-    let firstPaymentAmountCents;
-    let firstRecurringPaymentAmountCents;
-    let recurringAmountCents;
-    let roundingAdjustmentCents = 0;
-
-    if (setupFeeApplied) {
-        const remainingAmountCents = totalAmountCents - setupFeeCents;
-
-        recurringAmountCents = Math.round(
-            remainingAmountCents / requiredRecurringCount,
-        );
-
-        roundingAdjustmentCents =
-            remainingAmountCents -
-            recurringAmountCents * requiredRecurringCount;
-
-        firstRecurringPaymentAmountCents =
-            recurringAmountCents + roundingAdjustmentCents;
-
-        firstPaymentAmountCents = setupFeeCents;
-    } else {
-        recurringAmountCents = Math.floor(
-            totalAmountCents / effectiveInstallmentCount,
-        );
-
-        firstPaymentAmountCents =
-            totalAmountCents -
-            recurringAmountCents * (effectiveInstallmentCount - 1);
-
-        firstRecurringPaymentAmountCents = recurringAmountCents;
-    }
+    const firstPaymentAmountCents =
+        totalAmountCents -
+        recurringAmountCents * (effectiveInstallmentCount - 1);
 
     const recurringAmount = centsToAmount(recurringAmountCents);
     const firstPaymentAmount = centsToAmount(firstPaymentAmountCents);
-    const firstRecurringPaymentAmount = centsToAmount(
-        firstRecurringPaymentAmountCents,
-    );
+    const requiredRecurringCount = effectiveInstallmentCount - 1;
 
     const billingDay =
         Number(activeBillingDay) === 1 || Number(activeBillingDay) === 15
@@ -629,10 +575,7 @@ function buildInstallmentSummaryForCount(
         ...Array.from({ length: requiredRecurringCount }, (_, index) => ({
             cycle_number: index + 2,
             type: "recurring",
-            amount:
-                index === 0
-                    ? firstRecurringPaymentAmount.toFixed(2)
-                    : recurringAmount.toFixed(2),
+            amount: recurringAmount.toFixed(2),
             due_at: selectedRecurringDueDates[index] ?? null,
             grace_deadline: null,
         })),
@@ -645,16 +588,9 @@ function buildInstallmentSummaryForCount(
         maximum_installment_count: maximumInstallmentCount,
         installment_maximum_count: maximumInstallmentCount,
         minimum_installment_count: minimumInstallmentCount,
-        setup_fee_applied: setupFeeApplied,
-        configured_setup_fee: setupFeeApplied
-            ? firstPaymentAmount.toFixed(2)
-            : null,
         first_payment_amount: firstPaymentAmount.toFixed(2),
-        first_recurring_payment_amount: firstRecurringPaymentAmount.toFixed(2),
         monthly_base_amount: recurringAmount.toFixed(2),
         recurring_payment_amount: recurringAmount.toFixed(2),
-        last_payment_amount: recurringAmount.toFixed(2),
-        rounding_adjustment_cents: roundingAdjustmentCents,
         recurring_due_dates: selectedRecurringDueDates,
         available_recurring_due_dates: selectedRecurringDueDates,
         final_due_at: finalDueAt,
@@ -1031,7 +967,6 @@ export default function PublicCheckoutPanel({
 
     const lastInstallmentAmount = Number(
         lastInstallment?.amount ??
-            activeInstallmentSummary?.last_payment_amount ??
             activeInstallmentSummary?.recurring_payment_amount ??
             recurringAmount ??
             amountDueToday,
@@ -2217,10 +2152,9 @@ export default function PublicCheckoutPanel({
                                         fontWeight: 600,
                                     }}
                                 >
-                                    {option.label ??
-                                        (optionIsInstallment
-                                            ? "Pay in installments"
-                                            : "Pay in full")}
+                                    {optionIsInstallment
+                                        ? "Pay in Installment"
+                                        : (option.label ?? "Pay in Full")}
                                 </button>
 
                                 {paymentIsLocked && (
@@ -2451,7 +2385,7 @@ export default function PublicCheckoutPanel({
                     </div>
 
                     <div
-                        className="relative isolate overflow-hidden rounded-[8px] border border-white/15 bg-[#0b0b0b]"
+                        className="relative isolate overflow-hidden rounded-[8px] border border-white/10 bg-white/5"
                         style={{ fontFamily: FONT_FAMILY }}
                     >
                         <img
@@ -2459,7 +2393,7 @@ export default function PublicCheckoutPanel({
                             alt=""
                             aria-hidden="true"
                             draggable="false"
-                            className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[94%] w-auto max-w-[64%] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.16] mix-blend-screen brightness-[1.65] contrast-[1.15] saturate-[1.15]"
+                            className="pointer-events-none absolute left-1/2 top-1/2 z-0 h-[82%] w-auto max-w-[48%] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.08]"
                         />
 
                         <div className="relative z-10 divide-y divide-white/10">
@@ -2639,26 +2573,36 @@ export default function PublicCheckoutPanel({
                                     {lockedOverlay}
                                 </div>
 
-                                {!installmentSdkReady && (
-                                    <div
-                                        className="flex items-center gap-3 text-sm font-medium text-white/60"
-                                        style={{ fontFamily: FONT_FAMILY }}
-                                    >
-                                        <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
-                                        <span>
-                                            Loading PayPal approval methods...
-                                        </span>
-                                    </div>
-                                )}
+                                {!installmentSdkReady &&
+                                    !(isSubmitting || isPreparingCheckout) && (
+                                        <div
+                                            className="flex w-full items-center justify-center gap-3 text-center text-sm font-bold text-white"
+                                            style={{
+                                                fontFamily: FONT_FAMILY,
+                                            }}
+                                        >
+                                            <LoaderCircle
+                                                className="h-6 w-6 shrink-0 animate-spin text-[#ff3344] drop-shadow-[0_0_10px_rgba(255,51,68,0.95)]"
+                                                strokeWidth={3}
+                                            />
+                                            <span>
+                                                Loading PayPal Approval
+                                                Methods...
+                                            </span>
+                                        </div>
+                                    )}
 
                                 {(isSubmitting || isPreparingCheckout) && (
                                     <div
-                                        className="flex items-center gap-3 text-sm font-medium text-white/60"
+                                        className="flex w-full items-center justify-center gap-3 text-center text-sm font-bold text-white"
                                         style={{ fontFamily: FONT_FAMILY }}
                                     >
-                                        <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
+                                        <LoaderCircle
+                                            className="h-6 w-6 shrink-0 animate-spin text-[#ff3344] drop-shadow-[0_0_10px_rgba(255,51,68,0.95)]"
+                                            strokeWidth={3}
+                                        />
                                         <span>
-                                            Preparing secure payment options...
+                                            Preparing Secure Payment Options...
                                         </span>
                                     </div>
                                 )}
@@ -2705,24 +2649,31 @@ export default function PublicCheckoutPanel({
 
                 {!isInstallmentSelected &&
                     !isFreeCheckout &&
-                    !payFullSdkReady && (
+                    !payFullSdkReady &&
+                    !(isSubmitting || isPreparingCheckout) && (
                         <div
-                            className="flex items-center gap-3 text-sm font-medium text-white/60"
+                            className="flex w-full items-center justify-center gap-3 text-center text-sm font-bold text-white"
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
-                            <span>Loading secure payment methods...</span>
+                            <LoaderCircle
+                                className="h-6 w-6 shrink-0 animate-spin text-[#ff3344] drop-shadow-[0_0_10px_rgba(255,51,68,0.95)]"
+                                strokeWidth={3}
+                            />
+                            <span>Loading Secure Payment Methods...</span>
                         </div>
                     )}
 
                 {(isSubmitting || isPreparingCheckout) &&
                     !isInstallmentSelected && (
                         <div
-                            className="flex items-center gap-3 text-sm font-medium text-white/60"
+                            className="flex w-full items-center justify-center gap-3 text-center text-sm font-bold text-white"
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            <LoaderCircle className="h-5 w-5 animate-spin text-[#DB202C]" />
-                            <span>Preparing secure payment options...</span>
+                            <LoaderCircle
+                                className="h-6 w-6 shrink-0 animate-spin text-[#ff3344] drop-shadow-[0_0_10px_rgba(255,51,68,0.95)]"
+                                strokeWidth={3}
+                            />
+                            <span>Preparing Secure Payment Options...</span>
                         </div>
                     )}
             </div>

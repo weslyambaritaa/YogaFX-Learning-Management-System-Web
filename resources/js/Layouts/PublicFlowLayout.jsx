@@ -4,7 +4,7 @@ import { Check, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
-const COUNTDOWN_SECONDS = 5;
+const COUNTDOWN_SECONDS = 3;
 
 function isMasterclassLandingPath() {
     if (typeof window === "undefined") {
