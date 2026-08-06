@@ -396,14 +396,15 @@ class EmailNotificationService
         $this->sendAutomated(
             EmailNotificationTypeRegistry::CHECKOUT_PAYMENT_LINK,
             [
-                'user_name' => $pendingRegistration->fullName() ?: 'there',
-                'user_email' => $pendingRegistration->email,
-                'package_title' => (string) ($pendingRegistration->package?->title ?? ''),
-                'access_tier_label' => (string) ($pendingRegistration->accessTier?->name ?? ''),
-                'amount' => number_format((float) $invoice->total_amount, 2, '.', ''),
-                'currency_code' => (string) $invoice->currency_code,
-                'payment_link_url' => $paymentLinkUrl,
-            ],
+    'user_name' => $pendingRegistration->fullName() ?: 'there',
+    'user_email' => $pendingRegistration->email,
+    'package_title' => (string) ($pendingRegistration->package?->title ?? ''),
+    'access_tier_label' => (string) ($pendingRegistration->accessTier?->name ?? ''),
+    'invoice_number' => (string) ($invoice->invoice_number ?? ''),
+    'amount' => number_format((float) $invoice->total_amount, 2, '.', ''),
+    'currency_code' => (string) $invoice->currency_code,
+    'payment_link_url' => $paymentLinkUrl,
+],
             'invoice',
             $invoice->id,
         );
@@ -1036,10 +1037,21 @@ class EmailNotificationService
             'inactive_days' => '8',
             'workbook_file_name' => 'sample-workbook.pdf',
             'payment_reference' => 'PAY-SAMPLE-001',
-            'amount' => '499.00',
-            'enrollment_url' => $this->signedOnboardingRoute('onboarding.enrollment.show', [
-                'onboardingState' => 999001,
-            ]),
+'amount' => '499.00',
+'payment_link_url' => URL::temporarySignedRoute(
+    'checkout.show',
+    now()->addDays(7),
+    [
+        'pendingRegistration' => 999001,
+        'accessTierSlug' => 'masterclass',
+    ],
+),
+'enrollment_url' => $this->signedOnboardingRoute(
+    'onboarding.enrollment.show',
+    [
+        'onboardingState' => 999001,
+    ],
+),
             'invoice_pdf_file_name' => 'online-confirmation-test-student.pdf',
             'signup_url' => $this->signedOnboardingRoute('onboarding.signup.show', [
                 'onboardingState' => 999001,

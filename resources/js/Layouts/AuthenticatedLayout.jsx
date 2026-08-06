@@ -134,6 +134,14 @@ const adminNavigationItems = [
                 match: ["admin.email-branding.show"],
             },
             {
+                label: "Invoice",
+                icon: Mail,
+                route: "admin.email-notifications.show",
+                params: { notificationType: "checkout_payment_link" },
+                match: ["admin.email-notifications.show"],
+                activeWhen: { notificationType: "checkout_payment_link" },
+            },
+            {
                 label: "Module Completion",
                 icon: Mail,
                 route: "admin.email-notifications.show",
@@ -251,7 +259,9 @@ const adminNavigationItems = [
                 route: "admin.email-notifications.show",
                 params: { notificationType: "irregular_activity_suspended" },
                 match: ["admin.email-notifications.show"],
-                activeWhen: { notificationType: "irregular_activity_suspended" },
+                activeWhen: {
+                    notificationType: "irregular_activity_suspended",
+                },
             },
             {
                 label: "Accommodation",
@@ -259,7 +269,9 @@ const adminNavigationItems = [
                 route: "admin.email-notifications.show",
                 params: { notificationType: "accommodation_booking_confirmed" },
                 match: ["admin.email-notifications.show"],
-                activeWhen: { notificationType: "accommodation_booking_confirmed" },
+                activeWhen: {
+                    notificationType: "accommodation_booking_confirmed",
+                },
             },
         ],
     },
@@ -474,9 +486,7 @@ function UserMenu({ user, isImmersive = false }) {
     const isStudent = user?.role === "student";
     const isAdmin = ["admin", "super_admin"].includes(user?.role);
     const showDownloadApplication =
-        isStudent &&
-        isStudentDesktop &&
-        appDownload?.qr_image_url;
+        isStudent && isStudentDesktop && appDownload?.qr_image_url;
     const displayName = user?.first_name || user?.name || "Student";
 
     return (
@@ -857,7 +867,10 @@ function StudentSiteHeader({ user, variant = "default" }) {
         >
             <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
                 <div className="flex min-w-0 items-center gap-3">
-                    <Link href={route("student.dashboard")} className="shrink-0">
+                    <Link
+                        href={route("student.dashboard")}
+                        className="shrink-0"
+                    >
                         <img
                             src={STUDENT_LOGO_URL}
                             alt="YogaFX"
@@ -907,26 +920,20 @@ function StudentSiteHeader({ user, variant = "default" }) {
                                     </SheetDescription>
                                 </SheetHeader>
                                 <div className="space-y-2 px-4 pb-6 pt-2">
-                                    {studentInstantAccessItems.map(
-                                        (item) => (
-                                            <Button
-                                                key={item.label}
-                                                type="button"
-                                                variant="ghost"
-                                                className="h-12 w-full justify-start rounded-[14px] border border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
-                                                onClick={() => {
-                                                    setInstantAccessOpen(
-                                                        false,
-                                                    );
-                                                    router.visit(
-                                                        route(item.route),
-                                                    );
-                                                }}
-                                            >
-                                                {item.label}
-                                            </Button>
-                                        ),
-                                    )}
+                                    {studentInstantAccessItems.map((item) => (
+                                        <Button
+                                            key={item.label}
+                                            type="button"
+                                            variant="ghost"
+                                            className="h-12 w-full justify-start rounded-[14px] border border-white/10 bg-white/5 px-4 text-white hover:bg-white/10 hover:text-white"
+                                            onClick={() => {
+                                                setInstantAccessOpen(false);
+                                                router.visit(route(item.route));
+                                            }}
+                                        >
+                                            {item.label}
+                                        </Button>
+                                    ))}
                                 </div>
                             </SheetContent>
                         </Sheet>
@@ -947,9 +954,7 @@ function StudentSiteHeader({ user, variant = "default" }) {
                                       : ""
                             }
                         >
-                            <Link href={route(item.route)}>
-                                {item.label}
-                            </Link>
+                            <Link href={route(item.route)}>{item.label}</Link>
                         </Button>
                     ))}
 
@@ -999,7 +1004,9 @@ function StudentSiteHeader({ user, variant = "default" }) {
                             asChild
                             className="rounded-[10px] bg-[#DB202C] px-4 text-sm font-semibold text-white shadow-sm hover:bg-[#c31c28]"
                         >
-                            <Link href={profileUpgradeHref}>Upgrade Account</Link>
+                            <Link href={profileUpgradeHref}>
+                                Upgrade Account
+                            </Link>
                         </Button>
                     ) : null}
                     <UserMenu user={user} isImmersive={isImmersive} />
