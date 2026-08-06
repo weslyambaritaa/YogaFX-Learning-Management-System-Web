@@ -7,13 +7,31 @@ import { useEffect, useState } from "react";
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
-export default function EnrollmentSuccess({ onboarding }) {
+export default function EnrollmentSuccess({
+    onboarding,
+    student = null,
+}) {
     const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
     const packageTitle =
         onboarding?.package?.title ??
         onboarding?.access_tier?.name ??
         "Your Package";
+
+    const fullNameFromFields = [
+        student?.first_name ?? onboarding?.student?.first_name,
+        student?.last_name ?? onboarding?.student?.last_name,
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+    const studentName = String(
+        student?.name ??
+            onboarding?.student?.name ??
+            fullNameFromFields ??
+            "",
+    ).trim();
 
     const isLoading = secondsRemaining > 0;
 
