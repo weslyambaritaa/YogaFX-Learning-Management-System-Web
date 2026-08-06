@@ -1942,33 +1942,86 @@ export default function StudentProfileForm({
                         <div className={theme.sectionDividerClassName}></div>
 
                         <div className="space-y-6">
-                            <label
-                                className={[
-                                    "flex cursor-pointer items-start gap-4 rounded-[5px] border px-[10px] py-[8px] text-white transition",
-                                    data.terms_accepted
-                                        ? "border-[#DB202C] bg-[#DB202C]/12"
-                                        : "border-2 border-white/70 bg-black/35 hover:border-white hover:bg-[#DB202C]/10",
-                                ].join(" ")}
-                            >
-                                <input
-                                    id="terms_accepted"
-                                    type="checkbox"
-                                    checked={Boolean(data.terms_accepted)}
-                                    onChange={(event) =>
-                                        setData(
-                                            "terms_accepted",
-                                            event.target.checked,
-                                        )
-                                    }
-                                    className="mt-1 size-5 rounded border-white bg-transparent accent-[#DB202C] focus:ring-[#DB202C]"
-                                />
-                                <span
-                                    className="text-sm font-normal"
+                            <div className="group relative">
+                                <label
+                                    className={[
+                                        "flex cursor-pointer items-start gap-4 rounded-[5px] border px-[10px] py-[8px] text-white transition",
+                                        data.terms_accepted
+                                            ? "border-[#DB202C] bg-[#DB202C]/12"
+                                            : "border-2 border-white/70 bg-black/35 hover:border-white hover:bg-[#DB202C]/10",
+                                    ].join(" ")}
+                                >
+                                    <input
+                                        id="terms_accepted"
+                                        type="checkbox"
+                                        checked={Boolean(data.terms_accepted)}
+                                        onChange={(event) =>
+                                            setData(
+                                                "terms_accepted",
+                                                event.target.checked,
+                                            )
+                                        }
+                                        aria-describedby="terms-accepted-tooltip"
+                                        className="mt-1 size-5 rounded border-white bg-transparent accent-[#DB202C] focus:ring-[#DB202C]"
+                                    />
+                                    <span
+                                        className="text-sm font-normal"
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                    >
+                                        Yes, I agree with Term & Conditions
+                                    </span>
+                                </label>
+
+                                <div
+                                    id="terms-accepted-tooltip"
+                                    role="tooltip"
+                                    className="
+                                        pointer-events-none
+                                        absolute
+                                        bottom-full
+                                        left-0
+                                        z-50
+                                        mb-3
+                                        hidden
+                                        w-[min(340px,calc(100vw-2rem))]
+                                        rounded-[2px]
+                                        border
+                                        border-[#DB202C]
+                                        bg-[#f3f3f3]
+                                        px-3
+                                        py-3
+                                        text-left
+                                        text-sm
+                                        font-normal
+                                        leading-[1.35]
+                                        text-[#3f3f3f]
+                                        shadow-[0_16px_40px_rgba(0,0,0,0.35)]
+                                        group-hover:block
+                                        group-focus-within:block
+                                    "
                                     style={{ fontFamily: FONT_FAMILY }}
                                 >
-                                    Yes, I agree with Term & Conditions
-                                </span>
-                            </label>
+                                    <strong>Is it your belief</strong> that
+                                    should you visit a{" "}
+                                    <strong>Registered Medical Doctor</strong>{" "}
+                                    for a general health check, that the doctor
+                                    would be able to{" "}
+                                    <strong>
+                                        certify you as a fit and healthy person
+                                    </strong>{" "}
+                                    capable of participating in a 19 day Yoga
+                                    Teacher Training Course, with{" "}
+                                    <strong>
+                                        up to a possible of 3 hours of Yoga
+                                        practice
+                                    </strong>{" "}
+                                    per day, and there&apos;s no problem
+                                    including you in pics and videos in possible
+                                    future YogaFX promotions.
+                                    <br />
+                                    Thank you
+                                </div>
+                            </div>
                             <InputError
                                 message={localErrors.terms_accepted}
                                 className={theme.errorClassName}
