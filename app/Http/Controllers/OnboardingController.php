@@ -76,21 +76,21 @@ class OnboardingController extends Controller
                 'Registration Ready',
                 'Free Access Ready',
                 'Your free access is ready.',
-                'Continue to enrollment to complete your YogaFX account.',
+                'Please Continue To Your Enrollment Applicationt Form To Complete Your Details And Access Your Dashboard.',
             ],
 
             'donation' => [
                 'Donation Received',
                 'Donation Approved',
                 'Thank you for your donation. Your payment was received.',
-                'Continue to enrollment to complete your YogaFX account.',
+                'Please Continue To Your Enrollment Applicationt Form To Complete Your Details And Access Your Dashboard.',
             ],
 
             default => [
                 'Payment Success',
                 'Payment Approved',
                 'Your payment was received.',
-                'Continue to enrollment to complete your YogaFX account.',
+                'Please Continue To Your Enrollment Applicationt Form To Complete Your Details And Access Your Dashboard.',
             ],
         };
 

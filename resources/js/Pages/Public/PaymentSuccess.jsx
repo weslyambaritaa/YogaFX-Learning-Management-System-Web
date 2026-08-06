@@ -4,6 +4,12 @@ import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { Check } from "lucide-react";
 
 export default function PaymentSuccess({ onboarding }) {
+    const studentName =
+        onboarding?.student?.first_name ??
+        onboarding?.first_name ??
+        onboarding?.student_name ??
+        "";
+
     return (
         <PublicFlowLayout
             title={onboarding.title ?? "Payment Success"}
@@ -22,9 +28,10 @@ export default function PaymentSuccess({ onboarding }) {
                         />
                     </div>
 
-                    {/* Congratulations */}
+                    {/* Congratulations with Student Name */}
                     <h2 className="mt-10 text-3xl font-bold leading-tight text-white md:text-4xl">
-                        Congratulations!
+                        Congratulations
+                        {studentName ? ` ${studentName}` : ""}!
                     </h2>
 
                     {/* Deposit Confirmation */}
@@ -36,12 +43,6 @@ export default function PaymentSuccess({ onboarding }) {
                             }
                             fxClassName="!text-[#DB202C]"
                         />
-                    </p>
-
-                    {/* Next Step */}
-                    <p className="mx-auto mt-5 max-w-xl text-base font-normal leading-7 text-white/80 md:text-lg">
-                        Please continue to your Enrollment Application Form to
-                        complete your details and access your dashboard.
                     </p>
 
                     {/* Continue Button */}
