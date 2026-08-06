@@ -742,7 +742,7 @@ export default function StudentProfileForm({
                   "border-white bg-transparent text-transparent",
               errorClassName: "font-semibold text-[#ffb4a8]",
               titleClassName:
-                  "mb-2 text-[22px] font-medium tracking-tight text-white",
+                  "mb-2 text-[24px] font-bold leading-tight tracking-tight text-white sm:text-[26px]",
               descriptionClassName:
                   "text-[12px] font-normal leading-6 text-white/70",
               inputClassName: PUBLIC_FORM_FIELD_CLASS,
@@ -751,9 +751,10 @@ export default function StudentProfileForm({
               selectActiveColor: "#DB202C",
               selectPlaceholderColor: "#FFFFFF",
               textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS}`,
-              helperClassName: "mt-2 text-sm font-semibold text-white/60",
+              helperClassName:
+                  "mt-2 text-[11px] font-normal italic text-white/65 sm:text-xs",
               sectionDividerClassName: isEnrollment
-                  ? "mb-6 border-t-[4px] border-[#DB202C] pt-5"
+                  ? "mb-5 border-t-[4px] border-[#DB202C] pt-4"
                   : "mb-6 border-b border-white pb-4",
               footerDividerClassName: isEnrollment
                   ? "flex items-center pt-8"
@@ -1112,7 +1113,7 @@ export default function StudentProfileForm({
                             className={`${descriptionClassName} italic`}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Only 1 minutes to complete
+                            Only 1 minute to complete
                         </p>
                     </div>
 
@@ -1476,44 +1477,6 @@ export default function StudentProfileForm({
                                 </div>
                             </div>
                         </div>
-
-                        {isMasterClass ? (
-                            <>
-                                <div className="md:col-span-2">
-                                    <ChoiceGrid
-                                        id="tshirt_size"
-                                        label="T-Shirt Size *"
-                                        value={data.tshirt_size ?? ""}
-                                        error={firstError(
-                                            formErrors,
-                                            "tshirt_size",
-                                        )}
-                                        options={TSHIRT_SIZE_OPTIONS}
-                                        onChange={(value) =>
-                                            setData("tshirt_size", value)
-                                        }
-                                        theme={theme}
-                                        optionsGridClassName="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4"
-                                    />
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <TextAreaField
-                                        id="favorite_song"
-                                        label="Favorite Song *"
-                                        value={data.favorite_song ?? ""}
-                                        onChange={(value) =>
-                                            setData("favorite_song", value)
-                                        }
-                                        error={firstError(
-                                            formErrors,
-                                            "favorite_song",
-                                        )}
-                                        theme={theme}
-                                    />
-                                </div>
-                            </>
-                        ) : null}
                     </div>
                 </section>
 
@@ -1777,47 +1740,21 @@ export default function StudentProfileForm({
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Motivation
+                            What is Your Motivation In Becoming A Yoga Teacher?
                         </h3>
                     </div>
 
-                    <div className="space-y-10">
-                        <TextAreaField
-                            id="motivation"
-                            label="What is Your Motivation In Becoming A Yoga Teacher?"
-                            value={data.motivation}
-                            onChange={(value) => setData("motivation", value)}
-                            error={firstError(formErrors, "motivation")}
-                            helper={`${wordsCount(data.motivation)}/50 words`}
-                            theme={theme}
-                        />
-
-                        <TextAreaField
-                            id="why_yogafx"
-                            label="Please Let Us Know Why You Chose YogaFX"
-                            value={data.why_yogafx}
-                            onChange={(value) => setData("why_yogafx", value)}
-                            error={firstError(formErrors, "why_yogafx")}
-                            helper={`${wordsCount(data.why_yogafx)}/50 words`}
-                            theme={theme}
-                        />
-
-                        <ChoiceGrid
-                            id="how_did_you_find_us"
-                            label="Please Share How Did You Find Us"
-                            value={data.how_did_you_find_us ?? []}
-                            error={firstError(
-                                formErrors,
-                                "how_did_you_find_us",
-                            )}
-                            options={DISCOVERY_OPTIONS}
-                            onChange={(value) =>
-                                setData("how_did_you_find_us", value)
-                            }
-                            multiple={true}
-                            theme={theme}
-                        />
-                    </div>
+                    <TextAreaField
+                        id="motivation"
+                        label="In 50 Words or Less, Please Share With Us *"
+                        value={data.motivation}
+                        onChange={(value) => setData("motivation", value)}
+                        error={firstError(formErrors, "motivation")}
+                        helper={`Maximum of 50 words. Currently Used: ${wordsCount(
+                            data.motivation,
+                        )} words.`}
+                        theme={theme}
+                    />
                 </section>
 
                 {isMasterClass ? (
@@ -1831,7 +1768,7 @@ export default function StudentProfileForm({
                             </h3>
                         </div>
 
-                        <div className="space-y-10">
+                        <div className="space-y-8">
                             <ChoiceGrid
                                 id="has_medical_issues"
                                 label="Any Medical Existing Issues? *"
@@ -1906,6 +1843,98 @@ export default function StudentProfileForm({
                         </div>
                     </section>
                 ) : null}
+
+                <section className={sectionClassName}>
+                    <div className={theme.sectionDividerClassName}>
+                        <h3
+                            className={titleClassName}
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
+                            Please Let Us Know Why You Chose YogaFX
+                        </h3>
+                    </div>
+
+                    <div className="space-y-8">
+                        <TextAreaField
+                            id="why_yogafx"
+                            label="In 50 Words or Less, Please Share With Us *"
+                            value={data.why_yogafx}
+                            onChange={(value) => setData("why_yogafx", value)}
+                            error={firstError(formErrors, "why_yogafx")}
+                            helper={`Maximum of 50 words. Currently Used: ${wordsCount(
+                                data.why_yogafx,
+                            )} words.`}
+                            theme={theme}
+                        />
+
+                        {isMasterClass ? (
+                            <>
+                                <ChoiceGrid
+                                    id="tshirt_size"
+                                    label="T-Shirt Size *"
+                                    value={data.tshirt_size ?? ""}
+                                    error={firstError(
+                                        formErrors,
+                                        "tshirt_size",
+                                    )}
+                                    options={TSHIRT_SIZE_OPTIONS}
+                                    onChange={(value) =>
+                                        setData("tshirt_size", value)
+                                    }
+                                    theme={theme}
+                                    optionsGridClassName="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4"
+                                />
+
+                                <div>
+                                    <InputLabel
+                                        htmlFor="favorite_song"
+                                        value="Favorite Song *"
+                                        className={
+                                            theme.labelWithSpacingClassName
+                                        }
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                    />
+                                    <TextInput
+                                        id="favorite_song"
+                                        className={`block w-full ${inputClassName}`}
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                        value={data.favorite_song ?? ""}
+                                        onChange={(event) =>
+                                            setData(
+                                                "favorite_song",
+                                                event.target.value,
+                                            )
+                                        }
+                                        placeholder="Enter your favorite song"
+                                    />
+                                    <InputError
+                                        message={firstError(
+                                            formErrors,
+                                            "favorite_song",
+                                        )}
+                                        className={`${theme.errorClassName} mt-2`}
+                                    />
+                                </div>
+                            </>
+                        ) : null}
+
+                        <ChoiceGrid
+                            id="how_did_you_find_us"
+                            label="Please Share How Did You Find Us"
+                            value={data.how_did_you_find_us ?? []}
+                            error={firstError(
+                                formErrors,
+                                "how_did_you_find_us",
+                            )}
+                            options={DISCOVERY_OPTIONS}
+                            onChange={(value) =>
+                                setData("how_did_you_find_us", value)
+                            }
+                            multiple={true}
+                            theme={theme}
+                        />
+                    </div>
+                </section>
 
                 {isEnrollment ? (
                     <section className={sectionClassName}>
