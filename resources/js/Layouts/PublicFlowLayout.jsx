@@ -1,8 +1,10 @@
 import StudentBackButton from "@/Components/student/StudentBackButton";
 import { Head, Link } from "@inertiajs/react";
+import { Check, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
+const COUNTDOWN_SECONDS = 5;
 
 function isMasterclassLandingPath() {
     if (typeof window === "undefined") {
@@ -27,10 +29,12 @@ export default function PublicFlowLayout({
     const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(
         () => showMasterclassWelcome && isMasterclassLandingPath(),
     );
+    const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
     const [isWelcomeOverlayClosing, setIsWelcomeOverlayClosing] =
         useState(false);
 
     const welcomeOverlayTimerRef = useRef(null);
+    const isCountingDown = secondsRemaining > 0;
 
     useEffect(() => {
         if (!showWelcomeOverlay) {
@@ -50,6 +54,20 @@ export default function PublicFlowLayout({
     }, [showWelcomeOverlay]);
 
     useEffect(() => {
+        if (!showWelcomeOverlay || !isCountingDown) {
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setSecondsRemaining((current) => Math.max(current - 1, 0));
+        }, 1000);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [showWelcomeOverlay, isCountingDown, secondsRemaining]);
+
+    useEffect(() => {
         return () => {
             if (welcomeOverlayTimerRef.current) {
                 window.clearTimeout(welcomeOverlayTimerRef.current);
@@ -58,7 +76,7 @@ export default function PublicFlowLayout({
     }, []);
 
     const closeWelcomeOverlay = () => {
-        if (isWelcomeOverlayClosing) {
+        if (isCountingDown || isWelcomeOverlayClosing) {
             return;
         }
 
@@ -168,7 +186,7 @@ export default function PublicFlowLayout({
                         "fixed inset-0 z-[9999]",
                         "flex min-h-[100dvh] w-full",
                         "items-center justify-center overflow-hidden",
-                        "bg-black px-5 py-8 text-white",
+                        "bg-black px-4 py-4 text-white sm:px-6 sm:py-8",
                         "transition-transform duration-700",
                         "ease-[cubic-bezier(0.76,0,0.24,1)]",
                         "will-change-transform",
@@ -183,7 +201,7 @@ export default function PublicFlowLayout({
                         className="pointer-events-none absolute inset-0"
                         style={{
                             backgroundImage:
-                                "radial-gradient(circle at 50% 45%, rgba(219,32,44,0.18), transparent 34%), radial-gradient(circle at 85% 90%, rgba(219,32,44,0.12), transparent 28%)",
+                                "radial-gradient(circle at 50% 45%, rgba(219,32,44,0.16), transparent 34%), radial-gradient(circle at 85% 90%, rgba(219,32,44,0.10), transparent 28%)",
                         }}
                     />
 
@@ -194,44 +212,128 @@ export default function PublicFlowLayout({
 
                     <div
                         className={[
-                            "relative z-10 mx-auto w-full max-w-4xl text-center",
+                            "relative z-10 mx-auto w-full max-w-lg",
                             "transition-all duration-500",
                             isWelcomeOverlayClosing
                                 ? "-translate-y-14 opacity-0"
                                 : "translate-y-0 opacity-100",
                         ].join(" ")}
                     >
-                        <img
-                            src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
-                            alt="YogaFX"
-                            className="mx-auto h-24 w-auto object-contain sm:h-28"
-                        />
-
-                        <h1
-                            id="masterclass-welcome-title"
-                            className="mt-8 text-4xl font-bold leading-tight tracking-[-0.04em] text-white sm:text-5xl md:text-6xl"
+                        <div
+                            className="
+                                flex
+                                min-h-[410px]
+                                w-full
+                                flex-col
+                                items-center
+                                justify-center
+                                overflow-y-auto
+                                rounded-[18px]
+                                border
+                                border-white/15
+                                bg-[#111111]
+                                px-6
+                                py-8
+                                text-center
+                                shadow-[0_24px_80px_rgba(0,0,0,0.45)]
+                                sm:min-h-[450px]
+                                sm:px-10
+                                sm:py-10
+                            "
                         >
-                            Congratulations!
-                        </h1>
+                            {isCountingDown ? (
+                                <div
+                                    className="flex w-full flex-col items-center justify-center"
+                                    role="status"
+                                    aria-live="polite"
+                                >
+                                    <div className="relative h-24 w-24 shrink-0">
+                                        <LoaderCircle
+                                            className="absolute inset-0 h-24 w-24 animate-spin text-[#DB202C] motion-reduce:animate-none"
+                                            strokeWidth={1.8}
+                                            aria-hidden="true"
+                                        />
 
-                        <p className="mx-auto mt-7 max-w-3xl text-xl font-semibold leading-relaxed text-white sm:text-2xl md:text-3xl">
-                            We Are Thrilled That You Are Joining Mr. Ian&apos;s
-                            Bikram Hot Yoga 26&amp;2 Yoga Teacher Training
-                        </p>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span
+                                                key={secondsRemaining}
+                                                className="text-3xl font-bold leading-none text-white"
+                                            >
+                                                {secondsRemaining}
+                                            </span>
+                                        </div>
+                                    </div>
 
-                        <p className="mt-6 text-lg font-medium italic text-white sm:text-xl">
-                            Your Enrollment Starts Now
-                        </p>
+                                    <p className="mt-6 text-sm font-semibold leading-6 text-white">
+                                        Loading...
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="flex w-full flex-col items-center justify-center">
+                                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_34px_rgba(16,185,129,0.24)]">
+                                        <Check
+                                            className="h-11 w-11 text-white"
+                                            strokeWidth={3}
+                                            aria-hidden="true"
+                                        />
+                                    </div>
 
-                        <button
-                            type="button"
-                            onClick={closeWelcomeOverlay}
-                            disabled={isWelcomeOverlayClosing}
-                            className="mt-10 inline-flex min-h-[64px] min-w-[270px] items-center justify-center rounded-[8px] bg-[#DB202C] px-10 py-5 text-base font-bold text-white shadow-[0_18px_50px_rgba(219,32,44,0.34)] transition-all duration-200 hover:-translate-y-1 hover:bg-[#c51c27] hover:shadow-[0_22px_60px_rgba(219,32,44,0.44)] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35 disabled:cursor-wait disabled:opacity-80 sm:min-w-[330px] sm:text-lg"
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            Let&apos;s Get Started
-                        </button>
+                                    <div className="mt-6 w-full space-y-4">
+                                        <h1
+                                            id="masterclass-welcome-title"
+                                            className="mx-auto max-w-xl text-2xl font-bold leading-tight text-white sm:text-3xl"
+                                        >
+                                            Congratulations!
+                                        </h1>
+
+                                        <p className="mx-auto max-w-xl text-base font-semibold leading-7 text-white sm:text-lg sm:leading-8">
+                                            We Are Thrilled That You Are Joining
+                                            Mr. Ian&apos;s Bikram Hot Yoga
+                                            26&amp;2 Yoga Teacher Training
+                                        </p>
+
+                                        <p className="text-base font-medium italic leading-7 text-white sm:text-lg">
+                                            Your Enrollment Starts Now
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={closeWelcomeOverlay}
+                                        disabled={isWelcomeOverlayClosing}
+                                        className="
+                                            mt-8
+                                            inline-flex
+                                            min-h-[56px]
+                                            w-full
+                                            max-w-[320px]
+                                            items-center
+                                            justify-center
+                                            rounded-[5px]
+                                            bg-[#DB202C]
+                                            px-8
+                                            py-4
+                                            text-base
+                                            font-bold
+                                            text-white
+                                            shadow-[0_14px_38px_rgba(219,32,44,0.30)]
+                                            transition-all
+                                            duration-200
+                                            hover:-translate-y-0.5
+                                            hover:bg-[#c31c28]
+                                            focus:outline-none
+                                            focus:ring-4
+                                            focus:ring-[#DB202C]/35
+                                            disabled:cursor-wait
+                                            disabled:opacity-80
+                                        "
+                                        style={{ fontFamily: FONT_FAMILY }}
+                                    >
+                                        Let&apos;s Get Started
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             ) : null}
