@@ -238,6 +238,14 @@ export default function Enrollment({ onboarding, student }) {
                         Application Form
                     </span>
                 }
+                description={
+                    <span
+                        className="font-medium italic text-white/75"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
+                        Only 1 minute to complete
+                    </span>
+                }
             >
                 {Object.keys(errors).length > 0 ? (
                     <div
