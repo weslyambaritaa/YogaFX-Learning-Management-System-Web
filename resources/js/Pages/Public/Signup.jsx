@@ -198,9 +198,9 @@ export default function Signup({ onboarding, student }) {
                         <Button
                             type="submit"
                             disabled={processing}
-                            className="rounded-md bg-[#DB202C] px-6 text-white hover:bg-[#c01a25]"
+                            className="min-h-[56px] rounded-md bg-[#DB202C] px-8 py-4 text-base font-bold italic text-white hover:bg-[#c01a25]"
                         >
-                            Create Password and Activate Account
+                            Access Dashboard Now
                         </Button>
                     </div>
                 </form>
