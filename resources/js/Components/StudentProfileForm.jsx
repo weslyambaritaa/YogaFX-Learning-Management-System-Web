@@ -757,7 +757,7 @@ export default function StudentProfileForm({
                   ? "mb-5 border-t-[4px] border-[#DB202C] pt-4"
                   : "mb-6 border-b border-white pb-4",
               footerDividerClassName: isEnrollment
-                  ? "flex items-center pt-8"
+                  ? "flex items-center justify-center pt-8"
                   : "flex items-center border-t border-white pt-8",
               dialogContentClassName:
                   "max-w-xl border-white bg-[#141110] text-white",
@@ -778,8 +778,9 @@ export default function StudentProfileForm({
               dateInputClassName: `block w-full appearance-none ${PUBLIC_FORM_FIELD_CLASS} pr-12 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0`,
               dateIconClassName:
                   "absolute right-3 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white",
-              primaryButtonClassName:
-                  "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#c31c28]",
+              primaryButtonClassName: isEnrollment
+                  ? "min-h-[64px] w-full max-w-[360px] rounded-[8px] bg-[#DB202C] px-10 py-6 text-base font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25]"
+                  : "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#c31c28]",
               uploadButtonClassName:
                   "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#c31c28]",
           };
@@ -1102,19 +1103,19 @@ export default function StudentProfileForm({
                 ) : null} */}
 
                 <section className={sectionClassName}>
-                    <div className="mb-6">
+                    <div
+                        className={
+                            isEnrollment
+                                ? "mb-6 border-t-[4px] border-[#DB202C] pt-4"
+                                : "mb-6"
+                        }
+                    >
                         <h3
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
                             Your Details
                         </h3>
-                        <p
-                            className={`${descriptionClassName} italic`}
-                            style={{ fontFamily: FONT_FAMILY }}
-                        >
-                            Only 1 minute to complete
-                        </p>
                     </div>
 
                     <div className="grid gap-6 md:grid-cols-2">
@@ -2047,8 +2048,6 @@ export default function StudentProfileForm({
                         disabled={processing}
                         style={{
                             fontFamily: FONT_FAMILY,
-                            fontSize: "14px",
-                            fontWeight: 500,
                         }}
                         className={theme.primaryButtonClassName}
                     >
