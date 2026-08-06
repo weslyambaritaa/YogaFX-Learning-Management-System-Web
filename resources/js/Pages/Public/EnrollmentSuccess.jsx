@@ -1,20 +1,33 @@
 import { Button } from "@/Components/ui/button";
 import YogaFXText from "@/Components/YogaFXText";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import { Check, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
-const COUNTDOWN_SECONDS = 5;
+const INITIAL_COUNTDOWN_SECONDS = 5;
+const REDIRECT_COUNTDOWN_SECONDS = 3;
 
-export default function EnrollmentSuccess({ onboarding, student = null }) {
-    const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
+export default function EnrollmentSuccess({
+    onboarding,
+    student = null,
+}) {
+    const [secondsRemaining, setSecondsRemaining] = useState(
+        INITIAL_COUNTDOWN_SECONDS,
+    );
+
+    const [isRedirecting, setIsRedirecting] = useState(false);
+
+    const [redirectSecondsRemaining, setRedirectSecondsRemaining] =
+        useState(REDIRECT_COUNTDOWN_SECONDS);
 
     const packageTitle =
         onboarding?.package?.title ??
         onboarding?.access_tier?.name ??
         "Your Package";
+
+    const continueUrl = onboarding?.continue_url ?? "";
 
     const fullNameFromFields = [
         student?.first_name ?? onboarding?.student?.first_name,
@@ -25,31 +38,76 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
         .trim();
 
     const studentName = String(
-        student?.name ?? onboarding?.student?.name ?? fullNameFromFields,
+        student?.name ??
+            onboarding?.student?.name ??
+            fullNameFromFields,
     ).trim();
 
-    const isLoading = secondsRemaining > 0;
+    const isInitialLoading = secondsRemaining > 0;
+    const showLoading = isInitialLoading || isRedirecting;
+
+    const displayedLoadingSeconds = isRedirecting
+        ? redirectSecondsRemaining
+        : secondsRemaining;
 
     useEffect(() => {
-        if (!isLoading) {
+        if (!isInitialLoading) {
             return undefined;
         }
 
         const timeoutId = window.setTimeout(() => {
-            setSecondsRemaining((current) => Math.max(current - 1, 0));
+            setSecondsRemaining((current) =>
+                Math.max(current - 1, 0),
+            );
         }, 1000);
 
         return () => {
             window.clearTimeout(timeoutId);
         };
-    }, [isLoading, secondsRemaining]);
+    }, [isInitialLoading, secondsRemaining]);
+
+    useEffect(() => {
+        if (!isRedirecting || !continueUrl) {
+            return undefined;
+        }
+
+        if (redirectSecondsRemaining <= 0) {
+            router.visit(continueUrl);
+            return undefined;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setRedirectSecondsRemaining((current) =>
+                Math.max(current - 1, 0),
+            );
+        }, 1000);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [
+        continueUrl,
+        isRedirecting,
+        redirectSecondsRemaining,
+    ]);
+
+    const handleContinue = (event) => {
+        event.preventDefault();
+
+        if (!continueUrl || isRedirecting) {
+            return;
+        }
+
+        setRedirectSecondsRemaining(REDIRECT_COUNTDOWN_SECONDS);
+        setIsRedirecting(true);
+    };
 
     return (
         <PublicFlowLayout
             title="Enrollment Success"
-            eyebrow={isLoading ? null : "\u00A0"}
+            eyebrow={showLoading ? null : "\u00A0"}
             heading={
-                isLoading
+                showLoading
                     ? null
                     : studentName
                       ? `Congratulations, ${studentName}`
@@ -61,7 +119,7 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
                 style={{ fontFamily: FONT_FAMILY }}
             >
                 <div className="w-full max-w-2xl text-center">
-                    {isLoading ? (
+                    {showLoading ? (
                         <div
                             className="mx-auto max-w-lg rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8"
                             role="status"
@@ -76,10 +134,10 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
 
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <span
-                                        key={secondsRemaining}
+                                        key={displayedLoadingSeconds}
                                         className="text-3xl font-bold text-white"
                                     >
-                                        {secondsRemaining}
+                                        {displayedLoadingSeconds}
                                     </span>
                                 </div>
                             </div>
@@ -114,7 +172,8 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
                                 className="mt-9 min-h-[64px] w-full max-w-[360px] rounded-[8px] bg-[#DB202C] px-10 py-6 text-base font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25]"
                             >
                                 <Link
-                                    href={onboarding.continue_url}
+                                    href={continueUrl || "#"}
+                                    onClick={handleContinue}
                                     className="inline-flex items-center justify-center whitespace-nowrap"
                                 >
                                     Click Here
