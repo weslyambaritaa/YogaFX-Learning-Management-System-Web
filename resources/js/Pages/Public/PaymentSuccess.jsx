@@ -8,14 +8,21 @@ import { useEffect, useState } from "react";
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
-export default function PaymentSuccess({ onboarding }) {
+export default function PaymentSuccess({ onboarding, student }) {
     const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
-    const studentName =
-        onboarding?.student?.first_name ??
-        onboarding?.first_name ??
-        onboarding?.student_name ??
-        "";
+    const rawStudentName = [
+        student?.first_name,
+        onboarding?.student?.first_name,
+        onboarding?.first_name,
+        student?.name,
+        onboarding?.student?.name,
+        onboarding?.student_name,
+    ].find((value) => typeof value === "string" && value.trim() !== "");
+
+    const studentName = rawStudentName
+        ? rawStudentName.trim().split(/\s+/)[0]
+        : "";
 
     const isLoading = secondsRemaining > 0;
 
@@ -55,7 +62,6 @@ export default function PaymentSuccess({ onboarding }) {
                             className="mx-auto max-w-lg rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8"
                             role="status"
                             aria-live="polite"
-                            aria-label={`Payment confirmation will appear in ${secondsRemaining} seconds`}
                         >
                             <div className="relative mx-auto h-24 w-24">
                                 <LoaderCircle
@@ -89,15 +95,14 @@ export default function PaymentSuccess({ onboarding }) {
                             </div>
 
                             <h2 className="mt-10 text-3xl font-bold leading-tight text-white md:text-4xl">
-                                {onboarding.eyebrow ??
-                                    "Your Deposit Transfer Was Successful"}
+                                {onboarding.eyebrow ?? "Payment Approved"}
                             </h2>
 
                             <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
                                 <YogaFXText
                                     text={
                                         onboarding.message ??
-                                        "Your deposit has been received, and your installment plan has been successfully set up."
+                                        "Please Continue To Your Enrollment Application Form To Complete Your Details And Access Your Dashboard."
                                     }
                                     fxClassName="!text-[#DB202C]"
                                 />
