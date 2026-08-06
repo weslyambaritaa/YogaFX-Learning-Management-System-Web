@@ -41,7 +41,7 @@ export default function PaymentSuccess({ onboarding }) {
                 isLoading
                     ? null
                     : studentName
-                      ? `Congratulations, ${studentName}`
+                      ? `Congratulations ${studentName}`
                       : "Congratulations"
             }
         >
@@ -55,6 +55,7 @@ export default function PaymentSuccess({ onboarding }) {
                             className="mx-auto max-w-lg rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8"
                             role="status"
                             aria-live="polite"
+                            aria-label={`Payment confirmation will appear in ${secondsRemaining} seconds`}
                         >
                             <div className="relative mx-auto h-24 w-24">
                                 <LoaderCircle
