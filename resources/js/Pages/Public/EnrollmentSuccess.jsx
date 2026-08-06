@@ -7,12 +7,8 @@ import { useEffect, useState } from "react";
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
-export default function EnrollmentSuccess({
-    onboarding,
-    student = null,
-}) {
-    const [secondsRemaining, setSecondsRemaining] =
-        useState(COUNTDOWN_SECONDS);
+export default function EnrollmentSuccess({ onboarding, student = null }) {
+    const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
     const packageTitle =
         onboarding?.package?.title ??
@@ -28,9 +24,7 @@ export default function EnrollmentSuccess({
         .trim();
 
     const studentName = String(
-        student?.name ??
-            onboarding?.student?.name ??
-            fullNameFromFields,
+        student?.name ?? onboarding?.student?.name ?? fullNameFromFields,
     ).trim();
 
     const isLoading = secondsRemaining > 0;
@@ -41,9 +35,7 @@ export default function EnrollmentSuccess({
         }
 
         const timeoutId = window.setTimeout(() => {
-            setSecondsRemaining((current) =>
-                Math.max(current - 1, 0),
-            );
+            setSecondsRemaining((current) => Math.max(current - 1, 0));
         }, 1000);
 
         return () => {
@@ -55,11 +47,15 @@ export default function EnrollmentSuccess({
         <PublicFlowLayout
             title="Enrollment Success"
             eyebrow={
-                studentName
-                    ? `Congratulations, ${studentName}`
-                    : "Congratulations"
+                isLoading
+                    ? null
+                    : studentName
+                      ? `Congratulations, ${studentName}`
+                      : "Congratulations"
             }
-            heading="Your enrollment application was successful."
+            heading={
+                isLoading ? null : "Your enrollment application was successful."
+            }
         >
             <div
                 className="flex justify-center pb-8 pt-2"
@@ -108,8 +104,7 @@ export default function EnrollmentSuccess({
                             </h2>
 
                             <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
-                                To Access {packageTitle}, Pre-course
-                                Preparation
+                                To Access {packageTitle}, Pre-course Preparation
                             </p>
 
                             <Button
