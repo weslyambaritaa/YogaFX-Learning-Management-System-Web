@@ -30,33 +30,6 @@ function isMasterClassSlug(value) {
     return normalized === "master_class" || normalized === "masterclass";
 }
 
-function buildCountdownStorageKey(onboarding) {
-    const onboardingIdentifier =
-        onboarding?.id ??
-        onboarding?.uuid ??
-        onboarding?.token ??
-        onboarding?.submit_url ??
-        "default";
-
-    return `yogafx-enrollment-countdown:${onboardingIdentifier}`;
-}
-
-function shouldShowInitialCountdown(onboarding) {
-    if (typeof window === "undefined") {
-        return true;
-    }
-
-    try {
-        return (
-            window.sessionStorage.getItem(
-                buildCountdownStorageKey(onboarding),
-            ) !== "completed"
-        );
-    } catch {
-        return true;
-    }
-}
-
 function OnboardingProgressBar() {
     const steps = [
         {
@@ -141,12 +114,6 @@ function OnboardingProgressBar() {
                                 >
                                     {step.label}
                                 </p>
-
-                                {isCurrent ? (
-                                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#ff9ca5] sm:text-xs">
-                                        In Progress
-                                    </p>
-                                ) : null}
                             </div>
                         );
                     })}
@@ -213,9 +180,7 @@ function EnrollmentCountdown({ secondsRemaining }) {
 export default function Enrollment({ onboarding, student }) {
     const errorBannerRef = useRef(null);
 
-    const [secondsRemaining, setSecondsRemaining] = useState(() =>
-        shouldShowInitialCountdown(onboarding) ? COUNTDOWN_SECONDS : 0,
-    );
+    const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
     const isLoading = secondsRemaining > 0;
 
@@ -299,21 +264,6 @@ export default function Enrollment({ onboarding, student }) {
             window.clearTimeout(timeoutId);
         };
     }, [isLoading, secondsRemaining]);
-
-    useEffect(() => {
-        if (secondsRemaining !== 0) {
-            return;
-        }
-
-        try {
-            window.sessionStorage.setItem(
-                buildCountdownStorageKey(onboarding),
-                "completed",
-            );
-        } catch {
-            // The form still works if sessionStorage is unavailable.
-        }
-    }, [onboarding, secondsRemaining]);
 
     useEffect(() => {
         if (Object.keys(errors).length > 0 && errorBannerRef.current) {
