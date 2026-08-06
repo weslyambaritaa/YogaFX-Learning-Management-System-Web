@@ -8,21 +8,11 @@ import { useEffect, useRef } from "react";
 const FONT_FAMILY = "'Montserrat', sans-serif";
 
 function normalizeYesNoFormValue(value) {
-    if (
-        value === true ||
-        value === 1 ||
-        value === "1" ||
-        value === "yes"
-    ) {
+    if (value === true || value === 1 || value === "1" || value === "yes") {
         return "yes";
     }
 
-    if (
-        value === false ||
-        value === 0 ||
-        value === "0" ||
-        value === "no"
-    ) {
+    if (value === false || value === 0 || value === "0" || value === "no") {
         return "no";
     }
 
@@ -35,38 +25,22 @@ function isMasterClassSlug(value) {
         .toLowerCase()
         .replace(/[-\s]+/g, "_");
 
-    return (
-        normalized === "master_class" ||
-        normalized === "masterclass"
-    );
+    return normalized === "master_class" || normalized === "masterclass";
 }
 
-export default function Enrollment({
-    onboarding,
-    student,
-}) {
+export default function Enrollment({ onboarding, student }) {
     const errorBannerRef = useRef(null);
 
-    const isMasterClass = isMasterClassSlug(
-        onboarding.access_tier?.slug,
-    );
+    const isMasterClass = isMasterClassSlug(onboarding.access_tier?.slug);
 
-    const {
-        data,
-        setData,
-        post,
-        errors,
-        processing,
-    } = useForm({
+    const { data, setData, post, errors, processing } = useForm({
         first_name: student.first_name ?? "",
         last_name: student.last_name ?? "",
         email: student.email ?? "",
 
-        whatsapp_country_code:
-            student.whatsapp_country_code ?? "+62",
+        whatsapp_country_code: student.whatsapp_country_code ?? "+62",
 
-        whatsapp_number:
-            student.whatsapp_number ?? "",
+        whatsapp_number: student.whatsapp_number ?? "",
 
         profile_photo: null,
         instagram: student.instagram ?? "",
@@ -77,14 +51,11 @@ export default function Enrollment({
         /*
          * MasterClass-only fields.
          */
-        tshirt_size:
-            student.tshirt_size ?? "",
+        tshirt_size: student.tshirt_size ?? "",
 
-        favorite_song:
-            student.favorite_song ?? "",
+        favorite_song: student.favorite_song ?? "",
 
-        emergency_contact_name:
-            student.emergency_contact_name ?? "",
+        emergency_contact_name: student.emergency_contact_name ?? "",
 
         emergency_contact_relationship:
             student.emergency_contact_relationship ?? "",
@@ -92,61 +63,43 @@ export default function Enrollment({
         emergency_contact_country_code:
             student.emergency_contact_country_code ?? "+62",
 
-        emergency_contact_number:
-            student.emergency_contact_number ?? "",
+        emergency_contact_number: student.emergency_contact_number ?? "",
 
-        has_medical_issues:
-            normalizeYesNoFormValue(
-                student.has_medical_issues,
-            ),
+        has_medical_issues: normalizeYesNoFormValue(student.has_medical_issues),
 
-        medical_issues_details:
-            student.medical_issues_details ?? "",
+        medical_issues_details: student.medical_issues_details ?? "",
 
-        is_taking_medication:
-            normalizeYesNoFormValue(
-                student.is_taking_medication,
-            ),
+        is_taking_medication: normalizeYesNoFormValue(
+            student.is_taking_medication,
+        ),
 
-        medication_details:
-            student.medication_details ?? "",
+        medication_details: student.medication_details ?? "",
 
         /*
          * Existing yoga profile fields.
          */
-        practicing_yoga_for:
-            student.practicing_yoga_for ?? "",
+        practicing_yoga_for: student.practicing_yoga_for ?? "",
 
-        yoga_sequence_experience:
-            student.yoga_sequence_experience ?? [],
+        yoga_sequence_experience: student.yoga_sequence_experience ?? [],
 
-        hours_per_week:
-            student.hours_per_week ?? "",
+        hours_per_week: student.hours_per_week ?? "",
 
-        current_fitness_level:
-            student.current_fitness_level ?? "",
+        current_fitness_level: student.current_fitness_level ?? "",
 
-        flexibility_rating:
-            student.flexibility_rating ?? "",
+        flexibility_rating: student.flexibility_rating ?? "",
 
-        motivation:
-            student.motivation ?? "",
+        motivation: student.motivation ?? "",
 
-        why_yogafx:
-            student.why_yogafx ?? "",
+        why_yogafx: student.why_yogafx ?? "",
 
-        how_did_you_find_us:
-            student.how_did_you_find_us ?? [],
+        how_did_you_find_us: student.how_did_you_find_us ?? [],
 
         terms_accepted: false,
         recaptcha_confirmed: false,
     });
 
     useEffect(() => {
-        if (
-            Object.keys(errors).length > 0 &&
-            errorBannerRef.current
-        ) {
+        if (Object.keys(errors).length > 0 && errorBannerRef.current) {
             errorBannerRef.current.scrollIntoView({
                 behavior: "smooth",
                 block: "start",
@@ -166,13 +119,13 @@ export default function Enrollment({
     return (
         <PublicFlowLayout
             title="Enrollment"
+            progressStep={2}
             heading={
                 <span
                     className="block text-balance"
                     style={{
                         fontFamily: FONT_FAMILY,
-                        fontSize:
-                            "clamp(26px, 3.4vw, 34px)",
+                        fontSize: "clamp(26px, 3.4vw, 34px)",
                         fontWeight: 700,
                         lineHeight: 1.2,
                     }}
@@ -190,18 +143,14 @@ export default function Enrollment({
                     }}
                 >
                     <p className="mb-2 font-bold">
-                        Please complete the highlighted
-                        fields before continuing:
+                        Please complete the highlighted fields before
+                        continuing:
                     </p>
 
                     <ul className="list-inside list-disc">
-                        {Object.entries(errors).map(
-                            ([field, error]) => (
-                                <li key={field}>
-                                    {error}
-                                </li>
-                            ),
-                        )}
+                        {Object.entries(errors).map(([field, error]) => (
+                            <li key={field}>{error}</li>
+                        ))}
                     </ul>
                 </div>
             ) : null}
@@ -215,9 +164,7 @@ export default function Enrollment({
                 submitLabel="Enroll Now"
                 variant="scoreboard"
                 mode="enrollment"
-                currentProfilePhotoUrl={
-                    student.profile_photo_url
-                }
+                currentProfilePhotoUrl={student.profile_photo_url}
                 isMasterClass={isMasterClass}
             />
         </PublicFlowLayout>

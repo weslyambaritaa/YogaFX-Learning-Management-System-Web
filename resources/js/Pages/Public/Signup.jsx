@@ -58,6 +58,7 @@ export default function Signup({ onboarding, student }) {
     return (
         <PublicFlowLayout
             title="Create Password"
+            progressStep={3}
             heading={
                 isLoading
                     ? null

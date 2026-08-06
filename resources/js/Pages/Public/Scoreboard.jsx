@@ -976,6 +976,7 @@ export default function Scoreboard({
         <PublicFlowLayout
             title={packageTitle}
             showBackButton={!is_package_locked}
+            progressStep={is_package_locked ? 1 : null}
             heading={
                 <span
                     className="block text-balance"

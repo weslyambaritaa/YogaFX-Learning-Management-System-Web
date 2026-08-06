@@ -1,3 +1,4 @@
+import PublicEnrollmentProgress from "@/Components/public/PublicEnrollmentProgress";
 import StudentBackButton from "@/Components/student/StudentBackButton";
 import { Head, Link } from "@inertiajs/react";
 import { Check, LoaderCircle } from "lucide-react";
@@ -25,6 +26,7 @@ export default function PublicFlowLayout({
     showBackButton = false,
     largeLogo = false,
     showMasterclassWelcome = true,
+    progressStep = null,
 }) {
     const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(
         () => showMasterclassWelcome && isMasterclassLandingPath(),
@@ -104,11 +106,14 @@ export default function PublicFlowLayout({
 
                     <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-6 lg:pt-8">
                         <header
-                            className={
-                                largeLogo
-                                    ? "mb-10 flex items-center justify-center"
-                                    : "mb-8 flex items-center justify-center"
-                            }
+                            className={[
+                                "flex items-center justify-center",
+                                progressStep
+                                    ? "mb-5"
+                                    : largeLogo
+                                      ? "mb-10"
+                                      : "mb-8",
+                            ].join(" ")}
                         >
                             <Link
                                 href="/"
@@ -125,6 +130,14 @@ export default function PublicFlowLayout({
                                 />
                             </Link>
                         </header>
+
+                        {progressStep ? (
+                            <div className="mb-8 w-full">
+                                <PublicEnrollmentProgress
+                                    currentStep={progressStep}
+                                />
+                            </div>
+                        ) : null}
 
                         <main className="flex w-full flex-col items-center justify-center">
                             <div className="flex w-full max-w-xl flex-col items-center gap-8">
