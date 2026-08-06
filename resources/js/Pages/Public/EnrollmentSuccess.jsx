@@ -1,4 +1,5 @@
 import { Button } from "@/Components/ui/button";
+import YogaFXText from "@/Components/YogaFXText";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { Link } from "@inertiajs/react";
 import { Check, LoaderCircle } from "lucide-react";
@@ -7,13 +8,25 @@ import { useEffect, useState } from "react";
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
-export default function EnrollmentSuccess({ onboarding }) {
+export default function EnrollmentSuccess({ onboarding, student = null }) {
     const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
     const packageTitle =
         onboarding?.package?.title ??
         onboarding?.access_tier?.name ??
         "Your Package";
+
+    const fullNameFromFields = [
+        student?.first_name ?? onboarding?.student?.first_name,
+        student?.last_name ?? onboarding?.student?.last_name,
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+    const studentName = String(
+        student?.name ?? onboarding?.student?.name ?? fullNameFromFields,
+    ).trim();
 
     const isLoading = secondsRemaining > 0;
 
@@ -34,17 +47,23 @@ export default function EnrollmentSuccess({ onboarding }) {
     return (
         <PublicFlowLayout
             title="Enrollment Success"
-            heading={null}
-            description={null}
+            eyebrow={isLoading ? null : "\u00A0"}
+            heading={
+                isLoading
+                    ? null
+                    : studentName
+                      ? `Congratulations, ${studentName}`
+                      : "Congratulations"
+            }
         >
             <div
-                className="flex justify-center py-6"
+                className="flex justify-center pb-8 pt-2"
                 style={{ fontFamily: FONT_FAMILY }}
             >
-                <div className="w-full max-w-lg">
+                <div className="w-full max-w-2xl text-center">
                     {isLoading ? (
                         <div
-                            className="rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8"
+                            className="mx-auto max-w-lg rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:px-8"
                             role="status"
                             aria-live="polite"
                         >
@@ -70,34 +89,38 @@ export default function EnrollmentSuccess({ onboarding }) {
                             </p>
                         </div>
                     ) : (
-                        <div className="px-4 py-8 text-center sm:px-8">
-                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500">
+                        <>
+                            <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_45px_rgba(16,185,129,0.35)]">
                                 <Check
-                                    className="h-11 w-11 text-white"
+                                    className="h-20 w-20 text-white"
                                     strokeWidth={3}
                                     aria-hidden="true"
                                 />
                             </div>
 
-                            <h2 className="mx-auto mt-6 max-w-xl text-2xl font-bold leading-tight text-white sm:text-3xl">
-                                Congratulations on Your Enrollment Application
-                                Success
+                            <h2 className="mt-10 text-3xl font-bold leading-tight text-white md:text-4xl">
+                                Your Enrollment Application Approved.
                             </h2>
 
-                            <div className="mt-8 flex justify-center px-4">
-                                <Button
-                                    asChild
-                                    className="h-auto max-w-full rounded-[5px] bg-[#DB202C] px-6 py-3.5 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28]"
+                            <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
+                                <YogaFXText
+                                    text={`To Access ${packageTitle}, Pre-course Preparation`}
+                                    fxClassName="!text-[#DB202C]"
+                                />
+                            </p>
+
+                            <Button
+                                asChild
+                                className="mt-9 min-h-[64px] w-full max-w-[360px] rounded-[8px] bg-[#DB202C] px-10 py-6 text-base font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25]"
+                            >
+                                <Link
+                                    href={onboarding.continue_url}
+                                    className="inline-flex items-center justify-center whitespace-nowrap"
                                 >
-                                    <Link
-                                        href={onboarding.continue_url}
-                                        className="inline-flex items-center justify-center text-center !whitespace-normal"
-                                    >
-                                         Click Here to Access {packageTitle} Pre-Course Preparation
-                                    </Link>
-                                </Button>
-                            </div>
-                        </div>
+                                    Click Here
+                                </Link>
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
