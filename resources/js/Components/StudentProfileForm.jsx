@@ -1978,11 +1978,12 @@ export default function StudentProfileForm({
                                     className="
                                         pointer-events-none
                                         absolute
-                                        bottom-full
-                                        left-0
+                                        left-full
+                                        top-1/2
                                         z-50
-                                        mb-3
+                                        ml-3
                                         hidden
+                                        -translate-y-1/2
                                         w-[min(340px,calc(100vw-2rem))]
                                         rounded-[2px]
                                         border
@@ -2001,6 +2002,14 @@ export default function StudentProfileForm({
                                     "
                                     style={{ fontFamily: FONT_FAMILY }}
                                 >
+                                    <span
+                                        aria-hidden="true"
+                                        className="absolute right-full top-1/2 -translate-y-1/2 border-y-[8px] border-r-[10px] border-y-transparent border-r-[#DB202C]"
+                                    />
+                                    <span
+                                        aria-hidden="true"
+                                        className="absolute right-[calc(100%-1px)] top-1/2 -translate-y-1/2 border-y-[7px] border-r-[9px] border-y-transparent border-r-[#f3f3f3]"
+                                    />
                                     <strong>Is it your belief</strong> that
                                     should you visit a{" "}
                                     <strong>Registered Medical Doctor</strong>{" "}
