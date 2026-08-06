@@ -189,12 +189,7 @@ export default function PublicFlowLayout({
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="masterclass-welcome-title"
-                    className={[
-                        "fixed inset-0 z-[9999]",
-                        "flex min-h-[100dvh] w-full",
-                        "items-center justify-center overflow-hidden",
-                        "bg-black px-4 py-6 text-white sm:px-6 sm:py-8",
-                    ].join(" ")}
+                    className="fixed inset-0 z-[9999] flex min-h-[100dvh] w-full items-center justify-center overflow-y-auto bg-black px-4 py-8 text-white sm:px-6"
                     style={{ fontFamily: FONT_FAMILY }}
                 >
                     <div
@@ -202,129 +197,82 @@ export default function PublicFlowLayout({
                         className="pointer-events-none absolute inset-0"
                         style={{
                             backgroundImage:
-                                "radial-gradient(circle at 50% 45%, rgba(219,32,44,0.16), transparent 34%), radial-gradient(circle at 85% 90%, rgba(219,32,44,0.10), transparent 28%)",
+                                "radial-gradient(circle at 50% 48%, rgba(16,185,129,0.10), transparent 22%), radial-gradient(circle at 50% 78%, rgba(219,32,44,0.08), transparent 28%)",
                         }}
                     />
 
-                    <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#DB202C]/70 to-transparent"
-                    />
+                    <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-col items-center text-center">
+                        {isCountingDown ? (
+                            <div
+                                className="flex min-h-[410px] w-full max-w-lg flex-col items-center justify-center rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:min-h-[450px] sm:px-10"
+                                role="status"
+                                aria-live="polite"
+                                aria-label={`Welcome message will open in ${secondsRemaining} seconds`}
+                            >
+                                <div className="relative h-24 w-24 shrink-0">
+                                    <LoaderCircle
+                                        className="absolute inset-0 h-24 w-24 animate-spin text-[#DB202C] drop-shadow-[0_0_10px_rgba(219,32,44,0.85)] motion-reduce:animate-none"
+                                        strokeWidth={2.4}
+                                        aria-hidden="true"
+                                    />
 
-                    <div className="relative z-10 mx-auto w-full max-w-lg">
-                        <div
-                            className="
-                                flex
-                                min-h-[410px]
-                                w-full
-                                flex-col
-                                items-center
-                                justify-center
-                                overflow-y-auto
-                                rounded-[18px]
-                                border
-                                border-white/15
-                                bg-[#111111]
-                                px-6
-                                py-8
-                                text-center
-                                shadow-[0_24px_80px_rgba(0,0,0,0.45)]
-                                sm:min-h-[450px]
-                                sm:px-10
-                                sm:py-10
-                            "
-                        >
-                            {isCountingDown ? (
-                                <div
-                                    className="flex w-full flex-col items-center justify-center"
-                                    role="status"
-                                    aria-live="polite"
-                                >
-                                    <div className="relative h-24 w-24 shrink-0">
-                                        <LoaderCircle
-                                            className="absolute inset-0 h-24 w-24 animate-spin text-[#DB202C] motion-reduce:animate-none"
-                                            strokeWidth={1.8}
-                                            aria-hidden="true"
-                                        />
-
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <span
-                                                key={secondsRemaining}
-                                                className="text-3xl font-bold leading-none text-white"
-                                            >
-                                                {secondsRemaining}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <p className="mt-6 text-sm font-semibold leading-6 text-white">
-                                        Loading...
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="flex w-full flex-col items-center justify-center">
-                                    <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_45px_rgba(16,185,129,0.35)]">
-                                        <Check
-                                            className="h-20 w-20 text-white"
-                                            strokeWidth={3}
-                                            aria-hidden="true"
-                                        />
-                                    </div>
-
-                                    <div className="mt-10 w-full space-y-4">
-                                        <h1
-                                            id="masterclass-welcome-title"
-                                            className="mx-auto max-w-xl text-3xl font-bold leading-tight text-white md:text-4xl"
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span
+                                            key={secondsRemaining}
+                                            className="text-3xl font-bold leading-none text-white"
                                         >
-                                            Congratulations!
-                                        </h1>
-
-                                        <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
-                                            We Are Thrilled That You Are Joining
-                                            Mr. Ian&apos;s Bikram Hot Yoga
-                                            26&amp;2 Yoga Teacher Training
-                                        </p>
-
-                                        <p className="mx-auto mt-4 max-w-xl text-lg font-semibold italic leading-relaxed text-white">
-                                            Your Enrollment Starts Now
-                                        </p>
+                                            {secondsRemaining}
+                                        </span>
                                     </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={closeWelcomeOverlay}
-                                        className="
-                                            mt-9
-                                            inline-flex
-                                            min-h-[64px]
-                                            w-full
-                                            max-w-[360px]
-                                            items-center
-                                            justify-center
-                                            rounded-[8px]
-                                            bg-[#DB202C]
-                                            px-10
-                                            py-6
-                                            text-base
-                                            font-bold
-                                            italic
-                                            text-white
-                                            shadow-[0_12px_35px_rgba(219,32,44,0.3)]
-                                            transition-all
-                                            duration-200
-                                            hover:-translate-y-0.5
-                                            hover:bg-[#c01a25]
-                                            focus:outline-none
-                                            focus:ring-4
-                                            focus:ring-[#DB202C]/35
-                                        "
-                                        style={{ fontFamily: FONT_FAMILY }}
-                                    >
-                                        Let&apos;s Get Started
-                                    </button>
                                 </div>
-                            )}
-                        </div>
+
+                                <p className="mt-6 text-sm font-bold text-white">
+                                    Loading...
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                <img
+                                    src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
+                                    alt="YogaFX"
+                                    className="h-20 w-auto object-contain sm:h-24"
+                                />
+
+                                <h1
+                                    id="masterclass-welcome-title"
+                                    className="mt-12 max-w-xl text-3xl font-bold leading-tight text-white sm:text-4xl"
+                                >
+                                    Congratulations!
+                                </h1>
+
+                                <div className="mt-10 flex h-32 w-32 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_45px_rgba(16,185,129,0.35)]">
+                                    <Check
+                                        className="h-20 w-20 text-white"
+                                        strokeWidth={3}
+                                        aria-hidden="true"
+                                    />
+                                </div>
+
+                                <h2 className="mx-auto mt-10 max-w-2xl text-2xl font-bold leading-tight text-white sm:text-3xl">
+                                    We Are Thrilled That You Are Joining Mr.
+                                    Ian&apos;s Bikram Hot Yoga 26&amp;2 Yoga
+                                    Teacher Training
+                                </h2>
+
+                                <p className="mx-auto mt-6 max-w-xl text-base font-semibold italic leading-relaxed text-white sm:text-lg">
+                                    Your Enrollment Starts Now
+                                </p>
+
+                                <button
+                                    type="button"
+                                    onClick={closeWelcomeOverlay}
+                                    className="mt-10 inline-flex min-h-[64px] w-full max-w-[380px] items-center justify-center rounded-[8px] bg-[#DB202C] px-10 py-6 text-base font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35"
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                >
+                                    Let&apos;s Get Started
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             ) : null}
