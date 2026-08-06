@@ -195,7 +195,14 @@ export default function Signup({ onboarding, student }) {
                         </div>
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex flex-col items-end gap-3">
+                        <p
+                            className="text-right text-sm font-medium italic leading-relaxed text-white/80"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
+                            For Easy Access To Your Course Materials
+                        </p>
+
                         <Button
                             type="submit"
                             disabled={processing}

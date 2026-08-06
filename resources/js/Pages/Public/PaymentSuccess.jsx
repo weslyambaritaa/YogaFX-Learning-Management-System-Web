@@ -52,8 +52,8 @@ export default function PaymentSuccess({ onboarding, student = null }) {
                 isLoading
                     ? null
                     : studentName
-                      ? `Congratulations, ${studentName}!`
-                      : "Congratulations!"
+                      ? `Congratulations, ${studentName}`
+                      : "Congratulations"
             }
         >
             <div
