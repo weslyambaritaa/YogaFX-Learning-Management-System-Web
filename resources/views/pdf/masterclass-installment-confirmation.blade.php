@@ -182,17 +182,16 @@
             @endif
 
             <p class="closing">
-                Thank you for your interest in YogaFX International Yoga Teacher Training Academy it really is appreciated.
+                Thank you for your interest in Yoga<span style="color: red;">FX</span> International Yoga Teacher Training Academy it really is appreciated.
             </p>
 
             @if (!empty($showBonuses))
                 <div style="font-size:20px;font-weight:700;">
                     <strong>Also Included — Your Online Course Bonuses:</strong><br>
                     <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 1:</strong> 10 Premium Online Lectures ($490) - Module 14<br>
-                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Meditation & Mindfulness Course ($99) - Module 15<br>
                     <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 2:</strong> Full $197 Credit to Mr. Ian's MasterClass<br>
                     <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 3:</strong> MasterClass Pre-Course Preparation Credit<br>
-                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 5:</strong> Yoga Alliance RYT-200
+                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Yoga Alliance RYT-200
                 </div>
             @endif
         </div>
@@ -201,8 +200,8 @@
             @if (filled(trim((string) ($pdfFooterHtml ?? ''))))
                 <div class="pdf-footer">{!! $pdfFooterHtml !!}</div>
             @endif
-            <div class="copyright">Copyright &copy; {{ date('Y') }} YogaFX International Yoga Teacher Training Academy</div>
-            <div class="website">www.YogaFXTeacherTraining.com</div>
+            <div class="copyright">Copyright &copy; {{ date('Y') }} Yoga<span style="color: red;">FX</span> International Yoga Teacher Training Academy</div>
+            <div class="website">www.Yoga<span style="color: red;">FX</span>TeacherTraining.com</div>
         </div>
     </div>
 </body>

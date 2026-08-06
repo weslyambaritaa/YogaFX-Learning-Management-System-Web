@@ -175,10 +175,9 @@
             <div style="font-size:20px;font-weight:700;">
                 <strong>Also Included — Your Online Course Bonuses:</strong><br>
                 <strong><img src="https://yogafx-training.b-cdn.net/branding/green-tick-20260402083851-4a7f71fb.png" class="check-icon" alt="Trophy Icon"> Bonus 1:</strong> 10 Premium Online Lectures ($490) - Module 14<br>
-                <strong><img src="https://yogafx-training.b-cdn.net/branding/green-tick-20260402083851-4a7f71fb.png" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Meditation & Mindfulness Course ($99) - Module 15<br>
                 <strong><img src="https://yogafx-training.b-cdn.net/branding/green-tick-20260402083851-4a7f71fb.png" class="check-icon" alt="Trophy Icon"> Bonus 2:</strong> Full $197 Credit to Mr. Ian's MasterClass<br>
                 <strong><img src="https://yogafx-training.b-cdn.net/branding/green-tick-20260402083851-4a7f71fb.png" class="check-icon" alt="Trophy Icon"> Bonus 3:</strong> MasterClass Pre-Course Preparation Credit<br>
-                <strong><img src="https://yogafx-training.b-cdn.net/branding/green-tick-20260402083851-4a7f71fb.png" class="check-icon" alt="Trophy Icon"> Bonus 5:</strong> Yoga Alliance RYT-200
+                <strong><img src="https://yogafx-training.b-cdn.net/branding/green-tick-20260402083851-4a7f71fb.png" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Yoga Alliance RYT-200
             </div>
         </div>
 
@@ -187,7 +186,7 @@
                 <div class="signature"><img src="{{ $signatureUrl }}" alt="Signature Image"></div>
             @endif
             <div class="copyright">Copyright &copy; {{ date('Y') }} Yoga<span style="color:red">FX</span> International Yoga Teacher Training Academy</div>
-            <div class="website">www.YogaFXTeacherTraining.com</div>
+            <div class="website">www.Yoga<span style="color: red;">FX</span>TeacherTraining.com</div>
         </div>
     </div>
 </body>
