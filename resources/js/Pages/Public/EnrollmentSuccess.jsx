@@ -71,10 +71,15 @@ export default function EnrollmentSuccess({ onboarding }) {
                         </div>
                     ) : (
                         <div className="px-4 py-8 text-center sm:px-8">
-                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500">
+                            <p className="mx-auto mb-6 max-w-xl text-xl font-bold leading-tight text-white sm:text-2xl">
+                                Congratulations
+                                {studentName ? `, ${studentName}` : ""}
+                            </p>
+
+                            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-emerald-500">
                                 <Check
-                                    className="h-11 w-11 text-white"
-                                    strokeWidth={3}
+                                    className="h-14 w-14 text-white"
+                                    strokeWidth={3.2}
                                     aria-hidden="true"
                                 />
                             </div>
@@ -84,7 +89,11 @@ export default function EnrollmentSuccess({ onboarding }) {
                                 Success
                             </h2>
 
-                            <div className="mt-8 flex justify-center px-4">
+                            <p className="mx-auto mt-8 max-w-xl text-base font-medium leading-7 text-white">
+                                To Access {packageTitle}, Pre-course Preparation
+                            </p>
+
+                            <div className="mt-4 flex justify-center px-4">
                                 <Button
                                     asChild
                                     className="h-auto max-w-full rounded-[5px] bg-[#DB202C] px-6 py-3.5 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28]"
@@ -93,7 +102,7 @@ export default function EnrollmentSuccess({ onboarding }) {
                                         href={onboarding.continue_url}
                                         className="inline-flex items-center justify-center text-center !whitespace-normal"
                                     >
-                                         Click Here to Access {packageTitle} Pre-Course Preparation
+                                        Click Here
                                     </Link>
                                 </Button>
                             </div>
