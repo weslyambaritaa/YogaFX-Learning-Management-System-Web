@@ -7,10 +7,7 @@ import { useEffect, useState } from "react";
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
-export default function EnrollmentSuccess({
-    onboarding,
-    student = null,
-}) {
+export default function EnrollmentSuccess({ onboarding, student = null }) {
     const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
     const packageTitle =
@@ -27,10 +24,7 @@ export default function EnrollmentSuccess({
         .trim();
 
     const studentName = String(
-        student?.name ??
-            onboarding?.student?.name ??
-            fullNameFromFields ??
-            "",
+        student?.name ?? onboarding?.student?.name ?? fullNameFromFields ?? "",
     ).trim();
 
     const isLoading = secondsRemaining > 0;
@@ -114,7 +108,7 @@ export default function EnrollmentSuccess({
                             <div className="mt-4 flex justify-center px-4">
                                 <Button
                                     asChild
-                                    className="h-auto max-w-full rounded-[5px] bg-[#DB202C] px-6 py-3.5 text-center text-sm font-bold leading-5 text-white hover:bg-[#c31c28]"
+                                    className="h-auto max-w-full rounded-[5px] bg-[#DB202C] px-6 py-3.5 text-center text-sm font-bold italic leading-5 text-white hover:bg-[#c31c28]"
                                 >
                                     <Link
                                         href={onboarding.continue_url}
