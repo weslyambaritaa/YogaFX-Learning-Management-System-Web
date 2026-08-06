@@ -2,7 +2,6 @@ import { Button } from "@/Components/ui/button";
 import YogaFXText from "@/Components/YogaFXText";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { Check } from "lucide-react";
-import { Link } from "@inertiajs/react";
 
 export default function PaymentSuccess({ onboarding }) {
     return (
@@ -50,12 +49,12 @@ export default function PaymentSuccess({ onboarding }) {
                         asChild
                         className="mt-9 min-h-[64px] w-full max-w-[360px] rounded-[8px] bg-[#DB202C] px-10 py-6 text-base font-bold text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25]"
                     >
-                        <Link
+                        <a
                             href={onboarding.continue_url}
                             className="inline-flex items-center justify-center whitespace-nowrap"
                         >
                             Continue to Enrollment
-                        </Link>
+                        </a>
                     </Button>
                 </div>
             </div>
