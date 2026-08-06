@@ -143,7 +143,7 @@ export default function PublicFlowLayout({
                         </header>
 
                         {progressStep ? (
-                            <div className="mb-8 w-full">
+                            <div className="mb-5 w-full">
                                 <PublicEnrollmentProgress
                                     currentStep={progressStep}
                                 />
