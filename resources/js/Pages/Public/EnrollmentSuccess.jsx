@@ -1,4 +1,5 @@
 import { Button } from "@/Components/ui/button";
+import YogaFXText from "@/Components/YogaFXText";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { Link } from "@inertiajs/react";
 import { Check, LoaderCircle } from "lucide-react";
@@ -102,7 +103,10 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
                             </h2>
 
                             <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
-                                To Access {packageTitle}, Pre-course Preparation
+                                <YogaFXText
+                                    text={`To Access ${packageTitle}, Pre-course Preparation`}
+                                    fxClassName="!text-[#DB202C]"
+                                />
                             </p>
 
                             <Button
