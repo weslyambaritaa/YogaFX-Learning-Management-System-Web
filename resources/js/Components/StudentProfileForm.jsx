@@ -856,7 +856,7 @@ export default function StudentProfileForm({
             }
 
             if (isBlankString(data.instagram)) {
-                nextLocalErrors.instagram = "Instagram is required.";
+                nextLocalErrors.instagram = "Instagram Username is required.";
             }
 
             if (isBlankString(data.country)) {
@@ -1264,7 +1264,7 @@ export default function StudentProfileForm({
                         <div>
                             <InputLabel
                                 htmlFor="instagram"
-                                value="Instagram"
+                                value="Instagram Username"
                                 className={theme.labelClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
