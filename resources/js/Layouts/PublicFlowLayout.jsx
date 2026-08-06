@@ -94,10 +94,21 @@ export default function PublicFlowLayout({
         <>
             <Head title={title} />
 
-            <div className="min-h-screen bg-black text-white">
-                <div className="absolute inset-0" />
+            <div className="relative isolate min-h-screen overflow-x-hidden bg-black text-white">
+                {progressStep ? (
+                    <div
+                        aria-hidden="true"
+                        className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center overflow-hidden"
+                    >
+                        <img
+                            src="/images/yogafx-white-icon.png"
+                            alt=""
+                            className="w-[300px] max-w-none select-none opacity-[0.055] sm:w-[420px] lg:w-[560px]"
+                        />
+                    </div>
+                ) : null}
 
-                <div className="relative mx-auto flex min-h-screen max-w-[1280px] flex-col px-4 py-6 sm:px-6 lg:px-10">
+                <div className="relative z-10 mx-auto flex min-h-screen max-w-[1280px] flex-col px-4 py-6 sm:px-6 lg:px-10">
                     {showBackButton ? (
                         <div className="w-full pt-4">
                             <StudentBackButton fallbackHref={route("login")} />
@@ -132,7 +143,7 @@ export default function PublicFlowLayout({
                         </header>
 
                         {progressStep ? (
-                            <div className="mb-8 w-full">
+                            <div className="mb-5 w-full">
                                 <PublicEnrollmentProgress
                                     currentStep={progressStep}
                                 />
