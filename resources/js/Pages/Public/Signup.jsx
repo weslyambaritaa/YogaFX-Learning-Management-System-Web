@@ -22,6 +22,13 @@ export default function Signup({ onboarding, student }) {
         password_confirmation: "",
     });
 
+    const studentName = String(
+        student?.name ?? onboarding?.student?.name ?? "Student",
+    ).trim();
+
+    const packageTitle =
+        onboarding?.package?.title ?? onboarding?.access_tier?.name ?? "Course";
+
     const isLoading = secondsRemaining > 0;
 
     useEffect(() => {
@@ -30,9 +37,7 @@ export default function Signup({ onboarding, student }) {
         }
 
         const timeoutId = window.setTimeout(() => {
-            setSecondsRemaining((current) =>
-                Math.max(current - 1, 0),
-            );
+            setSecondsRemaining((current) => Math.max(current - 1, 0));
         }, 1000);
 
         return () => {
@@ -56,12 +61,12 @@ export default function Signup({ onboarding, student }) {
             heading={
                 isLoading
                     ? null
-                    : "Create your final YogaFX password to activate your account"
+                    : `Welcome ${studentName} to Your ${packageTitle} Course Preparation`
             }
             description={
                 isLoading
                     ? null
-                    : "Enrollment is complete. This last step activates your YogaFX account so you can sign in with your new password."
+                    : "This last step activates your YogaFX account so you can sign in with your new password."
             }
         >
             {isLoading ? (
@@ -144,10 +149,7 @@ export default function Signup({ onboarding, student }) {
                                 className="mt-2 block w-full"
                                 inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
                                 onChange={(event) =>
-                                    setData(
-                                        "password",
-                                        event.target.value,
-                                    )
+                                    setData("password", event.target.value)
                                 }
                                 buttonClassName="text-white/60 hover:text-white"
                                 autoComplete="new-password"
@@ -160,9 +162,7 @@ export default function Signup({ onboarding, student }) {
                             />
                         </div>
 
-                        <PasswordRequirementsCard
-                            password={data.password}
-                        />
+                        <PasswordRequirementsCard password={data.password} />
 
                         <div>
                             <InputLabel
@@ -189,9 +189,7 @@ export default function Signup({ onboarding, student }) {
 
                             <InputError
                                 className="mt-2 text-red-400"
-                                message={
-                                    errors.password_confirmation
-                                }
+                                message={errors.password_confirmation}
                             />
                         </div>
                     </div>
