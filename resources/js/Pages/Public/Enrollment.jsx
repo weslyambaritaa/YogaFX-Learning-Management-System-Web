@@ -233,7 +233,9 @@ export default function Enrollment({ onboarding, student }) {
                             lineHeight: 1.2,
                         }}
                     >
-                        Complete your YogaFX enrollment
+                        Welcome To Your Yoga
+                        <span className="text-[#DB202C]">FX</span> Enrollment
+                        Application Form
                     </span>
                 }
             >
