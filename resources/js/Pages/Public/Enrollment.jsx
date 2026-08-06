@@ -1,7 +1,7 @@
 import StudentProfileForm from "@/Components/StudentProfileForm";
 import PublicFlowLayout from "@/Layouts/PublicFlowLayout";
 import { useForm } from "@inertiajs/react";
-import { Check, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // Single source of truth for the font so it can't be silently
@@ -30,107 +30,28 @@ function isMasterClassSlug(value) {
     return normalized === "master_class" || normalized === "masterclass";
 }
 
-function OnboardingProgressBar() {
-    const steps = [
-        {
-            key: "payment",
-            label: "Payment",
-            status: "complete",
-        },
-        {
-            key: "enrollment",
-            label: "Enrollment",
-            status: "current",
-        },
-        {
-            key: "account",
-            label: "Account Setup",
-            status: "upcoming",
-        },
-    ];
-
+function EnrollmentLoadingOverlay({ secondsRemaining }) {
     return (
         <div
-            className="w-full pb-8"
+            className="fixed inset-0 z-[9999] flex min-h-[100dvh] items-center justify-center overflow-y-auto bg-black px-4 py-6 text-white sm:px-6"
             style={{ fontFamily: FONT_FAMILY }}
-            aria-label="Onboarding progress"
-        >
-            <div className="relative mx-auto w-full max-w-xl">
-                {/* Background connector */}
-                <div
-                    aria-hidden="true"
-                    className="absolute left-[16.666%] right-[16.666%] top-5 h-[3px] rounded-full bg-white/15"
-                />
-
-                {/* Completed connector: Payment → Enrollment */}
-                <div
-                    aria-hidden="true"
-                    className="absolute left-[16.666%] top-5 h-[3px] w-1/3 rounded-full bg-[#DB202C]"
-                />
-
-                <div className="relative z-10 grid grid-cols-3 gap-2">
-                    {steps.map((step, index) => {
-                        const isComplete = step.status === "complete";
-                        const isCurrent = step.status === "current";
-
-                        return (
-                            <div
-                                key={step.key}
-                                className="flex min-w-0 flex-col items-center text-center"
-                                aria-current={isCurrent ? "step" : undefined}
-                            >
-                                <div
-                                    className={[
-                                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-all",
-                                        isComplete
-                                            ? "border-emerald-500 bg-emerald-500 text-white shadow-[0_0_24px_rgba(16,185,129,0.24)]"
-                                            : "",
-                                        isCurrent
-                                            ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_24px_rgba(219,32,44,0.28)]"
-                                            : "",
-                                        !isComplete && !isCurrent
-                                            ? "border-white/25 bg-[#111111] text-white/55"
-                                            : "",
-                                    ].join(" ")}
-                                >
-                                    {isComplete ? (
-                                        <Check
-                                            className="h-5 w-5"
-                                            strokeWidth={3}
-                                            aria-hidden="true"
-                                        />
-                                    ) : (
-                                        index + 1
-                                    )}
-                                </div>
-
-                                <p
-                                    className={[
-                                        "mt-3 truncate text-xs font-semibold sm:text-sm",
-                                        isComplete || isCurrent
-                                            ? "text-white"
-                                            : "text-white/50",
-                                    ].join(" ")}
-                                >
-                                    {step.label}
-                                </p>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function EnrollmentCountdown({ secondsRemaining }) {
-    return (
-        <div
-            className="flex w-full justify-center pb-6 pt-1"
-            style={{ fontFamily: FONT_FAMILY }}
+            role="status"
+            aria-live="polite"
+            aria-label={`Enrollment form will open in ${secondsRemaining} seconds`}
         >
             <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0"
+                style={{
+                    backgroundImage:
+                        "radial-gradient(circle at 50% 45%, rgba(219,32,44,0.16), transparent 34%), radial-gradient(circle at 85% 90%, rgba(219,32,44,0.10), transparent 28%)",
+                }}
+            />
+
+            <div
                 className="
+                    relative
+                    z-10
                     flex
                     min-h-[410px]
                     w-full
@@ -150,9 +71,6 @@ function EnrollmentCountdown({ secondsRemaining }) {
                     sm:px-10
                     sm:py-10
                 "
-                role="status"
-                aria-live="polite"
-                aria-label={`Enrollment form will open in ${secondsRemaining} seconds`}
             >
                 <div className="relative h-24 w-24 shrink-0">
                     <LoaderCircle
@@ -266,6 +184,23 @@ export default function Enrollment({ onboarding, student }) {
     }, [isLoading, secondsRemaining]);
 
     useEffect(() => {
+        if (!isLoading) {
+            return undefined;
+        }
+
+        const previousBodyOverflow = document.body.style.overflow;
+        const previousHtmlOverflow = document.documentElement.style.overflow;
+
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = previousBodyOverflow;
+            document.documentElement.style.overflow = previousHtmlOverflow;
+        };
+    }, [isLoading]);
+
+    useEffect(() => {
         if (Object.keys(errors).length > 0 && errorBannerRef.current) {
             errorBannerRef.current.scrollIntoView({
                 behavior: "smooth",
@@ -284,67 +219,62 @@ export default function Enrollment({ onboarding, student }) {
     };
 
     return (
-        <PublicFlowLayout
-            title="Enrollment"
-            heading={
-                <span
-                    className="block text-balance"
-                    style={{
-                        fontFamily: FONT_FAMILY,
-                        fontSize: "clamp(26px, 3.4vw, 34px)",
-                        fontWeight: 700,
-                        lineHeight: 1.2,
-                    }}
-                >
-                    Complete your YogaFX enrollment
-                </span>
-            }
-        >
-            {/* Progress bar is intentionally outside the countdown switch.
-                It always remains visible above both countdown and form. */}
-            <OnboardingProgressBar />
+        <>
+            <PublicFlowLayout
+                title="Enrollment"
+                progressStep={2}
+                heading={
+                    <span
+                        className="block text-balance"
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                            fontSize: "clamp(26px, 3.4vw, 34px)",
+                            fontWeight: 700,
+                            lineHeight: 1.2,
+                        }}
+                    >
+                        Complete your YogaFX enrollment
+                    </span>
+                }
+            >
+                {Object.keys(errors).length > 0 ? (
+                    <div
+                        ref={errorBannerRef}
+                        className="mb-6 scroll-mt-24 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600"
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                        }}
+                    >
+                        <p className="mb-2 font-bold">
+                            Please complete the highlighted fields before
+                            continuing:
+                        </p>
+
+                        <ul className="list-inside list-disc">
+                            {Object.entries(errors).map(([field, error]) => (
+                                <li key={field}>{error}</li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : null}
+
+                <StudentProfileForm
+                    data={data}
+                    setData={setData}
+                    errors={errors}
+                    processing={processing}
+                    onSubmit={submit}
+                    submitLabel="Enroll Now"
+                    variant="scoreboard"
+                    mode="enrollment"
+                    currentProfilePhotoUrl={student.profile_photo_url}
+                    isMasterClass={isMasterClass}
+                />
+            </PublicFlowLayout>
 
             {isLoading ? (
-                <EnrollmentCountdown secondsRemaining={secondsRemaining} />
-            ) : (
-                <>
-                    {Object.keys(errors).length > 0 ? (
-                        <div
-                            ref={errorBannerRef}
-                            className="mb-6 scroll-mt-24 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600"
-                            style={{
-                                fontFamily: FONT_FAMILY,
-                            }}
-                        >
-                            <p className="mb-2 font-bold">
-                                Please complete the highlighted fields before
-                                continuing:
-                            </p>
-
-                            <ul className="list-inside list-disc">
-                                {Object.entries(errors).map(
-                                    ([field, error]) => (
-                                        <li key={field}>{error}</li>
-                                    ),
-                                )}
-                            </ul>
-                        </div>
-                    ) : null}
-
-                    <StudentProfileForm
-                        data={data}
-                        setData={setData}
-                        errors={errors}
-                        processing={processing}
-                        onSubmit={submit}
-                        submitLabel="Enroll Now"
-                        variant="scoreboard"
-                        mode="enrollment"
-                        currentProfilePhotoUrl={student.profile_photo_url}
-                        isMasterClass={isMasterClass}
-                    />
-                </>
-            )}
-        </PublicFlowLayout>
+                <EnrollmentLoadingOverlay secondsRemaining={secondsRemaining} />
+            ) : null}
+        </>
     );
 }
