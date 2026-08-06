@@ -69,10 +69,23 @@ export default function WelcomeToYogaFXDialog({
                 <DialogFooter className="border-t border-white/10 bg-black/20 px-6 pb-6 pt-4 sm:justify-center">
                     <Button
                         type="button"
-                        className="w-full bg-[#c00000] text-white hover:bg-[#a00000] sm:w-auto"
+                        className="
+        min-h-[64px]
+        w-full
+        bg-[#c00000]
+        px-10
+        py-5
+        text-lg
+        font-bold
+        text-white
+        hover:bg-[#a00000]
+        sm:min-w-[320px]
+        sm:w-auto
+        sm:text-xl
+    "
                         onClick={() => onOpenChange(false)}
                     >
-                        Let's get started
+                        Let&apos;s Get Started
                     </Button>
                 </DialogFooter>
             </DialogContent>

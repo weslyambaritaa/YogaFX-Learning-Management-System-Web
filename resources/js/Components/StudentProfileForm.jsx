@@ -1435,8 +1435,10 @@ export default function StudentProfileForm({
                                                 fontWeight: 700,
                                             }}
                                         >
-                                            Please Upload Screenshot Picture. File size 10MB or Less Please.
-                                            Don't Worry This Pic Can Be Changed Later if necessary  
+                                            Please Upload Screenshot Picture.
+                                            File size 10MB or Less Please. Don't
+                                            Worry This Pic Can Be Changed Later
+                                            if necessary
                                         </p>
                                     </div>
 
@@ -1907,14 +1909,7 @@ export default function StudentProfileForm({
 
                 {isEnrollment ? (
                     <section className={sectionClassName}>
-                        <div className={theme.sectionDividerClassName}>
-                            <h3
-                                className={titleClassName}
-                                style={{ fontFamily: FONT_FAMILY }}
-                            >
-                                Terms & Confirmation
-                            </h3>
-                        </div>
+                        <div className={theme.sectionDividerClassName}></div>
 
                         <div className="space-y-6">
                             <label

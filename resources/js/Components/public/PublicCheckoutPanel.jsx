@@ -2086,33 +2086,65 @@ export default function PublicCheckoutPanel({
 
             {isConfirmingPayment && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-6 backdrop-blur-sm"
+                    className="fixed inset-0 z-50 flex min-h-[100dvh] items-center justify-center bg-black/85 px-4 py-6 backdrop-blur-sm sm:px-6"
                     style={{ fontFamily: FONT_FAMILY }}
                     role="status"
                     aria-live="polite"
+                    aria-label="Confirming your payment"
                 >
-                    <div className="w-full max-w-md rounded-[18px] border border-white/15 bg-[#111111] px-7 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
-                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#DB202C]/35 bg-[#DB202C]/12">
-                            <LoaderCircle className="h-8 w-8 animate-spin text-[#DB202C]" />
+                    <div
+                        className="
+                            flex
+                            min-h-[410px]
+                            w-full
+                            max-w-lg
+                            flex-col
+                            items-center
+                            justify-center
+                            rounded-[18px]
+                            border
+                            border-white/15
+                            bg-[#111111]
+                            px-6
+                            py-8
+                            text-center
+                            shadow-[0_24px_80px_rgba(0,0,0,0.55)]
+                            sm:min-h-[450px]
+                            sm:px-10
+                            sm:py-10
+                        "
+                    >
+                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border border-[#ff3344]/45 bg-[#DB202C]/10 shadow-[0_0_38px_rgba(255,51,68,0.22)]">
+                            <LoaderCircle
+                                className="h-12 w-12 animate-spin text-[#ff3344] drop-shadow-[0_0_10px_rgba(255,51,68,0.95)] motion-reduce:animate-none"
+                                strokeWidth={3}
+                                aria-hidden="true"
+                            />
                         </div>
 
-                        <p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-[#ffb8bf]">
-                            Payment received
-                        </p>
+                        <div className="mt-7 w-full space-y-4">
+                            <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#ffb8bf]">
+                                Payment Received
+                            </p>
 
-                        <h2 className="mt-3 text-2xl font-semibold text-white">
-                            Confirming your payment
-                        </h2>
+                            <h2 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
+                                Confirming Your Payment
+                            </h2>
 
-                        <p className="mt-3 text-sm leading-6 text-white/70">
-                            Please do not close this page. We are confirming
-                            your first payment and preparing your enrollment
-                            access.
-                        </p>
-
-                        <div className="mt-6 overflow-hidden rounded-full bg-white/10">
-                            <div className="h-1.5 w-2/3 animate-pulse rounded-full bg-[#DB202C]" />
+                            <p className="mx-auto max-w-md text-sm font-medium italic leading-7 text-white sm:text-base">
+                                Please do not close this page. We are confirming
+                                your first payment and preparing your enrollment
+                                access.
+                            </p>
                         </div>
+
+                        <div className="mt-8 h-2 w-full max-w-[320px] overflow-hidden rounded-full bg-white/10">
+                            <div className="h-full w-2/3 animate-pulse rounded-full bg-[#ff3344] shadow-[0_0_12px_rgba(255,51,68,0.85)]" />
+                        </div>
+
+                        <p className="mt-4 text-sm font-bold text-white">
+                            Preparing Your Enrollment Access...
+                        </p>
                     </div>
                 </div>
             )}
@@ -2153,8 +2185,8 @@ export default function PublicCheckoutPanel({
                                     }}
                                 >
                                     {optionIsInstallment
-                                        ? "Pay in Installment"
-                                        : (option.label ?? "Pay in Full")}
+                                        ? "Transfer By Installment"
+                                        : (option.label ?? "Pay In Full")}
                                 </button>
 
                                 {paymentIsLocked && (
