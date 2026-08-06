@@ -46,15 +46,13 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
     return (
         <PublicFlowLayout
             title="Enrollment Success"
-            eyebrow={
+            eyebrow={isLoading ? null : "\u00A0"}
+            heading={
                 isLoading
                     ? null
                     : studentName
                       ? `Congratulations, ${studentName}`
                       : "Congratulations"
-            }
-            heading={
-                isLoading ? null : "Your enrollment application was successful."
             }
         >
             <div
@@ -100,7 +98,7 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
                             </div>
 
                             <h2 className="mt-10 text-3xl font-bold leading-tight text-white md:text-4xl">
-                                Congratulations!
+                                Your Enrollment Application Approved.
                             </h2>
 
                             <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
