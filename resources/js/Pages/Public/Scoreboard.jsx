@@ -371,6 +371,14 @@ export default function Scoreboard({
     const isIdentityLocked = checkout !== null;
     const packageTitle = selectedPackage?.title ?? "YogaFX Package";
 
+    const accessTierLabel =
+        typeof selectedPackage?.access_tier === "string"
+            ? selectedPackage.access_tier
+            : (selectedPackage?.access_tier?.name ??
+              selectedPackage?.access_tier?.label ??
+              selectedPackage?.access_tier?.title ??
+              packageTitle);
+
     const packagePrice =
         selectedPackagePaymentType === "free"
             ? "Free"
@@ -978,10 +986,10 @@ export default function Scoreboard({
                         lineHeight: 1.2,
                     }}
                 >
-                    <>
-                        We Are Thrilled That You Will Be Joining Our{" "}
-                        <YogaFXText text={packageTitle} />
-                    </>
+                    <YogaFXText
+                        text={`Welcome To YogaFX ${accessTierLabel}`}
+                        fxClassName="!text-[#DB202C]"
+                    />
                 </span>
             }
             description={
@@ -994,7 +1002,9 @@ export default function Scoreboard({
                         lineHeight: 1.6,
                     }}
                 >
-                    {`Let's Get Started`}
+                    {selectedPackageInstallmentEnabled
+                        ? "Please Continue Your Deposit And Set Up Your Installment Process Below"
+                        : "Please Continue Your Transfer Below"}
                 </span>
             }
             aside={<div className="space-y-6" />}
