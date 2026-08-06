@@ -2,7 +2,7 @@ import PublicEnrollmentProgress from "@/Components/public/PublicEnrollmentProgre
 import StudentBackButton from "@/Components/student/StudentBackButton";
 import { Head, Link } from "@inertiajs/react";
 import { Check, LoaderCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 3;
@@ -32,10 +32,6 @@ export default function PublicFlowLayout({
         () => showMasterclassWelcome && isMasterclassLandingPath(),
     );
     const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
-    const [isWelcomeOverlayClosing, setIsWelcomeOverlayClosing] =
-        useState(false);
-
-    const welcomeOverlayTimerRef = useRef(null);
     const isCountingDown = secondsRemaining > 0;
 
     useEffect(() => {
@@ -69,25 +65,12 @@ export default function PublicFlowLayout({
         };
     }, [showWelcomeOverlay, isCountingDown, secondsRemaining]);
 
-    useEffect(() => {
-        return () => {
-            if (welcomeOverlayTimerRef.current) {
-                window.clearTimeout(welcomeOverlayTimerRef.current);
-            }
-        };
-    }, []);
-
     const closeWelcomeOverlay = () => {
-        if (isCountingDown || isWelcomeOverlayClosing) {
+        if (isCountingDown) {
             return;
         }
 
-        setIsWelcomeOverlayClosing(true);
-
-        welcomeOverlayTimerRef.current = window.setTimeout(() => {
-            setShowWelcomeOverlay(false);
-            setIsWelcomeOverlayClosing(false);
-        }, 750);
+        setShowWelcomeOverlay(false);
     };
 
     return (
@@ -210,13 +193,7 @@ export default function PublicFlowLayout({
                         "fixed inset-0 z-[9999]",
                         "flex min-h-[100dvh] w-full",
                         "items-center justify-center overflow-hidden",
-                        "bg-black px-4 py-4 text-white sm:px-6 sm:py-8",
-                        "transition-transform duration-700",
-                        "ease-[cubic-bezier(0.76,0,0.24,1)]",
-                        "will-change-transform",
-                        isWelcomeOverlayClosing
-                            ? "-translate-y-full"
-                            : "translate-y-0",
+                        "bg-black px-4 py-6 text-white sm:px-6 sm:py-8",
                     ].join(" ")}
                     style={{ fontFamily: FONT_FAMILY }}
                 >
@@ -234,15 +211,7 @@ export default function PublicFlowLayout({
                         className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#DB202C]/70 to-transparent"
                     />
 
-                    <div
-                        className={[
-                            "relative z-10 mx-auto w-full max-w-lg",
-                            "transition-all duration-500",
-                            isWelcomeOverlayClosing
-                                ? "-translate-y-14 opacity-0"
-                                : "translate-y-0 opacity-100",
-                        ].join(" ")}
-                    >
+                    <div className="relative z-10 mx-auto w-full max-w-lg">
                         <div
                             className="
                                 flex
@@ -294,29 +263,29 @@ export default function PublicFlowLayout({
                                 </div>
                             ) : (
                                 <div className="flex w-full flex-col items-center justify-center">
-                                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_34px_rgba(16,185,129,0.24)]">
+                                    <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_45px_rgba(16,185,129,0.35)]">
                                         <Check
-                                            className="h-11 w-11 text-white"
+                                            className="h-20 w-20 text-white"
                                             strokeWidth={3}
                                             aria-hidden="true"
                                         />
                                     </div>
 
-                                    <div className="mt-6 w-full space-y-4">
+                                    <div className="mt-10 w-full space-y-4">
                                         <h1
                                             id="masterclass-welcome-title"
-                                            className="mx-auto max-w-xl text-2xl font-bold leading-tight text-white sm:text-3xl"
+                                            className="mx-auto max-w-xl text-3xl font-bold leading-tight text-white md:text-4xl"
                                         >
                                             Congratulations!
                                         </h1>
 
-                                        <p className="mx-auto max-w-xl text-base font-semibold leading-7 text-white sm:text-lg sm:leading-8">
+                                        <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
                                             We Are Thrilled That You Are Joining
                                             Mr. Ian&apos;s Bikram Hot Yoga
                                             26&amp;2 Yoga Teacher Training
                                         </p>
 
-                                        <p className="text-base font-medium italic leading-7 text-white sm:text-lg">
+                                        <p className="mx-auto mt-4 max-w-xl text-lg font-semibold italic leading-relaxed text-white">
                                             Your Enrollment Starts Now
                                         </p>
                                     </div>
@@ -324,32 +293,30 @@ export default function PublicFlowLayout({
                                     <button
                                         type="button"
                                         onClick={closeWelcomeOverlay}
-                                        disabled={isWelcomeOverlayClosing}
                                         className="
-                                            mt-8
+                                            mt-9
                                             inline-flex
-                                            min-h-[56px]
+                                            min-h-[64px]
                                             w-full
-                                            max-w-[320px]
+                                            max-w-[360px]
                                             items-center
                                             justify-center
-                                            rounded-[5px]
+                                            rounded-[8px]
                                             bg-[#DB202C]
-                                            px-8
-                                            py-4
+                                            px-10
+                                            py-6
                                             text-base
                                             font-bold
+                                            italic
                                             text-white
-                                            shadow-[0_14px_38px_rgba(219,32,44,0.30)]
+                                            shadow-[0_12px_35px_rgba(219,32,44,0.3)]
                                             transition-all
                                             duration-200
                                             hover:-translate-y-0.5
-                                            hover:bg-[#c31c28]
+                                            hover:bg-[#c01a25]
                                             focus:outline-none
                                             focus:ring-4
                                             focus:ring-[#DB202C]/35
-                                            disabled:cursor-wait
-                                            disabled:opacity-80
                                         "
                                         style={{ fontFamily: FONT_FAMILY }}
                                     >
