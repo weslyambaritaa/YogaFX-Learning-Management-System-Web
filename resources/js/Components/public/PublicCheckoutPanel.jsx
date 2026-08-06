@@ -2250,7 +2250,7 @@ export default function PublicCheckoutPanel({
                                     }}
                                 >
                                     {optionIsInstallment
-                                        ? "Transfer By Installment"
+                                        ? "Pay By Installment"
                                         : (option.label ?? "Pay In Full")}
                                 </button>
 
