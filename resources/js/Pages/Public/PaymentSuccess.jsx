@@ -8,21 +8,25 @@ import { useEffect, useState } from "react";
 const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
-export default function PaymentSuccess({ onboarding, student }) {
+export default function PaymentSuccess({ onboarding, student = null }) {
     const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
-    const rawStudentName = [
-        student?.first_name,
-        onboarding?.student?.first_name,
-        onboarding?.first_name,
-        student?.name,
-        onboarding?.student?.name,
-        onboarding?.student_name,
-    ].find((value) => typeof value === "string" && value.trim() !== "");
+    /*
+     * Nama siswa dibuat sama persis seperti EnrollmentSuccess:
+     * 1. Gunakan student.name bila tersedia.
+     * 2. Jika tidak tersedia, gabungkan first_name dan last_name.
+     */
+    const fullNameFromFields = [
+        student?.first_name ?? onboarding?.student?.first_name,
+        student?.last_name ?? onboarding?.student?.last_name,
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
 
-    const studentName = rawStudentName
-        ? rawStudentName.trim().split(/\s+/)[0]
-        : "";
+    const studentName = String(
+        student?.name ?? onboarding?.student?.name ?? fullNameFromFields,
+    ).trim();
 
     const isLoading = secondsRemaining > 0;
 
@@ -48,8 +52,8 @@ export default function PaymentSuccess({ onboarding, student }) {
                 isLoading
                     ? null
                     : studentName
-                      ? `Congratulations ${studentName}`
-                      : "Congratulations"
+                      ? `Congratulations, ${studentName}!`
+                      : "Congratulations!"
             }
         >
             <div
