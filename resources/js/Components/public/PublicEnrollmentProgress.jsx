@@ -15,26 +15,19 @@ const STEPS = [
     },
 ];
 
-export default function PublicEnrollmentProgress({
-    currentStep = 1,
-}) {
+export default function PublicEnrollmentProgress({ currentStep = 1 }) {
     const normalizedCurrentStep = Math.min(
         Math.max(Number(currentStep) || 1, 1),
         STEPS.length,
     );
 
     return (
-        <nav
-            aria-label="Enrollment progress"
-            className="w-full"
-        >
+        <nav aria-label="Enrollment progress" className="w-full">
             <ol className="mx-auto grid w-full max-w-2xl grid-cols-3">
                 {STEPS.map((step, index) => {
-                    const isCompleted =
-                        step.number < normalizedCurrentStep;
+                    const isCompleted = step.number < normalizedCurrentStep;
 
-                    const isCurrent =
-                        step.number === normalizedCurrentStep;
+                    const isCurrent = step.number === normalizedCurrentStep;
 
                     return (
                         <li
@@ -54,8 +47,7 @@ export default function PublicEnrollmentProgress({
                                         "sm:left-[calc(50%+24px)]",
                                         "sm:top-[23px]",
                                         "sm:w-[calc(100%-48px)]",
-                                        step.number <
-                                        normalizedCurrentStep
+                                        step.number < normalizedCurrentStep
                                             ? "bg-emerald-500"
                                             : "bg-white/20",
                                     ].join(" ")}
@@ -63,9 +55,7 @@ export default function PublicEnrollmentProgress({
                             ) : null}
 
                             <div
-                                aria-current={
-                                    isCurrent ? "step" : undefined
-                                }
+                                aria-current={isCurrent ? "step" : undefined}
                                 className={[
                                     "relative z-10",
                                     "flex h-11 w-11 items-center justify-center",
@@ -93,7 +83,7 @@ export default function PublicEnrollmentProgress({
 
                             <span
                                 className={[
-                                    "mt-3 px-1",
+                                    "mt-3 px-1 whitespace-nowrap",
                                     "text-[11px] font-semibold leading-4",
                                     "sm:text-sm sm:leading-5",
                                     isCompleted
