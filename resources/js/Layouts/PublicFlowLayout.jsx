@@ -161,7 +161,7 @@ export default function PublicFlowLayout({
                                             </div>
                                         )}
 
-                                        <div className="w-full py-4 text-left">
+                                        <div className="w-full pb-4 text-left">
                                             {children}
                                         </div>
 
