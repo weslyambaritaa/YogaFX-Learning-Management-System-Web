@@ -10,11 +10,21 @@ const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 3;
 
 function normalizeYesNoFormValue(value) {
-    if (value === true || value === 1 || value === "1" || value === "yes") {
+    if (
+        value === true ||
+        value === 1 ||
+        value === "1" ||
+        value === "yes"
+    ) {
         return "yes";
     }
 
-    if (value === false || value === 0 || value === "0" || value === "no") {
+    if (
+        value === false ||
+        value === 0 ||
+        value === "0" ||
+        value === "no"
+    ) {
         return "no";
     }
 
@@ -27,7 +37,10 @@ function isMasterClassSlug(value) {
         .toLowerCase()
         .replace(/[-\s]+/g, "_");
 
-    return normalized === "master_class" || normalized === "masterclass";
+    return (
+        normalized === "master_class" ||
+        normalized === "masterclass"
+    );
 }
 
 function EnrollmentLoadingOverlay({ secondsRemaining }) {
@@ -72,6 +85,12 @@ function EnrollmentLoadingOverlay({ secondsRemaining }) {
                     sm:py-10
                 "
             >
+                <img
+                    src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
+                    alt="YogaFX"
+                    className="mb-8 h-16 w-auto object-contain sm:h-20"
+                />
+
                 <div className="relative h-24 w-24 shrink-0">
                     <LoaderCircle
                         className="absolute inset-0 h-24 w-24 animate-spin text-[#DB202C] drop-shadow-[0_0_10px_rgba(219,32,44,0.85)] motion-reduce:animate-none"
@@ -89,7 +108,9 @@ function EnrollmentLoadingOverlay({ secondsRemaining }) {
                     </div>
                 </div>
 
-                <p className="mt-6 text-sm font-bold text-white">Loading...</p>
+                <p className="mt-6 text-sm font-bold text-white">
+                    Loading...
+                </p>
             </div>
         </div>
     );
@@ -98,20 +119,32 @@ function EnrollmentLoadingOverlay({ secondsRemaining }) {
 export default function Enrollment({ onboarding, student }) {
     const errorBannerRef = useRef(null);
 
-    const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
+    const [secondsRemaining, setSecondsRemaining] = useState(
+        COUNTDOWN_SECONDS,
+    );
 
     const isLoading = secondsRemaining > 0;
 
-    const isMasterClass = isMasterClassSlug(onboarding.access_tier?.slug);
+    const isMasterClass = isMasterClassSlug(
+        onboarding.access_tier?.slug,
+    );
 
-    const { data, setData, post, errors, processing } = useForm({
+    const {
+        data,
+        setData,
+        post,
+        errors,
+        processing,
+    } = useForm({
         first_name: student.first_name ?? "",
         last_name: student.last_name ?? "",
         email: student.email ?? "",
 
-        whatsapp_country_code: student.whatsapp_country_code ?? "+62",
+        whatsapp_country_code:
+            student.whatsapp_country_code ?? "+62",
 
-        whatsapp_number: student.whatsapp_number ?? "",
+        whatsapp_number:
+            student.whatsapp_number ?? "",
 
         profile_photo: null,
         instagram: student.instagram ?? "",
@@ -126,7 +159,8 @@ export default function Enrollment({ onboarding, student }) {
 
         favorite_song: student.favorite_song ?? "",
 
-        emergency_contact_name: student.emergency_contact_name ?? "",
+        emergency_contact_name:
+            student.emergency_contact_name ?? "",
 
         emergency_contact_relationship:
             student.emergency_contact_relationship ?? "",
@@ -134,36 +168,51 @@ export default function Enrollment({ onboarding, student }) {
         emergency_contact_country_code:
             student.emergency_contact_country_code ?? "+62",
 
-        emergency_contact_number: student.emergency_contact_number ?? "",
+        emergency_contact_number:
+            student.emergency_contact_number ?? "",
 
-        has_medical_issues: normalizeYesNoFormValue(student.has_medical_issues),
+        has_medical_issues:
+            normalizeYesNoFormValue(
+                student.has_medical_issues,
+            ),
 
-        medical_issues_details: student.medical_issues_details ?? "",
+        medical_issues_details:
+            student.medical_issues_details ?? "",
 
-        is_taking_medication: normalizeYesNoFormValue(
-            student.is_taking_medication,
-        ),
+        is_taking_medication:
+            normalizeYesNoFormValue(
+                student.is_taking_medication,
+            ),
 
-        medication_details: student.medication_details ?? "",
+        medication_details:
+            student.medication_details ?? "",
 
         /*
          * Existing yoga profile fields.
          */
-        practicing_yoga_for: student.practicing_yoga_for ?? "",
+        practicing_yoga_for:
+            student.practicing_yoga_for ?? "",
 
-        yoga_sequence_experience: student.yoga_sequence_experience ?? [],
+        yoga_sequence_experience:
+            student.yoga_sequence_experience ?? [],
 
-        hours_per_week: student.hours_per_week ?? "",
+        hours_per_week:
+            student.hours_per_week ?? "",
 
-        current_fitness_level: student.current_fitness_level ?? "",
+        current_fitness_level:
+            student.current_fitness_level ?? "",
 
-        flexibility_rating: student.flexibility_rating ?? "",
+        flexibility_rating:
+            student.flexibility_rating ?? "",
 
-        motivation: student.motivation ?? "",
+        motivation:
+            student.motivation ?? "",
 
-        why_yogafx: student.why_yogafx ?? "",
+        why_yogafx:
+            student.why_yogafx ?? "",
 
-        how_did_you_find_us: student.how_did_you_find_us ?? [],
+        how_did_you_find_us:
+            student.how_did_you_find_us ?? [],
 
         terms_accepted: false,
         recaptcha_confirmed: false,
@@ -175,7 +224,9 @@ export default function Enrollment({ onboarding, student }) {
         }
 
         const timeoutId = window.setTimeout(() => {
-            setSecondsRemaining((current) => Math.max(current - 1, 0));
+            setSecondsRemaining((current) =>
+                Math.max(current - 1, 0),
+            );
         }, 1000);
 
         return () => {
@@ -188,20 +239,29 @@ export default function Enrollment({ onboarding, student }) {
             return undefined;
         }
 
-        const previousBodyOverflow = document.body.style.overflow;
-        const previousHtmlOverflow = document.documentElement.style.overflow;
+        const previousBodyOverflow =
+            document.body.style.overflow;
+
+        const previousHtmlOverflow =
+            document.documentElement.style.overflow;
 
         document.body.style.overflow = "hidden";
         document.documentElement.style.overflow = "hidden";
 
         return () => {
-            document.body.style.overflow = previousBodyOverflow;
-            document.documentElement.style.overflow = previousHtmlOverflow;
+            document.body.style.overflow =
+                previousBodyOverflow;
+
+            document.documentElement.style.overflow =
+                previousHtmlOverflow;
         };
     }, [isLoading]);
 
     useEffect(() => {
-        if (Object.keys(errors).length > 0 && errorBannerRef.current) {
+        if (
+            Object.keys(errors).length > 0 &&
+            errorBannerRef.current
+        ) {
             errorBannerRef.current.scrollIntoView({
                 behavior: "smooth",
                 block: "start",
@@ -228,20 +288,25 @@ export default function Enrollment({ onboarding, student }) {
                         className="block text-balance"
                         style={{
                             fontFamily: FONT_FAMILY,
-                            fontSize: "clamp(26px, 3.4vw, 34px)",
+                            fontSize:
+                                "clamp(26px, 3.4vw, 34px)",
                             fontWeight: 700,
                             lineHeight: 1.2,
                         }}
                     >
                         Welcome To Your Yoga
-                        <span className="text-[#DB202C]">FX</span> Enrollment
-                        Application Form
+                        <span className="text-[#DB202C]">
+                            FX
+                        </span>{" "}
+                        Enrollment Application Form
                     </span>
                 }
                 description={
                     <span
                         className="font-medium italic text-white/75"
-                        style={{ fontFamily: FONT_FAMILY }}
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                        }}
                     >
                         Only 1 minute to complete
                     </span>
@@ -256,14 +321,18 @@ export default function Enrollment({ onboarding, student }) {
                         }}
                     >
                         <p className="mb-2 font-bold">
-                            Please complete the highlighted fields before
-                            continuing:
+                            Please complete the highlighted
+                            fields before continuing:
                         </p>
 
                         <ul className="list-inside list-disc">
-                            {Object.entries(errors).map(([field, error]) => (
-                                <li key={field}>{error}</li>
-                            ))}
+                            {Object.entries(errors).map(
+                                ([field, error]) => (
+                                    <li key={field}>
+                                        {error}
+                                    </li>
+                                ),
+                            )}
                         </ul>
                     </div>
                 ) : null}
@@ -277,13 +346,19 @@ export default function Enrollment({ onboarding, student }) {
                     submitLabel="Enroll Now"
                     variant="scoreboard"
                     mode="enrollment"
-                    currentProfilePhotoUrl={student.profile_photo_url}
+                    currentProfilePhotoUrl={
+                        student.profile_photo_url
+                    }
                     isMasterClass={isMasterClass}
                 />
             </PublicFlowLayout>
 
             {isLoading ? (
-                <EnrollmentLoadingOverlay secondsRemaining={secondsRemaining} />
+                <EnrollmentLoadingOverlay
+                    secondsRemaining={
+                        secondsRemaining
+                    }
+                />
             ) : null}
         </>
     );
