@@ -563,6 +563,8 @@ export default function StudentHome({
                 open={welcomePopupOpen}
                 onOpenChange={setWelcomePopupOpen}
                 appDownload={appDownload}
+                studentName={studentName}
+                accessTierLabel={accessTierLabel}
             />
             <LockedContentDialog
                 open={lockedModuleOpen}
