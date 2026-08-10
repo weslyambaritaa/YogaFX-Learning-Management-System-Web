@@ -232,6 +232,57 @@ function isValidEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim());
 }
 
+function hasMeaningfulValue(value) {
+    if (Array.isArray(value)) {
+        return value.length > 0;
+    }
+
+    if (typeof value === "boolean") {
+        return value;
+    }
+
+    return String(value ?? "").trim() !== "";
+}
+
+function YogaFXInline({ text, fxClassName = "text-[#DB202C]" }) {
+    const parts = String(text ?? "").split(/(YogaFX)/g);
+
+    return (
+        <>
+            {parts.map((part, index) =>
+                part === "YogaFX" ? (
+                    <span key={`${part}-${index}`}>
+                        Yoga<span className={fxClassName}>FX</span>
+                    </span>
+                ) : (
+                    <span key={`${part}-${index}`}>{part}</span>
+                ),
+            )}
+        </>
+    );
+}
+
+function ResponsiveTopTooltip({ id, children }) {
+    return (
+        <div
+            id={id}
+            role="tooltip"
+            className="pointer-events-auto absolute bottom-full left-1/2 z-[100] mb-3 hidden max-h-[45vh] w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 overflow-y-auto overscroll-contain rounded-[6px] border border-[#DB202C] bg-[#f3f3f3] px-3 py-2.5 text-center text-xs font-medium leading-relaxed text-[#3f3f3f] shadow-[0_16px_40px_rgba(0,0,0,0.35)] group-hover:block group-focus-within:block sm:text-sm"
+            style={{ fontFamily: FONT_FAMILY }}
+        >
+            <span
+                aria-hidden="true"
+                className="absolute left-1/2 top-full -translate-x-1/2 border-x-[8px] border-t-[9px] border-x-transparent border-t-[#DB202C]"
+            />
+            <span
+                aria-hidden="true"
+                className="absolute left-1/2 top-[calc(100%-1px)] -translate-x-1/2 border-x-[7px] border-t-[8px] border-x-transparent border-t-[#f3f3f3]"
+            />
+            {children}
+        </div>
+    );
+}
+
 // Single source of truth for the font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
@@ -473,7 +524,13 @@ function SelectField({
                     id={id}
                     value={value ?? ""}
                     onChange={(event) => onChange(event.target.value)}
-                    className={`${theme.selectClassName} pl-11`}
+                    className={`${theme.selectClassName} pl-11 ${
+                        error
+                            ? theme.errorFieldClassName
+                            : hasMeaningfulValue(value)
+                              ? theme.filledFieldClassName
+                              : ""
+                    }`}
                     style={{
                         fontFamily: FONT_FAMILY,
                         color:
@@ -530,7 +587,13 @@ function TextAreaField({
                 rows={5}
                 value={value ?? ""}
                 onChange={(event) => onChange(event.target.value)}
-                className={theme.textareaClassName}
+                className={`${theme.textareaClassName} ${
+                    error
+                        ? theme.errorFieldClassName
+                        : hasMeaningfulValue(value)
+                          ? theme.filledFieldClassName
+                          : ""
+                }`}
                 style={{ fontFamily: FONT_FAMILY }}
             />
             {helper ? (
@@ -680,7 +743,7 @@ export default function StudentProfileForm({
               choiceUncheckedClassName:
                   "border border-slate-300 bg-white text-slate-900 shadow-sm transition-all duration-200 hover:border-[#DB202C] hover:bg-rose-50",
               choiceIndicatorCheckedClassName:
-                  "border-white bg-white text-[#DB202C]",
+                  "border-white bg-white text-emerald-500",
               choiceIndicatorUncheckedClassName:
                   "border-slate-400 bg-white text-transparent",
               errorClassName: "font-semibold text-rose-600",
@@ -698,6 +761,9 @@ export default function StudentProfileForm({
               selectPlaceholderColor: "#64748b",
               textareaClassName:
                   "block w-full rounded-[5px] border border-slate-400 bg-white px-[10px] py-[8px] text-sm font-normal text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-[#DB202C] focus:ring-1 focus:ring-[#DB202C]",
+              filledFieldClassName: "",
+              errorFieldClassName:
+                  "!border-rose-500 focus:!border-rose-500 focus:ring-rose-500",
               helperClassName: "mt-2 text-sm font-medium text-slate-500",
               sectionDividerClassName: "mb-6 border-b border-slate-200 pb-4",
               footerDividerClassName:
@@ -733,7 +799,7 @@ export default function StudentProfileForm({
               choiceDescriptionClassName:
                   "mt-1 text-[12px] font-normal text-white/70",
               choiceCheckedClassName:
-                  "border-2 border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_0_2px_rgba(219,32,44,0.35),0_0_18px_rgba(219,32,44,0.28)]",
+                  "border-2 border-emerald-500 bg-emerald-500 text-white shadow-[0_0_0_2px_rgba(16,185,129,0.30),0_0_18px_rgba(16,185,129,0.24)]",
               choiceUncheckedClassName:
                   "border-2 border-white/50 bg-black/45 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 hover:border-white hover:bg-white/10",
               choiceIndicatorCheckedClassName:
@@ -748,16 +814,20 @@ export default function StudentProfileForm({
               inputClassName: PUBLIC_FORM_FIELD_CLASS,
               selectClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS} [&::-webkit-calendar-picker-indicator]:invert`,
               selectOptionClassName: "text-sm font-normal text-black",
-              selectActiveColor: "#DB202C",
+              selectActiveColor: "#FFFFFF",
               selectPlaceholderColor: "#FFFFFF",
               textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS}`,
+              filledFieldClassName:
+                  "!border-emerald-500 !bg-emerald-500/10 focus:!border-emerald-500 focus:!ring-emerald-500",
+              errorFieldClassName:
+                  "!border-red-500 focus:!border-red-500 focus:!ring-red-500",
               helperClassName:
                   "mt-2 text-[11px] font-normal italic text-white/65 sm:text-xs",
               sectionDividerClassName: isEnrollment
                   ? "mb-5 border-t-[4px] border-[#DB202C] pt-4"
                   : "mb-6 border-b border-white pb-4",
               footerDividerClassName: isEnrollment
-                  ? "flex items-center justify-center pt-8"
+                  ? "flex items-center justify-center pt-4"
                   : "flex items-center border-t border-white pt-8",
               dialogContentClassName:
                   "max-w-xl border-white bg-[#141110] text-white",
@@ -779,7 +849,7 @@ export default function StudentProfileForm({
               dateIconClassName:
                   "absolute right-3 top-1/2 z-10 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white",
               primaryButtonClassName: isEnrollment
-                  ? "min-h-[64px] w-full max-w-[360px] rounded-[8px] bg-[#DB202C] px-10 py-6 text-base font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25]"
+                  ? "min-h-[64px] w-full max-w-[300px] rounded-[8px] bg-[#DB202C] px-8 py-5 text-xl font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35 sm:text-2xl"
                   : "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white transition-all hover:-translate-y-0.5 hover:bg-[#c31c28]",
               uploadButtonClassName:
                   "rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] text-[14px] font-medium text-white hover:bg-[#c31c28]",
@@ -787,6 +857,78 @@ export default function StudentProfileForm({
     const titleClassName = theme.titleClassName;
     const descriptionClassName = theme.descriptionClassName;
     const inputClassName = theme.inputClassName;
+
+    const fieldStateClassName = (value, error = null) => {
+        if (isAdminMode) {
+            return "";
+        }
+
+        if (error) {
+            return theme.errorFieldClassName;
+        }
+
+        return hasMeaningfulValue(value) ? theme.filledFieldClassName : "";
+    };
+
+    const flagSelectSelectedClassName = isAdminMode
+        ? "text-[#DB202C]"
+        : "text-emerald-400";
+
+    const yourDetailsComplete =
+        hasMeaningfulValue(data.first_name) &&
+        hasMeaningfulValue(data.last_name) &&
+        isValidEmail(data.email) &&
+        hasMeaningfulValue(data.whatsapp_number) &&
+        hasMeaningfulValue(data.instagram) &&
+        hasMeaningfulValue(data.country) &&
+        hasMeaningfulValue(data.birth_date) &&
+        hasMeaningfulValue(data.gender) &&
+        Boolean(photoPreview || data.profile_photo);
+
+    const emergencyContactComplete =
+        !isMasterClass ||
+        (hasMeaningfulValue(data.emergency_contact_name) &&
+            hasMeaningfulValue(data.emergency_contact_relationship) &&
+            hasMeaningfulValue(data.emergency_contact_number));
+
+    const yogaExperienceComplete =
+        hasMeaningfulValue(data.practicing_yoga_for) &&
+        hasMeaningfulValue(data.yoga_sequence_experience) &&
+        hasMeaningfulValue(data.hours_per_week) &&
+        hasMeaningfulValue(data.current_fitness_level) &&
+        hasMeaningfulValue(data.flexibility_rating);
+
+    const motivationComplete = hasMeaningfulValue(data.motivation);
+
+    const medicalHistoryComplete =
+        !isMasterClass ||
+        (hasMeaningfulValue(data.has_medical_issues) &&
+            (data.has_medical_issues !== "yes" ||
+                hasMeaningfulValue(data.medical_issues_details)) &&
+            hasMeaningfulValue(data.is_taking_medication) &&
+            (data.is_taking_medication !== "yes" ||
+                hasMeaningfulValue(data.medication_details)));
+
+    const whyYogaFXComplete =
+        hasMeaningfulValue(data.why_yogafx) &&
+        hasMeaningfulValue(data.how_did_you_find_us) &&
+        (!isMasterClass ||
+            (hasMeaningfulValue(data.tshirt_size) &&
+                hasMeaningfulValue(data.favorite_song)));
+
+    const termsComplete =
+        Boolean(data.terms_accepted) && Boolean(data.recaptcha_confirmed);
+
+    const sectionDividerClassName = (isComplete) => {
+        if (!isEnrollment) {
+            return theme.sectionDividerClassName;
+        }
+
+        return [
+            "mb-5 border-t-[4px] pt-4 transition-colors duration-300",
+            isComplete ? "border-emerald-500" : "border-[#DB202C]",
+        ].join(" ");
+    };
 
     // Handler untuk File Input Upload
     const onFileChange = async (e) => {
@@ -937,7 +1079,7 @@ export default function StudentProfileForm({
 
             if (isBlankString(data.why_yogafx)) {
                 nextLocalErrors.why_yogafx =
-                    "Please tell us why you chose YogaFX.";
+                    "Please complete this motivation field.";
             }
 
             if (
@@ -1106,7 +1248,7 @@ export default function StudentProfileForm({
                     <div
                         className={
                             isEnrollment
-                                ? "mb-6 border-t-[4px] border-[#DB202C] pt-4"
+                                ? sectionDividerClassName(yourDetailsComplete)
                                 : "mb-6"
                         }
                     >
@@ -1128,7 +1270,10 @@ export default function StudentProfileForm({
                             />
                             <TextInput
                                 id="first_name"
-                                className={`mt-2 block w-full ${inputClassName} ${errors.first_name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
+                                className={`mt-2 block w-full ${inputClassName} ${fieldStateClassName(
+                                    data.first_name,
+                                    firstError(formErrors, "first_name"),
+                                )}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.first_name}
                                 onChange={(event) =>
@@ -1150,7 +1295,10 @@ export default function StudentProfileForm({
                             />
                             <TextInput
                                 id="last_name"
-                                className={`mt-2 block w-full ${inputClassName}`}
+                                className={`mt-2 block w-full ${inputClassName} ${fieldStateClassName(
+                                    data.last_name,
+                                    firstError(formErrors, "last_name"),
+                                )}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.last_name}
                                 onChange={(event) =>
@@ -1173,7 +1321,10 @@ export default function StudentProfileForm({
                             <TextInput
                                 id="email"
                                 type="email"
-                                className={`mt-2 block w-full ${inputClassName}`}
+                                className={`mt-2 block w-full ${inputClassName} ${fieldStateClassName(
+                                    data.email,
+                                    firstError(formErrors, "email"),
+                                )}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.email}
                                 onChange={(event) =>
@@ -1213,7 +1364,13 @@ export default function StudentProfileForm({
                                     }
                                     displayMode="phone-code"
                                     searchPlaceholder="Search phone code or country"
-                                    buttonClassName={theme.selectClassName}
+                                    buttonClassName={`${theme.selectClassName} ${fieldStateClassName(
+                                        data.whatsapp_number,
+                                        firstError(
+                                            formErrors,
+                                            "whatsapp_number",
+                                        ) ?? firstError(formErrors, "whatsapp"),
+                                    )}`}
                                     buttonTextClassName={
                                         flagSelectButtonTextClassName
                                     }
@@ -1225,7 +1382,9 @@ export default function StudentProfileForm({
                                     optionActiveClassName={
                                         flagSelectActiveClassName
                                     }
-                                    optionSelectedClassName="text-[#DB202C]"
+                                    optionSelectedClassName={
+                                        flagSelectSelectedClassName
+                                    }
                                     optionTextClassName="text-sm font-normal"
                                     chevronClassName={
                                         flagSelectChevronClassName
@@ -1236,7 +1395,13 @@ export default function StudentProfileForm({
                                 />
                                 <TextInput
                                     id="whatsapp_number"
-                                    className={`block w-full min-w-0 ${inputClassName}`}
+                                    className={`block w-full min-w-0 ${inputClassName} ${fieldStateClassName(
+                                        data.whatsapp_number,
+                                        firstError(
+                                            formErrors,
+                                            "whatsapp_number",
+                                        ) ?? firstError(formErrors, "whatsapp"),
+                                    )}`}
                                     style={{ fontFamily: FONT_FAMILY }}
                                     value={data.whatsapp_number ?? ""}
                                     onChange={(event) =>
@@ -1263,7 +1428,11 @@ export default function StudentProfileForm({
                             />
                         </div>
 
-                        <div>
+                        <div className="group relative">
+                            <ResponsiveTopTooltip id="instagram-tooltip">
+                                We would like to follow on your Instagram
+                            </ResponsiveTopTooltip>
+
                             <InputLabel
                                 htmlFor="instagram"
                                 value="Instagram Username"
@@ -1272,7 +1441,11 @@ export default function StudentProfileForm({
                             />
                             <TextInput
                                 id="instagram"
-                                className={`mt-2 block w-full ${inputClassName}`}
+                                aria-describedby="instagram-tooltip"
+                                className={`mt-2 block w-full ${inputClassName} ${fieldStateClassName(
+                                    data.instagram,
+                                    firstError(formErrors, "instagram"),
+                                )}`}
                                 style={{ fontFamily: FONT_FAMILY }}
                                 value={data.instagram ?? ""}
                                 onChange={(event) =>
@@ -1285,7 +1458,11 @@ export default function StudentProfileForm({
                             />
                         </div>
 
-                        <div>
+                        <div className="group relative">
+                            <ResponsiveTopTooltip id="country-tooltip">
+                                Country of Residence
+                            </ResponsiveTopTooltip>
+
                             <InputLabel
                                 htmlFor="country"
                                 value="Country"
@@ -1301,7 +1478,10 @@ export default function StudentProfileForm({
                                     setData("country", option.value)
                                 }
                                 placeholder="Select a country"
-                                buttonClassName={theme.selectClassName}
+                                buttonClassName={`${theme.selectClassName} ${fieldStateClassName(
+                                    data.country,
+                                    firstError(formErrors, "country"),
+                                )}`}
                                 buttonTextClassName={
                                     flagSelectButtonTextClassName
                                 }
@@ -1313,7 +1493,9 @@ export default function StudentProfileForm({
                                 optionActiveClassName={
                                     flagSelectActiveClassName
                                 }
-                                optionSelectedClassName="text-[#DB202C]"
+                                optionSelectedClassName={
+                                    flagSelectSelectedClassName
+                                }
                                 optionTextClassName="text-sm font-normal"
                                 chevronClassName={flagSelectChevronClassName}
                                 fallbackClassName={flagSelectFallbackClassName}
@@ -1356,7 +1538,10 @@ export default function StudentProfileForm({
                                         ...theme.dateInputStyle,
                                         fontFamily: FONT_FAMILY,
                                     }}
-                                    className={theme.dateInputClassName}
+                                    className={`${theme.dateInputClassName} ${fieldStateClassName(
+                                        data.birth_date,
+                                        firstError(formErrors, "birth_date"),
+                                    )}`}
                                 />
                                 <button
                                     type="button"
@@ -1406,7 +1591,11 @@ export default function StudentProfileForm({
                             <div className="mt-4 flex flex-row gap-4 items-center">
                                 {/* Area Preview Berbentuk Lonjong (Oval) */}
                                 <div
-                                    className={theme.photoPreviewFrameClassName}
+                                    className={`${theme.photoPreviewFrameClassName} ${
+                                        !isAdminMode && photoPreview
+                                            ? "!border-emerald-500 shadow-[0_0_18px_rgba(16,185,129,0.28)]"
+                                            : ""
+                                    }`}
                                 >
                                     {photoPreview ? (
                                         <img
@@ -1483,7 +1672,11 @@ export default function StudentProfileForm({
 
                 {isMasterClass ? (
                     <section className={sectionClassName}>
-                        <div className={theme.sectionDividerClassName}>
+                        <div
+                            className={sectionDividerClassName(
+                                emergencyContactComplete,
+                            )}
+                        >
                             <h3
                                 className={titleClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
@@ -1503,7 +1696,13 @@ export default function StudentProfileForm({
 
                                 <TextInput
                                     id="emergency_contact_name"
-                                    className={`mt-2 block w-full ${inputClassName}`}
+                                    className={`mt-2 block w-full ${inputClassName} ${fieldStateClassName(
+                                        data.emergency_contact_name,
+                                        firstError(
+                                            formErrors,
+                                            "emergency_contact_name",
+                                        ),
+                                    )}`}
                                     style={{ fontFamily: FONT_FAMILY }}
                                     value={data.emergency_contact_name ?? ""}
                                     onChange={(event) =>
@@ -1533,7 +1732,13 @@ export default function StudentProfileForm({
 
                                 <TextInput
                                     id="emergency_contact_relationship"
-                                    className={`mt-2 block w-full ${inputClassName}`}
+                                    className={`mt-2 block w-full ${inputClassName} ${fieldStateClassName(
+                                        data.emergency_contact_relationship,
+                                        firstError(
+                                            formErrors,
+                                            "emergency_contact_relationship",
+                                        ),
+                                    )}`}
                                     style={{ fontFamily: FONT_FAMILY }}
                                     value={
                                         data.emergency_contact_relationship ??
@@ -1583,7 +1788,17 @@ export default function StudentProfileForm({
                                         }
                                         displayMode="phone-code"
                                         searchPlaceholder="Search phone code or country"
-                                        buttonClassName={theme.selectClassName}
+                                        buttonClassName={`${theme.selectClassName} ${fieldStateClassName(
+                                            data.emergency_contact_number,
+                                            firstError(
+                                                formErrors,
+                                                "emergency_contact_number",
+                                            ) ??
+                                                firstError(
+                                                    formErrors,
+                                                    "emergency_contact_whatsapp",
+                                                ),
+                                        )}`}
                                         buttonTextClassName={
                                             flagSelectButtonTextClassName
                                         }
@@ -1597,7 +1812,9 @@ export default function StudentProfileForm({
                                         optionActiveClassName={
                                             flagSelectActiveClassName
                                         }
-                                        optionSelectedClassName="text-[#DB202C]"
+                                        optionSelectedClassName={
+                                            flagSelectSelectedClassName
+                                        }
                                         optionTextClassName="text-sm font-normal"
                                         chevronClassName={
                                             flagSelectChevronClassName
@@ -1609,7 +1826,17 @@ export default function StudentProfileForm({
 
                                     <TextInput
                                         id="emergency_contact_number"
-                                        className={`block w-full min-w-0 ${inputClassName}`}
+                                        className={`block w-full min-w-0 ${inputClassName} ${fieldStateClassName(
+                                            data.emergency_contact_number,
+                                            firstError(
+                                                formErrors,
+                                                "emergency_contact_number",
+                                            ) ??
+                                                firstError(
+                                                    formErrors,
+                                                    "emergency_contact_whatsapp",
+                                                ),
+                                        )}`}
                                         style={{
                                             fontFamily: FONT_FAMILY,
                                         }}
@@ -1651,7 +1878,11 @@ export default function StudentProfileForm({
                 ) : null}
 
                 <section className={sectionClassName}>
-                    <div className={theme.sectionDividerClassName}>
+                    <div
+                        className={sectionDividerClassName(
+                            yogaExperienceComplete,
+                        )}
+                    >
                         <h3
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
@@ -1663,7 +1894,7 @@ export default function StudentProfileForm({
                     <div className="space-y-10">
                         <ChoiceGrid
                             id="practicing_yoga_for"
-                            label="Practicing Yoga For (Years & Months)"
+                            label="Practicing Yoga For (Years)"
                             value={data.practicing_yoga_for}
                             error={firstError(
                                 formErrors,
@@ -1736,7 +1967,9 @@ export default function StudentProfileForm({
                 </section>
 
                 <section className={sectionClassName}>
-                    <div className={theme.sectionDividerClassName}>
+                    <div
+                        className={sectionDividerClassName(motivationComplete)}
+                    >
                         <h3
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
@@ -1760,7 +1993,11 @@ export default function StudentProfileForm({
 
                 {isMasterClass ? (
                     <section className={sectionClassName}>
-                        <div className={theme.sectionDividerClassName}>
+                        <div
+                            className={sectionDividerClassName(
+                                medicalHistoryComplete,
+                            )}
+                        >
                             <h3
                                 className={titleClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
@@ -1846,12 +2083,13 @@ export default function StudentProfileForm({
                 ) : null}
 
                 <section className={sectionClassName}>
-                    <div className={theme.sectionDividerClassName}>
+                    <div className={sectionDividerClassName(whyYogaFXComplete)}>
                         <h3
                             className={titleClassName}
                             style={{ fontFamily: FONT_FAMILY }}
                         >
-                            Please Let Us Know Why You Chose YogaFX
+                            Please Let Us Know Why You Chose Yoga
+                            <span className="text-[#DB202C]">FX</span>
                         </h3>
                     </div>
 
@@ -1897,7 +2135,13 @@ export default function StudentProfileForm({
                                     />
                                     <TextInput
                                         id="favorite_song"
-                                        className={`block w-full ${inputClassName}`}
+                                        className={`block w-full ${inputClassName} ${fieldStateClassName(
+                                            data.favorite_song,
+                                            firstError(
+                                                formErrors,
+                                                "favorite_song",
+                                            ),
+                                        )}`}
                                         style={{ fontFamily: FONT_FAMILY }}
                                         value={data.favorite_song ?? ""}
                                         onChange={(event) =>
@@ -1939,7 +2183,9 @@ export default function StudentProfileForm({
 
                 {isEnrollment ? (
                     <section className={sectionClassName}>
-                        <div className={theme.sectionDividerClassName}></div>
+                        <div
+                            className={sectionDividerClassName(termsComplete)}
+                        ></div>
 
                         <div className="space-y-6">
                             <div className="group relative">
@@ -1947,8 +2193,8 @@ export default function StudentProfileForm({
                                     className={[
                                         "flex cursor-pointer items-start gap-4 rounded-[5px] border px-[10px] py-[8px] text-white transition",
                                         data.terms_accepted
-                                            ? "border-[#DB202C] bg-[#DB202C]/12"
-                                            : "border-2 border-white/70 bg-black/35 hover:border-white hover:bg-[#DB202C]/10",
+                                            ? "border-2 border-emerald-500 bg-emerald-500/10"
+                                            : "border-2 border-white/70 bg-black/35 hover:border-emerald-400 hover:bg-emerald-500/10",
                                     ].join(" ")}
                                 >
                                     <input
@@ -1962,7 +2208,7 @@ export default function StudentProfileForm({
                                             )
                                         }
                                         aria-describedby="terms-accepted-tooltip"
-                                        className="mt-1 size-5 rounded border-white bg-transparent accent-[#DB202C] focus:ring-[#DB202C]"
+                                        className="mt-1 size-5 rounded border-white bg-transparent accent-emerald-500 focus:ring-emerald-500"
                                     />
                                     <span
                                         className="text-sm font-normal"
@@ -1972,64 +2218,34 @@ export default function StudentProfileForm({
                                     </span>
                                 </label>
 
-                                <div
-                                    id="terms-accepted-tooltip"
-                                    role="tooltip"
-                                    className="
-                                        pointer-events-none
-                                        absolute
-                                        left-full
-                                        top-1/2
-                                        z-50
-                                        ml-3
-                                        hidden
-                                        -translate-y-1/2
-                                        w-[min(340px,calc(100vw-2rem))]
-                                        rounded-[2px]
-                                        border
-                                        border-[#DB202C]
-                                        bg-[#f3f3f3]
-                                        px-3
-                                        py-3
-                                        text-left
-                                        text-sm
-                                        font-normal
-                                        leading-[1.35]
-                                        text-[#3f3f3f]
-                                        shadow-[0_16px_40px_rgba(0,0,0,0.35)]
-                                        group-hover:block
-                                        group-focus-within:block
-                                    "
-                                    style={{ fontFamily: FONT_FAMILY }}
-                                >
-                                    <span
-                                        aria-hidden="true"
-                                        className="absolute right-full top-1/2 -translate-y-1/2 border-y-[8px] border-r-[10px] border-y-transparent border-r-[#DB202C]"
-                                    />
-                                    <span
-                                        aria-hidden="true"
-                                        className="absolute right-[calc(100%-1px)] top-1/2 -translate-y-1/2 border-y-[7px] border-r-[9px] border-y-transparent border-r-[#f3f3f3]"
-                                    />
-                                    <strong>Is it your belief</strong> that
-                                    should you visit a{" "}
-                                    <strong>Registered Medical Doctor</strong>{" "}
-                                    for a general health check, that the doctor
-                                    would be able to{" "}
-                                    <strong>
-                                        certify you as a fit and healthy person
-                                    </strong>{" "}
-                                    capable of participating in a 19 day Yoga
-                                    Teacher Training Course, with{" "}
-                                    <strong>
-                                        up to a possible of 3 hours of Yoga
-                                        practice
-                                    </strong>{" "}
-                                    per day, and there&apos;s no problem
-                                    including you in pics and videos in possible
-                                    future YogaFX promotions.
-                                    <br />
-                                    Thank you
-                                </div>
+                                <ResponsiveTopTooltip id="terms-accepted-tooltip">
+                                    <div className="text-left">
+                                        <strong>Is it your belief</strong> that
+                                        should you visit a{" "}
+                                        <strong>
+                                            Registered Medical Doctor
+                                        </strong>{" "}
+                                        for a general health check, that the
+                                        doctor would be able to{" "}
+                                        <strong>
+                                            certify you as a fit and healthy
+                                            person
+                                        </strong>{" "}
+                                        capable of participating in a 19 day
+                                        Yoga Teacher Training Course, with{" "}
+                                        <strong>
+                                            up to a possible of 3 hours of Yoga
+                                            practice
+                                        </strong>{" "}
+                                        per day, and there&apos;s no problem
+                                        including you in pics and videos in
+                                        possible future{" "}
+                                        <YogaFXInline text="YogaFX" />{" "}
+                                        promotions.
+                                        <br />
+                                        Thank you
+                                    </div>
+                                </ResponsiveTopTooltip>
                             </div>
                             <InputError
                                 message={localErrors.terms_accepted}
@@ -2037,7 +2253,7 @@ export default function StudentProfileForm({
                             />
 
                             <div className="grid gap-6 md:grid-cols-2">
-                                <div className="rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-white">
+                                <div className="rounded-[5px] border border-emerald-500 bg-emerald-500/10 px-[10px] py-[8px] text-white">
                                     <div
                                         className="text-sm font-medium text-white/70"
                                         style={{ fontFamily: FONT_FAMILY }}
@@ -2053,7 +2269,7 @@ export default function StudentProfileForm({
                                             .join(" ") || "Your name"}
                                     </div>
                                 </div>
-                                <div className="rounded-[5px] border border-white bg-transparent px-[10px] py-[8px] text-white">
+                                <div className="rounded-[5px] border border-emerald-500 bg-emerald-500/10 px-[10px] py-[8px] text-white">
                                     <div
                                         className="text-sm font-medium text-white/70"
                                         style={{ fontFamily: FONT_FAMILY }}
@@ -2073,8 +2289,8 @@ export default function StudentProfileForm({
                                 className={[
                                     "flex cursor-pointer items-start gap-4 rounded-[5px] border px-[10px] py-[8px] text-white transition",
                                     data.recaptcha_confirmed
-                                        ? "border-[#DB202C] bg-[#DB202C]/12"
-                                        : "border-2 border-white/70 bg-black/35 hover:border-white hover:bg-[#DB202C]/10",
+                                        ? "border-2 border-emerald-500 bg-emerald-500/10"
+                                        : "border-2 border-white/70 bg-black/35 hover:border-emerald-400 hover:bg-emerald-500/10",
                                 ].join(" ")}
                             >
                                 <input
@@ -2087,7 +2303,7 @@ export default function StudentProfileForm({
                                             event.target.checked,
                                         )
                                     }
-                                    className="mt-1 size-5 rounded border-white bg-transparent accent-[#DB202C] focus:ring-[#DB202C]"
+                                    className="mt-1 size-5 rounded border-white bg-transparent accent-emerald-500 focus:ring-emerald-500"
                                 />
                                 <span
                                     className="text-sm font-normal"
@@ -2116,6 +2332,16 @@ export default function StudentProfileForm({
                         {submitLabel}
                     </Button>
                 </div>
+
+                {isEnrollment ? (
+                    <p
+                        className="pt-5 text-center text-xs font-medium text-white/60 sm:text-sm"
+                        style={{ fontFamily: FONT_FAMILY }}
+                    >
+                        © {new Date().getFullYear()} Yoga
+                        <span className="text-[#DB202C]">FX</span>
+                    </p>
+                ) : null}
             </form>
         </>
     );

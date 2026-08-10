@@ -10,21 +10,11 @@ const FONT_FAMILY = "'Montserrat', sans-serif";
 const COUNTDOWN_SECONDS = 5;
 
 function normalizeYesNoFormValue(value) {
-    if (
-        value === true ||
-        value === 1 ||
-        value === "1" ||
-        value === "yes"
-    ) {
+    if (value === true || value === 1 || value === "1" || value === "yes") {
         return "yes";
     }
 
-    if (
-        value === false ||
-        value === 0 ||
-        value === "0" ||
-        value === "no"
-    ) {
+    if (value === false || value === 0 || value === "0" || value === "no") {
         return "no";
     }
 
@@ -37,10 +27,61 @@ function isMasterClassSlug(value) {
         .toLowerCase()
         .replace(/[-\s]+/g, "_");
 
-    return (
-        normalized === "master_class" ||
-        normalized === "masterclass"
-    );
+    return normalized === "master_class" || normalized === "masterclass";
+}
+
+function buildEnrollmentDraftStorageKey(onboarding) {
+    const onboardingId =
+        onboarding?.id ?? onboarding?.onboarding_state_id ?? null;
+
+    if (onboardingId) {
+        return `yogafx:enrollment-draft:${onboardingId}`;
+    }
+
+    if (typeof window !== "undefined") {
+        return `yogafx:enrollment-draft:${window.location.pathname}`;
+    }
+
+    return "yogafx:enrollment-draft";
+}
+
+function buildInitialEnrollmentData(student) {
+    return {
+        first_name: student.first_name ?? "",
+        last_name: student.last_name ?? "",
+        email: student.email ?? "",
+        whatsapp_country_code: student.whatsapp_country_code ?? "+62",
+        whatsapp_number: student.whatsapp_number ?? "",
+        profile_photo: null,
+        instagram: student.instagram ?? "",
+        country: student.country ?? "",
+        birth_date: student.birth_date ?? "",
+        gender: student.gender ?? "",
+        tshirt_size: student.tshirt_size ?? "",
+        favorite_song: student.favorite_song ?? "",
+        emergency_contact_name: student.emergency_contact_name ?? "",
+        emergency_contact_relationship:
+            student.emergency_contact_relationship ?? "",
+        emergency_contact_country_code:
+            student.emergency_contact_country_code ?? "+62",
+        emergency_contact_number: student.emergency_contact_number ?? "",
+        has_medical_issues: normalizeYesNoFormValue(student.has_medical_issues),
+        medical_issues_details: student.medical_issues_details ?? "",
+        is_taking_medication: normalizeYesNoFormValue(
+            student.is_taking_medication,
+        ),
+        medication_details: student.medication_details ?? "",
+        practicing_yoga_for: student.practicing_yoga_for ?? "",
+        yoga_sequence_experience: student.yoga_sequence_experience ?? [],
+        hours_per_week: student.hours_per_week ?? "",
+        current_fitness_level: student.current_fitness_level ?? "",
+        flexibility_rating: student.flexibility_rating ?? "",
+        motivation: student.motivation ?? "",
+        why_yogafx: student.why_yogafx ?? "",
+        how_did_you_find_us: student.how_did_you_find_us ?? [],
+        terms_accepted: false,
+        recaptcha_confirmed: false,
+    };
 }
 
 function EnrollmentLoadingOverlay({ secondsRemaining }) {
@@ -108,9 +149,7 @@ function EnrollmentLoadingOverlay({ secondsRemaining }) {
                     </div>
                 </div>
 
-                <p className="mt-6 text-sm font-bold text-white">
-                    Loading...
-                </p>
+                <p className="mt-6 text-sm font-bold text-white">Loading...</p>
             </div>
         </div>
     );
@@ -119,104 +158,56 @@ function EnrollmentLoadingOverlay({ secondsRemaining }) {
 export default function Enrollment({ onboarding, student }) {
     const errorBannerRef = useRef(null);
 
-    const [secondsRemaining, setSecondsRemaining] = useState(
-        COUNTDOWN_SECONDS,
-    );
+    const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
 
     const isLoading = secondsRemaining > 0;
 
-    const isMasterClass = isMasterClassSlug(
-        onboarding.access_tier?.slug,
-    );
+    const isMasterClass = isMasterClassSlug(onboarding.access_tier?.slug);
 
-    const {
-        data,
-        setData,
-        post,
-        errors,
-        processing,
-    } = useForm({
-        first_name: student.first_name ?? "",
-        last_name: student.last_name ?? "",
-        email: student.email ?? "",
+    const initialFormDataRef = useRef(buildInitialEnrollmentData(student));
+    const initialFormData = initialFormDataRef.current;
+    const draftStorageKey = buildEnrollmentDraftStorageKey(onboarding);
+    const [draftHydrated, setDraftHydrated] = useState(false);
 
-        whatsapp_country_code:
-            student.whatsapp_country_code ?? "+62",
+    const { data, setData, post, errors, processing } =
+        useForm(initialFormData);
 
-        whatsapp_number:
-            student.whatsapp_number ?? "",
+    useEffect(() => {
+        try {
+            const storedDraft = window.localStorage.getItem(draftStorageKey);
 
-        profile_photo: null,
-        instagram: student.instagram ?? "",
-        country: student.country ?? "",
-        birth_date: student.birth_date ?? "",
-        gender: student.gender ?? "",
+            if (storedDraft) {
+                const parsedDraft = JSON.parse(storedDraft);
 
-        /*
-         * MasterClass-only fields.
-         */
-        tshirt_size: student.tshirt_size ?? "",
+                setData({
+                    ...initialFormDataRef.current,
+                    ...parsedDraft,
+                    profile_photo: null,
+                });
+            }
+        } catch (error) {
+            console.warn("Unable to restore enrollment draft.", error);
+        } finally {
+            setDraftHydrated(true);
+        }
+    }, [draftStorageKey, setData]);
 
-        favorite_song: student.favorite_song ?? "",
+    useEffect(() => {
+        if (!draftHydrated) {
+            return;
+        }
 
-        emergency_contact_name:
-            student.emergency_contact_name ?? "",
+        try {
+            const { profile_photo: _profilePhoto, ...serializableData } = data;
 
-        emergency_contact_relationship:
-            student.emergency_contact_relationship ?? "",
-
-        emergency_contact_country_code:
-            student.emergency_contact_country_code ?? "+62",
-
-        emergency_contact_number:
-            student.emergency_contact_number ?? "",
-
-        has_medical_issues:
-            normalizeYesNoFormValue(
-                student.has_medical_issues,
-            ),
-
-        medical_issues_details:
-            student.medical_issues_details ?? "",
-
-        is_taking_medication:
-            normalizeYesNoFormValue(
-                student.is_taking_medication,
-            ),
-
-        medication_details:
-            student.medication_details ?? "",
-
-        /*
-         * Existing yoga profile fields.
-         */
-        practicing_yoga_for:
-            student.practicing_yoga_for ?? "",
-
-        yoga_sequence_experience:
-            student.yoga_sequence_experience ?? [],
-
-        hours_per_week:
-            student.hours_per_week ?? "",
-
-        current_fitness_level:
-            student.current_fitness_level ?? "",
-
-        flexibility_rating:
-            student.flexibility_rating ?? "",
-
-        motivation:
-            student.motivation ?? "",
-
-        why_yogafx:
-            student.why_yogafx ?? "",
-
-        how_did_you_find_us:
-            student.how_did_you_find_us ?? [],
-
-        terms_accepted: false,
-        recaptcha_confirmed: false,
-    });
+            window.localStorage.setItem(
+                draftStorageKey,
+                JSON.stringify(serializableData),
+            );
+        } catch (error) {
+            console.warn("Unable to save enrollment draft.", error);
+        }
+    }, [data, draftHydrated, draftStorageKey]);
 
     useEffect(() => {
         if (!isLoading) {
@@ -224,9 +215,7 @@ export default function Enrollment({ onboarding, student }) {
         }
 
         const timeoutId = window.setTimeout(() => {
-            setSecondsRemaining((current) =>
-                Math.max(current - 1, 0),
-            );
+            setSecondsRemaining((current) => Math.max(current - 1, 0));
         }, 1000);
 
         return () => {
@@ -239,29 +228,22 @@ export default function Enrollment({ onboarding, student }) {
             return undefined;
         }
 
-        const previousBodyOverflow =
-            document.body.style.overflow;
+        const previousBodyOverflow = document.body.style.overflow;
 
-        const previousHtmlOverflow =
-            document.documentElement.style.overflow;
+        const previousHtmlOverflow = document.documentElement.style.overflow;
 
         document.body.style.overflow = "hidden";
         document.documentElement.style.overflow = "hidden";
 
         return () => {
-            document.body.style.overflow =
-                previousBodyOverflow;
+            document.body.style.overflow = previousBodyOverflow;
 
-            document.documentElement.style.overflow =
-                previousHtmlOverflow;
+            document.documentElement.style.overflow = previousHtmlOverflow;
         };
     }, [isLoading]);
 
     useEffect(() => {
-        if (
-            Object.keys(errors).length > 0 &&
-            errorBannerRef.current
-        ) {
+        if (Object.keys(errors).length > 0 && errorBannerRef.current) {
             errorBannerRef.current.scrollIntoView({
                 behavior: "smooth",
                 block: "start",
@@ -275,6 +257,9 @@ export default function Enrollment({ onboarding, student }) {
         post(onboarding.submit_url, {
             forceFormData: true,
             preserveScroll: true,
+            onSuccess: () => {
+                window.localStorage.removeItem(draftStorageKey);
+            },
         });
     };
 
@@ -288,17 +273,14 @@ export default function Enrollment({ onboarding, student }) {
                         className="block text-balance"
                         style={{
                             fontFamily: FONT_FAMILY,
-                            fontSize:
-                                "clamp(26px, 3.4vw, 34px)",
+                            fontSize: "clamp(26px, 3.4vw, 34px)",
                             fontWeight: 700,
                             lineHeight: 1.2,
                         }}
                     >
                         Welcome To Your Yoga
-                        <span className="text-[#DB202C]">
-                            FX
-                        </span>{" "}
-                        Enrollment Application Form
+                        <span className="text-[#DB202C]">FX</span> Enrollment
+                        Application Form
                     </span>
                 }
                 description={
@@ -321,18 +303,14 @@ export default function Enrollment({ onboarding, student }) {
                         }}
                     >
                         <p className="mb-2 font-bold">
-                            Please complete the highlighted
-                            fields before continuing:
+                            Please complete the highlighted fields before
+                            continuing:
                         </p>
 
                         <ul className="list-inside list-disc">
-                            {Object.entries(errors).map(
-                                ([field, error]) => (
-                                    <li key={field}>
-                                        {error}
-                                    </li>
-                                ),
-                            )}
+                            {Object.entries(errors).map(([field, error]) => (
+                                <li key={field}>{error}</li>
+                            ))}
                         </ul>
                     </div>
                 ) : null}
@@ -346,19 +324,13 @@ export default function Enrollment({ onboarding, student }) {
                     submitLabel="Enroll Now"
                     variant="scoreboard"
                     mode="enrollment"
-                    currentProfilePhotoUrl={
-                        student.profile_photo_url
-                    }
+                    currentProfilePhotoUrl={student.profile_photo_url}
                     isMasterClass={isMasterClass}
                 />
             </PublicFlowLayout>
 
             {isLoading ? (
-                <EnrollmentLoadingOverlay
-                    secondsRemaining={
-                        secondsRemaining
-                    }
-                />
+                <EnrollmentLoadingOverlay secondsRemaining={secondsRemaining} />
             ) : null}
         </>
     );
