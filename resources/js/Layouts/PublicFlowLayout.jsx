@@ -5,7 +5,7 @@ import { Check, LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
-const COUNTDOWN_SECONDS = 3;
+const COUNTDOWN_SECONDS = 5;
 
 function isMasterclassLandingPath() {
     if (typeof window === "undefined") {
@@ -13,6 +13,42 @@ function isMasterclassLandingPath() {
     }
 
     return /^\/masterclass(?:$|[-/])/.test(window.location.pathname);
+}
+
+function MasterclassLoadingCard({ secondsRemaining }) {
+    return (
+        <div
+            className="flex min-h-[410px] w-full max-w-lg flex-col items-center justify-center rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:min-h-[450px] sm:px-10"
+            role="status"
+            aria-live="polite"
+            aria-label={`Loading ${secondsRemaining} seconds`}
+        >
+            <img
+                src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
+                alt="YogaFX"
+                className="mb-8 h-16 w-auto object-contain sm:h-20"
+            />
+
+            <div className="relative h-24 w-24 shrink-0">
+                <LoaderCircle
+                    className="absolute inset-0 h-24 w-24 animate-spin text-[#DB202C] drop-shadow-[0_0_10px_rgba(219,32,44,0.85)] motion-reduce:animate-none"
+                    strokeWidth={2.4}
+                    aria-hidden="true"
+                />
+
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <span
+                        key={secondsRemaining}
+                        className="text-3xl font-bold leading-none text-white"
+                    >
+                        {secondsRemaining}
+                    </span>
+                </div>
+            </div>
+
+            <p className="mt-6 text-sm font-bold text-white">Loading...</p>
+        </div>
+    );
 }
 
 export default function PublicFlowLayout({
@@ -31,8 +67,14 @@ export default function PublicFlowLayout({
     const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(
         () => showMasterclassWelcome && isMasterclassLandingPath(),
     );
+
+    const [welcomePhase, setWelcomePhase] = useState("initial-countdown");
+
     const [secondsRemaining, setSecondsRemaining] = useState(COUNTDOWN_SECONDS);
-    const isCountingDown = secondsRemaining > 0;
+
+    const isCountingDown =
+        welcomePhase === "initial-countdown" ||
+        welcomePhase === "final-countdown";
 
     useEffect(() => {
         if (!showWelcomeOverlay) {
@@ -57,20 +99,36 @@ export default function PublicFlowLayout({
         }
 
         const timeoutId = window.setTimeout(() => {
-            setSecondsRemaining((current) => Math.max(current - 1, 0));
+            if (secondsRemaining <= 1) {
+                if (welcomePhase === "initial-countdown") {
+                    setSecondsRemaining(0);
+                    setWelcomePhase("welcome");
+                    return;
+                }
+
+                if (welcomePhase === "final-countdown") {
+                    setSecondsRemaining(0);
+                    setShowWelcomeOverlay(false);
+                }
+
+                return;
+            }
+
+            setSecondsRemaining((current) => Math.max(current - 1, 1));
         }, 1000);
 
         return () => {
             window.clearTimeout(timeoutId);
         };
-    }, [showWelcomeOverlay, isCountingDown, secondsRemaining]);
+    }, [showWelcomeOverlay, isCountingDown, secondsRemaining, welcomePhase]);
 
-    const closeWelcomeOverlay = () => {
-        if (isCountingDown) {
+    const startFinalCountdown = () => {
+        if (welcomePhase !== "welcome") {
             return;
         }
 
-        setShowWelcomeOverlay(false);
+        setSecondsRemaining(COUNTDOWN_SECONDS);
+        setWelcomePhase("final-countdown");
     };
 
     return (
@@ -203,33 +261,9 @@ export default function PublicFlowLayout({
 
                     <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-col items-center text-center">
                         {isCountingDown ? (
-                            <div
-                                className="flex min-h-[410px] w-full max-w-lg flex-col items-center justify-center rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:min-h-[450px] sm:px-10"
-                                role="status"
-                                aria-live="polite"
-                                aria-label={`Welcome message will open in ${secondsRemaining} seconds`}
-                            >
-                                <div className="relative h-24 w-24 shrink-0">
-                                    <LoaderCircle
-                                        className="absolute inset-0 h-24 w-24 animate-spin text-[#DB202C] drop-shadow-[0_0_10px_rgba(219,32,44,0.85)] motion-reduce:animate-none"
-                                        strokeWidth={2.4}
-                                        aria-hidden="true"
-                                    />
-
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span
-                                            key={secondsRemaining}
-                                            className="text-3xl font-bold leading-none text-white"
-                                        >
-                                            {secondsRemaining}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <p className="mt-6 text-sm font-bold text-white">
-                                    Loading...
-                                </p>
-                            </div>
+                            <MasterclassLoadingCard
+                                secondsRemaining={secondsRemaining}
+                            />
                         ) : (
                             <>
                                 <img
@@ -248,15 +282,15 @@ export default function PublicFlowLayout({
                                 <div className="mt-10 flex h-32 w-32 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_45px_rgba(16,185,129,0.35)]">
                                     <Check
                                         className="h-20 w-20 text-white"
-                                        strokeWidth={3}
+                                        strokeWidth={4.5}
                                         aria-hidden="true"
                                     />
                                 </div>
 
                                 <h2 className="mx-auto mt-10 max-w-2xl text-2xl font-bold leading-tight text-white sm:text-3xl">
                                     We Are Thrilled That You Are Joining Mr.
-                                    Ian&apos;s Bikram Hot Yoga 26&amp;2 Yoga
-                                    Teacher Training
+                                    Ian&apos;s {title} Practical MasterClass -
+                                    In Beautiful Bali
                                 </h2>
 
                                 <p className="mx-auto mt-6 max-w-xl text-base font-semibold italic leading-relaxed text-white sm:text-lg">
@@ -265,9 +299,11 @@ export default function PublicFlowLayout({
 
                                 <button
                                     type="button"
-                                    onClick={closeWelcomeOverlay}
-                                    className="mt-10 inline-flex min-h-[64px] w-full max-w-[380px] items-center justify-center rounded-[8px] bg-[#DB202C] px-10 py-6 text-base font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35"
-                                    style={{ fontFamily: FONT_FAMILY }}
+                                    onClick={startFinalCountdown}
+                                    className="mt-10 inline-flex min-h-[64px] w-full max-w-[300px] items-center justify-center rounded-[8px] bg-[#DB202C] px-8 py-5 text-xl font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35 sm:text-2xl"
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                    }}
                                 >
                                     Let&apos;s Get Started
                                 </button>
