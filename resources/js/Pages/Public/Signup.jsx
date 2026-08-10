@@ -180,7 +180,7 @@ export default function Signup({ onboarding, student }) {
                     isLoading
                         ? null
                         : "This last step activates your YogaFX account so you can sign in with your new password."
-                }
+                }descriptionClassName="text-white"
             >
                 {!isLoading ? (
                     <form onSubmit={submit} className="space-y-6">
