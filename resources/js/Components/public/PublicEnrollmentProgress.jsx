@@ -25,9 +25,11 @@ export default function PublicEnrollmentProgress({ currentStep = 1 }) {
         <nav aria-label="Enrollment progress" className="w-full">
             <ol className="mx-auto grid w-full max-w-2xl grid-cols-3">
                 {STEPS.map((step, index) => {
-                    const isCompleted = step.number < normalizedCurrentStep;
+                    const isCompleted =
+                        step.number < normalizedCurrentStep;
 
-                    const isCurrent = step.number === normalizedCurrentStep;
+                    const isCurrent =
+                        step.number === normalizedCurrentStep;
 
                     return (
                         <li
@@ -49,29 +51,27 @@ export default function PublicEnrollmentProgress({ currentStep = 1 }) {
                                         "sm:top-[23px]",
                                         "sm:w-[calc(100%-48px)]",
                                         isCompleted
-                                            ? "border-emerald-500 bg-emerald-500 text-white shadow-[0_0_24px_rgba(16,185,129,0.28)]"
-                                            : isCurrent
-                                              ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_24px_rgba(219,32,44,0.35)]"
-                                              : "border-[#DB202C] bg-[#DB202C] text-white",
+                                            ? "bg-emerald-500"
+                                            : "bg-[#DB202C]",
                                     ].join(" ")}
                                 />
                             ) : null}
 
                             <div
-                                aria-current={isCurrent ? "step" : undefined}
+                                aria-current={
+                                    isCurrent ? "step" : undefined
+                                }
                                 className={[
                                     "relative z-10",
                                     "flex h-11 w-11 items-center justify-center",
                                     "rounded-full border-2",
                                     "text-sm font-bold",
-                                    "transition-all duration-300",
+                                    "transition-colors duration-300",
                                     "sm:h-12 sm:w-12 sm:text-base",
 
                                     isCompleted
-                                        ? "border-emerald-500 bg-emerald-500 text-white shadow-[0_0_24px_rgba(16,185,129,0.28)]"
-                                        : isCurrent
-                                          ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_24px_rgba(219,32,44,0.35)]"
-                                          : "border-[rgba(219,32,44,0.55)] bg-[rgba(219,32,44,0.15)] text-white",
+                                        ? "border-emerald-500 bg-emerald-500 text-white"
+                                        : "border-[#DB202C] bg-[#DB202C] text-white",
                                 ].join(" ")}
                             >
                                 {isCompleted ? (
