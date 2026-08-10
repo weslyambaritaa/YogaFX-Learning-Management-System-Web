@@ -1,5 +1,3 @@
-<?php
-
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\BuildsProtectedMediaUrls;
@@ -976,11 +974,6 @@ class StudentController extends Controller
             404,
         );
 
-        $managementContext =
-            $this->managementContext(
-                $request,
-            );
-
         $certificateFiles =
             Certificate::withTrashed()
                 ->where(
@@ -1237,11 +1230,7 @@ class StudentController extends Controller
         }
 
         return redirect()
-            ->route(
-                $this->studentIndexRouteNameForContext(
-                    $managementContext,
-                ),
-            )
+            ->route('admin.students.index')
             ->with(
                 'status',
                 'student-account-deleted',
