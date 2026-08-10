@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 // Single source of truth for the font so it can't be silently
 // overridden by an older font-family declared elsewhere in the tree.
 const FONT_FAMILY = "'Montserrat', sans-serif";
-const COUNTDOWN_SECONDS = 3;
+const COUNTDOWN_SECONDS = 5;
 
 function normalizeYesNoFormValue(value) {
     if (
