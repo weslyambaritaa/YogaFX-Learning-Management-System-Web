@@ -163,7 +163,7 @@ class InvoiceConfirmationPdfService
             'courseDateRange' => $this->masterclassCourseDateRange($invoice),
             'checkInAt' => $this->masterclassCheckIn($invoice),
             'checkOutAt' => $this->masterclassCheckOut($invoice),
-            'showBonuses' => $tierSlug !== AccessTier::SLUG_STARTER_KIT,
+            'showBonuses' => $tierSlug === AccessTier::SLUG_ONLINE,
             'isInstallmentFullyPaid' => $paymentMode === 'pay_in_4'
                 && $installmentRows !== []
                 && collect($installmentRows)->every(fn (array $row) => strtolower((string) ($row['status'] ?? '')) === 'paid'),
