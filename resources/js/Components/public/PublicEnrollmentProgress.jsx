@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 const STEPS = [
     {
         number: 1,
-        label: "Payment",
+        label: "Deposit",
     },
     {
         number: 2,
@@ -44,12 +44,13 @@ export default function PublicEnrollmentProgress({ currentStep = 1 }) {
                                         "h-[3px]",
                                         "w-[calc(100%-44px)]",
                                         "rounded-full",
+                                        "transition-colors duration-300",
                                         "sm:left-[calc(50%+24px)]",
                                         "sm:top-[23px]",
                                         "sm:w-[calc(100%-48px)]",
-                                        step.number < normalizedCurrentStep
+                                        isCompleted
                                             ? "bg-emerald-500"
-                                            : "bg-white/20",
+                                            : "bg-[rgba(219,32,44,0.35)]",
                                     ].join(" ")}
                                 />
                             ) : null}
@@ -61,13 +62,14 @@ export default function PublicEnrollmentProgress({ currentStep = 1 }) {
                                     "flex h-11 w-11 items-center justify-center",
                                     "rounded-full border-2",
                                     "text-sm font-bold",
-                                    "transition-all duration-200",
+                                    "transition-all duration-300",
                                     "sm:h-12 sm:w-12 sm:text-base",
+
                                     isCompleted
                                         ? "border-emerald-500 bg-emerald-500 text-white shadow-[0_0_24px_rgba(16,185,129,0.28)]"
                                         : isCurrent
                                           ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_24px_rgba(219,32,44,0.35)]"
-                                          : "border-white/35 bg-black text-white/55",
+                                          : "border-[rgba(219,32,44,0.55)] bg-[rgba(219,32,44,0.15)] text-white",
                                 ].join(" ")}
                             >
                                 {isCompleted ? (
@@ -81,18 +83,7 @@ export default function PublicEnrollmentProgress({ currentStep = 1 }) {
                                 )}
                             </div>
 
-                            <span
-                                className={[
-                                    "mt-3 px-1 whitespace-nowrap",
-                                    "text-[11px] font-semibold leading-4",
-                                    "sm:text-sm sm:leading-5",
-                                    isCompleted
-                                        ? "text-emerald-400"
-                                        : isCurrent
-                                          ? "text-[#ff6b75]"
-                                          : "text-white/45",
-                                ].join(" ")}
-                            >
+                            <span className="mt-3 whitespace-nowrap px-1 text-[11px] font-bold leading-4 text-white sm:text-sm sm:leading-5">
                                 {step.label}
                             </span>
                         </li>
