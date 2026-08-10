@@ -158,7 +158,7 @@ export default function PublicFlowLayout({
                         </div>
                     ) : null}
 
-                    <div className="flex flex-1 flex-col items-center justify-center pb-12 pt-6 lg:pt-8">
+                    <div className="flex flex-1 flex-col items-center justify-center pt-6 lg:pt-8">
                         <header
                             className={[
                                 "flex items-center justify-center",
@@ -221,7 +221,7 @@ export default function PublicFlowLayout({
                                             </div>
                                         )}
 
-                                        <div className="w-full pb-4 text-left">
+                                        <div className="w-full text-left">
                                             {children}
                                         </div>
 
@@ -240,20 +240,20 @@ export default function PublicFlowLayout({
                                 )}
                             </div>
                         </main>
-                    </div>
 
-                    {/* Global Copyright */}
-                    <footer
-                        className="w-full pb-2 text-center"
-                        style={{
-                            fontFamily: FONT_FAMILY,
-                        }}
-                    >
-                        <p className="text-sm font-bold text-white/70">
-                            © 2026 Yoga
-                            <span className="text-[#DB202C]">FX</span>
-                        </p>
-                    </footer>
+                        {/* Global Copyright */}
+                        <footer
+                            className="mt-6 w-full text-center"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                            }}
+                        >
+                            <p className="text-sm font-bold text-white/70">
+                                © 2026 Yoga
+                                <span className="text-[#DB202C]">FX</span>
+                            </p>
+                        </footer>
+                    </div>
                 </div>
             </div>
 
@@ -263,7 +263,9 @@ export default function PublicFlowLayout({
                     aria-modal="true"
                     aria-labelledby="masterclass-welcome-title"
                     className="fixed inset-0 z-[9999] flex min-h-[100dvh] w-full items-center justify-center overflow-y-auto bg-black px-4 py-8 text-white sm:px-6"
-                    style={{ fontFamily: FONT_FAMILY }}
+                    style={{
+                        fontFamily: FONT_FAMILY,
+                    }}
                 >
                     <div
                         aria-hidden="true"
