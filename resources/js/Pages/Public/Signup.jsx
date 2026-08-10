@@ -367,14 +367,6 @@ export default function Signup({ onboarding, student }) {
                         </div>
 
                         <div className="flex flex-col items-center gap-3 pt-2 text-center">
-                            <p
-                                className="text-center text-sm font-medium italic leading-relaxed text-white/80"
-                                style={{
-                                    fontFamily: FONT_FAMILY,
-                                }}
-                            >
-                                For Easy Access To Your Course Materials
-                            </p>
 
                             <Button
                                 type="submit"
