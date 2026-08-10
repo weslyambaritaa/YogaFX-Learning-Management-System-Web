@@ -49,11 +49,19 @@ export default function PaymentSuccess({ onboarding, student = null }) {
             title={onboarding.title ?? "Payment Success"}
             eyebrow={isLoading ? null : "\u00A0"}
             heading={
-                isLoading
-                    ? null
-                    : studentName
-                      ? `Congratulations, ${studentName}`
-                      : "Congratulations"
+                isLoading ? null : (
+                    <>
+                        <span className="block text-4xl font-bold leading-tight text-white sm:text-5xl">
+                            Congratulations
+                        </span>
+
+                        {studentName ? (
+                            <span className="mt-3 block text-3xl font-bold leading-tight text-white sm:text-4xl">
+                                {studentName}
+                            </span>
+                        ) : null}
+                    </>
+                )
             }
         >
             <div
@@ -114,7 +122,7 @@ export default function PaymentSuccess({ onboarding, student = null }) {
 
                             <Button
                                 asChild
-                                className="mt-9 min-h-[64px] w-full max-w-[360px] rounded-[8px] bg-[#DB202C] px-10 py-6 text-base font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25]"
+                                className="mt-10 min-h-[64px] w-full max-w-[300px] rounded-[8px] bg-[#DB202C] px-8 py-5 text-xl font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35 sm:text-2xl"
                             >
                                 <Link
                                     href={onboarding.continue_url}
