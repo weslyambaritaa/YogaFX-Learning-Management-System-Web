@@ -2332,16 +2332,6 @@ export default function StudentProfileForm({
                         {submitLabel}
                     </Button>
                 </div>
-
-                {isEnrollment ? (
-                    <p
-                        className="pt-5 text-center text-xs font-medium text-white/60 sm:text-sm"
-                        style={{ fontFamily: FONT_FAMILY }}
-                    >
-                        © {new Date().getFullYear()} Yoga
-                        <span className="text-[#DB202C]">FX</span>
-                    </p>
-                ) : null}
             </form>
         </>
     );

@@ -82,6 +82,7 @@ export default function PublicFlowLayout({
         }
 
         const previousBodyOverflow = document.body.style.overflow;
+
         const previousHtmlOverflow = document.documentElement.style.overflow;
 
         document.body.style.overflow = "hidden";
@@ -89,6 +90,7 @@ export default function PublicFlowLayout({
 
         return () => {
             document.body.style.overflow = previousBodyOverflow;
+
             document.documentElement.style.overflow = previousHtmlOverflow;
         };
     }, [showWelcomeOverlay]);
@@ -239,6 +241,19 @@ export default function PublicFlowLayout({
                             </div>
                         </main>
                     </div>
+
+                    {/* Global Copyright */}
+                    <footer
+                        className="w-full pb-2 text-center"
+                        style={{
+                            fontFamily: FONT_FAMILY,
+                        }}
+                    >
+                        <p className="text-sm font-bold text-white/70">
+                            © 2026 Yoga
+                            <span className="text-[#DB202C]">FX</span>
+                        </p>
+                    </footer>
                 </div>
             </div>
 
