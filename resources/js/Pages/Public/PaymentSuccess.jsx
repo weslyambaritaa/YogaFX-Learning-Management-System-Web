@@ -150,7 +150,7 @@ export default function PaymentSuccess({ onboarding, student = null }) {
                             </div>
 
                             <h2 className="mt-10 text-3xl font-bold leading-tight text-white md:text-4xl">
-                                {onboarding.eyebrow ?? "Payment Approved"}
+                                {onboarding.eyebrow ?? "Transfer Received"}
                             </h2>
 
                             <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
