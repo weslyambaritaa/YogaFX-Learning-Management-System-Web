@@ -555,7 +555,7 @@ export default function Scoreboard({
                   : [
                         {
                             type: "pay_full",
-                            label: "Pay in full",
+                            label: "Pay In Full",
                             amount_due_today: amount.toFixed(2),
                             currency_code: currencyCode,
                             checkout_variant: "paid",

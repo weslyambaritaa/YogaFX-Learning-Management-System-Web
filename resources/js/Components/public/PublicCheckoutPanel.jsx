@@ -1660,7 +1660,7 @@ export default function PublicCheckoutPanel({
             } catch {
                 if (!cancelled) {
                     setInstallmentApprovalMessage(
-                        "PayPal approval received. We are still confirming your first payment.",
+                        "PayPal approval received. We are still confirming your first transfer.",
                     );
                 }
             }
@@ -1796,7 +1796,7 @@ export default function PublicCheckoutPanel({
 
         if (typeof onBeforePayment !== "function") {
             setGeneralError(
-                "The payment panel is not connected to the checkout preparation flow.",
+                "The transfer panel is not connected to the checkout preparation flow.",
             );
 
             return null;
@@ -1812,7 +1812,7 @@ export default function PublicCheckoutPanel({
 
         if (!preparedCheckout?.create_order_url) {
             setGeneralError(
-                "Please complete your personal details before continuing to payment.",
+                "Please complete your personal details before continuing to transfer.",
             );
 
             return null;
@@ -1837,7 +1837,7 @@ export default function PublicCheckoutPanel({
 
         if (!checkoutForPayment?.create_order_url) {
             setGeneralError(
-                "Please complete your personal details before continuing to payment.",
+                "Please complete your personal details before continuing to transfer.",
             );
             setIsConfirmingPayment(false);
             setIsSubmitting(false);
@@ -2005,7 +2005,7 @@ export default function PublicCheckoutPanel({
         setInstallmentStatus(payload);
         setInstallmentApprovalMessage(
             payload.message ??
-                "PayPal approval received. We are confirming your first payment now.",
+                "PayPal approval received. We are confirming your first transfer now.",
         );
         setIsConfirmingPayment(true);
         setIsSubmitting(false);
@@ -2018,7 +2018,7 @@ export default function PublicCheckoutPanel({
 
         if (!activeOrder?.capture_url) {
             setGeneralError(
-                "The payment capture route was not prepared correctly.",
+                "The transfer capture route was not prepared correctly.",
             );
             setIsConfirmingPayment(false);
             setIsSubmitting(false);
@@ -2047,7 +2047,7 @@ export default function PublicCheckoutPanel({
 
         setGeneralError(
             payload.message ??
-                "The payment was processed, but the next onboarding step could not be opened automatically.",
+                "The transfer was processed, but the next onboarding step could not be opened automatically.",
         );
         setIsConfirmingPayment(false);
         setIsSubmitting(false);
@@ -2079,7 +2079,7 @@ export default function PublicCheckoutPanel({
 
     const showLockedMessage = () => {
         setGeneralError(
-            "Please complete your personal details above before continuing to payment.",
+            "Please complete your personal details above before continuing to transfer.",
         );
     };
 
@@ -2088,7 +2088,7 @@ export default function PublicCheckoutPanel({
             type="button"
             onClick={showLockedMessage}
             className="absolute inset-0 z-10 cursor-not-allowed rounded-[5px] bg-black/10"
-            aria-label="Complete your details before payment"
+            aria-label="Complete your details before transfer"
         />
     ) : null;
 
@@ -2155,7 +2155,7 @@ export default function PublicCheckoutPanel({
                     style={{ fontFamily: FONT_FAMILY }}
                     role="status"
                     aria-live="polite"
-                    aria-label="Confirming your payment"
+                    aria-label="Confirming your transfer"
                 >
                     <div
                         className="
@@ -2198,7 +2198,7 @@ export default function PublicCheckoutPanel({
 
                             <p className="mx-auto max-w-md text-sm font-medium italic leading-7 text-white sm:text-base">
                                 Please do not close this page. We are confirming
-                                your first payment and preparing your enrollment
+                                your first transfer and preparing your enrollment
                                 access.
                             </p>
                         </div>
@@ -2250,7 +2250,7 @@ export default function PublicCheckoutPanel({
                                     }}
                                 >
                                     {optionIsInstallment
-                                        ? "Pay By Installment"
+                                        ? "Pay By Installments"
                                         : (option.label ?? "Pay In Full")}
                                 </button>
 
@@ -2259,7 +2259,7 @@ export default function PublicCheckoutPanel({
                                         type="button"
                                         onClick={showLockedMessage}
                                         className="absolute inset-0 z-10 cursor-not-allowed rounded-[5px] bg-black/10"
-                                        aria-label="Complete your details before choosing payment type"
+                                        aria-label="Complete your details before choosing transfer type"
                                     />
                                 )}
                             </div>
@@ -2313,7 +2313,7 @@ export default function PublicCheckoutPanel({
 
             {isFreeCheckout && !isInstallmentSelected && (
                 <div className="rounded-[8px] border border-emerald-400/20 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-100">
-                    This package is free. No payment is required.
+                    This package is free. No transfer is required.
                 </div>
             )}
 
@@ -2379,7 +2379,7 @@ export default function PublicCheckoutPanel({
                         <div className="space-y-4">
                             <div className="flex items-center justify-between gap-4">
                                 <p className="text-sm font-bold text-white">
-                                    Maximum Number of Installments
+                                    Maximum Number of Installments Available
                                 </p>
                                 <p className="rounded-full bg-[#DB202C] px-4 py-1.5 text-sm font-semibold text-white">
                                     {formatInstallmentCountDisplay(
@@ -2446,7 +2446,7 @@ export default function PublicCheckoutPanel({
                         availableInstallmentCounts.length > 0 && (
                             <div className="space-y-2">
                                 <p className="text-sm font-bold text-white">
-                                    Maximum Number of Installments
+                                    Maximum Number of Installments Available
                                 </p>
                                 <div className="rounded-[8px] border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-white">
                                     {formatInstallmentCountDisplay(
@@ -2602,7 +2602,7 @@ export default function PublicCheckoutPanel({
                             text={
                                 isFreeCheckout
                                     ? "I agree to continue and activate this free YogaFX access."
-                                    : "I agree to continue with YogaFX payment processing secured by PayPal"
+                                    : "Please Continue YogaFX transfer processing secured by PayPal"
                             }
                             fxClassName="!text-[#DB202C]"
                         />
@@ -2643,7 +2643,7 @@ export default function PublicCheckoutPanel({
                                 style={{ fontFamily: FONT_FAMILY }}
                             >
                                 {installmentApprovalMessage ||
-                                    "PayPal approval has been received. We are confirming your first payment now."}
+                                    "PayPal approval has been received. We are confirming your first transfer now."}
                             </div>
                         ) : (
                             <div className="space-y-4">
