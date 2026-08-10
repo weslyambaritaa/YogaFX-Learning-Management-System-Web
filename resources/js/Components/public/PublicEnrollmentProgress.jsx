@@ -49,8 +49,10 @@ export default function PublicEnrollmentProgress({ currentStep = 1 }) {
                                         "sm:top-[23px]",
                                         "sm:w-[calc(100%-48px)]",
                                         isCompleted
-                                            ? "bg-emerald-500"
-                                            : "bg-[rgba(219,32,44,0.35)]",
+                                            ? "border-emerald-500 bg-emerald-500 text-white shadow-[0_0_24px_rgba(16,185,129,0.28)]"
+                                            : isCurrent
+                                              ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_24px_rgba(219,32,44,0.35)]"
+                                              : "border-[#DB202C] bg-[#DB202C] text-white",
                                     ].join(" ")}
                                 />
                             ) : null}
