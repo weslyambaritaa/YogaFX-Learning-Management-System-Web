@@ -1689,7 +1689,7 @@ export default function StudentProfileForm({
                             <div>
                                 <InputLabel
                                     htmlFor="emergency_contact_name"
-                                    value="Emergency Contact Name *"
+                                    value="Emergency Contact Name"
                                     className={theme.labelClassName}
                                     style={{ fontFamily: FONT_FAMILY }}
                                 />
@@ -1725,7 +1725,7 @@ export default function StudentProfileForm({
                             <div>
                                 <InputLabel
                                     htmlFor="emergency_contact_relationship"
-                                    value="Relationship *"
+                                    value="Relationship"
                                     className={theme.labelClassName}
                                     style={{ fontFamily: FONT_FAMILY }}
                                 />
@@ -1764,7 +1764,7 @@ export default function StudentProfileForm({
                             <div className="md:col-span-2">
                                 <InputLabel
                                     htmlFor="emergency_contact_number"
-                                    value="WhatsApp Number *"
+                                    value="WhatsApp Number"
                                     className={theme.labelClassName}
                                     style={{ fontFamily: FONT_FAMILY }}
                                 />
@@ -1980,7 +1980,7 @@ export default function StudentProfileForm({
 
                     <TextAreaField
                         id="motivation"
-                        label="In 50 Words or Less, Please Share With Us *"
+                        label="In 50 Words or Less, Please Share With Us"
                         value={data.motivation}
                         onChange={(value) => setData("motivation", value)}
                         error={firstError(formErrors, "motivation")}
@@ -2009,7 +2009,7 @@ export default function StudentProfileForm({
                         <div className="space-y-8">
                             <ChoiceGrid
                                 id="has_medical_issues"
-                                label="Any Medical Existing Issues? *"
+                                label="Any Medical Existing Issues?"
                                 value={data.has_medical_issues ?? ""}
                                 error={firstError(
                                     formErrors,
@@ -2030,7 +2030,7 @@ export default function StudentProfileForm({
                             {data.has_medical_issues === "yes" ? (
                                 <TextAreaField
                                     id="medical_issues_details"
-                                    label="Brief Details Please *"
+                                    label="Brief Details Please"
                                     value={data.medical_issues_details ?? ""}
                                     onChange={(value) =>
                                         setData("medical_issues_details", value)
@@ -2045,7 +2045,7 @@ export default function StudentProfileForm({
 
                             <ChoiceGrid
                                 id="is_taking_medication"
-                                label="Are You Taking Any Medication? *"
+                                label="Are You Taking Any Medication?"
                                 value={data.is_taking_medication ?? ""}
                                 error={firstError(
                                     formErrors,
@@ -2066,7 +2066,7 @@ export default function StudentProfileForm({
                             {data.is_taking_medication === "yes" ? (
                                 <TextAreaField
                                     id="medication_details"
-                                    label="Brief Details Please *"
+                                    label="Brief Details Please"
                                     value={data.medication_details ?? ""}
                                     onChange={(value) =>
                                         setData("medication_details", value)
@@ -2096,7 +2096,7 @@ export default function StudentProfileForm({
                     <div className="space-y-8">
                         <TextAreaField
                             id="why_yogafx"
-                            label="In 50 Words or Less, Please Share With Us *"
+                            label="In 50 Words or Less, Please Share With Us"
                             value={data.why_yogafx}
                             onChange={(value) => setData("why_yogafx", value)}
                             error={firstError(formErrors, "why_yogafx")}
@@ -2110,7 +2110,7 @@ export default function StudentProfileForm({
                             <>
                                 <ChoiceGrid
                                     id="tshirt_size"
-                                    label="T-Shirt Size *"
+                                    label="T-Shirt Size"
                                     value={data.tshirt_size ?? ""}
                                     error={firstError(
                                         formErrors,
@@ -2127,7 +2127,7 @@ export default function StudentProfileForm({
                                 <div>
                                     <InputLabel
                                         htmlFor="favorite_song"
-                                        value="Favorite Song *"
+                                        value="Favorite Song"
                                         className={
                                             theme.labelWithSpacingClassName
                                         }
