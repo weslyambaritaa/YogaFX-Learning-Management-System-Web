@@ -94,7 +94,9 @@ function SignupLoadingOverlay({ secondsRemaining }) {
                     </div>
                 </div>
 
-                <p className="mt-6 text-sm font-bold text-white">Loading...</p>
+                <p className="mt-6 text-sm font-bold text-white">
+                    Loading...
+                </p>
             </div>
         </div>
     );
@@ -115,7 +117,9 @@ export default function Signup({ onboarding, student }) {
     ).trim();
 
     const packageTitle =
-        onboarding?.package?.title ?? onboarding?.access_tier?.name ?? "Course";
+        onboarding?.package?.title ??
+        onboarding?.access_tier?.name ??
+        "Course";
 
     const isLoading = secondsRemaining > 0;
 
@@ -139,16 +143,16 @@ export default function Signup({ onboarding, student }) {
         }
 
         const previousBodyOverflow = document.body.style.overflow;
-
-        const previousHtmlOverflow = document.documentElement.style.overflow;
+        const previousHtmlOverflow =
+            document.documentElement.style.overflow;
 
         document.body.style.overflow = "hidden";
         document.documentElement.style.overflow = "hidden";
 
         return () => {
             document.body.style.overflow = previousBodyOverflow;
-
-            document.documentElement.style.overflow = previousHtmlOverflow;
+            document.documentElement.style.overflow =
+                previousHtmlOverflow;
         };
     }, [isLoading]);
 
@@ -185,15 +189,15 @@ export default function Signup({ onboarding, student }) {
                                 <InputLabel
                                     htmlFor="name"
                                     value="Name"
-                                    className="text-gray-700"
+                                    className="text-white/80"
                                 />
 
                                 <input
                                     id="name"
                                     type="text"
-                                    disabled
+                                    readOnly
                                     value={student?.name ?? ""}
-                                    className="mt-2 block w-full rounded-md border border-gray-700 bg-black px-3 py-2 text-white"
+                                    className="mt-2 block w-full rounded-[5px] border border-white/20 bg-white/10 px-3 py-2 text-white opacity-100"
                                 />
                             </div>
 
@@ -201,15 +205,15 @@ export default function Signup({ onboarding, student }) {
                                 <InputLabel
                                     htmlFor="email"
                                     value="Email"
-                                    className="text-gray-700"
+                                    className="text-white/80"
                                 />
 
                                 <input
                                     id="email"
                                     type="email"
-                                    disabled
+                                    readOnly
                                     value={student?.email ?? ""}
-                                    className="mt-2 block w-full rounded-md border border-gray-700 bg-black px-3 py-2 text-white"
+                                    className="mt-2 block w-full rounded-[5px] border border-white/20 bg-white/10 px-3 py-2 text-white opacity-100"
                                 />
                             </div>
 
@@ -226,7 +230,10 @@ export default function Signup({ onboarding, student }) {
                                     className="mt-2 block w-full"
                                     inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
                                     onChange={(event) =>
-                                        setData("password", event.target.value)
+                                        setData(
+                                            "password",
+                                            event.target.value,
+                                        )
                                     }
                                     buttonClassName="text-white/60 hover:text-white"
                                     autoComplete="new-password"
@@ -268,14 +275,16 @@ export default function Signup({ onboarding, student }) {
 
                                 <InputError
                                     className="mt-2 text-red-400"
-                                    message={errors.password_confirmation}
+                                    message={
+                                        errors.password_confirmation
+                                    }
                                 />
                             </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-3">
+                        <div className="flex flex-col items-center gap-3 text-center">
                             <p
-                                className="text-right text-sm font-medium italic leading-relaxed text-white/80"
+                                className="text-center text-sm font-medium italic leading-relaxed text-white/80"
                                 style={{
                                     fontFamily: FONT_FAMILY,
                                 }}
@@ -296,7 +305,9 @@ export default function Signup({ onboarding, student }) {
             </PublicFlowLayout>
 
             {isLoading ? (
-                <SignupLoadingOverlay secondsRemaining={secondsRemaining} />
+                <SignupLoadingOverlay
+                    secondsRemaining={secondsRemaining}
+                />
             ) : null}
         </>
     );
