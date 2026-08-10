@@ -9,31 +9,20 @@ import { LoaderCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
-const LOADING_COUNTDOWN_SECONDS = 3;
+const LOADING_COUNTDOWN_SECONDS = 5;
 
-function SignupLoadingOverlay({ secondsRemaining }) {
+function SignupLoadingOverlay({ secondsRemaining, isSubmitting = false }) {
     return (
         <div
-            className="
-                fixed
-                inset-0
-                z-[9999]
-                flex
-                min-h-[100dvh]
-                w-full
-                items-center
-                justify-center
-                overflow-y-auto
-                bg-black
-                px-4
-                py-6
-                text-white
-                sm:px-6
-            "
+            className="fixed inset-0 z-[9999] flex min-h-[100dvh] w-full items-center justify-center overflow-y-auto bg-black px-4 py-8 text-white sm:px-6"
             style={{ fontFamily: FONT_FAMILY }}
             role="status"
             aria-live="polite"
-            aria-label={`Signup form will open in ${secondsRemaining} seconds`}
+            aria-label={
+                isSubmitting
+                    ? "Opening your dashboard"
+                    : `Signup page will open in ${secondsRemaining} seconds`
+            }
         >
             <div
                 aria-hidden="true"
@@ -44,58 +33,34 @@ function SignupLoadingOverlay({ secondsRemaining }) {
                 }}
             />
 
-            <div
-                className="
-                    relative
-                    z-10
-                    flex
-                    min-h-[410px]
-                    w-full
-                    max-w-lg
-                    flex-col
-                    items-center
-                    justify-center
-                    rounded-[18px]
-                    border
-                    border-white/15
-                    bg-[#111111]
-                    px-6
-                    py-8
-                    text-center
-                    shadow-[0_24px_80px_rgba(0,0,0,0.55)]
-                    sm:min-h-[450px]
-                    sm:px-10
-                    sm:py-10
-                "
-            >
+            <div className="relative z-10 flex min-h-[410px] w-full max-w-lg flex-col items-center justify-center rounded-[18px] border border-white/15 bg-[#111111] px-6 py-10 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:min-h-[450px] sm:px-10">
+                <img
+                    src="https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
+                    alt="YogaFX"
+                    className="mb-8 h-16 w-auto object-contain sm:h-20"
+                />
+
                 <div className="relative h-24 w-24 shrink-0">
                     <LoaderCircle
-                        className="
-                            absolute
-                            inset-0
-                            h-24
-                            w-24
-                            animate-spin
-                            text-[#DB202C]
-                            drop-shadow-[0_0_10px_rgba(219,32,44,0.85)]
-                            motion-reduce:animate-none
-                        "
+                        className="absolute inset-0 h-24 w-24 animate-spin text-[#DB202C] drop-shadow-[0_0_10px_rgba(219,32,44,0.85)] motion-reduce:animate-none"
                         strokeWidth={2.4}
                         aria-hidden="true"
                     />
 
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <span
-                            key={secondsRemaining}
-                            className="text-3xl font-bold leading-none text-white"
-                        >
-                            {secondsRemaining}
-                        </span>
-                    </div>
+                    {!isSubmitting ? (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span
+                                key={secondsRemaining}
+                                className="text-3xl font-bold leading-none text-white"
+                            >
+                                {secondsRemaining}
+                            </span>
+                        </div>
+                    ) : null}
                 </div>
 
                 <p className="mt-6 text-sm font-bold text-white">
-                    Loading...
+                    {isSubmitting ? "Opening Dashboard..." : "Loading..."}
                 </p>
             </div>
         </div>
@@ -103,6 +68,21 @@ function SignupLoadingOverlay({ secondsRemaining }) {
 }
 
 export default function Signup({ onboarding, student }) {
+    /*
+     * Flow:
+     *
+     * initial-loading
+     *      ↓ 5 seconds
+     * form
+     *      ↓ click Access Your Dashboard Now
+     * final-loading
+     *      ↓ 5 seconds
+     * submitting
+     *      ↓
+     * Student Dashboard
+     */
+    const [flowPhase, setFlowPhase] = useState("initial-loading");
+
     const [secondsRemaining, setSecondsRemaining] = useState(
         LOADING_COUNTDOWN_SECONDS,
     );
@@ -110,6 +90,7 @@ export default function Signup({ onboarding, student }) {
     const { data, setData, post, processing, errors } = useForm({
         password: "",
         password_confirmation: "",
+        remember: false,
     });
 
     const studentName = String(
@@ -117,53 +98,119 @@ export default function Signup({ onboarding, student }) {
     ).trim();
 
     const packageTitle =
-        onboarding?.package?.title ??
-        onboarding?.access_tier?.name ??
-        "Course";
+        onboarding?.package?.title ?? onboarding?.access_tier?.name ?? "Course";
 
-    const isLoading = secondsRemaining > 0;
+    const isInitialLoading = flowPhase === "initial-loading";
 
+    const isFinalLoading = flowPhase === "final-loading";
+
+    const isSubmitting = flowPhase === "submitting";
+
+    const isCountingDown = isInitialLoading || isFinalLoading;
+
+    const showLoadingOverlay = isCountingDown || isSubmitting;
+
+    const showForm = flowPhase === "form";
+
+    /*
+     * Countdown pertama:
+     * Page dibuka -> 5, 4, 3, 2, 1 -> form.
+     *
+     * Countdown kedua:
+     * Button ditekan -> 5, 4, 3, 2, 1 ->
+     * submit -> dashboard.
+     */
     useEffect(() => {
-        if (!isLoading) {
+        if (!isCountingDown) {
             return undefined;
         }
 
         const timeoutId = window.setTimeout(() => {
-            setSecondsRemaining((current) => Math.max(current - 1, 0));
+            if (secondsRemaining <= 1) {
+                if (isInitialLoading) {
+                    setSecondsRemaining(0);
+                    setFlowPhase("form");
+                    return;
+                }
+
+                if (isFinalLoading) {
+                    /*
+                     * Ubah phase terlebih dahulu supaya POST
+                     * tidak dapat dipanggil dua kali oleh effect.
+                     */
+                    setSecondsRemaining(0);
+                    setFlowPhase("submitting");
+
+                    post(onboarding.submit_url, {
+                        preserveScroll: true,
+
+                        onError: () => {
+                            /*
+                             * Jika password ditolak backend,
+                             * kembali ke form dan tampilkan error.
+                             */
+                            setFlowPhase("form");
+                            setSecondsRemaining(0);
+                        },
+                    });
+                }
+
+                return;
+            }
+
+            setSecondsRemaining((current) => Math.max(current - 1, 1));
         }, 1000);
 
         return () => {
             window.clearTimeout(timeoutId);
         };
-    }, [isLoading, secondsRemaining]);
+    }, [
+        isCountingDown,
+        isInitialLoading,
+        isFinalLoading,
+        secondsRemaining,
+        onboarding.submit_url,
+        post,
+    ]);
 
+    /*
+     * Lock body selama fullscreen loading.
+     */
     useEffect(() => {
-        if (!isLoading) {
+        if (!showLoadingOverlay) {
             return undefined;
         }
 
         const previousBodyOverflow = document.body.style.overflow;
-        const previousHtmlOverflow =
-            document.documentElement.style.overflow;
+
+        const previousHtmlOverflow = document.documentElement.style.overflow;
 
         document.body.style.overflow = "hidden";
         document.documentElement.style.overflow = "hidden";
 
         return () => {
             document.body.style.overflow = previousBodyOverflow;
-            document.documentElement.style.overflow =
-                previousHtmlOverflow;
-        };
-    }, [isLoading]);
 
+            document.documentElement.style.overflow = previousHtmlOverflow;
+        };
+    }, [showLoadingOverlay]);
+
+    /*
+     * Jangan langsung POST ketika button ditekan.
+     *
+     * Jalankan countdown kedua selama 5 detik,
+     * kemudian POST dilakukan oleh effect di atas.
+     */
     const submit = (event) => {
         event.preventDefault();
 
-        post(onboarding.submit_url, {
-            onFinish: () => {
-                setData("password", "");
-            },
-        });
+        if (processing || flowPhase !== "form") {
+            return;
+        }
+
+        setSecondsRemaining(LOADING_COUNTDOWN_SECONDS);
+
+        setFlowPhase("final-loading");
     };
 
     return (
@@ -172,17 +219,35 @@ export default function Signup({ onboarding, student }) {
                 title="Create Password"
                 progressStep={3}
                 heading={
-                    isLoading
-                        ? null
-                        : `Welcome ${studentName} to Your ${packageTitle} Course Preparation`
+                    showForm ? (
+                        <>
+                            Welcome {studentName} to Your {packageTitle}{" "}
+                            Pre-Course Preparation
+                        </>
+                    ) : null
                 }
                 description={
-                    isLoading
-                        ? null
-                        : "This last step activates your YogaFX account so you can sign in with your new password."
-                }descriptionClassName="text-white"
+                    showForm ? (
+                        <span
+                            className="block font-medium text-white"
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                            }}
+                        >
+                            <span className="block">
+                                Your Last Step Activates Your Yoga
+                                <span className="text-[#DB202C]">FX</span>{" "}
+                                Dashboard Access
+                            </span>
+
+                            <span className="mt-1 block">
+                                Please Sign In And Set Your Password
+                            </span>
+                        </span>
+                    ) : null
+                }
             >
-                {!isLoading ? (
+                {showForm ? (
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-5">
                             <div>
@@ -230,10 +295,7 @@ export default function Signup({ onboarding, student }) {
                                     className="mt-2 block w-full"
                                     inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
                                     onChange={(event) =>
-                                        setData(
-                                            "password",
-                                            event.target.value,
-                                        )
+                                        setData("password", event.target.value)
                                     }
                                     buttonClassName="text-white/60 hover:text-white"
                                     autoComplete="new-password"
@@ -275,14 +337,36 @@ export default function Signup({ onboarding, student }) {
 
                                 <InputError
                                     className="mt-2 text-red-400"
-                                    message={
-                                        errors.password_confirmation
-                                    }
+                                    message={errors.password_confirmation}
                                 />
+
+                                {/* Remember Me */}
+                                <label
+                                    htmlFor="remember"
+                                    className="mt-4 flex w-fit cursor-pointer items-center gap-3 text-sm font-medium text-white"
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                    }}
+                                >
+                                    <input
+                                        id="remember"
+                                        type="checkbox"
+                                        checked={Boolean(data.remember)}
+                                        onChange={(event) =>
+                                            setData(
+                                                "remember",
+                                                event.target.checked,
+                                            )
+                                        }
+                                        className="size-5 cursor-pointer rounded border-2 border-white/70 bg-transparent accent-emerald-500 focus:ring-2 focus:ring-emerald-500/40"
+                                    />
+
+                                    <span>Remember Me</span>
+                                </label>
                             </div>
                         </div>
 
-                        <div className="flex flex-col items-center gap-3 text-center">
+                        <div className="flex flex-col items-center gap-3 pt-2 text-center">
                             <p
                                 className="text-center text-sm font-medium italic leading-relaxed text-white/80"
                                 style={{
@@ -295,18 +379,22 @@ export default function Signup({ onboarding, student }) {
                             <Button
                                 type="submit"
                                 disabled={processing}
-                                className="min-h-[56px] rounded-none bg-[#DB202C] px-8 py-4 text-base font-bold italic text-white hover:bg-[#c01a25]"
+                                className="min-h-[64px] w-full max-w-[360px] rounded-[8px] bg-[#DB202C] px-8 py-5 text-xl font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35 disabled:cursor-not-allowed disabled:opacity-60"
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                }}
                             >
-                                Access Dashboard Now
+                                Access Your Dashboard Now
                             </Button>
                         </div>
                     </form>
                 ) : null}
             </PublicFlowLayout>
 
-            {isLoading ? (
+            {showLoadingOverlay ? (
                 <SignupLoadingOverlay
                     secondsRemaining={secondsRemaining}
+                    isSubmitting={isSubmitting}
                 />
             ) : null}
         </>

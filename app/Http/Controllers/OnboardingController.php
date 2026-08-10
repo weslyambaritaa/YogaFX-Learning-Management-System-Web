@@ -549,8 +549,12 @@ class OnboardingController extends Controller
             ]),
         );
 
-        Auth::login($user);
-        $request->session()->regenerate();
+        Auth::login(
+    $user,
+    $request->boolean('remember'),
+);
+
+$request->session()->regenerate();
 
         return redirect()->route('student.dashboard');
     }
