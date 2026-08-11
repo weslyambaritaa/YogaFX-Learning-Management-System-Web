@@ -599,12 +599,13 @@ function StudentDashboardIntro({
                                         </div>
                                     </button>
 
-                                    <div className="mt-4 overflow-hidden rounded-[6px] bg-[#DB202C] px-2.5 py-2.5 text-center sm:mt-5 sm:px-4 sm:py-3">
+                                    <div className="mt-4 w-full overflow-hidden rounded-[6px] bg-[#DB202C] px-3 py-2.5 text-center sm:mt-5 sm:px-4 sm:py-3">
                                         <h2
-                                            className="whitespace-nowrap font-bold leading-none text-white"
+                                            className="block w-full whitespace-nowrap text-center font-bold leading-none tracking-[-0.03em] text-white"
                                             style={{
+                                                fontFamily: FONT_FAMILY,
                                                 fontSize:
-                                                    "clamp(6px, 1.55vw, 22px)",
+                                                    "clamp(7px, 1.3vw, 19px)",
                                             }}
                                         >
                                             Exclusive Access for YogaFX RYT 200{" "}
