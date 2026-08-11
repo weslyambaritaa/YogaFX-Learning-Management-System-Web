@@ -872,94 +872,96 @@ export default function StudentHome({
                 </div>
             </section>
 
-            <section className="relative mx-auto hidden w-full max-w-[1400px] overflow-hidden sm:block">
-                <div className="absolute inset-0">
-                    {continueLearning?.thumbnail_url ? (
-                        <img
-                            src={continueLearning.thumbnail_url}
-                            alt=""
-                            className="h-full w-full object-cover"
-                        />
-                    ) : (
-                        <div className="h-full w-full bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),linear-gradient(160deg,#1e1210,#0a0908)]" />
-                    )}
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%)]" />
-                </div>
+            <section className="relative mx-auto hidden w-full max-w-[1400px] overflow-hidden bg-black sm:block">
+                {continueLearning?.thumbnail_url ? (
+                    <img
+                        src={continueLearning.thumbnail_url}
+                        alt=""
+                        loading="eager"
+                        fetchPriority="high"
+                        decoding="async"
+                        className="block h-auto w-full object-contain"
+                    />
+                ) : (
+                    <div className="aspect-video w-full bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),linear-gradient(160deg,#1e1210,#0a0908)]" />
+                )}
 
-                <div className="relative mx-auto flex min-h-[80vh] max-w-[1400px] flex-col justify-end gap-6 px-4 pb-0 pt-24 sm:gap-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10">
-                    <div className="max-w-2xl space-y-3 text-white sm:space-y-5">
-                        {/* "Welcome back, Rahel" → medium 14px, tanpa uppercase */}
-                        <div
-                            style={{
-                                fontFamily: FONT_FAMILY,
-                                fontSize: "14px",
-                                fontWeight: 600,
-                            }}
-                            className="text-white"
-                        >
-                            {homeExperience?.state === "new_student"
-                                ? `Hello, ${studentName}`
-                                : `Welcome back, ${studentName}`}
-                        </div>
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%)]" />
 
-                        {/* Judul hero → bold 48px */}
-                        <h1
-                            style={{
-                                fontFamily: FONT_FAMILY,
-                                fontSize: "48px",
-                                fontWeight: 700,
-                            }}
-                            className="text-[36px] leading-[1.04] tracking-[-0.03em] text-white sm:text-[48px] sm:leading-[1.02]"
-                        >
-                            {continueLearning?.title ??
-                                homeExperience?.hero_title ??
-                                "Start your learning journey"}
-                        </h1>
-
-                        {/* Deskripsi → regular 12px */}
-                        <p
-                            style={{
-                                fontFamily: FONT_FAMILY,
-                                fontSize: "14px",
-                                fontWeight: 400,
-                            }}
-                            className="leading-6 text-white sm:leading-7"
-                        >
-                            {continueLearning?.description ??
-                                homeExperience?.hero_description}
-                        </p>
-
-                        <div className="flex flex-wrap gap-3 pt-2">
-                            <Button
-                                asChild
-                                className="h-auto rounded-md bg-white px-7 py-3 text-black transition-colors hover:bg-white/80"
+                <div className="absolute inset-0 z-10 flex items-end">
+                    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 pb-6 sm:gap-8 sm:px-6 sm:pb-8 lg:flex-row lg:items-end lg:justify-between lg:px-10">
+                        <div className="max-w-2xl space-y-3 text-white sm:space-y-5">
+                            <div
                                 style={{
                                     fontFamily: FONT_FAMILY,
                                     fontSize: "14px",
-                                    fontWeight: 500,
+                                    fontWeight: 600,
                                 }}
+                                className="text-white"
                             >
-                                <Link
-                                    href={
-                                        continueLearning?.cta_url ??
-                                        route("modules.index")
-                                    }
-                                    className="flex items-center"
-                                >
-                                    <Play className="mr-2.5 size-6 fill-black text-black" />
-                                    {continueLearning?.cta_label ??
-                                        homeExperience?.primary_cta_label ??
-                                        "Continue Learning"}
-                                </Link>
-                            </Button>
-                        </div>
-                    </div>
+                                {homeExperience?.state === "new_student"
+                                    ? `Hello, ${studentName}`
+                                    : `Welcome back, ${studentName}`}
+                            </div>
 
-                    {accessTimeSummary ? (
-                        <div className="flex justify-start lg:justify-end">
-                            <AccessTimeCard liveSeconds={liveAccessSeconds} />
+                            <h1
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontWeight: 700,
+                                }}
+                                className="text-[36px] leading-[1.04] tracking-[-0.03em] text-white sm:text-[48px] sm:leading-[1.02]"
+                            >
+                                {continueLearning?.title ??
+                                    homeExperience?.hero_title ??
+                                    "Start your learning journey"}
+                            </h1>
+
+                            <p
+                                style={{
+                                    fontFamily: FONT_FAMILY,
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                }}
+                                className="leading-6 text-white sm:leading-7"
+                            >
+                                {continueLearning?.description ??
+                                    homeExperience?.hero_description}
+                            </p>
+
+                            <div className="flex flex-wrap gap-3 pt-2">
+                                <Button
+                                    asChild
+                                    className="h-auto rounded-md bg-white px-7 py-3 text-black transition-colors hover:bg-white/80"
+                                    style={{
+                                        fontFamily: FONT_FAMILY,
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    <Link
+                                        href={
+                                            continueLearning?.cta_url ??
+                                            route("modules.index")
+                                        }
+                                        className="flex items-center"
+                                    >
+                                        <Play className="mr-2.5 size-6 fill-black text-black" />
+                                        {continueLearning?.cta_label ??
+                                            homeExperience?.primary_cta_label ??
+                                            "Continue Learning"}
+                                    </Link>
+                                </Button>
+                            </div>
                         </div>
-                    ) : null}
+
+                        {accessTimeSummary ? (
+                            <div className="flex justify-start lg:justify-end">
+                                <AccessTimeCard
+                                    liveSeconds={liveAccessSeconds}
+                                />
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
             </section>
 
