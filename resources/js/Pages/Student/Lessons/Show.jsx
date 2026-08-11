@@ -1439,33 +1439,32 @@ export default function StudentLessonShow({
 
                     <aside className="min-w-0">
                         <div className="lg:sticky lg:top-6">
-                            <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.28)]">
-                                <div className="border-b border-white/10 px-4 py-4">
-                                    <p className="font-['Montserrat'] text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">
-                                        Same Module
-                                    </p>
-                                    <h2 className="mt-1.5 font-['Montserrat'] text-[18px] font-medium tracking-tight text-white">
-                                        {moduleState?.title ??
-                                            "More lessons in this module"}
-                                    </h2>
-                                </div>
+                            <div className="pb-3">
+                                <p className="font-['Montserrat'] text-[12px] font-semibold uppercase tracking-[0.18em] text-white">
+                                    Lessons in Same Module
+                                </p>
 
-                                <div
-                                    className="lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden"
-                                    style={{
-                                        scrollbarWidth: "none",
-                                        msOverflowStyle: "none",
-                                    }}
-                                >
-                                    <div className="space-y-2 p-3">
-                                        {navigationItems?.map((item) => (
-                                            <LessonNavCard
-                                                key={item.id}
-                                                item={item}
-                                                onLockedClick={openLockedDialog}
-                                            />
-                                        ))}
-                                    </div>
+                                <h2 className="mt-2 font-['Montserrat'] text-[18px] font-medium tracking-tight text-white">
+                                    {moduleState?.title ??
+                                        "More lessons in this module"}
+                                </h2>
+                            </div>
+
+                            <div
+                                className="lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto [&::-webkit-scrollbar]:hidden"
+                                style={{
+                                    scrollbarWidth: "none",
+                                    msOverflowStyle: "none",
+                                }}
+                            >
+                                <div className="space-y-4">
+                                    {navigationItems?.map((item) => (
+                                        <LessonNavCard
+                                            key={item.id}
+                                            item={item}
+                                            onLockedClick={openLockedDialog}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         </div>
