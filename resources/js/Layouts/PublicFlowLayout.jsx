@@ -15,6 +15,23 @@ function isMasterclassLandingPath() {
     return /^\/masterclass(?:$|[-/])/.test(window.location.pathname);
 }
 
+function renderYogaFXTitle(value) {
+    return String(value ?? "")
+        .split(/(YogaFX)/gi)
+        .map((part, index) => {
+            if (part.toLowerCase() === "yogafx") {
+                return (
+                    <span key={`yogafx-${index}`}>
+                        Yoga
+                        <span className="text-[#DB202C]">FX</span>
+                    </span>
+                );
+            }
+
+            return part;
+        });
+}
+
 function MasterclassLoadingCard({ secondsRemaining }) {
     return (
         <div
@@ -105,6 +122,7 @@ export default function PublicFlowLayout({
                 if (welcomePhase === "initial-countdown") {
                     setSecondsRemaining(0);
                     setWelcomePhase("welcome");
+
                     return;
                 }
 
@@ -313,8 +331,8 @@ export default function PublicFlowLayout({
 
                                 <h2 className="mx-auto mt-10 max-w-2xl text-2xl font-bold leading-tight text-white sm:text-3xl">
                                     We Are Thrilled That You Are Joining Mr.
-                                    Ian&apos;s {title} Practical MasterClass In
-                                    Beautiful Bali
+                                    Ian&apos;s {renderYogaFXTitle(title)}{" "}
+                                    Practical MasterClass In Beautiful Bali
                                 </h2>
 
                                 <p className="mx-auto mt-6 max-w-xl text-base font-semibold italic leading-relaxed text-white sm:text-lg">
