@@ -18,8 +18,7 @@ const PAYPAL_FULL_NAMESPACE = "paypalPayFullCheckout";
 const PAYPAL_INSTALLMENT_NAMESPACE = "paypalInstallmentCheckout";
 const INSTALLMENT_WATERMARK_URL =
     "https://yogafx-training.b-cdn.net/branding/pdf-watermark-20260309072713-dc4ffc1e.png";
-const YOGAFX_LOGO_URL =
-    "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png";
+const YOGAFX_LOGO_URL = "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png";
 
 function firstErrorMessage(nextErrors) {
     return (
@@ -398,9 +397,7 @@ function resolveDefaultInstallmentCount(
     }
 
     return (
-        availableInstallmentCounts[
-            availableInstallmentCounts.length - 1
-        ] ?? 2
+        availableInstallmentCounts[availableInstallmentCounts.length - 1] ?? 2
     );
 }
 
@@ -1049,7 +1046,7 @@ export default function PublicCheckoutPanel({
     const canUseMock = mockAvailable && !isInstallmentSelected && !isPreview;
 
     const paymentButtonGridClass =
-        paymentOptions.length > 1 ? "grid gap-3 sm:grid-cols-2" : "grid gap-3";
+        paymentOptions.length > 1 ? "grid grid-cols-2 gap-3" : "grid gap-3";
 
     const payFullScriptUrl = useMemo(() => {
         const params = new URLSearchParams({
@@ -2217,8 +2214,8 @@ export default function PublicCheckoutPanel({
 
                             <p className="mx-auto mt-4 max-w-md text-sm font-medium italic leading-7 text-white sm:text-base">
                                 Please do not close this page. We are confirming
-                                your first transfer and preparing your enrollment
-                                access.
+                                your first transfer and preparing your
+                                enrollment access.
                             </p>
                         </div>
 

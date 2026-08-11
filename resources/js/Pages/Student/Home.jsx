@@ -19,45 +19,73 @@ function formatDurationParts(totalSeconds) {
     };
 }
 
-function AccessTimeCard({ accessTimeSummary }) {
+function useLiveAccessSeconds(accessTimeSummary) {
     const [liveSeconds, setLiveSeconds] = useState(
         accessTimeSummary?.running_total_access_duration_seconds ?? 0,
     );
 
     useEffect(() => {
+        const runningTotal = Number(
+            accessTimeSummary?.running_total_access_duration_seconds ?? 0,
+        );
+
         if (
             !accessTimeSummary?.currently_active ||
             !accessTimeSummary?.active_session_login_at
         ) {
-            setLiveSeconds(
-                accessTimeSummary?.running_total_access_duration_seconds ?? 0,
-            );
+            setLiveSeconds(runningTotal);
             return undefined;
         }
 
         const loginAt = new Date(
             accessTimeSummary.active_session_login_at,
         ).getTime();
+
+        if (!Number.isFinite(loginAt)) {
+            setLiveSeconds(runningTotal);
+            return undefined;
+        }
+
         const tick = () => {
             const elapsed = Math.max(
                 0,
                 Math.floor((Date.now() - loginAt) / 1000),
             );
-            setLiveSeconds(
-                (accessTimeSummary.running_total_access_duration_seconds ?? 0) +
-                    elapsed,
-            );
+
+            setLiveSeconds(runningTotal + elapsed);
         };
 
         tick();
+
         const interval = window.setInterval(tick, 1000);
-        return () => window.clearInterval(interval);
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                tick();
+            }
+        };
+
+        window.addEventListener("focus", tick);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        return () => {
+            window.clearInterval(interval);
+            window.removeEventListener("focus", tick);
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange,
+            );
+        };
     }, [
         accessTimeSummary?.active_session_login_at,
         accessTimeSummary?.currently_active,
         accessTimeSummary?.running_total_access_duration_seconds,
     ]);
 
+    return liveSeconds;
+}
+
+function AccessTimeCard({ liveSeconds }) {
     const parts = formatDurationParts(liveSeconds);
 
     return (
@@ -66,10 +94,10 @@ function AccessTimeCard({ accessTimeSummary }) {
             style={{ fontFamily: FONT_FAMILY }}
         >
             <div>
-                {/* Hapus uppercase dan tracking */}
                 <div className="text-xs text-white/45">Running Total</div>
                 <div className="text-xs text-white/45">Login Time</div>
             </div>
+
             <div className="text-3xl font-semibold tracking-[0.08em]">
                 {parts.hours}:{parts.minutes}:{parts.seconds}
             </div>
@@ -538,9 +566,9 @@ export default function StudentHome({
         studentContext?.access_tier?.name ??
         authUser?.access_tier?.name ??
         "Access Tier";
-    const mobileAccessTimeParts = formatDurationParts(
-        accessTimeSummary?.running_total_access_duration_seconds ?? 0,
-    );
+    const liveAccessSeconds = useLiveAccessSeconds(accessTimeSummary);
+
+    const mobileAccessTimeParts = formatDurationParts(liveAccessSeconds);
     const mobileModuleLessonLabel = [
         continueLearning?.module?.sort_order
             ? `MODULE ${continueLearning.module.sort_order}`
@@ -758,9 +786,7 @@ export default function StudentHome({
 
                     {accessTimeSummary ? (
                         <div className="flex justify-start lg:justify-end">
-                            <AccessTimeCard
-                                accessTimeSummary={accessTimeSummary}
-                            />
+                            <AccessTimeCard liveSeconds={liveAccessSeconds} />
                         </div>
                     ) : null}
                 </div>
