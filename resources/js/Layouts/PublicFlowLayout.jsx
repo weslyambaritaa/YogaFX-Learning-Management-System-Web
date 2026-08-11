@@ -250,7 +250,7 @@ export default function PublicFlowLayout({
 
                         {/* Global Copyright */}
                         <footer
-                            className="mt-6 w-full text-center"
+                            className="mt-8 w-full text-center"
                             style={{
                                 fontFamily: FONT_FAMILY,
                             }}
