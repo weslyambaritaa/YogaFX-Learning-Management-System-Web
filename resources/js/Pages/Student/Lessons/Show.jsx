@@ -236,9 +236,6 @@ function ContentSection({ content }) {
                 <h2 className="font-['Montserrat'] text-[16px] font-semibold text-white">
                     Lesson Notes
                 </h2>
-                <p className="mt-1 font-['Montserrat'] text-[13px] text-white/50">
-                    Written guidance for this practice.
-                </p>
             </div>
 
             <div className="relative">
