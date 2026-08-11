@@ -160,7 +160,7 @@ export default function PublicFlowLayout({
 
                     <div
                         className={[
-                            "flex w-full flex-col items-center pb-12",
+                            "flex w-full flex-col items-center",
                             progressStep
                                 ? "flex-none justify-start pt-0"
                                 : "flex-1 justify-center pt-6 lg:pt-8",
