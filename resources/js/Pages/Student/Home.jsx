@@ -745,7 +745,7 @@ export default function StudentHome({
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
-            studentContentClassName="pb-16"
+            studentContentClassName="pb-0"
         >
             <Head title="Home" />
 
@@ -963,7 +963,7 @@ export default function StudentHome({
                 </div>
             </section>
 
-            <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-6 sm:gap-10 sm:px-6 lg:px-10">
+            <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col gap-6 px-4 pt-6 sm:px-6 lg:px-10">
                 <section className="space-y-6">
                     <div className="px-3.5 md:px-0">
                         <h1
@@ -978,7 +978,7 @@ export default function StudentHome({
                         </h1>
                     </div>
 
-                    <div className="pb-4 sm:pb-6">
+                    <div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                             {rawModules.map((module) => (
                                 <div key={module.id} className="w-full">
@@ -1004,7 +1004,7 @@ export default function StudentHome({
                 </section>
 
                 {appDownload?.has_any_link ? (
-                    <section className="pb-4 sm:hidden">
+                    <section className="sm:hidden">
                         <div
                             className=" px-4 py-5 text-center text-white"
                             style={{ fontFamily: FONT_FAMILY }}
@@ -1023,6 +1023,16 @@ export default function StudentHome({
                         </div>
                     </section>
                 ) : null}
+
+                <footer
+                    className="w-full py-5 text-center"
+                    style={{ fontFamily: FONT_FAMILY }}
+                >
+                    <p className="text-sm font-bold text-white/70">
+                        © 2026 Yoga
+                        <span className="text-[#DB202C]">FX</span>
+                    </p>
+                </footer>
             </div>
         </AuthenticatedLayout>
     );
