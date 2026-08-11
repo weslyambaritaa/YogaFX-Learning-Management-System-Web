@@ -873,7 +873,7 @@ export default function StudentHome({
                 </div>
             </section>
 
-            <section className="relative hidden overflow-hidden sm:block">
+            <section className="relative mx-auto hidden w-full max-w-[1400px] overflow-hidden sm:block">
                 <div className="absolute inset-0">
                     {continueLearning?.thumbnail_url ? (
                         <img
