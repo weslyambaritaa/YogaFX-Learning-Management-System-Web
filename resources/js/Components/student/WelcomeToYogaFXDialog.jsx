@@ -108,13 +108,13 @@ export default function WelcomeToYogaFXDialog({
                                 className="mx-auto flex max-w-[420px] items-center gap-4"
                                 aria-hidden="true"
                             >
-                                <div className="h-px flex-1 bg-white/15" />
+                                <div className="h-[2px] flex-1 bg-white/45" />
 
-                                <span className="text-sm font-bold text-white/65">
+                                <span className="text-sm font-extrabold uppercase tracking-[0.2em] text-white">
                                     Or
                                 </span>
 
-                                <div className="h-px flex-1 bg-white/15" />
+                                <div className="h-[2px] flex-1 bg-white/45" />
                             </div>
 
                             <p className="mt-4 text-lg font-bold text-white sm:text-xl">
