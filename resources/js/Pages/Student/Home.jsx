@@ -627,17 +627,17 @@ function StudentDashboardIntro({
                             </div>
 
                             <div className="mx-auto mt-7 max-w-5xl sm:mt-8">
-                                <p className="text-base font-semibold text-white sm:text-lg">
+                                <p className="text-base font-bold text-white sm:text-lg">
                                     Dear {studentName}
                                 </p>
 
-                                <p className="mt-4 text-base leading-7 text-white/85 sm:text-lg sm:leading-8">
+                                <p className="mt-4 text-base font-bold leading-7 text-white sm:text-lg sm:leading-8">
                                     We are so happy to have you join us as a
                                     student on our RYT 200{" "}
                                     {formattedAccessTierDescription}
                                 </p>
 
-                                <p className="mt-5 text-base leading-7 text-white/75 sm:text-lg sm:leading-8">
+                                <p className="mt-5 text-base font-bold leading-7 text-white sm:text-lg sm:leading-8">
                                     This is your online learning dashboard. From
                                     here, you will access all your modules
                                     including posture clinics, dialogue,
