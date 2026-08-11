@@ -1212,7 +1212,7 @@ export default function AuthenticatedLayout({
                 className={[
                     "font-student min-h-screen",
                     isImmersive
-                        ? "bg-[radial-gradient(circle_at_top,_rgba(173,76,38,0.28),_transparent_32%),linear-gradient(180deg,_#120f0e_0%,_#0a0908_38%,_#080808_100%)] text-white"
+                       ? "bg-black text-white"
                         : "bg-slate-50",
                 ].join(" ")}
             >
