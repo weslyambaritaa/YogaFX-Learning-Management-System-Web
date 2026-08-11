@@ -96,24 +96,29 @@ export default function AssessmentResult({
                     )}
 
                     {stage === "success" && (
-                        <div className="rounded-[6px] border border-white/10 bg-[#111111] p-6 text-center shadow-[0_18px_50px_rgba(0,0,0,0.28)] md:p-8">
-                            <div className="mx-auto flex size-24 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_36px_rgba(16,185,129,0.28)]">
-                                <Check
-                                    className="size-14 text-white"
-                                    strokeWidth={4.5}
-                                    aria-hidden="true"
-                                />
-                            </div>
-                            <div className="mx-auto mt-6 max-w-2xl">
-                                <div className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-emerald-200">
+                        <div className="flex min-h-[280px] flex-col items-center justify-center rounded-[6px] border border-white/10 bg-[#111111] px-6 py-8 text-center shadow-[0_18px_50px_rgba(0,0,0,0.28)] sm:py-10">
+                            <div className="flex flex-col items-center gap-6">
+                                <div className="flex size-20 items-center justify-center rounded-full bg-emerald-500 shadow-[0_0_32px_rgba(16,185,129,0.25)]">
+                                    <Check
+                                        className="size-12 text-white"
+                                        strokeWidth={4.5}
+                                        aria-hidden="true"
+                                    />
+                                </div>
+
+                                <div className="text-sm font-bold uppercase tracking-[0.18em] text-red-200">
                                     Assessment Complete
                                 </div>
-                                <h3 className="mt-4 text-4xl font-bold tracking-tight text-white">
-                                    Your result is ready
-                                </h3>
-                                <p className="mt-3 text-base font-bold leading-7 text-white/80">
-                                    The final summary is ready to review.
-                                </p>
+
+                                <div className="max-w-2xl space-y-2">
+                                    <h3 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                                        Your result is ready
+                                    </h3>
+
+                                    <p className="text-base font-bold leading-7 text-white/80">
+                                        The final summary is ready to review.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
