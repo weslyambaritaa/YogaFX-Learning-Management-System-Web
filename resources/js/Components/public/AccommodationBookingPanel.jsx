@@ -1174,7 +1174,7 @@ export default function AccommodationBookingPanel({
                                 fontWeight: 600,
                             }}
                         >
-                            Pay in full
+                            Pay In Full
                         </button>
                         <button
                             type="button"
