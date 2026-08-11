@@ -310,20 +310,22 @@ export default function AssessmentShow({
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
-            studentContentClassName="bg-[#050505] flex flex-col"
+            studentContentClassName="bg-black"
             header={
                 <div className="flex flex-col gap-4">
                     <StudentBackButton
                         fallbackHref={route("lessons.show", lesson.id)}
                     />
+
                     <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                         <div className="min-w-0">
                             <h2 className="text-2xl font-bold text-white">
                                 {assessment.title}
                             </h2>
                         </div>
+
                         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                            <div className="rounded-full border border-red-400/20 bg-red-500/15 px-4 py-1.5 text-sm font-semibold text-red-100">
+                            <div className="rounded-[5px] border border-red-400/20 bg-red-500/15 px-4 py-1.5 text-sm font-bold text-red-100">
                                 {remaining}
                             </div>
                         </div>
@@ -333,18 +335,11 @@ export default function AssessmentShow({
         >
             <Head title={assessment.title} />
 
-            <div
-                className="py-6 flex-1 flex flex-col relative"
-                style={{
-                    background:
-                        assessment.design.section_background ||
-                        "radial-gradient(circle at top, rgba(226,72,72,0.15), transparent 30%), linear-gradient(180deg, #111111 0%, #080808 40%, #030303 100%)",
-                }}
-            >
-                <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8 flex-1 flex flex-col justify-center">
+            <div className="relative bg-black pt-4 pb-0 sm:pt-6">
+                <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
                     {assessment.design.logo_url && (
-                        <div className="flex justify-center mb-4">
-                            <div className="rounded-[12px] bg-transparent">
+                        <div className="mb-4 flex justify-center">
+                            <div className="bg-transparent">
                                 {assessment.design.logo_link ? (
                                     <a
                                         href={assessment.design.logo_link}
@@ -354,25 +349,23 @@ export default function AssessmentShow({
                                         <img
                                             src={assessment.design.logo_url}
                                             alt="Assessment logo"
-                                            className="mx-auto object-contain h-12"
+                                            className="mx-auto h-12 object-contain"
                                         />
                                     </a>
                                 ) : (
                                     <img
                                         src={assessment.design.logo_url}
                                         alt="Assessment logo"
-                                        className="mx-auto object-contain h-12"
+                                        className="mx-auto h-12 object-contain"
                                     />
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {/* UPDATE: Frame pembungkus dihapus (rounded, border, bg dihilangkan) */}
-                    <div className="w-full pb-4">
-                        {/* UPDATE: Margin bawah dikurangi agar tidak memakan ruang kosong */}
+                    <div className="w-full pb-2">
                         <div className="mb-4 flex flex-col items-center text-center">
-                            <div className="text-xs font-semibold uppercase tracking-widest text-white/50">
+                            <div className="text-[13px] font-bold tracking-wide text-white">
                                 Question {assessment.progress.current} out of{" "}
                                 {assessment.progress.total}
                             </div>
@@ -381,7 +374,7 @@ export default function AssessmentShow({
                         <form onSubmit={submit} className="space-y-6">
                             {question.show_instruction &&
                                 question.instruction_text && (
-                                    <div className="rounded-[10px] border border-white/10 bg-white/5 px-4 py-3 text-center text-xs font-medium text-white/80 max-w-2xl mx-auto">
+                                    <div className="mx-auto max-w-2xl rounded-[5px] border border-white/10 bg-white/5 px-4 py-3 text-center text-xs font-bold text-white/80">
                                         {question.instruction_text}
                                     </div>
                                 )}
@@ -396,12 +389,12 @@ export default function AssessmentShow({
                             />
 
                             {isInfoScreen ? (
-                                <div className="rounded-[12px] border border-white/10 bg-white/5 px-4 py-5 text-center text-sm text-white/70 max-w-2xl mx-auto">
+                                <div className="mx-auto max-w-2xl rounded-[5px] border border-white/10 bg-white/5 px-4 py-5 text-center text-sm font-bold text-white/70">
                                     This screen is informational only.
                                 </div>
                             ) : isOptionBased ? (
                                 <div
-                                    className="grid gap-3 mt-6 max-w-xl mx-auto"
+                                    className="mx-auto mt-6 grid max-w-xl gap-3"
                                     style={{
                                         gridTemplateColumns:
                                             question.question_type ===
@@ -424,7 +417,7 @@ export default function AssessmentShow({
                                             ];
 
                                         const sharedClass = [
-                                            "group flex items-center gap-4 py-2.5 px-4 text-left transition bg-transparent hover:bg-white/5 rounded-[12px] cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-red-500/50",
+                                            "group flex cursor-pointer items-center gap-4 rounded-[5px] bg-transparent px-4 py-2.5 text-left outline-none transition hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-red-500/50",
                                             selectedState === "correct"
                                                 ? "bg-emerald-500/10"
                                                 : selectedState === "incorrect"
@@ -459,16 +452,17 @@ export default function AssessmentShow({
                                                                 option.image_url
                                                             }
                                                             alt={option.label}
-                                                            className={`h-32 w-full rounded-[12px] shadow-md border-2 transition ${selected ? "border-[#DB202C]" : "border-transparent"} ${getImageFitClass(question)}`}
+                                                            className={`h-32 w-full rounded-[5px] border-2 shadow-md transition ${selected ? "border-[#DB202C]" : "border-transparent"} ${getImageFitClass(question)}`}
                                                         />
                                                     )}
+
                                                     {question.show_labels && (
-                                                        <div className="mt-2 text-lg font-bold text-white flex items-center gap-3 w-full">
+                                                        <div className="mt-2 flex w-full items-center gap-3 text-lg font-bold text-white">
                                                             <span
                                                                 className={[
                                                                     "flex size-5 shrink-0 items-center justify-center border-2 transition-colors",
                                                                     question.allow_multi_select
-                                                                        ? "rounded-sm"
+                                                                        ? "rounded-[4px]"
                                                                         : "rounded-full",
                                                                     selected
                                                                         ? "border-[#DB202C] bg-[#DB202C] text-white"
@@ -483,6 +477,7 @@ export default function AssessmentShow({
                                                                     )
                                                                 )}
                                                             </span>
+
                                                             {option.label}
                                                         </div>
                                                     )}
@@ -524,6 +519,7 @@ export default function AssessmentShow({
                                                         )
                                                     )}
                                                 </span>
+
                                                 <span className="text-lg font-bold text-white">
                                                     {option.label}
                                                 </span>
@@ -532,12 +528,13 @@ export default function AssessmentShow({
                                     })}
                                 </div>
                             ) : isNumericBased ? (
-                                <div className="space-y-4 mt-6 max-w-2xl mx-auto">
+                                <div className="mx-auto mt-6 max-w-2xl space-y-4">
                                     {question.question_type === "numeric" ? (
                                         <div className="mx-auto max-w-sm space-y-2">
-                                            <label className="text-sm font-semibold text-white/80 text-center block">
+                                            <label className="block text-center text-sm font-bold text-white/80">
                                                 Enter your numeric answer
                                             </label>
+
                                             <Input
                                                 type="number"
                                                 step={
@@ -552,9 +549,10 @@ export default function AssessmentShow({
                                                         event.target.value,
                                                     )
                                                 }
-                                                className="border-white/20 bg-white/5 text-center text-xl font-bold text-white placeholder:text-white/30 h-12 rounded-xl focus-visible:ring-[#DB202C]"
+                                                className="h-12 rounded-[5px] border-white/20 bg-white/5 text-center text-xl font-bold text-white placeholder:text-white/30 focus-visible:ring-[#DB202C]"
                                             />
-                                            <div className="text-xs font-medium text-white/50 text-center">
+
+                                            <div className="text-center text-xs font-bold text-white/50">
                                                 Allowed range:{" "}
                                                 {question.score_range_min ?? 0}{" "}
                                                 to{" "}
@@ -563,7 +561,7 @@ export default function AssessmentShow({
                                         </div>
                                     ) : question.question_type ===
                                       "sliding_scale" ? (
-                                        <div className="space-y-4 mx-auto max-w-lg">
+                                        <div className="mx-auto max-w-lg space-y-4">
                                             <input
                                                 type="range"
                                                 min={
@@ -588,6 +586,7 @@ export default function AssessmentShow({
                                                 }
                                                 className="w-full accent-[#DB202C]"
                                             />
+
                                             <div className="flex items-center justify-between text-sm font-bold text-white/70">
                                                 <span>
                                                     {question.left_label ||
@@ -602,21 +601,22 @@ export default function AssessmentShow({
                                                         "High"}
                                                 </span>
                                             </div>
+
                                             {question.show_score_tooltip && (
-                                                <div className="rounded-[12px] border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-medium text-white/70">
+                                                <div className="rounded-[5px] border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-bold text-white/70">
                                                     {question.score_tooltip_format ||
                                                         "Selected value will be used as raw score."}
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="space-y-4 mx-auto max-w-xl">
+                                        <div className="mx-auto max-w-xl space-y-4">
                                             {groupScaleValues(question).map(
                                                 (group, groupIndex) => (
                                                     <div
                                                         key={`scale-group-${groupIndex}`}
                                                         className={[
-                                                            "rounded-[12px] border border-white/10 bg-white/5 p-4",
+                                                            "rounded-[5px] border border-white/10 bg-white/5 p-4",
                                                             question.question_type ===
                                                             "linear_scale"
                                                                 ? "overflow-x-auto"
@@ -630,6 +630,7 @@ export default function AssessmentShow({
                                                                 {groupIndex + 1}
                                                             </div>
                                                         )}
+
                                                         <div
                                                             className={
                                                                 question.question_type ===
@@ -668,9 +669,9 @@ export default function AssessmentShow({
                                                                                 question.question_type ===
                                                                                 "linear_scale"
                                                                                     ? "flex size-10 items-center justify-center rounded-full border-2 text-base font-bold transition-all"
-                                                                                    : "rounded-[10px] border-2 px-3 py-3 text-center text-lg font-bold transition-all",
+                                                                                    : "rounded-[5px] border-2 px-3 py-3 text-center text-lg font-bold transition-all",
                                                                                 isSelected
-                                                                                    ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_10px_rgba(219,32,44,0.4)] scale-105"
+                                                                                    ? "scale-105 border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_10px_rgba(219,32,44,0.4)]"
                                                                                     : "border-[#DB202C]/50 bg-transparent text-white/80 hover:border-[#DB202C] hover:bg-[#DB202C]/10",
                                                                             ].join(
                                                                                 " ",
@@ -687,7 +688,8 @@ export default function AssessmentShow({
                                                     </div>
                                                 ),
                                             )}
-                                            <div className="flex items-center justify-between text-sm font-bold text-white/70 px-2">
+
+                                            <div className="flex items-center justify-between px-2 text-sm font-bold text-white/70">
                                                 <span>
                                                     {question.left_label ||
                                                         "Low"}
@@ -705,10 +707,11 @@ export default function AssessmentShow({
                                     )}
                                 </div>
                             ) : (
-                                <div className="space-y-3 mx-auto max-w-2xl mt-6">
-                                    <label className="text-base font-bold text-white text-center block">
+                                <div className="mx-auto mt-6 max-w-2xl space-y-3">
+                                    <label className="block text-center text-base font-bold text-white">
                                         Your Answer
                                     </label>
+
                                     {shouldUseMultilineInput(question) ? (
                                         <Textarea
                                             value={data.answer_text}
@@ -718,7 +721,7 @@ export default function AssessmentShow({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="min-h-24 rounded-[12px] border-white/20 bg-black/40 text-lg font-medium text-white placeholder:text-white/30 focus-visible:ring-[#DB202C]"
+                                            className="min-h-24 rounded-[5px] border-white/20 bg-black/40 text-lg font-medium text-white placeholder:text-white/30 focus-visible:ring-[#DB202C]"
                                             placeholder="Type your answer here..."
                                         />
                                     ) : (
@@ -731,12 +734,13 @@ export default function AssessmentShow({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-12 rounded-[12px] border-white/20 bg-black/40 text-lg font-medium text-white placeholder:text-white/30 focus-visible:ring-[#DB202C]"
+                                            className="h-12 rounded-[5px] border-white/20 bg-black/40 text-lg font-medium text-white placeholder:text-white/30 focus-visible:ring-[#DB202C]"
                                             placeholder="Type your answer here..."
                                         />
                                     )}
+
                                     {question.character_limit && (
-                                        <div className="text-right text-xs font-semibold text-white/50">
+                                        <div className="text-right text-xs font-bold text-white/50">
                                             {
                                                 String(data.answer_text || "")
                                                     .length
@@ -748,8 +752,7 @@ export default function AssessmentShow({
                                 </div>
                             )}
 
-                            {/* Notifications / Errors tanpa background (hanya teks berwarna) */}
-                            <div className="space-y-2 max-w-xl mx-auto">
+                            <div className="mx-auto max-w-xl space-y-2">
                                 {isOptionBased && optionFeedback.message && (
                                     <div
                                         className={[
@@ -784,7 +787,7 @@ export default function AssessmentShow({
                                 )}
                             </div>
 
-                            <div className="flex flex-col items-center justify-center gap-3 mt-6 pb-2">
+                            <div className="mt-5 flex flex-col items-center justify-center gap-3 pb-1">
                                 <Button
                                     type="submit"
                                     disabled={
@@ -792,7 +795,7 @@ export default function AssessmentShow({
                                         (isOptionBased &&
                                             !canSubmitOptionQuestion)
                                     }
-                                    className="rounded-full w-full max-w-sm px-8 py-4 text-lg font-bold bg-[#DB202C] text-white hover:bg-[#c31c28] shadow-[0_8px_20px_rgba(219,32,44,0.3)] transition-transform hover:-translate-y-0.5"
+                                    className="h-auto min-w-[150px] w-auto rounded-[5px] bg-[#DB202C] px-8 py-3 text-base font-bold text-white shadow-[0_8px_20px_rgba(219,32,44,0.25)] transition-colors hover:bg-[#c31c28]"
                                 >
                                     {isLastQuestion
                                         ? "Submit Assessment"
@@ -802,7 +805,7 @@ export default function AssessmentShow({
                                 {canGoBack && (
                                     <button
                                         type="button"
-                                        className="text-xs font-semibold text-white/50 hover:text-white transition-colors uppercase tracking-widest mt-1"
+                                        className="mt-1 text-sm font-bold text-white transition-colors hover:text-white/80"
                                         onClick={() =>
                                             router.post(
                                                 route("assessments.back", {
@@ -820,10 +823,10 @@ export default function AssessmentShow({
                     </div>
 
                     {assessment.show_progress_bar && (
-                        <div className="w-full max-w-lg mx-auto pt-4">
-                            <div className="overflow-hidden rounded-full bg-white/10 h-1.5">
+                        <div className="mx-auto w-full max-w-lg pt-4">
+                            <div className="h-1.5 overflow-hidden rounded-[3px] bg-white/10">
                                 <div
-                                    className="h-full rounded-full transition-all duration-500 ease-out"
+                                    className="h-full rounded-[3px] transition-all duration-500 ease-out"
                                     style={{
                                         width: progressWidth,
                                         background: "#DB202C",
@@ -834,7 +837,7 @@ export default function AssessmentShow({
                     )}
 
                     {assessment.design.footer_content && (
-                        <div className="text-center text-xs font-medium text-white/40 pt-2 pb-4">
+                        <div className="pt-2 pb-2 text-center text-xs font-bold text-white/50">
                             {assessment.design.footer_content}
                         </div>
                     )}

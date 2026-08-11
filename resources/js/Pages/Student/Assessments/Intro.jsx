@@ -12,125 +12,101 @@ export default function AssessmentIntro({
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
-            studentContentClassName="bg-[#070707]"
+            studentContentClassName="bg-black"
         >
             <Head title={assessment.title} />
 
-            <div className="bg-[radial-gradient(circle_at_top,_rgba(170,42,42,0.22),_transparent_28%),linear-gradient(180deg,#0d0d0d_0%,#080808_38%,#040404_100%)] py-12">
+            <div className="bg-black pt-6 pb-0 sm:pt-8">
                 <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                    <div className="overflow-hidden rounded-[16px] border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.38)] backdrop-blur">
-                        <div className="p-8 lg:p-10">
-                                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f16d6d]">
-                                    Assessment
-                                </div>
-                                <h3 className="mt-4 text-3xl font-semibold tracking-tight text-white">
-                                    {assessment.title}
-                                </h3>
-                                <p className="mt-4 max-w-2xl text-base leading-7 text-white/72">
-                                    {assessment.description ||
-                                        "Move one step at a time and submit when you're ready."}
-                                </p>
+                    <div className="overflow-hidden rounded-[6px] border border-white/10 bg-[#111111] shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+                        <div className="p-6 sm:p-7 lg:p-8">
+                            <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#f16d6d]">
+                                Assessment
+                            </div>
 
-                                <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                                    <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-4">
-                                        <div className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                            Duration
-                                        </div>
-                                        <div className="mt-2 text-lg font-semibold text-white">
-                                            {assessment.duration_minutes
-                                                ? `${assessment.duration_minutes} min`
-                                                : "Untimed"}
-                                        </div>
+                            <h3 className="mt-3 text-3xl font-bold tracking-tight text-white">
+                                {assessment.title}
+                            </h3>
+
+                            <p className="mt-4 max-w-3xl text-base font-bold leading-7 text-white">
+                                {assessment.description ||
+                                    "Move one step at a time and submit when you're ready."}
+                            </p>
+
+                            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-[5px] border border-white/10 bg-white/[0.05] px-4 py-4">
+                                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-white/70">
+                                        Duration
                                     </div>
-                                    <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-4">
-                                        <div className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                            Progress Bar
-                                        </div>
-                                        <div className="mt-2 text-lg font-semibold text-white">
-                                            {assessment.show_progress_bar
-                                                ? "Shown"
-                                                : "Hidden"}
-                                        </div>
-                                    </div>
-                                    <div className="rounded-[12px] border border-white/10 bg-white/6 px-4 py-4">
-                                        <div className="text-xs uppercase tracking-[0.16em] text-white/45">
-                                            Navigation
-                                        </div>
-                                        <div className="mt-2 text-lg font-semibold text-white">
-                                            {assessment.allow_back_navigation
-                                                ? "Back allowed"
-                                                : "Forward only"}
-                                        </div>
+
+                                    <div className="mt-2 text-xl font-bold text-white sm:text-[22px]">
+                                        {assessment.duration_minutes
+                                            ? `${assessment.duration_minutes} min`
+                                            : "Untimed"}
                                     </div>
                                 </div>
 
-                                {completedAttempt ? (
-                                    <div className="mt-8 rounded-[14px] border border-emerald-400/30 bg-emerald-500/10 px-5 py-5 text-white">
-                                        <div className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-200">
-                                            Completed
-                                        </div>
-                                        <p className="mt-3 text-sm leading-7 text-white/78">
-                                            You already completed this assessment. Retake is disabled.
-                                        </p>
-                                        <div className="mt-4 flex flex-wrap gap-3">
-                                            <Button
-                                                asChild
-                                                size="lg"
-                                                className="bg-[#e24848] text-white hover:bg-[#f05a5a]"
-                                            >
-                                                <Link
-                                                    href={route(
-                                                        "assessments.result",
-                                                        {
-                                                            lesson: lesson.id,
-                                                            attempt:
-                                                                completedAttempt.id,
-                                                        },
-                                                    )}
-                                                >
-                                                    View Result
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                asChild
-                                                variant="outline"
-                                                size="lg"
-                                                className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                                            >
-                                                <Link
-                                                    href={route(
-                                                        "lessons.show",
-                                                        lesson.id,
-                                                    )}
-                                                >
-                                                    Back to Lesson
-                                                </Link>
-                                            </Button>
-                                        </div>
+                                <div className="rounded-[5px] border border-white/10 bg-white/[0.05] px-4 py-4">
+                                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-white/70">
+                                        Progress Bar
                                     </div>
-                                ) : eligibility.is_unlocked ? (
-                                    <div className="mt-8 flex flex-wrap gap-3">
+
+                                    <div className="mt-2 text-xl font-bold text-white sm:text-[22px]">
+                                        {assessment.show_progress_bar
+                                            ? "Shown"
+                                            : "Hidden"}
+                                    </div>
+                                </div>
+
+                                <div className="rounded-[5px] border border-white/10 bg-white/[0.05] px-4 py-4">
+                                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-white/70">
+                                        Navigation
+                                    </div>
+
+                                    <div className="mt-2 text-xl font-bold text-white sm:text-[22px]">
+                                        {assessment.allow_back_navigation
+                                            ? "Back allowed"
+                                            : "Forward only"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {completedAttempt ? (
+                                <div className="mt-6 rounded-[5px] border border-emerald-400/30 bg-emerald-500/10 px-5 py-4 text-white">
+                                    <div className="text-sm font-bold uppercase tracking-[0.16em] text-emerald-200">
+                                        Completed
+                                    </div>
+
+                                    <p className="mt-2 text-sm font-bold leading-6 text-white">
+                                        You already completed this assessment.
+                                        Retake is disabled.
+                                    </p>
+
+                                    <div className="mt-4 flex flex-wrap gap-3">
                                         <Button
+                                            asChild
                                             size="lg"
-                                            className="bg-[#e24848] text-white hover:bg-[#f05a5a]"
-                                            onClick={() =>
-                                                router.post(
-                                                    route(
-                                                        "assessments.start",
-                                                        lesson.id,
-                                                    ),
-                                                )
-                                            }
+                                            className="rounded-[5px] bg-[#e24848] font-bold text-white hover:bg-[#f05a5a]"
                                         >
-                                            {attempt
-                                                ? "Resume Assessment"
-                                                : "Start Assessment"}
+                                            <Link
+                                                href={route(
+                                                    "assessments.result",
+                                                    {
+                                                        lesson: lesson.id,
+                                                        attempt:
+                                                            completedAttempt.id,
+                                                    },
+                                                )}
+                                            >
+                                                View Result
+                                            </Link>
                                         </Button>
+
                                         <Button
                                             asChild
                                             variant="outline"
                                             size="lg"
-                                            className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                                            className="rounded-[5px] border-white/20 bg-white/5 font-bold text-white hover:bg-white/10 hover:text-white"
                                         >
                                             <Link
                                                 href={route(
@@ -142,14 +118,50 @@ export default function AssessmentIntro({
                                             </Link>
                                         </Button>
                                     </div>
-                                ) : (
-                                    <div className="mt-8 rounded-[14px] border border-amber-400/30 bg-amber-500/10 px-5 py-4 text-sm text-amber-100">
-                                        Assessment remains locked until your
-                                        video watch progress reaches 95%.
-                                        Current watch progress:{" "}
-                                        {eligibility.watch_progress ?? 0}%.
-                                    </div>
-                                )}
+                                </div>
+                            ) : eligibility.is_unlocked ? (
+                                <div className="mt-6 flex flex-wrap gap-3">
+                                    <Button
+                                        size="lg"
+                                        className="rounded-[5px] bg-[#e24848] font-bold text-white hover:bg-[#f05a5a]"
+                                        onClick={() =>
+                                            router.post(
+                                                route(
+                                                    "assessments.start",
+                                                    lesson.id,
+                                                ),
+                                            )
+                                        }
+                                    >
+                                        {attempt
+                                            ? "Resume Assessment"
+                                            : "Start Assessment"}
+                                    </Button>
+
+                                    <Button
+                                        asChild
+                                        variant="outline"
+                                        size="lg"
+                                        className="rounded-[5px] border-white/20 bg-white/5 font-bold text-white hover:bg-white/10 hover:text-white"
+                                    >
+                                        <Link
+                                            href={route(
+                                                "lessons.show",
+                                                lesson.id,
+                                            )}
+                                        >
+                                            Back to Lesson
+                                        </Link>
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="mt-6 rounded-[5px] border border-amber-400/30 bg-amber-500/10 px-5 py-4 text-sm font-bold leading-6 text-amber-100">
+                                    Assessment remains locked until your video
+                                    watch progress reaches 95%. Current watch
+                                    progress: {eligibility.watch_progress ?? 0}
+                                    %.
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
