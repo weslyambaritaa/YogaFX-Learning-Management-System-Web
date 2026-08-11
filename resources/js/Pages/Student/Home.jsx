@@ -821,7 +821,6 @@ export default function StudentHome({
                             ) : (
                                 <div className="h-full w-full bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),linear-gradient(160deg,#1e1210,#0a0908)]" />
                             )}
-                            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.24)_0%,rgba(0,0,0,0.14)_24%,rgba(0,0,0,0.72)_68%,rgba(0,0,0,0.96)_100%)]" />
 
                             <div className="absolute inset-x-0 bottom-0 p-4">
                                 <div className="space-y-3 text-white">
@@ -884,7 +883,7 @@ export default function StudentHome({
                     ) : (
                         <div className="h-full w-full bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),linear-gradient(160deg,#1e1210,#0a0908)]" />
                     )}
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%),linear-gradient(to_top,rgba(0,0,0,0.96)_0%,rgba(0,0,0,0.38)_32%,transparent_62%)]" />
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%)]" />
                 </div>
 
                 <div className="relative mx-auto flex min-h-[80vh] max-w-[1400px] flex-col justify-end gap-6 px-4 pb-20 pt-24 sm:gap-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10 lg:pb-28">
