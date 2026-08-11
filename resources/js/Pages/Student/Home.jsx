@@ -1030,16 +1030,6 @@ export default function StudentHome({
                         </div>
                     </section>
                 ) : null}
-
-                <footer
-                    className="w-full py-5 text-center"
-                    style={{ fontFamily: FONT_FAMILY }}
-                >
-                    <p className="text-sm font-bold text-white/70">
-                        © 2026 Yoga
-                        <span className="text-[#DB202C]">FX</span>
-                    </p>
-                </footer>
             </div>
         </AuthenticatedLayout>
     );
