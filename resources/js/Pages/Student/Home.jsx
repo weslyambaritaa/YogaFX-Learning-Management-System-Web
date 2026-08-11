@@ -963,11 +963,11 @@ export default function StudentHome({
                 </div>
             </section>
 
-            <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:gap-10 sm:px-6 sm:-mt-10 lg:px-10">
-                <section>
+            <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-6 sm:gap-10 sm:px-6 lg:px-10">
+                <section className="space-y-6">
                     <div className="px-3.5 md:px-0">
                         <h1
-                            className="mt-1 text-white"
+                            className="text-white"
                             style={{
                                 fontFamily: FONT_FAMILY,
                                 fontSize: "22px",
@@ -977,7 +977,8 @@ export default function StudentHome({
                             All Modules
                         </h1>
                     </div>
-                    <div className="mt-3 pb-4 sm:mt-3 sm:pb-6">
+
+                    <div className="pb-4 sm:pb-6">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                             {rawModules.map((module) => (
                                 <div key={module.id} className="w-full">
