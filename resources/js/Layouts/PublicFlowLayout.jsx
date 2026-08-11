@@ -158,7 +158,12 @@ export default function PublicFlowLayout({
                         </div>
                     ) : null}
 
-                    <div className="flex flex-1 flex-col items-center justify-center pt-6 lg:pt-8">
+                    <div
+                        className={[
+                            "flex flex-1 flex-col items-center pb-12 pt-6 lg:pt-8",
+                            progressStep ? "justify-start" : "justify-center",
+                        ].join(" ")}
+                    >
                         <header
                             className={[
                                 "flex items-center justify-center",

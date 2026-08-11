@@ -18,6 +18,8 @@ const PAYPAL_FULL_NAMESPACE = "paypalPayFullCheckout";
 const PAYPAL_INSTALLMENT_NAMESPACE = "paypalInstallmentCheckout";
 const INSTALLMENT_WATERMARK_URL =
     "https://yogafx-training.b-cdn.net/branding/pdf-watermark-20260309072713-dc4ffc1e.png";
+const YOGAFX_LOGO_URL =
+    "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png";
 
 function firstErrorMessage(nextErrors) {
     return (
@@ -2151,16 +2153,28 @@ export default function PublicCheckoutPanel({
 
             {isConfirmingPayment && (
                 <div
-                    className="fixed inset-0 z-50 flex min-h-[100dvh] items-center justify-center bg-black/85 px-4 py-6 backdrop-blur-sm sm:px-6"
+                    className="fixed inset-0 z-[9999] flex min-h-[100dvh] w-full items-center justify-center overflow-y-auto bg-black px-4 py-8 text-white sm:px-6"
                     style={{ fontFamily: FONT_FAMILY }}
                     role="status"
                     aria-live="polite"
-                    aria-label="Confirming your transfer"
+                    aria-label="Confirming your payment"
                 >
                     <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0"
+                        style={{
+                            backgroundImage:
+                                "radial-gradient(circle at 50% 42%, rgba(219,32,44,0.08), transparent 24%), radial-gradient(circle at 50% 76%, rgba(255,255,255,0.025), transparent 30%)",
+                        }}
+                    />
+
+                    <div
                         className="
+                            relative
+                            z-10
+                            mx-auto
                             flex
-                            min-h-[410px]
+                            min-h-[450px]
                             w-full
                             max-w-lg
                             flex-col
@@ -2171,40 +2185,45 @@ export default function PublicCheckoutPanel({
                             border-white/15
                             bg-[#111111]
                             px-6
-                            py-8
+                            py-10
                             text-center
                             shadow-[0_24px_80px_rgba(0,0,0,0.55)]
-                            sm:min-h-[450px]
-                            sm:px-10
-                            sm:py-10
+                            sm:px-8
+                            sm:py-12
                         "
                     >
-                        <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border border-[#ff3344]/45 bg-[#DB202C]/10 shadow-[0_0_38px_rgba(255,51,68,0.22)]">
+                        <img
+                            src={YOGAFX_LOGO_URL}
+                            alt="YogaFX"
+                            className="h-16 w-auto object-contain sm:h-20"
+                        />
+
+                        <div className="mt-8 flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-[#ff3344]/45 bg-[#DB202C]/10 shadow-[0_0_38px_rgba(255,51,68,0.22)]">
                             <LoaderCircle
-                                className="h-12 w-12 animate-spin text-[#ff3344] drop-shadow-[0_0_10px_rgba(255,51,68,0.95)] motion-reduce:animate-none"
+                                className="h-10 w-10 animate-spin text-[#ff3344] drop-shadow-[0_0_10px_rgba(255,51,68,0.95)] motion-reduce:animate-none"
                                 strokeWidth={3}
                                 aria-hidden="true"
                             />
                         </div>
 
-                        <div className="mt-7 w-full space-y-4">
+                        <div className="mt-6 w-full">
                             <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#ffb8bf]">
                                 Payment Received
                             </p>
 
-                            <h2 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
+                            <h2 className="mt-3 text-2xl font-bold leading-tight text-white sm:text-3xl">
                                 Confirming Your Payment
                             </h2>
 
-                            <p className="mx-auto max-w-md text-sm font-medium italic leading-7 text-white sm:text-base">
+                            <p className="mx-auto mt-4 max-w-md text-sm font-medium italic leading-7 text-white sm:text-base">
                                 Please do not close this page. We are confirming
                                 your first transfer and preparing your enrollment
                                 access.
                             </p>
                         </div>
 
-                        <div className="mt-8 h-2 w-full max-w-[320px] overflow-hidden rounded-full bg-white/10">
-                            <div className="h-full w-2/3 animate-pulse rounded-full bg-[#ff3344] shadow-[0_0_12px_rgba(255,51,68,0.85)]" />
+                        <div className="mt-7 h-2 w-full max-w-[320px] overflow-hidden rounded-full bg-white/10">
+                            <div className="h-full w-2/3 animate-pulse rounded-full bg-[#DB202C] shadow-[0_0_12px_rgba(219,32,44,0.85)]" />
                         </div>
 
                         <p className="mt-4 text-sm font-bold text-white">
