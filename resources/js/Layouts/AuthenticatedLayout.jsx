@@ -1016,6 +1016,27 @@ function StudentSiteHeader({ user, variant = "default" }) {
     );
 }
 
+function GlobalCopyright({ dark = false, className = "" }) {
+    return (
+        <footer
+            className={[
+                "w-full py-5 text-center font-['Montserrat']",
+                className,
+            ].join(" ")}
+        >
+            <p
+                className={[
+                    "text-sm font-bold",
+                    dark ? "text-white/70" : "text-slate-500",
+                ].join(" ")}
+            >
+                © 2026 Yoga
+                <span className="text-[#DB202C]">FX</span>
+            </p>
+        </footer>
+    );
+}
+
 function StudentPageBody({
     header,
     children,
@@ -1079,6 +1100,8 @@ function StudentPageBody({
                 ) : null}
 
                 {children}
+
+                <GlobalCopyright dark={isImmersive} className="mt-6" />
             </main>
 
             <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0908]/95 backdrop-blur-xl md:hidden">
@@ -1211,9 +1234,7 @@ export default function AuthenticatedLayout({
             <div
                 className={[
                     "font-student min-h-screen",
-                    isImmersive
-                       ? "bg-black text-white"
-                        : "bg-slate-50",
+                    isImmersive ? "bg-black text-white" : "bg-slate-50",
                 ].join(" ")}
             >
                 <div
@@ -1302,6 +1323,11 @@ export default function AuthenticatedLayout({
                     )}
 
                     <main className="flex-1">{children}</main>
+
+                    <GlobalCopyright
+                        dark={false}
+                        className="border-t border-slate-200 bg-white"
+                    />
                 </div>
             </div>
         </div>
