@@ -886,7 +886,7 @@ export default function StudentHome({
                     <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.88)_0%,rgba(0,0,0,0.42)_52%,rgba(0,0,0,0.08)_100%)]" />
                 </div>
 
-                <div className="relative mx-auto flex min-h-[80vh] max-w-[1400px] flex-col justify-end gap-6 px-4 pb-20 pt-24 sm:gap-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10 lg:pb-28">
+                <div className="relative mx-auto flex min-h-[80vh] max-w-[1400px] flex-col justify-end gap-6 px-4 pb-0 pt-24 sm:gap-8 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-10">
                     <div className="max-w-2xl space-y-3 text-white sm:space-y-5">
                         {/* "Welcome back, Rahel" → medium 14px, tanpa uppercase */}
                         <div
@@ -992,10 +992,13 @@ export default function StudentHome({
                             ))}
                         </div>
                     </div>
+
                     {!rawModules.length ? (
                         <div
                             className="rounded-[5px] border border-white/10 bg-white/[0.04] px-6 py-10 text-center text-white/60 sm:py-12"
-                            style={{ fontFamily: FONT_FAMILY }}
+                            style={{
+                                fontFamily: FONT_FAMILY,
+                            }}
                         >
                             No modules are available for your current access
                             tier.
