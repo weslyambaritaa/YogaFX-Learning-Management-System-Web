@@ -14,7 +14,7 @@ import { Head, Link, router } from "@inertiajs/react";
 import { Check, ChevronRight, FileText, Volume2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const CONTENT_COLLAPSED_HEIGHT = 320;
+const CONTENT_COLLAPSED_HEIGHT = 260;
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
@@ -219,7 +219,7 @@ function ContentSection({ content }) {
 
     if (!content) {
         return (
-            <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-5 py-6 font-['Montserrat'] text-sm leading-7 text-white/60">
+            <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-4 py-4 font-['Montserrat'] text-sm leading-6 text-white/60">
                 Lesson content will appear here when this learning material
                 includes written guidance.
             </div>
@@ -227,12 +227,12 @@ function ContentSection({ content }) {
     }
 
     return (
-        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-5">
-            <div className="mb-4">
+        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-4">
+            <div className="mb-2">
                 <h2 className="font-['Montserrat'] text-[16px] font-semibold text-white">
                     Lesson Notes
                 </h2>
-                <p className="mt-1 font-['Montserrat'] text-sm text-white/50">
+                <p className="mt-1 font-['Montserrat'] text-[13px] text-white/50">
                     Written guidance for this practice.
                 </p>
             </div>
@@ -241,7 +241,7 @@ function ContentSection({ content }) {
                 <div
                     ref={contentRef}
                     className={[
-                        "prose prose-invert max-w-none overflow-hidden font-['Montserrat'] prose-headings:text-white prose-li:text-white/72 prose-p:text-white/72 prose-strong:text-white transition-[max-height] duration-300",
+                        "prose prose-invert prose-sm max-w-none overflow-hidden font-['Montserrat'] prose-headings:my-3 prose-headings:text-white prose-li:my-1 prose-li:text-white/72 prose-p:my-2 prose-p:leading-6 prose-p:text-white/72 prose-strong:text-white transition-[max-height] duration-300",
                         isExpanded ? "max-h-none" : "max-h-[320px]",
                     ].join(" ")}
                     dangerouslySetInnerHTML={{
@@ -255,7 +255,7 @@ function ContentSection({ content }) {
             </div>
 
             {isCollapsible ? (
-                <div className="mt-4">
+                <div className="mt-3">
                     <button
                         type="button"
                         onClick={() => setIsExpanded((current) => !current)}
@@ -454,7 +454,9 @@ export default function StudentLessonShow({
     const canAutoAdvance = Boolean(
         lesson.lesson_video_id && nextTarget?.is_unlocked && nextTarget?.url,
     );
-    const canOpenNextTarget = Boolean(nextTarget?.is_unlocked && nextTarget?.url);
+    const canOpenNextTarget = Boolean(
+        nextTarget?.is_unlocked && nextTarget?.url,
+    );
     const nextTargetHref = nextTarget?.url
         ? nextTarget.type === "lesson"
             ? withAutoplayQuery(nextTarget.url)
@@ -1009,7 +1011,9 @@ export default function StudentLessonShow({
             }
         }
 
-        watchMetricsRef.current.lastCurrentTime = Number.isFinite(safeCurrentTime)
+        watchMetricsRef.current.lastCurrentTime = Number.isFinite(
+            safeCurrentTime,
+        )
             ? safeCurrentTime
             : null;
 
@@ -1048,9 +1052,7 @@ export default function StudentLessonShow({
                           ...current,
                           is_unlocked: true,
                           lock_reason: null,
-                          url:
-                              current.url ??
-                              route("lessons.show", current.id),
+                          url: current.url ?? route("lessons.show", current.id),
                       }
                     : current,
             );
@@ -1093,7 +1095,7 @@ export default function StudentLessonShow({
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
-            studentContentClassName="pb-16"
+            studentContentClassName="pb-8"
         >
             <Head title={lesson.title} />
 
@@ -1142,9 +1144,9 @@ export default function StudentLessonShow({
                 </DialogContent>
             </Dialog>
 
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-5 pt-0 sm:gap-6 sm:px-6 sm:pt-4 lg:px-10">
-                <section className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(320px,1fr)] lg:items-start">
-                    <div className="min-w-0 space-y-0 sm:space-y-6">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-4 pt-0 sm:px-6 sm:pt-3 lg:px-10">
+                <section className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(320px,1fr)] lg:items-start">
+                    <div className="min-w-0 space-y-0 sm:space-y-4">
                         <div
                             className="aspect-video w-full lg:hidden"
                             aria-hidden="true"
@@ -1168,9 +1170,7 @@ export default function StudentLessonShow({
                                                 autoNextCountdown !== null
                                             }
                                             overlay={autoNextOverlay}
-                                            onPlaybackError={
-                                                setPlayerWarning
-                                            }
+                                            onPlaybackError={setPlayerWarning}
                                             onProgressUpdate={
                                                 handleProgressUpdate
                                             }
@@ -1186,7 +1186,8 @@ export default function StudentLessonShow({
                                                 <div className="max-w-md space-y-3">
                                                     <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/25 border-t-[#db202c]" />
                                                     <div className="font-['Montserrat'] text-base font-semibold text-white">
-                                                        Preparing workbook download
+                                                        Preparing workbook
+                                                        download
                                                     </div>
                                                     <p className="font-['Montserrat'] text-sm leading-6 text-white/72">
                                                         {isTriggeringWorkbook
@@ -1216,138 +1217,55 @@ export default function StudentLessonShow({
                             </div>
                         </div>
                         <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
-                            <div className="border-t border-white/10 bg-white/[0.04] px-4 py-5 sm:border-t-0 sm:p-6 lg:p-8">
-                                <div className="space-y-4 sm:space-y-5">
-                                    <div className="space-y-3">
-                                        <h1 className="font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
+                            <div className="border-t border-white/10 bg-white/[0.04] px-4 py-4 sm:border-t-0 sm:p-5 lg:p-6">
+                                <div className="space-y-3 sm:space-y-4">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <h1 className="min-w-0 font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
                                             {lesson.title}
                                         </h1>
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            <div className="hidden sm:block">
-                                                <StudentStatusBadge
-                                                    status={
-                                                        currentNavigationItem
-                                                            ? navigationBadgeStatus(
-                                                                  currentNavigationItem,
-                                                              )
-                                                            : isLessonDone
-                                                              ? "completed"
-                                                              : "current"
-                                                    }
-                                                    label={currentStatusLabel}
-                                                />
-                                            </div>
+
+                                        <div className="hidden shrink-0 sm:block">
+                                            <StudentStatusBadge
+                                                status={
+                                                    currentNavigationItem
+                                                        ? navigationBadgeStatus(
+                                                              currentNavigationItem,
+                                                          )
+                                                        : isLessonDone
+                                                          ? "completed"
+                                                          : "current"
+                                                }
+                                                label={currentStatusLabel}
+                                            />
                                         </div>
                                     </div>
 
-                                    <div className="grid gap-3 sm:gap-4">
-                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
-                                            <h2 className="font-['Montserrat'] text-[14px] font-medium tracking-tight text-white">
+                                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                        <div className="flex min-h-[112px] flex-col justify-between rounded-[5px] border border-white/10 bg-black/20 p-4">
+                                            <h2 className="font-['Montserrat'] text-[13px] font-medium tracking-tight text-white/75">
                                                 Total Access Time
                                             </h2>
-                                            <div className="mt-3 font-['Montserrat'] text-3xl font-semibold tracking-[0.08em] text-white">
+                                            <div className="mt-2 font-['Montserrat'] text-[28px] font-semibold tracking-[0.08em] text-white">
                                                 {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {playbackErrorMessage ? (
-                                        <div className="rounded-[5px] border border-amber-400/25 bg-amber-500/10 px-5 py-4 font-['Montserrat'] text-sm leading-7 text-amber-100">
-                                            {playbackErrorMessage}
-                                        </div>
-                                    ) : null}
-
-                                    {downloadNotice ? (
-                                        <div
-                                            className={[
-                                                "flex items-start justify-between gap-4 rounded-[5px] border px-5 py-4 font-['Montserrat'] text-sm leading-7",
-                                                downloadNotice.tone ===
-                                                "warning"
-                                                    ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
-                                                    : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
-                                            ].join(" ")}
-                                        >
-                                            <div className="space-y-1">
-                                                <p className="font-['Montserrat'] text-sm font-semibold text-white">
-                                                    {downloadNotice.title}
-                                                </p>
-                                                <p>{downloadNotice.message}</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setDownloadNotice(null)
-                                                }
-                                                className="rounded-full border border-white/10 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
-                                                aria-label="Dismiss workbook notice"
-                                            >
-                                                <X className="size-4" />
-                                            </button>
-                                        </div>
-                                    ) : null}
-
-                                    {lesson.assessment ? (
-                                        <div className="rounded-[5px] border border-white/10 bg-black/20 px-5 py-5 text-white">
-                                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                                <div>
-                                                    <div className="font-['Montserrat'] text-[14px] font-semibold text-white">
-                                                        {assessmentState.title}
-                                                    </div>
-                                                    <p className="mt-1 font-['Montserrat'] text-[14px] font-medium text-white">
-                                                        {assessmentState.is_completed
-                                                            ? "This assessment has already been completed."
-                                                            : assessmentState.is_unlocked
-                                                              ? "This assessment is ready to start."
-                                                              : "Assessment unlocks after your lesson watch progress reaches 95%."}
-                                                    </p>
-                                                </div>
-
-                                                {assessmentState.is_unlocked ? (
-                                                    <Button
-                                                        asChild
-                                                        className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
-                                                    >
-                                                        <Link
-                                                            href={route(
-                                                                "assessments.intro",
-                                                                lesson.id,
-                                                            )}
-                                                        >
-                                                            {assessmentState.current_attempt_id
-                                                                ? "Resume Assessment"
-                                                                : assessmentState.is_completed
-                                                                  ? "View Assessment Result"
-                                                                  : "Open Assessment"}
-                                                        </Link>
-                                                    </Button>
-                                                ) : (
-                                                    <StudentStatusBadge
-                                                        status="locked"
-                                                        label="Locked"
-                                                    />
-                                                )}
-                                            </div>
-                                        </div>
-                                    ) : null}
-
-                                    <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
                                         {lesson.workbook_download_url ? (
-                                            <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
-                                                <div className="mb-4">
-                                                    <h2 className="font-['Montserrat'] text-[16px] font-semibold text-white">
+                                            <div className="flex min-h-[112px] flex-col justify-between gap-3 rounded-[5px] border border-white/10 bg-black/20 p-4">
+                                                <div>
+                                                    <h2 className="font-['Montserrat'] text-[14px] font-semibold text-white">
                                                         Workbook
                                                     </h2>
-                                                    <p className="mt-1 font-['Montserrat'] text-sm text-white/50">
-                                                        Download the practice
-                                                        workbook for this
-                                                        lesson.
+                                                    <p className="mt-1 font-['Montserrat'] text-[12px] leading-5 text-white/50">
+                                                        Practice workbook for
+                                                        this lesson.
                                                     </p>
                                                 </div>
 
-                                                <div className="flex flex-wrap gap-3">
+                                                <div className="flex flex-wrap items-center gap-2">
                                                     <Button
                                                         asChild
-                                                        className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                        className="h-9 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28]"
                                                     >
                                                         <a
                                                             href={
@@ -1380,47 +1298,127 @@ export default function StudentLessonShow({
 
                                                     {hasWorkbook &&
                                                     isTriggeringWorkbook ? (
-                                                        <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 font-['Montserrat'] text-sm text-white/70">
-                                                            Starting workbook
-                                                            download...
-                                                        </div>
+                                                        <span className="font-['Montserrat'] text-[12px] text-white/55">
+                                                            Preparing...
+                                                        </span>
                                                     ) : null}
                                                 </div>
                                             </div>
                                         ) : null}
 
-                                        {lesson.audio_url ? (
-                                            <div className="rounded-[5px] border border-white/10 bg-black/20 p-5">
-                                                <div className="mb-3 flex items-center gap-2 font-['Montserrat'] text-sm font-medium text-white">
-                                                    <Volume2 className="size-4 text-[#f15b3a]" />
-                                                    Audio Companion
+                                        {lesson.assessment ? (
+                                            <div className="flex min-h-[112px] flex-col justify-between gap-3 rounded-[5px] border border-white/10 bg-black/20 p-4 text-white">
+                                                <div>
+                                                    <div className="font-['Montserrat'] text-[14px] font-semibold text-white">
+                                                        {assessmentState.title}
+                                                    </div>
+                                                    <p className="mt-1 font-['Montserrat'] text-[12px] leading-5 text-white/55">
+                                                        {assessmentState.is_completed
+                                                            ? "Assessment completed."
+                                                            : assessmentState.is_unlocked
+                                                              ? "Assessment ready to start."
+                                                              : "Unlocks at 95% lesson progress."}
+                                                    </p>
                                                 </div>
-                                                <audio
-                                                    controls
-                                                    src={lesson.audio_url}
-                                                    className="w-full"
-                                                    onPlay={() => {
-                                                        window.dispatchEvent(
-                                                            new CustomEvent(
-                                                                "yogafx:audio-play",
-                                                            ),
-                                                        );
-                                                    }}
-                                                >
-                                                    Your browser does not
-                                                    support the audio element.
-                                                </audio>
+
+                                                <div>
+                                                    {assessmentState.is_unlocked ? (
+                                                        <Button
+                                                            asChild
+                                                            className="h-9 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28]"
+                                                        >
+                                                            <Link
+                                                                href={route(
+                                                                    "assessments.intro",
+                                                                    lesson.id,
+                                                                )}
+                                                            >
+                                                                {assessmentState.current_attempt_id
+                                                                    ? "Resume Assessment"
+                                                                    : assessmentState.is_completed
+                                                                      ? "View Result"
+                                                                      : "Open Assessment"}
+                                                            </Link>
+                                                        </Button>
+                                                    ) : (
+                                                        <StudentStatusBadge
+                                                            status="locked"
+                                                            label="Locked"
+                                                        />
+                                                    )}
+                                                </div>
                                             </div>
                                         ) : null}
                                     </div>
 
+                                    {lesson.audio_url ? (
+                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-4">
+                                            <div className="mb-2 flex items-center gap-2 font-['Montserrat'] text-[13px] font-medium text-white">
+                                                <Volume2 className="size-4 text-[#f15b3a]" />
+                                                Audio Companion
+                                            </div>
+                                            <audio
+                                                controls
+                                                src={lesson.audio_url}
+                                                className="h-10 w-full"
+                                                onPlay={() => {
+                                                    window.dispatchEvent(
+                                                        new CustomEvent(
+                                                            "yogafx:audio-play",
+                                                        ),
+                                                    );
+                                                }}
+                                            >
+                                                Your browser does not support
+                                                the audio element.
+                                            </audio>
+                                        </div>
+                                    ) : null}
+
+                                    {playbackErrorMessage ? (
+                                        <div className="rounded-[5px] border border-amber-400/25 bg-amber-500/10 px-4 py-3 font-['Montserrat'] text-[13px] leading-5 text-amber-100">
+                                            {playbackErrorMessage}
+                                        </div>
+                                    ) : null}
+
+                                    {downloadNotice ? (
+                                        <div
+                                            className={[
+                                                "flex items-start justify-between gap-3 rounded-[5px] border px-4 py-3 font-['Montserrat'] text-[13px] leading-5",
+                                                downloadNotice.tone ===
+                                                "warning"
+                                                    ? "border-amber-400/30 bg-amber-500/10 text-amber-100"
+                                                    : "border-emerald-400/25 bg-emerald-500/10 text-emerald-100",
+                                            ].join(" ")}
+                                        >
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-white">
+                                                    {downloadNotice.title}
+                                                </p>
+                                                <p className="mt-0.5">
+                                                    {downloadNotice.message}
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setDownloadNotice(null)
+                                                }
+                                                className="shrink-0 rounded-full border border-white/10 p-1.5 text-white/70 transition hover:bg-white/10 hover:text-white"
+                                                aria-label="Dismiss workbook notice"
+                                            >
+                                                <X className="size-3.5" />
+                                            </button>
+                                        </div>
+                                    ) : null}
+
                                     <ContentSection content={lesson.content} />
 
-                                    <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
                                         <Button
                                             asChild
                                             variant="outline"
-                                            className="h-auto rounded-[5px] border-white/15 bg-white/5 px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-white/10 hover:text-white"
+                                            className="h-9 min-w-[132px] flex-1 rounded-[5px] border-white/15 bg-white/5 px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-white/10 hover:text-white sm:flex-none"
                                         >
                                             <Link
                                                 href={route(
@@ -1431,6 +1429,7 @@ export default function StudentLessonShow({
                                                 Back to module
                                             </Link>
                                         </Button>
+
                                         {nextTarget ? (
                                             canOpenNextTarget ? (
                                                 <Button
@@ -1438,7 +1437,7 @@ export default function StudentLessonShow({
                                                     onClick={() => {
                                                         void openNextTarget();
                                                     }}
-                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                    className="h-9 min-w-[132px] flex-1 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28] sm:flex-none"
                                                 >
                                                     {nextTarget.button_label}
                                                 </Button>
@@ -1450,12 +1449,14 @@ export default function StudentLessonShow({
                                                             nextTarget?.lock_reason,
                                                         )
                                                     }
-                                                    className="h-auto rounded-[5px] bg-[#DB202C] px-[10px] py-[8px] font-['Montserrat'] text-[14px] font-medium text-white hover:bg-[#c31c28]"
+                                                    className="h-9 min-w-[132px] flex-1 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28] sm:flex-none"
                                                 >
                                                     {nextTarget.button_label}
                                                 </Button>
                                             )
-                                        ) : null}
+                                        ) : (
+                                            <span />
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -1465,11 +1466,11 @@ export default function StudentLessonShow({
                     <aside className="min-w-0">
                         <div className="lg:sticky lg:top-6">
                             <div className="overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.28)]">
-                                <div className="border-b border-white/10 px-5 py-5">
-                                    <p className="font-['Montserrat'] text-[12px] font-medium uppercase tracking-[0.22em] text-white/40">
+                                <div className="border-b border-white/10 px-4 py-4">
+                                    <p className="font-['Montserrat'] text-[11px] font-medium uppercase tracking-[0.2em] text-white/40">
                                         Same Module
                                     </p>
-                                    <h2 className="mt-2 font-['Montserrat'] text-[22px] font-medium tracking-tight text-white">
+                                    <h2 className="mt-1.5 font-['Montserrat'] text-[18px] font-medium tracking-tight text-white">
                                         {moduleState?.title ??
                                             "More lessons in this module"}
                                     </h2>
@@ -1482,7 +1483,7 @@ export default function StudentLessonShow({
                                         msOverflowStyle: "none",
                                     }}
                                 >
-                                    <div className="space-y-2.5 p-3 sm:space-y-3 sm:p-4">
+                                    <div className="space-y-2 p-3">
                                         {navigationItems?.map((item) => (
                                             <LessonNavCard
                                                 key={item.id}
