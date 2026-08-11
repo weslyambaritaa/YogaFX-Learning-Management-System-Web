@@ -9,6 +9,14 @@ import { ChevronRight, Play, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const FONT_FAMILY = "'Montserrat', sans-serif";
+const DASHBOARD_INTRO_IMAGE_URL = "/images/yogafx-student-dashboard-start.png";
+
+function toTitleCase(value) {
+    return String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
+}
 
 function formatDurationParts(totalSeconds) {
     const safeSeconds = Math.max(0, Number(totalSeconds || 0));
@@ -549,45 +557,67 @@ function StudentDashboardIntro({
     closing,
     onClose,
 }) {
+    const formattedAccessTierDescription = toTitleCase(accessTierDescription);
+
     return (
         <div
             className={[
-                "grid transition-[grid-template-rows,opacity,transform] duration-500 ease-in-out",
+                "grid overflow-hidden will-change-[grid-template-rows,opacity,transform] transition-[grid-template-rows,opacity,transform] duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
                 closing
-                    ? "grid-rows-[0fr] -translate-y-16 opacity-0"
+                    ? "grid-rows-[0fr] -translate-y-6 opacity-0"
                     : "grid-rows-[1fr] translate-y-0 opacity-100",
             ].join(" ")}
         >
-            <div className="overflow-hidden">
+            <div className="min-h-0 overflow-hidden">
                 <section
-                    className="flex min-h-[calc(100dvh-72px)] w-full items-center bg-black text-white"
+                    className="w-full bg-black text-white"
                     style={{ fontFamily: FONT_FAMILY }}
                 >
-                    <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 sm:py-12 lg:px-10 lg:py-16">
+                    <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
                         <div className="mx-auto max-w-[1280px]">
-                            <h1 className="mb-7 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-9 sm:text-[38px]">
+                            <h1 className="mb-5 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-6 sm:text-[38px]">
                                 Hi {studentName}, Welcome back!
                             </h1>
 
-                            <div className="relative overflow-hidden rounded-[12px] border border-white/15 bg-black shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="group block w-full cursor-pointer"
-                                    aria-label="Start your YogaFX course"
-                                >
-                                    <img
-                                        src="/images/yogafx-student-dashboard-start.png"
-                                        alt="Bikram Hot 26&2 Yoga Teacher Training Online Course"
-                                        className="block h-auto w-full transition-transform duration-300 group-hover:scale-[1.01]"
-                                    />
-                                </button>
+                            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:gap-4">
+                                <div className="min-w-0">
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="block w-full cursor-pointer overflow-hidden rounded-[6px] bg-black"
+                                        aria-label="Start your YogaFX course"
+                                    >
+                                        <div className="aspect-video w-full bg-black">
+                                            <img
+                                                src={DASHBOARD_INTRO_IMAGE_URL}
+                                                alt="Bikram Hot 26&2 Yoga Teacher Training Online Course"
+                                                loading="eager"
+                                                fetchPriority="high"
+                                                decoding="async"
+                                                className="block h-full w-full object-contain"
+                                            />
+                                        </div>
+                                    </button>
+
+                                    <div className="mt-4 overflow-hidden rounded-[6px] bg-[#DB202C] px-2.5 py-2.5 text-center sm:mt-5 sm:px-4 sm:py-3">
+                                        <h2
+                                            className="whitespace-nowrap font-bold leading-none text-white"
+                                            style={{
+                                                fontSize:
+                                                    "clamp(6px, 1.55vw, 22px)",
+                                            }}
+                                        >
+                                            Exclusive Access for YogaFX RYT 200{" "}
+                                            {formattedAccessTierDescription}
+                                        </h2>
+                                    </div>
+                                </div>
 
                                 <button
                                     type="button"
                                     onClick={onClose}
                                     aria-label="Close welcome section"
-                                    className="absolute right-3 top-3 z-20 flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-black/90 text-white shadow-[0_6px_24px_rgba(0,0,0,0.55)] transition hover:scale-105 hover:bg-black sm:right-5 sm:top-5 sm:h-12 sm:w-12"
+                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white bg-black text-white shadow-[0_6px_24px_rgba(0,0,0,0.4)] transition-colors duration-200 hover:bg-white/10 sm:h-12 sm:w-12"
                                 >
                                     <X
                                         className="h-6 w-6 stroke-[3.5] sm:h-7 sm:w-7"
@@ -596,23 +626,15 @@ function StudentDashboardIntro({
                                 </button>
                             </div>
 
-                            <div className="mx-auto mt-8 max-w-5xl sm:mt-10">
-                                <h2 className="text-xl font-bold leading-relaxed text-white sm:text-2xl">
-                                    Exclusive Access for Yoga
-                                    <span className="text-[#DB202C]">
-                                        FX
-                                    </span>{" "}
-                                    RYT 200 {accessTierDescription}
-                                </h2>
-
-                                <p className="mt-7 text-base font-semibold text-white sm:text-lg">
+                            <div className="mx-auto mt-7 max-w-5xl sm:mt-8">
+                                <p className="text-base font-semibold text-white sm:text-lg">
                                     Dear {studentName}
                                 </p>
 
                                 <p className="mt-4 text-base leading-7 text-white/85 sm:text-lg sm:leading-8">
                                     We are so happy to have you join us as a
                                     student on our RYT 200{" "}
-                                    {accessTierDescription}
+                                    {formattedAccessTierDescription}
                                 </p>
 
                                 <p className="mt-5 text-base leading-7 text-white/75 sm:text-lg sm:leading-8">
@@ -651,8 +673,6 @@ export default function StudentHome({
     );
     const [dashboardIntroVisible, setDashboardIntroVisible] = useState(false);
     const [dashboardIntroClosing, setDashboardIntroClosing] = useState(false);
-    const dashboardStartRef = useRef(null);
-
     const rawModules = availableModulesSection?.items ?? [];
     const studentName = studentContext?.display_name ?? "Student";
     const { auth, appDownload } = usePage().props;
@@ -678,6 +698,18 @@ export default function StudentHome({
     ]
         .filter(Boolean)
         .join(" - ");
+
+    useEffect(() => {
+        const image = new Image();
+
+        image.src = DASHBOARD_INTRO_IMAGE_URL;
+
+        if (typeof image.decode === "function") {
+            image.decode().catch(() => {
+                // The browser can still render the image from cache/network.
+            });
+        }
+    }, []);
 
     const handleContinueUsingBrowser = () => {
         setWelcomePopupOpen(false);
@@ -707,14 +739,7 @@ export default function StudentHome({
         window.setTimeout(() => {
             setDashboardIntroVisible(false);
             setDashboardIntroClosing(false);
-
-            window.requestAnimationFrame(() => {
-                dashboardStartRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                });
-            });
-        }, 500);
+        }, 650);
     };
 
     return (
@@ -758,8 +783,6 @@ export default function StudentHome({
                     onClose={closeDashboardIntro}
                 />
             ) : null}
-
-            <div ref={dashboardStartRef} />
 
             <section className="sm:hidden">
                 <div className="mx-auto max-w-[1400px] px-4 pt-6">
@@ -942,7 +965,7 @@ export default function StudentHome({
             </section>
 
             <div className="relative z-10 mx-auto flex max-w-[1400px] flex-col gap-8 px-4 pt-8 sm:gap-10 sm:px-6 sm:-mt-10 lg:px-10">
-                <section className="space-y-2.5 sm:space-y-4">
+                <section>
                     <div className="px-3.5 md:px-0">
                         <h1
                             className="mt-1 text-white"
@@ -955,7 +978,7 @@ export default function StudentHome({
                             All Modules
                         </h1>
                     </div>
-                    <div className="pt-2 pb-4 sm:py-6">
+                    <div className="mt-3 pb-4 sm:mt-3 sm:pb-6">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-4">
                             {rawModules.map((module) => (
                                 <div key={module.id} className="w-full">
