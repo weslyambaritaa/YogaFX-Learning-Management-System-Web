@@ -164,14 +164,18 @@ function LessonNavCard({ item, onLockedClick }) {
             <button
                 type="button"
                 onClick={() => onLockedClick(item.lock_reason)}
-                className="w-full text-left"
+                className="block w-full text-left"
             >
                 {body}
             </button>
         );
     }
 
-    return <Link href={item.url}>{body}</Link>;
+    return (
+        <Link href={item.url} className="block w-full">
+            {body}
+        </Link>
+    );
 }
 
 function ContentSection({ content }) {
@@ -1457,7 +1461,7 @@ export default function StudentLessonShow({
                                     msOverflowStyle: "none",
                                 }}
                             >
-                                <div className="space-y-4">
+                                <div className="grid gap-4">
                                     {navigationItems?.map((item) => (
                                         <LessonNavCard
                                             key={item.id}
