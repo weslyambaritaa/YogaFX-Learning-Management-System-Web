@@ -70,7 +70,7 @@ class TemplatedNotificationMail extends Mailable
         $footerHtml = $rawFooterHtml === '' ? '' : $this->prepareBrandingSectionHtml($rawFooterHtml, 'footer');
         $contentHtml = $this->constrainImages(
     $this->htmlFragment($this->bodyHtml),
-    'display:block; width:100%; max-width:100%; height:auto; box-sizing:border-box;'
+    'max-width:100%; height:auto; box-sizing:border-box;'
 );
 
         $headerSection = $headerHtml === '' ? '' : <<<HTML
