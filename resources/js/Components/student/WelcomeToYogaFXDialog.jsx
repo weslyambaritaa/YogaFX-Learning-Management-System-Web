@@ -14,6 +14,7 @@ const STUDENT_LOGO_URL = "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png";
 export default function WelcomeToYogaFXDialog({
     open,
     onOpenChange,
+    onContinueBrowser,
     appDownload,
     studentName = "Student",
     accessTierLabel = "Access Tier",
@@ -26,6 +27,8 @@ export default function WelcomeToYogaFXDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 showCloseButton={false}
+                onInteractOutside={(event) => event.preventDefault()}
+                onEscapeKeyDown={(event) => event.preventDefault()}
                 overlayClassName="bg-black/70 backdrop-blur-sm"
                 className="
                     w-[calc(100%-24px)]
@@ -96,7 +99,14 @@ export default function WelcomeToYogaFXDialog({
                                 focus:ring-[#DB202C]/35
                                 sm:text-xl
                             "
-                            onClick={() => onOpenChange(false)}
+                            onClick={() => {
+                                if (onContinueBrowser) {
+                                    onContinueBrowser();
+                                    return;
+                                }
+
+                                onOpenChange(false);
+                            }}
                         >
                             Continue Using Browser
                         </Button>
@@ -111,7 +121,7 @@ export default function WelcomeToYogaFXDialog({
                                 <div className="h-[2px] flex-1 bg-white/45" />
 
                                 <span className="text-sm font-extrabold uppercase tracking-[0.2em] text-white">
-                                    Or
+                                    OR
                                 </span>
 
                                 <div className="h-[2px] flex-1 bg-white/45" />

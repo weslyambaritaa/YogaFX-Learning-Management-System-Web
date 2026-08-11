@@ -543,6 +543,97 @@ function ModuleCard({ module, onLockedClick }) {
     );
 }
 
+function StudentDashboardIntro({
+    studentName,
+    accessTierDescription,
+    closing,
+    onClose,
+}) {
+    return (
+        <div
+            className={[
+                "grid transition-[grid-template-rows,opacity,transform] duration-500 ease-in-out",
+                closing
+                    ? "grid-rows-[0fr] -translate-y-16 opacity-0"
+                    : "grid-rows-[1fr] translate-y-0 opacity-100",
+            ].join(" ")}
+        >
+            <div className="overflow-hidden">
+                <section
+                    className="flex min-h-[calc(100dvh-72px)] w-full items-center bg-black text-white"
+                    style={{ fontFamily: FONT_FAMILY }}
+                >
+                    <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 sm:py-12 lg:px-10 lg:py-16">
+                        <div className="mx-auto max-w-[1280px]">
+                            <h1 className="mb-7 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-9 sm:text-[38px]">
+                                Hi {studentName}, Welcome back!
+                            </h1>
+
+                            <div className="relative overflow-hidden rounded-[12px] border border-white/15 bg-black shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="group block w-full cursor-pointer"
+                                    aria-label="Start your YogaFX course"
+                                >
+                                    <img
+                                        src="/images/yogafx-student-dashboard-start.png"
+                                        alt="Bikram Hot 26&2 Yoga Teacher Training Online Course"
+                                        className="block h-auto w-full transition-transform duration-300 group-hover:scale-[1.01]"
+                                    />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    aria-label="Close welcome section"
+                                    className="absolute right-3 top-3 z-20 flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-black/90 text-white shadow-[0_6px_24px_rgba(0,0,0,0.55)] transition hover:scale-105 hover:bg-black sm:right-5 sm:top-5 sm:h-12 sm:w-12"
+                                >
+                                    <X
+                                        className="h-6 w-6 stroke-[3.5] sm:h-7 sm:w-7"
+                                        aria-hidden="true"
+                                    />
+                                </button>
+                            </div>
+
+                            <div className="mx-auto mt-8 max-w-5xl sm:mt-10">
+                                <h2 className="text-xl font-bold leading-relaxed text-white sm:text-2xl">
+                                    Exclusive Access for Yoga
+                                    <span className="text-[#DB202C]">
+                                        FX
+                                    </span>{" "}
+                                    RYT 200 {accessTierDescription}
+                                </h2>
+
+                                <p className="mt-7 text-base font-semibold text-white sm:text-lg">
+                                    Dear {studentName}
+                                </p>
+
+                                <p className="mt-4 text-base leading-7 text-white/85 sm:text-lg sm:leading-8">
+                                    We are so happy to have you join us as a
+                                    student on our RYT 200{" "}
+                                    {accessTierDescription}
+                                </p>
+
+                                <p className="mt-5 text-base leading-7 text-white/75 sm:text-lg sm:leading-8">
+                                    This is your online learning dashboard. From
+                                    here, you will access all your modules
+                                    including posture clinics, dialogue,
+                                    lectures, videos, and assessments — our
+                                    fully structured, step-by-step platform is
+                                    designed to help you deepen your practice,
+                                    grow your confidence, and become a certified
+                                    Hot Yoga teacher from anywhere in the world.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    );
+}
+
 export default function StudentHome({
     studentContext,
     accessTimeSummary,
@@ -558,6 +649,10 @@ export default function StudentHome({
     const [welcomePopupOpen, setWelcomePopupOpen] = useState(
         Boolean(showWelcomePopup),
     );
+    const [dashboardIntroVisible, setDashboardIntroVisible] = useState(false);
+    const [dashboardIntroClosing, setDashboardIntroClosing] = useState(false);
+    const dashboardStartRef = useRef(null);
+
     const rawModules = availableModulesSection?.items ?? [];
     const studentName = studentContext?.display_name ?? "Student";
     const { auth, appDownload } = usePage().props;
@@ -566,6 +661,10 @@ export default function StudentHome({
         studentContext?.access_tier?.name ??
         authUser?.access_tier?.name ??
         "Access Tier";
+    const accessTierDescription =
+        studentContext?.access_tier?.description ??
+        authUser?.access_tier?.description ??
+        accessTierLabel;
     const liveAccessSeconds = useLiveAccessSeconds(accessTimeSummary);
 
     const mobileAccessTimeParts = formatDurationParts(liveAccessSeconds);
@@ -580,6 +679,44 @@ export default function StudentHome({
         .filter(Boolean)
         .join(" - ");
 
+    const handleContinueUsingBrowser = () => {
+        setWelcomePopupOpen(false);
+
+        if (!showWelcomePopup) {
+            return;
+        }
+
+        setDashboardIntroClosing(false);
+        setDashboardIntroVisible(true);
+
+        window.requestAnimationFrame(() => {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+            });
+        });
+    };
+
+    const closeDashboardIntro = () => {
+        if (dashboardIntroClosing) {
+            return;
+        }
+
+        setDashboardIntroClosing(true);
+
+        window.setTimeout(() => {
+            setDashboardIntroVisible(false);
+            setDashboardIntroClosing(false);
+
+            window.requestAnimationFrame(() => {
+                dashboardStartRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                });
+            });
+        }, 500);
+    };
+
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
@@ -590,6 +727,7 @@ export default function StudentHome({
             <WelcomeToYogaFXDialog
                 open={welcomePopupOpen}
                 onOpenChange={setWelcomePopupOpen}
+                onContinueBrowser={handleContinueUsingBrowser}
                 appDownload={appDownload}
                 studentName={studentName}
                 accessTierLabel={accessTierLabel}
@@ -611,6 +749,17 @@ export default function StudentHome({
                     onLockedLessonClick={() => setLockedLessonOpen(true)}
                 />
             ) : null}
+
+            {dashboardIntroVisible ? (
+                <StudentDashboardIntro
+                    studentName={studentName}
+                    accessTierDescription={accessTierDescription}
+                    closing={dashboardIntroClosing}
+                    onClose={closeDashboardIntro}
+                />
+            ) : null}
+
+            <div ref={dashboardStartRef} />
 
             <section className="sm:hidden">
                 <div className="mx-auto max-w-[1400px] px-4 pt-6">

@@ -40,31 +40,98 @@ class AuthenticatedSessionController extends Controller
 
         $user = $request->user();
 
-        if (! $user || ! $user->hasRole($user::ROLE_SUPER_ADMIN, $user::ROLE_ADMIN, $user::ROLE_STUDENT)) {
+        if (
+            ! $user ||
+            ! $user->hasRole(
+                $user::ROLE_SUPER_ADMIN,
+                $user::ROLE_ADMIN,
+                $user::ROLE_STUDENT,
+            )
+        ) {
             Auth::guard('web')->logout();
+
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->withErrors([
-                'email' => 'This account is not authorized to access YogaFX LMS.',
-            ]);
+            return redirect()
+                ->route('login')
+                ->withErrors([
+                    'email' => 'This account is not authorized to access YogaFX LMS.',
+                ]);
         }
 
-        $otpChallenge = $this->otpChallenges->createForLogin($user, [
-            'remember' => true,
-            'redirect_to' => $request->session()->get(
-                'url.intended',
-                route($user->postLoginRouteName(), absolute: false),
-            ),
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Student Welcome Flow
+        |--------------------------------------------------------------------------
+        |
+        | Simpan dulu status apakah user merupakan student sebelum session
+        | authentication sementara dihancurkan untuk masuk ke flow OTP.
+        |
+        | Flag show_welcome_popup baru akan dimasukkan kembali setelah
+        | invalidate(), sehingga tidak ikut terhapus.
+        |
+        */
+
+        $shouldShowWelcomePopup = $user->isStudent();
+
+        $otpChallenge = $this->otpChallenges->createForLogin(
+            $user,
+            [
+                'remember' => true,
+
+                'redirect_to' => $request->session()->get(
+                    'url.intended',
+                    route(
+                        $user->postLoginRouteName(),
+                        absolute: false,
+                    ),
+                ),
+            ],
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | End Temporary Password Authentication
+        |--------------------------------------------------------------------------
+        */
 
         Auth::guard('web')->logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('auth.otp.show', [
-            'token' => $otpChallenge['token'],
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Restore Welcome Flag Into New OTP Session
+        |--------------------------------------------------------------------------
+        |
+        | Normal student:
+        | login -> OTP -> dashboard -> welcome popup muncul.
+        |
+        | HomeController menggunakan pull('show_welcome_popup'), sehingga:
+        | refresh dashboard -> popup tidak muncul lagi.
+        |
+        | Setelah logout dan login kembali, flag dibuat lagi di sini.
+        |
+        | Tester tetap ditangani secara khusus oleh HomeController dan akan
+        | selalu melihat welcome popup setiap dashboard dibuka/refresh.
+        |
+        */
+
+        if ($shouldShowWelcomePopup) {
+            $request->session()->put(
+                'show_welcome_popup',
+                true,
+            );
+        }
+
+        return redirect()->route(
+            'auth.otp.show',
+            [
+                'token' => $otpChallenge['token'],
+            ],
+        );
     }
 
     /**
@@ -72,12 +139,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        $this->sessionTrackingService->endStudentSession($request, $request->user());
+        $this->sessionTrackingService->endStudentSession(
+            $request,
+            $request->user(),
+        );
 
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect()->route('login');

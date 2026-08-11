@@ -49,17 +49,59 @@ class HomeController extends Controller
 
         $showWelcomePopup = false;
 
-        if ($user && $user->isStudent()) {
+if ($user && $user->isStudent()) {
     if ($user->isTesterStudent()) {
-        // Tester accounts always see the welcome popup
-        // whenever the student dashboard is opened/refreshed.
-        $showWelcomePopup = true;
-    } elseif ($user->welcome_screen_shown_at === null) {
-        $showWelcomePopup = true;
+        /*
+        |--------------------------------------------------------------------------
+        | Tester
+        |--------------------------------------------------------------------------
+        |
+        | Tester selalu mengulang welcome flow setiap kali dashboard dibuka
+        | atau di-refresh.
+        |
+        */
 
-        $user->forceFill([
-            'welcome_screen_shown_at' => now(),
-        ])->save();
+        $showWelcomePopup = true;
+    } else {
+        /*
+        |--------------------------------------------------------------------------
+        | Normal Student
+        |--------------------------------------------------------------------------
+        |
+        | show_welcome_popup dibuat ketika student login.
+        | pull() memastikan refresh berikutnya tidak menampilkan welcome lagi.
+        |
+        */
+
+        $showWelcomePopup = (bool) $request->session()->pull(
+            'show_welcome_popup',
+            false,
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | First-ever Dashboard Fallback
+        |--------------------------------------------------------------------------
+        |
+        | Tetap mendukung student baru yang datang langsung dari signup flow.
+        |
+        */
+
+        if (
+            ! $showWelcomePopup &&
+            $user->welcome_screen_shown_at === null
+        ) {
+            $showWelcomePopup = true;
+        }
+
+        if (
+            $showWelcomePopup &&
+            $user->welcome_screen_shown_at === null
+        ) {
+            $user->forceFill([
+                'welcome_screen_shown_at' => now(),
+            ])->save();
+        }
     }
 }
 
@@ -92,13 +134,14 @@ class HomeController extends Controller
                 'email' => $user?->email,
                 'profile_is_complete' => $user?->hasCompletedStudentProfile() ?? false,
                 'access_tier' => $tier ? [
-                    'id' => $tier->id,
-                    'name' => $tier->name,
-                    'slug' => $tier->slug,
-                    'is_active' => $tier->is_active,
-                    'has_full_standing_dialog_access' => $tier->has_full_standing_dialog_access,
-                    'has_full_floor_dialog_access' => $tier->has_full_floor_dialog_access,
-                ] : null,
+    'id' => $tier->id,
+    'name' => $tier->name,
+    'description' => $tier->description,
+    'slug' => $tier->slug,
+    'is_active' => $tier->is_active,
+    'has_full_standing_dialog_access' => $tier->has_full_standing_dialog_access,
+    'has_full_floor_dialog_access' => $tier->has_full_floor_dialog_access,
+] : null,
             ],
             'accessTimeSummary' => $user
                 ? $this->sessionTrackingService->summaryForUser($user)
