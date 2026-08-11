@@ -219,7 +219,7 @@ function ContentSection({ content }) {
 
     if (!content) {
         return (
-            <div className="rounded-[5px] border border-white/10 bg-white/[0.04] px-4 py-4 font-['Montserrat'] text-sm leading-6 text-white/60">
+            <div className="border-t border-white/10 pt-4 font-['Montserrat'] text-sm leading-6 text-white/60">
                 Lesson content will appear here when this learning material
                 includes written guidance.
             </div>
@@ -227,7 +227,7 @@ function ContentSection({ content }) {
     }
 
     return (
-        <div className="rounded-[5px] border border-white/10 bg-white/[0.04] p-4">
+        <div className="border-t border-white/10 pt-4">
             <div className="mb-2">
                 <h2 className="font-['Montserrat'] text-[16px] font-semibold text-white">
                     Lesson Notes
@@ -1217,7 +1217,7 @@ export default function StudentLessonShow({
                             </div>
                         </div>
                         <div className="bg-[#110f0f] shadow-[0_24px_90px_rgba(0,0,0,0.35)] sm:rounded-[5px] sm:border sm:border-white/10">
-                            <div className="border-t border-white/10 bg-white/[0.04] px-4 py-4 sm:border-t-0 sm:p-5 lg:p-6">
+                            <div className="px-4 py-4 sm:p-5 lg:p-6">
                                 <div className="space-y-3 sm:space-y-4">
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <h1 className="min-w-0 font-['Montserrat'] text-[26px] font-semibold tracking-[-0.03em] text-white sm:text-[32px]">
@@ -1240,119 +1240,93 @@ export default function StudentLessonShow({
                                         </div>
                                     </div>
 
-                                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                        <div className="flex min-h-[112px] flex-col justify-between rounded-[5px] border border-white/10 bg-black/20 p-4">
-                                            <h2 className="font-['Montserrat'] text-[13px] font-medium tracking-tight text-white/75">
+                                    <div className="flex flex-col gap-3 border-t border-white/10 pt-4 xl:flex-row xl:items-center xl:justify-between">
+                                        <div className="shrink-0">
+                                            <div className="font-['Montserrat'] text-[12px] font-medium text-white/50">
                                                 Total Access Time
-                                            </h2>
-                                            <div className="mt-2 font-['Montserrat'] text-[28px] font-semibold tracking-[0.08em] text-white">
+                                            </div>
+                                            <div className="mt-1 font-['Montserrat'] text-[26px] font-semibold tracking-[0.08em] text-white">
                                                 {`${totalAccessParts.hours}:${totalAccessParts.minutes}:${totalAccessParts.seconds}`}
                                             </div>
                                         </div>
 
-                                        {lesson.workbook_download_url ? (
-                                            <div className="flex min-h-[112px] flex-col justify-between gap-3 rounded-[5px] border border-white/10 bg-black/20 p-4">
-                                                <div>
-                                                    <h2 className="font-['Montserrat'] text-[14px] font-semibold text-white">
-                                                        Workbook
-                                                    </h2>
-                                                    <p className="mt-1 font-['Montserrat'] text-[12px] leading-5 text-white/50">
-                                                        Practice workbook for
-                                                        this lesson.
-                                                    </p>
-                                                </div>
+                                        <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                                            {lesson.workbook_download_url ? (
+                                                <Button
+                                                    asChild
+                                                    className="h-9 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28]"
+                                                >
+                                                    <a
+                                                        href={
+                                                            lesson.workbook_download_url
+                                                        }
+                                                        onClick={() => {
+                                                            setWorkbookDownloaded(
+                                                                true,
+                                                            );
+                                                            setDownloadNotice({
+                                                                tone: "success",
+                                                                title: "Manual workbook download",
+                                                                message:
+                                                                    "If the automatic download did not start on your device, this manual download will open the workbook now.",
+                                                            });
+                                                        }}
+                                                    >
+                                                        {workbookDownloaded ? (
+                                                            <Check className="mr-2 size-4 rounded-full bg-emerald-500 p-0.5 text-white" />
+                                                        ) : (
+                                                            <FileText className="mr-2 size-4" />
+                                                        )}
+                                                        {workbookDownloaded
+                                                            ? "Workbook Downloaded"
+                                                            : "Download Workbook"}
+                                                    </a>
+                                                </Button>
+                                            ) : null}
 
-                                                <div className="flex flex-wrap items-center gap-2">
+                                            {hasWorkbook &&
+                                            isTriggeringWorkbook ? (
+                                                <span className="font-['Montserrat'] text-[12px] text-white/55">
+                                                    Preparing workbook...
+                                                </span>
+                                            ) : null}
+
+                                            {lesson.assessment ? (
+                                                assessmentState.is_unlocked ? (
                                                     <Button
                                                         asChild
                                                         className="h-9 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28]"
                                                     >
-                                                        <a
-                                                            href={
-                                                                lesson.workbook_download_url
-                                                            }
-                                                            onClick={() => {
-                                                                setWorkbookDownloaded(
-                                                                    true,
-                                                                );
-                                                                setDownloadNotice(
-                                                                    {
-                                                                        tone: "success",
-                                                                        title: "Manual workbook download",
-                                                                        message:
-                                                                            "If the automatic download did not start on your device, this manual download will open the workbook now.",
-                                                                    },
-                                                                );
-                                                            }}
-                                                        >
-                                                            {workbookDownloaded ? (
-                                                                <Check className="mr-2 size-4 rounded-full bg-emerald-500 p-0.5 text-white" />
-                                                            ) : (
-                                                                <FileText className="mr-2 size-4" />
+                                                        <Link
+                                                            href={route(
+                                                                "assessments.intro",
+                                                                lesson.id,
                                                             )}
-                                                            {workbookDownloaded
-                                                                ? "Workbook Downloaded"
-                                                                : "Download Workbook"}
-                                                        </a>
-                                                    </Button>
-
-                                                    {hasWorkbook &&
-                                                    isTriggeringWorkbook ? (
-                                                        <span className="font-['Montserrat'] text-[12px] text-white/55">
-                                                            Preparing...
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                            </div>
-                                        ) : null}
-
-                                        {lesson.assessment ? (
-                                            <div className="flex min-h-[112px] flex-col justify-between gap-3 rounded-[5px] border border-white/10 bg-black/20 p-4 text-white">
-                                                <div>
-                                                    <div className="font-['Montserrat'] text-[14px] font-semibold text-white">
-                                                        {assessmentState.title}
-                                                    </div>
-                                                    <p className="mt-1 font-['Montserrat'] text-[12px] leading-5 text-white/55">
-                                                        {assessmentState.is_completed
-                                                            ? "Assessment completed."
-                                                            : assessmentState.is_unlocked
-                                                              ? "Assessment ready to start."
-                                                              : "Unlocks at 95% lesson progress."}
-                                                    </p>
-                                                </div>
-
-                                                <div>
-                                                    {assessmentState.is_unlocked ? (
-                                                        <Button
-                                                            asChild
-                                                            className="h-9 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28]"
                                                         >
-                                                            <Link
-                                                                href={route(
-                                                                    "assessments.intro",
-                                                                    lesson.id,
-                                                                )}
-                                                            >
-                                                                {assessmentState.current_attempt_id
-                                                                    ? "Resume Assessment"
-                                                                    : assessmentState.is_completed
-                                                                      ? "View Result"
-                                                                      : "Open Assessment"}
-                                                            </Link>
-                                                        </Button>
-                                                    ) : (
+                                                            {assessmentState.current_attempt_id
+                                                                ? "Resume Assessment"
+                                                                : assessmentState.is_completed
+                                                                  ? "View Result"
+                                                                  : "Open Assessment"}
+                                                        </Link>
+                                                    </Button>
+                                                ) : (
+                                                    <div className="inline-flex items-center gap-2">
+                                                        <span className="font-['Montserrat'] text-[12px] text-white/50">
+                                                            Assessment
+                                                        </span>
                                                         <StudentStatusBadge
                                                             status="locked"
                                                             label="Locked"
                                                         />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ) : null}
+                                                    </div>
+                                                )
+                                            ) : null}
+                                        </div>
                                     </div>
 
                                     {lesson.audio_url ? (
-                                        <div className="rounded-[5px] border border-white/10 bg-black/20 p-4">
+                                        <div className="border-t border-white/10 pt-4">
                                             <div className="mb-2 flex items-center gap-2 font-['Montserrat'] text-[13px] font-medium text-white">
                                                 <Volume2 className="size-4 text-[#f15b3a]" />
                                                 Audio Companion
@@ -1414,7 +1388,7 @@ export default function StudentLessonShow({
 
                                     <ContentSection content={lesson.content} />
 
-                                    <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
+                                    <div className="flex items-center justify-between gap-3 border-t border-white/10 pt-4">
                                         <Button
                                             asChild
                                             variant="outline"
