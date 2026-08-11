@@ -822,6 +822,8 @@ export default function StudentHome({
                                 <div className="h-full w-full bg-[radial-gradient(circle_at_18%_28%,rgba(173,76,38,0.55),transparent_36%),linear-gradient(160deg,#1e1210,#0a0908)]" />
                             )}
 
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0.12)_38%,rgba(0,0,0,0.62)_72%,rgba(0,0,0,0.94)_100%)]" />
+
                             <div className="absolute inset-x-0 bottom-0 p-4">
                                 <div className="space-y-3 text-white">
                                     <div className="space-y-1.5">
