@@ -579,55 +579,52 @@ function StudentDashboardIntro({
                                 Hi {studentName}, Welcome back!
                             </h1>
 
-                            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:gap-4">
-                                <div className="min-w-0">
-                                    <button
-                                        type="button"
-                                        onClick={onClose}
-                                        className="block w-full cursor-pointer overflow-hidden rounded-[6px] bg-black"
-                                        aria-label="Start your YogaFX course"
-                                    >
-                                        <div className="aspect-video w-full bg-black">
-                                            <img
-                                                src={DASHBOARD_INTRO_IMAGE_URL}
-                                                alt="Bikram Hot 26&2 Yoga Teacher Training Online Course"
-                                                loading="eager"
-                                                fetchPriority="high"
-                                                decoding="async"
-                                                className="block h-full w-full object-contain"
-                                            />
-                                        </div>
-                                    </button>
-
-                                    <div className="mt-4 flex w-full justify-center sm:mt-5">
-                                        <div className="inline-flex max-w-full items-center justify-center rounded-[6px] bg-[#DB202C] px-2 py-2 text-center sm:px-2.5 sm:py-2.5">
-                                            <h2
-                                                className="whitespace-nowrap font-bold leading-none text-white"
-                                                style={{
-                                                    fontFamily: FONT_FAMILY,
-                                                    fontSize:
-                                                        "clamp(6px, 1.55vw, 22px)",
-                                                }}
-                                            >
-                                                Exclusive Access for YogaFX RYT
-                                                200{" "}
-                                                {formattedAccessTierDescription}
-                                            </h2>
-                                        </div>
+                            <div className="relative w-full">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="block w-full cursor-pointer overflow-hidden rounded-[6px] bg-black"
+                                    aria-label="Start your YogaFX course"
+                                >
+                                    <div className="aspect-video w-full bg-black">
+                                        <img
+                                            src={DASHBOARD_INTRO_IMAGE_URL}
+                                            alt="Bikram Hot 26&2 Yoga Teacher Training Online Course"
+                                            loading="eager"
+                                            fetchPriority="high"
+                                            decoding="async"
+                                            className="block h-full w-full object-contain"
+                                        />
                                     </div>
-                                </div>
+                                </button>
 
                                 <button
                                     type="button"
                                     onClick={onClose}
                                     aria-label="Close welcome section"
-                                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white bg-black text-white shadow-[0_6px_24px_rgba(0,0,0,0.4)] transition-colors duration-200 hover:bg-white/10 sm:h-12 sm:w-12"
+                                    className="absolute right-0 top-0 z-20 flex h-8 w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-black text-white shadow-[0_4px_16px_rgba(0,0,0,0.45)] transition-colors duration-200 hover:bg-white/10 sm:h-9 sm:w-9"
                                 >
                                     <X
-                                        className="h-6 w-6 stroke-[3.5] sm:h-7 sm:w-7"
+                                        className="h-4 w-4 stroke-[3.5] sm:h-5 sm:w-5"
                                         aria-hidden="true"
                                     />
                                 </button>
+
+                                <div className="mt-4 flex w-full justify-center sm:mt-5">
+                                    <div className="inline-flex max-w-full items-center justify-center rounded-[6px] bg-[#DB202C] px-3 py-2 text-center sm:px-4 sm:py-2.5">
+                                        <h2
+                                            className="font-bold leading-[1.25] text-white"
+                                            style={{
+                                                fontFamily: FONT_FAMILY,
+                                                fontSize:
+                                                    "clamp(13px, 1.55vw, 22px)",
+                                            }}
+                                        >
+                                            Exclusive Access for YogaFX RYT 200{" "}
+                                            {formattedAccessTierDescription}
+                                        </h2>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="mx-auto mt-7 max-w-5xl sm:mt-8">
