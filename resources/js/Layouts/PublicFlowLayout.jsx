@@ -338,7 +338,7 @@ export default function PublicFlowLayout({
                                 <p className="mx-auto mt-6 max-w-xl text-base font-semibold italic leading-relaxed text-white sm:text-lg">
                                     Your Enrollment Starts Now
                                 </p>
-
+                            
                                 <button
                                     type="button"
                                     onClick={startFinalCountdown}
