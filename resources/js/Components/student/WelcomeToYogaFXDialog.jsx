@@ -39,31 +39,31 @@ export default function WelcomeToYogaFXDialog({
                 onInteractOutside={(event) => event.preventDefault()}
                 onEscapeKeyDown={(event) => event.preventDefault()}
                 className="
-                    w-[calc(100%-24px)]
-                    max-h-[95dvh]
-                    overflow-y-auto
-                    rounded-[18px]
+                    w-[calc(100%-20px)]
+                    max-h-[calc(100dvh-20px)]
+                    overflow-hidden
+                    rounded-[14px]
                     border
                     border-white/15
                     bg-[#141110]
                     p-0
                     text-white
-                    shadow-[0_30px_90px_rgba(0,0,0,0.55)]
-                    sm:max-w-[760px]
+                    shadow-[0_24px_70px_rgba(0,0,0,0.55)]
+                    sm:max-w-[720px]
                 "
                 style={{
                     fontFamily: FONT_FAMILY,
                 }}
             >
-                <div className="px-6 py-6 sm:px-10 sm:py-8">
+                <div className="px-5 py-5 sm:px-8 sm:py-6">
                     <DialogHeader className="items-center text-center">
                         <img
                             src={STUDENT_LOGO_URL}
                             alt="YogaFX"
-                            className="h-14 w-auto object-contain sm:h-16"
+                            className="h-12 w-auto object-contain sm:h-14"
                         />
 
-                        <DialogTitle className="mt-4 text-center text-[23px] font-bold leading-[1.3] tracking-[-0.02em] text-white sm:text-[30px]">
+                        <DialogTitle className="mt-3 text-center text-[21px] font-bold leading-[1.25] tracking-[-0.02em] text-white sm:text-[27px]">
                             <span className="block">
                                 Welcome {studentName} to Your
                             </span>
@@ -76,50 +76,43 @@ export default function WelcomeToYogaFXDialog({
                         </DialogTitle>
                     </DialogHeader>
 
-                    <div className="mt-6 text-center">
-                        <p className="text-xl font-bold text-white sm:text-2xl">
+                    <div className="mt-4 text-center">
+                        <p className="text-lg font-bold text-white sm:text-xl">
                             Let&apos;s Get Started
                         </p>
                     </div>
 
                     {hasAppDownload ? (
-                        <div className="mt-7 text-center">
-                            <p className="text-lg font-bold text-white sm:text-xl">
-                                Download The App
+                        <div className="mt-5 text-center">
+                            <p className="text-base font-bold text-white sm:text-lg">
+                                Download the App
                             </p>
 
-                            <div className="mt-5 flex flex-col items-center">
-                                {hasQrCode ? (
-                                    <div className="hidden sm:block">
-                                        <div
-                                            className="
-                                                mx-auto
-                                                flex
-                                                w-fit
-                                                items-center
-                                                justify-center
-                                                overflow-hidden
-                                                rounded-[12px]
-                                                bg-white
-                                                p-2.5
-                                                shadow-[0_18px_50px_rgba(0,0,0,0.28)]
-                                            "
-                                        >
-                                            <img
-                                                src={appDownload.qr_image_url}
-                                                alt="YogaFX mobile app QR code"
-                                                className="h-36 w-36 object-contain"
-                                            />
-                                        </div>
+                            {/* DESKTOP / LAPTOP: QR ONLY */}
+                            {hasQrCode ? (
+                                <div className="mt-3 hidden sm:flex sm:justify-center">
+                                    <div
+                                        className="
+                                            flex
+                                            w-fit
+                                            items-center
+                                            justify-center
+                                            overflow-hidden
+                                            rounded-[10px]
+                                            bg-white
+                                            p-2
+                                            shadow-[0_14px_35px_rgba(0,0,0,0.25)]
+                                        "
+                                    >
+                                        <img
+                                            src={appDownload.qr_image_url}
+                                            alt="YogaFX mobile app QR code"
+                                            className="h-28 w-28 object-contain lg:h-32 lg:w-32"
+                                        />
                                     </div>
-                                ) : null}
-
-                                <div
-                                    className={[
-                                        "w-full",
-                                        hasQrCode ? "mt-4" : "",
-                                    ].join(" ")}
-                                >
+                                </div>
+                            ) : (
+                                <div className="mt-3 hidden sm:block">
                                     <AppStoreBadges
                                         googlePlayUrl={
                                             appDownload?.google_play_url
@@ -127,54 +120,62 @@ export default function WelcomeToYogaFXDialog({
                                         appStoreUrl={appDownload?.app_store_url}
                                     />
                                 </div>
+                            )}
+
+                            {/* MOBILE: STORE BUTTONS ONLY */}
+                            <div className="mt-3 sm:hidden">
+                                <AppStoreBadges
+                                    googlePlayUrl={appDownload?.google_play_url}
+                                    appStoreUrl={appDownload?.app_store_url}
+                                />
                             </div>
                         </div>
                     ) : null}
 
-                    <div className="mt-7">
+                    <div className="mt-5">
                         <div
-                            className="mx-auto flex max-w-[420px] items-center gap-4"
+                            className="mx-auto flex max-w-[400px] items-center gap-3"
                             aria-hidden="true"
                         >
-                            <div className="h-[2px] flex-1 bg-white/45" />
+                            <div className="h-px flex-1 bg-white/45" />
 
-                            <span className="text-sm font-extrabold uppercase tracking-[0.2em] text-white">
+                            <span className="text-xs font-extrabold uppercase tracking-[0.18em] text-white">
                                 OR
                             </span>
 
-                            <div className="h-[2px] flex-1 bg-white/45" />
+                            <div className="h-px flex-1 bg-white/45" />
                         </div>
                     </div>
 
-                    <div className="mt-6 text-center">
-                        <p className="text-lg font-bold text-white sm:text-xl">
-                            Continue Using Browser
+                    <div className="mt-4 text-center">
+                        <p className="text-base font-bold text-white sm:text-lg">
+                            Continue using browser
                         </p>
 
                         <Button
                             type="button"
                             onClick={handleContinueBrowser}
                             className="
-                                mt-4
-                                min-h-[58px]
+                                mt-3
+                                min-h-[52px]
                                 w-full
-                                max-w-[420px]
-                                rounded-[8px]
+                                max-w-[360px]
+                                rounded-[7px]
                                 bg-[#DB202C]
-                                px-8
-                                py-4
-                                text-lg
+                                px-7
+                                py-3
+                                text-base
                                 font-bold
                                 italic
                                 text-white
-                                shadow-[0_12px_35px_rgba(219,32,44,0.3)]
-                                transition-all
+                                shadow-[0_10px_28px_rgba(219,32,44,0.28)]
+                                transition-colors
                                 duration-200
                                 hover:bg-[#c01a25]
                                 focus:outline-none
                                 focus:ring-4
                                 focus:ring-[#DB202C]/35
-                                sm:text-xl
+                                sm:text-lg
                             "
                         >
                             Click Here
