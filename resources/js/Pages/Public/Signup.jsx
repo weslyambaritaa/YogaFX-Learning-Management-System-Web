@@ -123,7 +123,7 @@ export default function Signup({ onboarding, student }) {
         data.password === data.password_confirmation;
 
     const passwordInputClassName = [
-        "bg-white/10 text-white placeholder:text-white/30 transition-colors duration-200",
+        "bg-white/10 font-bold text-white placeholder:font-medium placeholder:text-white/30 transition-colors duration-200",
         errors.password
             ? "!border-red-500 focus:!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-500/30"
             : passwordFilled
@@ -132,7 +132,7 @@ export default function Signup({ onboarding, student }) {
     ].join(" ");
 
     const passwordConfirmationInputClassName = [
-        "bg-white/10 text-white placeholder:text-white/30 transition-colors duration-200",
+        "bg-white/10 font-bold text-white placeholder:font-medium placeholder:text-white/30 transition-colors duration-200",
         errors.password_confirmation ||
         (passwordConfirmationFilled && !passwordMatches)
             ? "!border-red-500 focus:!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-500/30"
@@ -291,7 +291,7 @@ export default function Signup({ onboarding, student }) {
                                     type="text"
                                     readOnly
                                     value={student?.name ?? ""}
-                                    className="mt-2 block w-full rounded-[5px] border border-emerald-500 bg-white/10 px-3 py-2 text-white opacity-100 transition-colors duration-200 focus:border-emerald-500 focus:ring-emerald-500/30"
+                                    className="mt-2 block w-full rounded-[5px] border border-emerald-500 bg-white/10 px-3 py-2 font-bold text-white opacity-100 transition-colors duration-200 focus:border-emerald-500 focus:ring-emerald-500/30"
                                 />
                             </div>
 
@@ -307,7 +307,7 @@ export default function Signup({ onboarding, student }) {
                                     type="email"
                                     readOnly
                                     value={student?.email ?? ""}
-                                    className="mt-2 block w-full rounded-[5px] border border-emerald-500 bg-white/10 px-3 py-2 text-white opacity-100 transition-colors duration-200 focus:border-emerald-500 focus:ring-emerald-500/30"
+                                    className="mt-2 block w-full rounded-[5px] border border-emerald-500 bg-white/10 px-3 py-2 font-bold text-white opacity-100 transition-colors duration-200 focus:border-emerald-500 focus:ring-emerald-500/30"
                                 />
                             </div>
 
