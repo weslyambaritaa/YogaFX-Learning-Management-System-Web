@@ -34,8 +34,22 @@
         .installments .amount { width: 20%; }
         .installments .due { width: 38%; }
         .installments .status { width: 12%; text-align: right; }
-        .closing { margin-top: 14px; line-height: 1.55; }
-        .pdf-footer { margin: 0 0 10px; padding: 0; text-align: left; }
+.closing { margin-top: 14px; line-height: 1.55; }
+
+.faq-notice {
+    margin: 18px 0 0;
+    padding: 16px 20px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    color: #1e3a5f;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.pdf-footer { margin: 0 0 10px; padding: 0; text-align: left; }
         .signature { margin-top: 12px; padding: 0 42px; text-align: left; }
         .signature img { width: 100%; object-fit: contain; object-position: left center; }
         .copyright { margin-top: 8px; text-align: center; font-size: 11px; font-style: italic; color: #374151; }

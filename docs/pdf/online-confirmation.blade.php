@@ -169,7 +169,7 @@
             @endif
 
             <p class="closing">
-                Thank you for your interest in Yoga<span style="color:red">FX</span> International Yoga Teacher Training Academy<br>it really is appreciated.
+                Thank you for your joining in Yoga<span style="color:red">FX</span> International Yoga Teacher Training Academy<br>it really is appreciated.
             </p>
 
             <div style="font-size:20px;font-weight:700;">
