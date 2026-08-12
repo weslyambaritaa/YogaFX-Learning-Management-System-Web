@@ -576,7 +576,7 @@ function StudentDashboardIntro({
                     <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
                         <div className="mx-auto max-w-[1280px]">
                             <h1 className="mb-5 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-6 sm:text-[38px]">
-                                Hi {studentName}, Welcome back!
+                                Hi {studentName}, Welcome!
                             </h1>
 
                             <div className="relative w-full">
@@ -639,14 +639,14 @@ function StudentDashboardIntro({
                                 </p>
 
                                 <p className="mt-5 text-base font-bold leading-7 text-white sm:text-lg sm:leading-8">
-                                    This is your online learning dashboard. From
+                                    This is your Online Learning Dashboard. From
                                     here, you will access all your modules
                                     including posture clinics, dialogue,
                                     lectures, videos, and assessments — our
                                     fully structured, step-by-step platform is
                                     designed to help you deepen your practice,
-                                    grow your confidence, and become a certified
-                                    Hot Yoga teacher from anywhere in the world.
+                                    grow your confidence, and become a Fully Certified
+                                    Bikram Hot Yoga teacher from anywhere in the world.
                                 </p>
                             </div>
                         </div>
@@ -802,7 +802,7 @@ export default function StudentHome({
                     </div>
 
                     <div className="mb-4 text-[26px] font-semibold leading-none text-white">
-                        Hi {studentName}, Welcome Back!
+                        Hi {studentName}, Welcome !
                     </div>
 
                     <div
