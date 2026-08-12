@@ -201,7 +201,7 @@ export default function PaymentSuccess({ onboarding, student = null }) {
                         />
                     </h2>
 
-                    <p className="mx-auto mt-6 max-w-xl text-base font-semibold leading-7 text-white sm:text-lg">
+                    <p className="mx-auto mt-6 max-w-xl text-base font-semibold italic leading-7 text-white sm:text-lg">
                         Please Continue To Your Enrollment Application Form To
                         Complete Your Details And Access Your Dashboard.
                     </p>

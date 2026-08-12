@@ -2213,9 +2213,9 @@ export default function PublicCheckoutPanel({
                             </h2>
 
                             <p className="mx-auto mt-4 max-w-md text-sm font-medium italic leading-7 text-white sm:text-base">
-                                Please do not close this page. We are confirming
-                                your first transfer and preparing your
-                                enrollment access.
+                                {isInstallmentSelected
+                                    ? "Please do not close this page. We are confirming your first transfer and preparing your enrollment access."
+                                    : "Please do not close this page. We are confirming your balance transfer and preparing your enrollment access."}
                             </p>
                         </div>
 
