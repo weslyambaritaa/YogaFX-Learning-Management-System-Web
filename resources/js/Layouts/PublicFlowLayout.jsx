@@ -239,7 +239,7 @@ export default function PublicFlowLayout({
                                                 )}
 
                                                 {description && (
-                                                    <p className="mx-auto max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
+                                                    <p className="mx-auto max-w-2xl text-sm italic leading-7 text-white/70 sm:text-base">
                                                         {description}
                                                     </p>
                                                 )}
@@ -331,14 +331,14 @@ export default function PublicFlowLayout({
 
                                 <h2 className="mx-auto mt-10 max-w-2xl text-2xl font-bold leading-tight text-white sm:text-3xl">
                                     We Are Thrilled That You Are Joining Mr.
-                                    Ian&apos;s {renderYogaFXTitle(title)}{" "}
-                                    Practical MasterClass In Beautiful Bali
+                                    Ian&apos;s {renderYogaFXTitle(title)} In
+                                    Beautiful Bali
                                 </h2>
 
                                 <p className="mx-auto mt-6 max-w-xl text-base font-semibold italic leading-relaxed text-white sm:text-lg">
                                     Your Enrollment Starts Now
                                 </p>
-                            
+
                                 <button
                                     type="button"
                                     onClick={startFinalCountdown}
