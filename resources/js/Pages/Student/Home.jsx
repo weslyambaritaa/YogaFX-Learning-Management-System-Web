@@ -574,7 +574,7 @@ function StudentDashboardIntro({
                     className="w-full bg-black text-white"
                     style={{ fontFamily: FONT_FAMILY }}
                 >
-                    <div className="mx-auto w-full max-w-[1400px] px-4 py-7 sm:px-6 sm:py-9 lg:px-10 lg:py-10">
+                    <div className="mx-auto w-full max-w-[1400px] px-4 pt-7 pb-0 sm:px-6 sm:pt-9 sm:pb-0 lg:px-10 lg:pt-10 lg:pb-0">
                         <div className="mx-auto max-w-[1280px]">
                             <h1 className="mb-5 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-6 sm:text-[38px]">
                                 Hi {studentName}, Welcome!
@@ -652,7 +652,7 @@ function StudentDashboardIntro({
                                 </p>
                             </div>
 
-                            <div className="mt-6 flex w-full justify-center sm:mt-7">
+                            <div className="my-6 flex w-full justify-center sm:my-7">
                                 <Button
                                     type="button"
                                     onClick={onStartLesson}
@@ -812,7 +812,12 @@ export default function StudentHome({
             <div ref={dashboardStartRef} className="scroll-mt-20" />
 
             <section className="sm:hidden">
-                <div className="mx-auto max-w-[1400px] px-4 pt-6">
+                <div
+                    className={[
+                        "mx-auto max-w-[1400px] px-4",
+                        dashboardIntroVisible ? "pt-0" : "pt-6",
+                    ].join(" ")}
+                >
                     <div className="mb-3 flex items-center justify-between gap-3">
                         <div
                             className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#DB202C]"
