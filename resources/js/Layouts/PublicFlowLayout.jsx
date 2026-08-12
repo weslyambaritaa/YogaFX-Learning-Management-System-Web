@@ -239,7 +239,7 @@ export default function PublicFlowLayout({
                                                 )}
 
                                                 {description && (
-                                                    <p className="mx-auto max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
+                                                    <p className="mx-auto max-w-2xl text-sm italic leading-7 text-white/70 sm:text-base">
                                                         {description}
                                                     </p>
                                                 )}
