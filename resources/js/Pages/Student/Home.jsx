@@ -556,6 +556,7 @@ function StudentDashboardIntro({
     accessTierDescription,
     closing,
     onClose,
+    onStartLesson,
 }) {
     const formattedAccessTierDescription = toTitleCase(accessTierDescription);
 
@@ -573,12 +574,8 @@ function StudentDashboardIntro({
                     className="w-full bg-black text-white"
                     style={{ fontFamily: FONT_FAMILY }}
                 >
-                    <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
+                    <div className="mx-auto w-full max-w-[1400px] px-4 py-7 sm:px-6 sm:py-9 lg:px-10 lg:py-10">
                         <div className="mx-auto max-w-[1280px]">
-                            <h1 className="mb-5 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-6 sm:text-[38px]">
-                                Hi {studentName}, Welcome!
-                            </h1>
-
                             <div className="relative w-full">
                                 <button
                                     type="button"
@@ -645,9 +642,21 @@ function StudentDashboardIntro({
                                     lectures, videos, and assessments — our
                                     fully structured, step-by-step platform is
                                     designed to help you deepen your practice,
-                                    grow your confidence, and become a Fully Certified
-                                    Bikram Hot Yoga teacher from anywhere in the world.
+                                    grow your confidence, and become a Fully
+                                    Certified Bikram Hot Yoga Teacher from
+                                    anywhere in the world.
                                 </p>
+                            </div>
+
+                            <div className="mt-6 flex w-full justify-center sm:mt-7">
+                                <Button
+                                    type="button"
+                                    onClick={onStartLesson}
+                                    className="min-h-[56px] w-full max-w-[320px] rounded-[8px] bg-[#DB202C] px-8 py-4 text-lg font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.28)] transition-colors duration-200 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35"
+                                    style={{ fontFamily: FONT_FAMILY }}
+                                >
+                                    Start Your Lesson
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -674,6 +683,7 @@ export default function StudentHome({
     );
     const [dashboardIntroVisible, setDashboardIntroVisible] = useState(false);
     const [dashboardIntroClosing, setDashboardIntroClosing] = useState(false);
+    const dashboardStartRef = useRef(null);
     const rawModules = availableModulesSection?.items ?? [];
     const studentName = studentContext?.display_name ?? "Student";
     const { auth, appDownload } = usePage().props;
@@ -743,6 +753,15 @@ export default function StudentHome({
         }, 650);
     };
 
+    const startLessonFromIntro = () => {
+        window.requestAnimationFrame(() => {
+            dashboardStartRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+        });
+    };
+
     return (
         <AuthenticatedLayout
             studentVariant="immersive"
@@ -782,13 +801,19 @@ export default function StudentHome({
                     accessTierDescription={accessTierDescription}
                     closing={dashboardIntroClosing}
                     onClose={closeDashboardIntro}
+                    onStartLesson={startLessonFromIntro}
                 />
             ) : null}
+
+            <div ref={dashboardStartRef} className="scroll-mt-20" />
 
             <section className="sm:hidden">
                 <div className="mx-auto max-w-[1400px] px-4 pt-6">
                     <div className="mb-3 flex items-center justify-between gap-3">
-                        <div className="rounded-[4px] border border-[#a12626] bg-[#3d1414] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-[#ff6f61]">
+                        <div
+                            className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#DB202C]"
+                            style={{ fontFamily: FONT_FAMILY }}
+                        >
                             {accessTierLabel}
                         </div>
                         <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] text-white/70">
@@ -799,10 +824,6 @@ export default function StudentHome({
                                 {mobileAccessTimeParts.seconds}
                             </span>
                         </div>
-                    </div>
-
-                    <div className="mb-4 text-[26px] font-semibold leading-none text-white">
-                        Hi {studentName}, Welcome !
                     </div>
 
                     <div
@@ -894,19 +915,6 @@ export default function StudentHome({
                 <div className="absolute inset-0 z-10 flex items-end">
                     <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 px-4 pb-6 sm:gap-8 sm:px-6 sm:pb-8 lg:flex-row lg:items-end lg:justify-between lg:px-10">
                         <div className="max-w-2xl space-y-3 text-white sm:space-y-5">
-                            <div
-                                style={{
-                                    fontFamily: FONT_FAMILY,
-                                    fontSize: "14px",
-                                    fontWeight: 600,
-                                }}
-                                className="text-white"
-                            >
-                                {homeExperience?.state === "new_student"
-                                    ? `Hello, ${studentName}`
-                                    : `Welcome back, ${studentName}`}
-                            </div>
-
                             <h1
                                 style={{
                                     fontFamily: FONT_FAMILY,
