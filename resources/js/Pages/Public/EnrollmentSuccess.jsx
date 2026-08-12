@@ -134,7 +134,7 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
             >
                 {!isLoading ? (
                     <div
-                        className="flex justify-center pb-8 pt-2"
+                        className="flex justify-center pb-0 pt-2"
                         style={{
                             fontFamily: FONT_FAMILY,
                         }}
@@ -154,14 +154,14 @@ export default function EnrollmentSuccess({ onboarding, student = null }) {
 
                             <p className="mx-auto mt-6 max-w-xl text-lg font-semibold leading-relaxed text-white">
                                 <YogaFXText
-                                    text={`To Access ${packageTitle} Pre-course Preparation`}
+                                    text={`To Access ${packageTitle} Pre-course Preparation Online Dashboard`}
                                     fxClassName="!text-[#DB202C]"
                                 />
                             </p>
 
                             <Button
                                 asChild
-                                className="mt-10 inline-flex min-h-[64px] w-full max-w-[300px] items-center justify-center rounded-[8px] bg-[#DB202C] px-8 py-5 text-xl font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35 sm:text-2xl"
+                                className="mt-8 inline-flex min-h-[64px] w-full max-w-[300px] items-center justify-center rounded-[8px] bg-[#DB202C] px-8 py-5 text-xl font-bold italic text-white shadow-[0_12px_35px_rgba(219,32,44,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#c01a25] focus:outline-none focus:ring-4 focus:ring-[#DB202C]/35 sm:text-2xl"
                             >
                                 <Link
                                     href={onboarding.continue_url}

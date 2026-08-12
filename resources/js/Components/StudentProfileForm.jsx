@@ -1458,14 +1458,10 @@ export default function StudentProfileForm({
                             />
                         </div>
 
-                        <div className="group relative">
-                            <ResponsiveTopTooltip id="country-tooltip">
-                                Country of Residence
-                            </ResponsiveTopTooltip>
-
+                        <div>
                             <InputLabel
                                 htmlFor="country"
-                                value="Country"
+                                value="Country of Residence"
                                 className={theme.labelWithSpacingClassName}
                                 style={{ fontFamily: FONT_FAMILY }}
                             />
