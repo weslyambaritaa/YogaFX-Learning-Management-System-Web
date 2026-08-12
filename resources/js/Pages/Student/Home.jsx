@@ -576,6 +576,10 @@ function StudentDashboardIntro({
                 >
                     <div className="mx-auto w-full max-w-[1400px] px-4 py-7 sm:px-6 sm:py-9 lg:px-10 lg:py-10">
                         <div className="mx-auto max-w-[1280px]">
+                            <h1 className="mb-5 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-6 sm:text-[38px]">
+                                Hi {studentName}, Welcome!
+                            </h1>
+
                             <div className="relative w-full">
                                 <button
                                     type="button"
