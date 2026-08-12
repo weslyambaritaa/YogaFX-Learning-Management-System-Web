@@ -799,11 +799,11 @@ export default function StudentProfileForm({
               choiceDescriptionClassName:
                   "mt-1 text-[12px] font-normal text-white/70",
               choiceCheckedClassName:
-                  "border-2 border-emerald-500 bg-emerald-500 text-white shadow-[0_0_0_2px_rgba(16,185,129,0.30),0_0_18px_rgba(16,185,129,0.24)]",
+                  "border-2 border-emerald-500 bg-black/45 text-white",
               choiceUncheckedClassName:
                   "border-2 border-white/50 bg-black/45 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.14)] transition-all duration-200 hover:border-white hover:bg-white/10",
               choiceIndicatorCheckedClassName:
-                  "border-white bg-white text-[#DB202C]",
+                  "border-emerald-500 bg-emerald-500 text-white",
               choiceIndicatorUncheckedClassName:
                   "border-white bg-transparent text-transparent",
               errorClassName: "font-semibold text-[#ffb4a8]",
@@ -811,12 +811,12 @@ export default function StudentProfileForm({
                   "mb-2 text-[24px] font-bold leading-tight tracking-tight text-white sm:text-[26px]",
               descriptionClassName:
                   "text-[12px] font-normal leading-6 text-white/70",
-              inputClassName: PUBLIC_FORM_FIELD_CLASS,
+              inputClassName: `${PUBLIC_FORM_FIELD_CLASS} !font-semibold`,
               selectClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS} [&::-webkit-calendar-picker-indicator]:invert`,
               selectOptionClassName: "text-sm font-normal text-black",
               selectActiveColor: "#FFFFFF",
               selectPlaceholderColor: "#FFFFFF",
-              textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS}`,
+              textareaClassName: `block w-full ${PUBLIC_FORM_FIELD_CLASS} !font-semibold`,
               filledFieldClassName:
                   "!border-emerald-500 !bg-emerald-500/10 focus:!border-emerald-500 focus:!ring-emerald-500",
               errorFieldClassName:
