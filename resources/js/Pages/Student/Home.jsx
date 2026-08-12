@@ -574,9 +574,9 @@ function StudentDashboardIntro({
                     className="w-full bg-black text-white"
                     style={{ fontFamily: FONT_FAMILY }}
                 >
-                    <div className="mx-auto w-full max-w-[1400px] px-4 pt-7 pb-0 sm:px-6 sm:pt-9 sm:pb-0 lg:px-10 lg:pt-10 lg:pb-0">
+                    <div className="mx-auto w-full max-w-[1400px] px-4 pt-6 pb-0 sm:px-6 sm:pt-8 sm:pb-0 lg:px-10 lg:pt-10 lg:pb-0">
                         <div className="mx-auto max-w-[1280px]">
-                            <h1 className="mb-5 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-6 sm:text-[38px]">
+                            <h1 className="mb-6 text-[28px] font-bold leading-tight tracking-[-0.03em] text-white sm:mb-8 sm:text-[38px] lg:mb-10">
                                 Hi {studentName}, Welcome!
                             </h1>
 
@@ -599,18 +599,6 @@ function StudentDashboardIntro({
                                     </div>
                                 </button>
 
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    aria-label="Close welcome section"
-                                    className="absolute right-0 top-0 z-20 flex h-8 w-8 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-black text-white shadow-[0_4px_16px_rgba(0,0,0,0.45)] transition-colors duration-200 hover:bg-white/10 sm:h-9 sm:w-9"
-                                >
-                                    <X
-                                        className="h-4 w-4 stroke-[3.5] sm:h-5 sm:w-5"
-                                        aria-hidden="true"
-                                    />
-                                </button>
-
                                 <div className="mt-4 flex w-full justify-center sm:mt-5">
                                     <div className="inline-flex max-w-full items-center justify-center rounded-[6px] bg-[#DB202C] px-3 py-2 text-center sm:px-4 sm:py-2.5">
                                         <h2
@@ -618,7 +606,7 @@ function StudentDashboardIntro({
                                             style={{
                                                 fontFamily: FONT_FAMILY,
                                                 fontSize:
-                                                    "clamp(13px, 1.55vw, 22px)",
+                                                    "clamp(15px, 1.7vw, 24px)",
                                             }}
                                         >
                                             Exclusive Access for YogaFX RYT 200{" "}
@@ -652,7 +640,7 @@ function StudentDashboardIntro({
                                 </p>
                             </div>
 
-                            <div className="my-6 flex w-full justify-center sm:my-7">
+                            <div className="flex w-full justify-center pt-6 pb-6 sm:pt-8 sm:pb-8 lg:pt-10 lg:pb-10">
                                 <Button
                                     type="button"
                                     onClick={onStartLesson}
