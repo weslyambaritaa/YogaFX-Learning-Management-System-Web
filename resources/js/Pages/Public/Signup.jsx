@@ -112,6 +112,35 @@ export default function Signup({ onboarding, student }) {
 
     const showForm = flowPhase === "form";
 
+    const passwordFilled = data.password.trim().length > 0;
+
+    const passwordConfirmationFilled =
+        data.password_confirmation.trim().length > 0;
+
+    const passwordMatches =
+        passwordFilled &&
+        passwordConfirmationFilled &&
+        data.password === data.password_confirmation;
+
+    const passwordInputClassName = [
+        "bg-white/10 text-white placeholder:text-white/30 transition-colors duration-200",
+        errors.password
+            ? "!border-red-500 focus:!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-500/30"
+            : passwordFilled
+              ? "!border-emerald-500 focus:!border-emerald-500 focus-visible:!border-emerald-500 focus-visible:ring-emerald-500/30"
+              : "!border-white/20 focus:!border-white/50",
+    ].join(" ");
+
+    const passwordConfirmationInputClassName = [
+        "bg-white/10 text-white placeholder:text-white/30 transition-colors duration-200",
+        errors.password_confirmation ||
+        (passwordConfirmationFilled && !passwordMatches)
+            ? "!border-red-500 focus:!border-red-500 focus-visible:!border-red-500 focus-visible:ring-red-500/30"
+            : passwordMatches
+              ? "!border-emerald-500 focus:!border-emerald-500 focus-visible:!border-emerald-500 focus-visible:ring-emerald-500/30"
+              : "!border-white/20 focus:!border-white/50",
+    ].join(" ");
+
     /*
      * Countdown pertama:
      * Page dibuka -> 5, 4, 3, 2, 1 -> form.
@@ -235,12 +264,12 @@ export default function Signup({ onboarding, student }) {
                             }}
                         >
                             <span className="block">
-                                Your Last Step Activates Your Yoga
+                                Your Final Step Activates Your Yoga
                                 <span className="text-[#DB202C]">FX</span>{" "}
                                 Dashboard Access
                             </span>
 
-                            <span className="mt-1 block">
+                            <span className="mt-1 block italic">
                                 Please Sign In And Set Your Password
                             </span>
                         </span>
@@ -262,7 +291,7 @@ export default function Signup({ onboarding, student }) {
                                     type="text"
                                     readOnly
                                     value={student?.name ?? ""}
-                                    className="mt-2 block w-full rounded-[5px] border border-white/20 bg-white/10 px-3 py-2 text-white opacity-100"
+                                    className="mt-2 block w-full rounded-[5px] border border-emerald-500 bg-white/10 px-3 py-2 text-white opacity-100 transition-colors duration-200 focus:border-emerald-500 focus:ring-emerald-500/30"
                                 />
                             </div>
 
@@ -278,7 +307,7 @@ export default function Signup({ onboarding, student }) {
                                     type="email"
                                     readOnly
                                     value={student?.email ?? ""}
-                                    className="mt-2 block w-full rounded-[5px] border border-white/20 bg-white/10 px-3 py-2 text-white opacity-100"
+                                    className="mt-2 block w-full rounded-[5px] border border-emerald-500 bg-white/10 px-3 py-2 text-white opacity-100 transition-colors duration-200 focus:border-emerald-500 focus:ring-emerald-500/30"
                                 />
                             </div>
 
@@ -293,7 +322,7 @@ export default function Signup({ onboarding, student }) {
                                     id="password"
                                     value={data.password}
                                     className="mt-2 block w-full"
-                                    inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                                    inputClassName={passwordInputClassName}
                                     onChange={(event) =>
                                         setData("password", event.target.value)
                                     }
@@ -323,7 +352,9 @@ export default function Signup({ onboarding, student }) {
                                     id="password_confirmation"
                                     value={data.password_confirmation}
                                     className="mt-2 block w-full"
-                                    inputClassName="border-white/20 bg-white/10 text-white placeholder:text-white/30"
+                                    inputClassName={
+                                        passwordConfirmationInputClassName
+                                    }
                                     onChange={(event) =>
                                         setData(
                                             "password_confirmation",
@@ -367,7 +398,6 @@ export default function Signup({ onboarding, student }) {
                         </div>
 
                         <div className="flex flex-col items-center gap-3 pt-2 text-center">
-
                             <Button
                                 type="submit"
                                 disabled={processing}
