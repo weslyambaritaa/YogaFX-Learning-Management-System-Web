@@ -361,7 +361,7 @@ export default function StudentLessonShow({
     const autoNextStartedRef = useRef(false);
     const autoNextNavigatingRef = useRef(false);
     const workbookTriggerAttemptedRef = useRef(false);
-    const workbookAutoOpenedLessonIdsRef = useRef(new Set());
+    const lastWorkbookAutoOpenedLessonIdRef = useRef(null);
     const lessonVideoUrl = lesson.video?.hls_url ?? null;
     const isWorkbookReadyForPlayback = !hasWorkbook || workbookDownloadStarted;
     const shouldAutoplayLesson =
@@ -513,14 +513,9 @@ export default function StudentLessonShow({
                 const loaded = await loadLessonInPlace(autoplayUrl);
 
                 if (loaded) {
-                    // Jangan reset di sini.
-                    // Saat lesson baru masuk, useEffect [lesson]
-                    // akan reset lock secara otomatis.
                     return;
                 }
 
-                // In-place navigation gagal.
-                // Lepaskan lock sebelum mencoba Inertia navigation.
                 autoNextNavigatingRef.current = false;
 
                 if (autoplayUrl) {
@@ -537,8 +532,6 @@ export default function StudentLessonShow({
                 return;
             } catch (error) {
                 console.error("Failed to open next lesson.", error);
-
-                // PENTING: jangan biarkan tombol terkunci.
                 autoNextNavigatingRef.current = false;
                 return;
             }
@@ -605,7 +598,7 @@ export default function StudentLessonShow({
 
     useEffect(() => {
         const workbookAlreadyAutoOpened =
-            workbookAutoOpenedLessonIdsRef.current.has(lesson.id);
+            lastWorkbookAutoOpenedLessonIdRef.current === lesson.id;
 
         setWatchProgress(lesson.progress?.watch_progress ?? 0);
         setIsLessonDone(Boolean(lesson.progress?.is_done));
@@ -769,7 +762,7 @@ export default function StudentLessonShow({
             typeof window === "undefined" ||
             !hasWorkbook ||
             workbookDownloadStarted ||
-            workbookAutoOpenedLessonIdsRef.current.has(lesson.id) ||
+            lastWorkbookAutoOpenedLessonIdRef.current === lesson.id ||
             isTriggeringWorkbook ||
             workbookTriggerAttemptedRef.current
         ) {
@@ -777,7 +770,7 @@ export default function StudentLessonShow({
         }
 
         workbookTriggerAttemptedRef.current = true;
-        workbookAutoOpenedLessonIdsRef.current.add(lesson.id);
+        lastWorkbookAutoOpenedLessonIdRef.current = lesson.id;
         setIsTriggeringWorkbook(true);
         setDownloadNotice(null);
 
