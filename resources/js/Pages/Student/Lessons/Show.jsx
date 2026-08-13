@@ -36,11 +36,8 @@ function workbookSessionStorageKey(lessonId) {
 }
 
 function workbookFileNameFromResponse(response, downloadUrl, lessonTitle) {
-    const contentDisposition =
-        response?.headers?.get?.("Content-Disposition") ?? "";
-    const encodedNameMatch = contentDisposition.match(
-        /filename\*=UTF-8''([^;]+)/i,
-    );
+    const contentDisposition = response?.headers?.get?.("Content-Disposition") ?? "";
+    const encodedNameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
     const plainNameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
 
     if (encodedNameMatch?.[1]) {
@@ -318,8 +315,9 @@ export default function StudentLessonShow({
     const hasWorkbook = Boolean(lesson.workbook_download_url);
     const initialWorkbookDownloadStarted =
         typeof window !== "undefined" &&
-        window.sessionStorage.getItem(workbookSessionStorageKey(lesson.id)) ===
-            "1";
+        window.sessionStorage.getItem(
+            workbookSessionStorageKey(lesson.id),
+        ) === "1";
     const [playerWarning, setPlayerWarning] = useState(null);
     const [watchProgress, setWatchProgress] = useState(
         lesson.progress?.watch_progress ?? 0,
@@ -492,9 +490,7 @@ export default function StudentLessonShow({
     const canAutoAdvance = Boolean(
         lesson.lesson_video_id && nextTarget?.is_unlocked && nextTarget?.url,
     );
-    const canOpenNextTarget = Boolean(
-        nextTarget?.is_unlocked && nextTarget?.url,
-    );
+    const canOpenNextTarget = Boolean(nextTarget?.is_unlocked && nextTarget?.url);
     const nextTargetHref = nextTarget?.url
         ? nextTarget.type === "lesson"
             ? withAutoplayQuery(nextTarget.url)
@@ -823,8 +819,7 @@ export default function StudentLessonShow({
                     );
                 }
 
-                const forcedDownload =
-                    await triggerBrowserDownload(downloadUrl);
+                const forcedDownload = await triggerBrowserDownload(downloadUrl);
 
                 setWorkbookDownloadStarted(true);
 
@@ -1102,9 +1097,7 @@ export default function StudentLessonShow({
             }
         }
 
-        watchMetricsRef.current.lastCurrentTime = Number.isFinite(
-            safeCurrentTime,
-        )
+        watchMetricsRef.current.lastCurrentTime = Number.isFinite(safeCurrentTime)
             ? safeCurrentTime
             : null;
 
@@ -1143,7 +1136,9 @@ export default function StudentLessonShow({
                           ...current,
                           is_unlocked: true,
                           lock_reason: null,
-                          url: current.url ?? route("lessons.show", current.id),
+                          url:
+                              current.url ??
+                              route("lessons.show", current.id),
                       }
                     : current,
             );
@@ -1261,7 +1256,9 @@ export default function StudentLessonShow({
                                                 autoNextCountdown !== null
                                             }
                                             overlay={autoNextOverlay}
-                                            onPlaybackError={setPlayerWarning}
+                                            onPlaybackError={
+                                                setPlayerWarning
+                                            }
                                             onProgressUpdate={
                                                 handleProgressUpdate
                                             }
@@ -1277,8 +1274,7 @@ export default function StudentLessonShow({
                                                 <div className="max-w-md space-y-3">
                                                     <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-white/25 border-t-[#db202c]" />
                                                     <div className="font-['Montserrat'] text-base font-semibold text-white">
-                                                        Preparing workbook
-                                                        download
+                                                        Preparing workbook download
                                                     </div>
                                                     <p className="font-['Montserrat'] text-sm leading-6 text-white/72">
                                                         {isTriggeringWorkbook
