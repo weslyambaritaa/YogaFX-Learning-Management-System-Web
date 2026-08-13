@@ -317,10 +317,7 @@ export default function StudentLessonShow({
         initialAccessTimeSummary,
     );
     const hasWorkbook = Boolean(lesson.workbook_download_url);
-    const initialWorkbookDownloadStarted =
-        typeof window !== "undefined" &&
-        window.sessionStorage.getItem(workbookSessionStorageKey(lesson.id)) ===
-            "1";
+    const initialWorkbookDownloadStarted = false;
     const [playerWarning, setPlayerWarning] = useState(null);
     const [watchProgress, setWatchProgress] = useState(
         lesson.progress?.watch_progress ?? 0,
@@ -340,6 +337,10 @@ export default function StudentLessonShow({
     );
     const [isTriggeringWorkbook, setIsTriggeringWorkbook] = useState(false);
     const [downloadNotice, setDownloadNotice] = useState(null);
+    const [workbookViewer, setWorkbookViewer] = useState({
+        open: false,
+        url: null,
+    });
     const [showLockedDialog, setShowLockedDialog] = useState(false);
     const [lockedReason, setLockedReason] = useState(null);
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
@@ -575,11 +576,7 @@ export default function StudentLessonShow({
     }, [initialLesson, initialAccessTimeSummary]);
 
     useEffect(() => {
-        const persistedWorkbookDownloadStarted =
-            typeof window !== "undefined" &&
-            window.sessionStorage.getItem(
-                workbookSessionStorageKey(lesson.id),
-            ) === "1";
+        const persistedWorkbookDownloadStarted = false;
 
         setWatchProgress(lesson.progress?.watch_progress ?? 0);
         setIsLessonDone(Boolean(lesson.progress?.is_done));
@@ -589,6 +586,10 @@ export default function StudentLessonShow({
         setNextLesson(lesson.next_lesson);
         setAutoNextCountdown(null);
         setDownloadNotice(null);
+        setWorkbookViewer({
+            open: false,
+            url: null,
+        });
         setIsTriggeringWorkbook(false);
         setLockedReason(null);
         setWorkbookDownloadStarted(persistedWorkbookDownloadStarted);
@@ -617,13 +618,8 @@ export default function StudentLessonShow({
 
         const storageKey = workbookSessionStorageKey(lesson.id);
 
-        if (workbookDownloadStarted) {
-            window.sessionStorage.setItem(storageKey, "1");
-            return;
-        }
-
         window.sessionStorage.removeItem(storageKey);
-    }, [lesson.id, workbookDownloadStarted]);
+    }, [lesson.id]);
 
     useEffect(() => {
         if (
@@ -710,58 +706,12 @@ export default function StudentLessonShow({
             return false;
         }
 
-        try {
-            const response = await fetch(downloadUrl, {
-                credentials: "same-origin",
-            });
+        setWorkbookViewer({
+            open: true,
+            url: downloadUrl,
+        });
 
-            if (!response.ok) {
-                throw new Error(
-                    `Workbook download request failed (${response.status}).`,
-                );
-            }
-
-            const blob = await response.blob();
-            const objectUrl = window.URL.createObjectURL(blob);
-            const anchor = document.createElement("a");
-
-            anchor.href = objectUrl;
-            anchor.download = workbookFileNameFromResponse(
-                response,
-                downloadUrl,
-                lesson.title,
-            );
-            anchor.style.display = "none";
-
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-
-            window.setTimeout(() => {
-                window.URL.revokeObjectURL(objectUrl);
-            }, 1000);
-
-            return true;
-        } catch (error) {
-            console.warn(
-                "Direct workbook download could not be forced. Falling back to the workbook URL.",
-                error,
-            );
-
-            const anchor = document.createElement("a");
-
-            anchor.href = downloadUrl;
-            anchor.target = "_blank";
-            anchor.rel = "noopener noreferrer";
-            anchor.download = "";
-            anchor.style.display = "none";
-
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-
-            return false;
-        }
+        return true;
     };
 
     const readXsrfToken = () => {
@@ -831,21 +781,21 @@ export default function StudentLessonShow({
 
                 setDownloadNotice({
                     tone: "success",
-                    title: "Workbook download started",
+                    title: "Workbook opened",
                     message: result?.was_first_trigger
-                        ? "Your workbook download has started. We also sent the workbook to your email as an attachment."
+                        ? "Your workbook opened automatically. We also sent it to your email as an attachment."
                         : forcedDownload
-                          ? "Your workbook download has started."
-                          : "The workbook was opened through your browser because a direct download could not be forced. You can use Download Workbook Again at any time.",
+                          ? "Your workbook opened automatically."
+                          : "The workbook could not be opened automatically. Use the Open Workbook button above.",
                 });
             } catch (error) {
                 console.error("Failed to trigger workbook delivery.", error);
                 setWorkbookDownloadStarted(false);
                 setDownloadNotice({
                     tone: "warning",
-                    title: "Workbook download needs manual fallback",
+                    title: "Workbook needs manual opening",
                     message:
-                        "We could not start the workbook download automatically. Use the Download Workbook button.",
+                        "We could not open the workbook automatically. Use the Open Workbook button above.",
                 });
             } finally {
                 setIsTriggeringWorkbook(false);
@@ -1236,6 +1186,72 @@ export default function StudentLessonShow({
                 </DialogContent>
             </Dialog>
 
+            <Dialog
+                open={workbookViewer.open}
+                onOpenChange={(open) =>
+                    setWorkbookViewer((current) => ({
+                        ...current,
+                        open,
+                    }))
+                }
+            >
+                <DialogContent
+                    className="flex h-[88dvh] w-[calc(100%-20px)] max-w-6xl flex-col gap-0 overflow-hidden rounded-[5px] border border-white/10 bg-[#110f0f] p-0 text-white shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
+                    overlayClassName="bg-black/80 backdrop-blur-sm"
+                >
+                    <DialogHeader className="shrink-0 border-b border-white/10 px-4 py-3 sm:px-5">
+                        <DialogTitle className="font-['Montserrat'] text-base font-semibold text-white sm:text-lg">
+                            Workbook
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="min-h-0 flex-1 bg-black">
+                        {workbookViewer.url ? (
+                            <iframe
+                                src={workbookViewer.url}
+                                title={`${lesson.title} Workbook`}
+                                className="h-full w-full border-0 bg-white"
+                            />
+                        ) : (
+                            <div className="flex h-full items-center justify-center">
+                                <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/25 border-t-[#DB202C]" />
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="shrink-0 border-t border-white/10 bg-[#171211] px-4 py-3 sm:px-5">
+                        {workbookViewer.url ? (
+                            <Button
+                                asChild
+                                className="h-9 rounded-[5px] bg-[#DB202C] px-4 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28]"
+                            >
+                                <a
+                                    href={workbookViewer.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Open in New Tab
+                                </a>
+                            </Button>
+                        ) : null}
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                                setWorkbookViewer((current) => ({
+                                    ...current,
+                                    open: false,
+                                }))
+                            }
+                            className="h-9 rounded-[5px] border-white/15 bg-white/5 px-4 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-white/10 hover:text-white"
+                        >
+                            Continue Lesson
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <div className="mx-auto flex max-w-[1400px] flex-col gap-4 pt-0 sm:px-6 sm:pt-3 lg:px-10">
                 <section className="grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(320px,1fr)] lg:items-start">
                     <div className="min-w-0 space-y-0 sm:space-y-4">
@@ -1253,7 +1269,8 @@ export default function StudentLessonShow({
                                             className="h-full w-full overflow-hidden"
                                             autoplay={shouldAutoplayLesson}
                                             forcePause={
-                                                irregularWarningDialog.open
+                                                irregularWarningDialog.open ||
+                                                workbookViewer.open
                                             }
                                             restoreFullscreenOnAutoplay={
                                                 shouldAutoplayLesson
@@ -1283,8 +1300,8 @@ export default function StudentLessonShow({
                                                     </div>
                                                     <p className="font-['Montserrat'] text-sm leading-6 text-white/72">
                                                         {isTriggeringWorkbook
-                                                            ? "We are preparing your workbook and starting the download before this lesson begins."
-                                                            : "Please wait while we finish the workbook download for this lesson."}
+                                                            ? "We are preparing your workbook and opening it before this lesson begins."
+                                                            : "Please wait while we finish opening the workbook for this lesson."}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1348,7 +1365,7 @@ export default function StudentLessonShow({
                                                     type="button"
                                                     className="h-9 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28]"
                                                     onClick={async () => {
-                                                        const downloadStarted =
+                                                        const workbookOpened =
                                                             await triggerBrowserDownload(
                                                                 lesson.workbook_download_url,
                                                             );
@@ -1358,11 +1375,11 @@ export default function StudentLessonShow({
                                                         );
                                                         setDownloadNotice({
                                                             tone: "success",
-                                                            title: "Workbook download started",
+                                                            title: "Workbook opened",
                                                             message:
-                                                                downloadStarted
-                                                                    ? "Your workbook download has started."
-                                                                    : "The workbook was opened through your browser because a direct download could not be forced.",
+                                                                workbookOpened
+                                                                    ? "Your workbook has been opened."
+                                                                    : "We could not open the workbook.",
                                                         });
                                                     }}
                                                 >
@@ -1372,15 +1389,15 @@ export default function StudentLessonShow({
                                                         <FileText className="mr-2 size-4" />
                                                     )}
                                                     {workbookDownloadStarted
-                                                        ? "Download Workbook Again"
-                                                        : "Download Workbook"}
+                                                        ? "Open Workbook Again"
+                                                        : "Open Workbook"}
                                                 </Button>
                                             ) : null}
 
                                             {hasWorkbook &&
                                             isTriggeringWorkbook ? (
                                                 <span className="font-['Montserrat'] text-[12px] text-white/55">
-                                                    Preparing workbook...
+                                                    Opening workbook...
                                                 </span>
                                             ) : null}
 

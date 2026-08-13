@@ -45,7 +45,13 @@ function BigVideoActionButton({
                 size === "primary" ? "h-16 w-16" : "h-12 w-12",
             ].join(" ")}
         >
-            <Icon className={size === "primary" ? "size-8" : "size-5"} />
+            <Icon
+                className={[
+                    size === "primary" ? "size-8" : "size-5",
+                    "text-[#10b981]",
+                ].join(" ")}
+                strokeWidth={2.4}
+            />
             {size !== "primary" ? (
                 <span className="absolute -bottom-1.5 px-1.5 py-0.5 text-[9px] font-semibold leading-none text-white/85">
                     10
@@ -63,7 +69,7 @@ function SmallControlButton({ icon: Icon, label, onClick }) {
             aria-label={label}
             className="flex h-8 w-8 items-center justify-center text-white transition hover:text-white/80"
         >
-            <Icon className="size-4" />
+            <Icon className="size-4 text-[#10b981]" strokeWidth={2.4} />
         </button>
     );
 }
@@ -241,7 +247,10 @@ export default function VideoJsPlayer({
         if (isAlreadyFullscreen) {
             if (document.fullscreenElement && document.exitFullscreen) {
                 await document.exitFullscreen();
-            } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+            } else if (
+                document.webkitFullscreenElement &&
+                document.webkitExitFullscreen
+            ) {
                 document.webkitExitFullscreen();
             }
 
@@ -380,7 +389,9 @@ export default function VideoJsPlayer({
             return undefined;
         }
 
-        const mediaQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+        const mediaQuery = window.matchMedia(
+            "(hover: hover) and (pointer: fine)",
+        );
         const syncHoverSupport = () => {
             setSupportsHoverControls(mediaQuery.matches);
         };
@@ -445,10 +456,7 @@ export default function VideoJsPlayer({
 
         const playbackResult = player.play();
 
-        if (
-            playbackResult &&
-            typeof playbackResult.catch === "function"
-        ) {
+        if (playbackResult && typeof playbackResult.catch === "function") {
             playbackResult.catch(() => {});
         }
     }, [autoplay, isReady]);
@@ -494,7 +502,9 @@ export default function VideoJsPlayer({
                 });
 
                 player.ready(() => {
-                    const htmlVideoElement = player.el()?.querySelector("video");
+                    const htmlVideoElement = player
+                        .el()
+                        ?.querySelector("video");
 
                     if (!htmlVideoElement) {
                         return;
