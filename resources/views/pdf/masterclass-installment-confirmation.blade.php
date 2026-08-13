@@ -195,19 +195,24 @@
                 @endif
             @endif
 
-            <p class="closing">
-                Thank you for your interest in Yoga<span style="color: red;">FX</span> International Yoga Teacher Training Academy it really is appreciated.
-            </p>
+<p class="closing">
+    Thank you for your interest in Yoga<span style="color: red;">FX</span> International Yoga Teacher Training Academy it really is appreciated.
+</p>
 
-            @if (!empty($showBonuses))
-                <div style="font-size:20px;font-weight:700;">
-                    <strong>Also Included — Your Online Course Bonuses:</strong><br>
-                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 1:</strong> 10 Premium Online Lectures ($490) - Module 14<br>
-                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 2:</strong> Full $197 Credit to Mr. Ian's MasterClass<br>
-                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 3:</strong> MasterClass Pre-Course Preparation Credit<br>
-                    <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Yoga Alliance RYT-200
-                </div>
-            @endif
+<div class="faq-notice">
+    Please take a look at the FAQ PDF also sent to your inbox.
+    It contains some great tips for travelling to Bali and useful course information.
+</div>
+
+@if (!empty($showBonuses))
+    <div style="font-size:20px;font-weight:700;">
+        <strong>Also Included — Your Online Course Bonuses:</strong><br>
+        <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 1:</strong> 10 Premium Online Lectures ($490) - Module 14<br>
+        <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 2:</strong> Full $197 Credit to Mr. Ian's MasterClass<br>
+        <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 3:</strong> MasterClass Pre-Course Preparation Credit<br>
+        <strong><img src="{{ $greenTickUrl }}" class="check-icon" alt="Trophy Icon"> Bonus 4:</strong> Yoga Alliance RYT-200
+    </div>
+@endif
         </div>
 
         <div class="footer">
