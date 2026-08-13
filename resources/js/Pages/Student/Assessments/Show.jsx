@@ -1,7 +1,5 @@
-import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Textarea } from "@/Components/ui/textarea";
-import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, router, useForm } from "@inertiajs/react";
 import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
@@ -45,22 +43,304 @@ function buildNumericInitial(question) {
 
 function shouldUseMultilineInput(question) {
     return (
-        <AuthenticatedLayout
-            studentVariant="immersive"
-            studentContentClassName="bg-black"
-        >
+        question.input_type === "multi_line" ||
+        (question.character_limit || 0) > 140
+    );
+}
+
+function getImageFitClass(question) {
+    return question.answer_image_fit === "contain"
+        ? "object-contain"
+        : "object-cover";
+}
+
+function getScaleBounds(question) {
+    const min = Number.isFinite(Number(question.score_range_min))
+        ? Math.trunc(Number(question.score_range_min))
+        : 1;
+    const max = Number.isFinite(Number(question.score_range_max))
+        ? Math.trunc(Number(question.score_range_max))
+        : Math.max(min, 5);
+
+    return {
+        min,
+        max: Math.max(max, min),
+    };
+}
+
+function getIntegerScaleValues(question) {
+    const { min, max } = getScaleBounds(question);
+
+    return Array.from({ length: max - min + 1 }, (_, index) => min + index);
+}
+
+function groupScaleValues(question) {
+    const scaleValues = getIntegerScaleValues(question);
+    const sectionCount =
+        question.question_type === "divided_scale"
+            ? Math.max(1, Number(question.section_count || 1))
+            : 1;
+    const valuesPerGroup = Math.ceil(scaleValues.length / sectionCount);
+    const groups = [];
+
+    for (let index = 0; index < scaleValues.length; index += valuesPerGroup) {
+        groups.push(scaleValues.slice(index, index + valuesPerGroup));
+    }
+
+    return groups;
+}
+
+function checkboxSelectionLimitMessage(question) {
+    if (question.question_type !== "multiple_choice_checkboxes") {
+        return null;
+    }
+
+    const min = Number(question.min_count || 0);
+    const max = Number(question.max_count || 0);
+
+    if (min > 0 && max > 0) {
+        return `Choose between ${min} and ${max} answers.`;
+    }
+
+    if (min > 0) {
+        return `Choose at least ${min} answer${min === 1 ? "" : "s"}.`;
+    }
+
+    if (max > 0) {
+        return `Choose no more than ${max} answers.`;
+    }
+
+    return null;
+}
+
+function optionSelectionIds(question, data) {
+    return question.allow_multi_select
+        ? (data.option_ids ?? []).map((value) => Number(value))
+        : data.option_id === "" ||
+            data.option_id === null ||
+            data.option_id === undefined
+          ? []
+          : [Number(data.option_id)];
+}
+
+function evaluateOptionFeedback(question, data) {
+    if (!question.has_correctness_gate) {
+        return {
+            isGateComplete: true,
+            isCorrect: true,
+            message: null,
+            tone: null,
+            selectedStateMap: {},
+        };
+    }
+
+    const selectedIds = optionSelectionIds(question, data);
+    const selectedIdSet = new Set(selectedIds);
+    const correctIds = question.options
+        .filter((option) => option.is_correct)
+        .map((option) => Number(option.id));
+    const correctIdSet = new Set(correctIds);
+    const selectedStateMap = {};
+
+    question.options.forEach((option) => {
+        const optionId = Number(option.id);
+
+        if (!selectedIdSet.has(optionId)) {
+            return;
+        }
+
+        selectedStateMap[optionId] = correctIdSet.has(optionId)
+            ? "correct"
+            : "incorrect";
+    });
+
+    if (selectedIds.length === 0) {
+        return {
+            isGateComplete: false,
+            isCorrect: false,
+            message: null,
+            tone: null,
+            selectedStateMap,
+        };
+    }
+
+    const isExactMatch =
+        selectedIds.length === correctIds.length &&
+        selectedIds.every((id) => correctIdSet.has(id));
+
+    return {
+        isGateComplete: isExactMatch,
+        isCorrect: isExactMatch,
+        message: isExactMatch
+            ? "Correct!"
+            : "Oops!!! Wrong Answer! Please refer to your workbook and try again.",
+        tone: isExactMatch ? "success" : "error",
+        selectedStateMap,
+    };
+}
+
+export default function AssessmentShow({
+    lesson,
+    assessment,
+    attempt,
+    question,
+    canGoBack,
+    isLastQuestion,
+}) {
+    const [remaining, setRemaining] = useState(
+        formatRemaining(assessment.timer.expires_at),
+    );
+    const isOptionBased = [
+        "yes_no_maybe",
+        "multiple_choice_checkboxes",
+        "multiple_choice_buttons",
+        "radio_buttons",
+        "image_button",
+    ].includes(question.question_type);
+    const isNumericBased = [
+        "sliding_scale",
+        "linear_scale",
+        "divided_scale",
+        "numeric",
+    ].includes(question.question_type);
+    const isInfoScreen = question.question_type === "info_screen";
+    const imageColumns = Math.min(
+        Math.max(Number(question.answers_per_row || 2), 1),
+        4,
+    );
+
+    const { data, setData, post, processing, errors } = useForm({
+        option_id: question.saved.option_ids?.[0] ?? "",
+        option_ids: question.saved.option_ids ?? [],
+        answer_text: question.saved.answer_text ?? "",
+        answer_number: buildNumericInitial(question),
+    });
+    const [selectionFeedback, setSelectionFeedback] = useState(null);
+
+    useEffect(() => {
+        setData({
+            option_id: question.saved.option_ids?.[0] ?? "",
+            option_ids: question.saved.option_ids ?? [],
+            answer_text: question.saved.answer_text ?? "",
+            answer_number: buildNumericInitial(question),
+        });
+        setSelectionFeedback(null);
+    }, [question.id]);
+
+    useEffect(() => {
+        if (!assessment.timer.expires_at) {
+            return undefined;
+        }
+
+        const interval = window.setInterval(() => {
+            setRemaining(formatRemaining(assessment.timer.expires_at));
+        }, 1000);
+
+        return () => window.clearInterval(interval);
+    }, [assessment.timer.expires_at]);
+
+    const progressWidth = useMemo(() => {
+        if (!assessment.show_progress_bar || assessment.progress.total === 0) {
+            return "0%";
+        }
+
+        return `${(assessment.progress.current / assessment.progress.total) * 100}%`;
+    }, [
+        assessment.progress.current,
+        assessment.progress.total,
+        assessment.show_progress_bar,
+    ]);
+
+    const optionFeedback = useMemo(
+        () => evaluateOptionFeedback(question, data),
+        [data, question],
+    );
+    const selectedOptionCount = optionSelectionIds(question, data).length;
+    const hasOptionSelection = selectedOptionCount > 0;
+    const satisfiesMinSelection = question.min_count
+        ? selectedOptionCount >= Number(question.min_count)
+        : true;
+    const satisfiesMaxSelection = question.max_count
+        ? selectedOptionCount <= Number(question.max_count)
+        : true;
+    const canSubmitOptionQuestion = question.has_correctness_gate
+        ? optionFeedback.isGateComplete
+        : (question.required ? hasOptionSelection : true) &&
+          satisfiesMinSelection &&
+          satisfiesMaxSelection;
+
+    const toggleOption = (optionId) => {
+        const isSelected = data.option_ids.includes(optionId);
+        const next = isSelected
+            ? data.option_ids.filter((value) => value !== optionId)
+            : [...data.option_ids, optionId];
+        const maxCount = Number(question.max_count || 0);
+
+        if (!isSelected && maxCount > 0 && next.length > maxCount) {
+            setSelectionFeedback(
+                `You can select up to ${maxCount} answers for this question.`,
+            );
+
+            return;
+        }
+
+        setSelectionFeedback(null);
+        setData("option_ids", next);
+    };
+
+    const selectSingleOption = (optionId) => {
+        setSelectionFeedback(null);
+        setData("option_id", optionId);
+        setData("option_ids", [optionId]);
+    };
+
+    const progressPercentage = Math.max(
+        0,
+        Math.min(100, Math.round(Number.parseFloat(progressWidth) || 0)),
+    );
+
+    const handleTopBack = () => {
+        if (canGoBack) {
+            router.post(
+                route("assessments.back", {
+                    lesson: lesson.id,
+                    attempt: attempt.id,
+                }),
+            );
+
+            return;
+        }
+
+        router.visit(route("assessments.intro", lesson.id));
+    };
+
+    const submit = (event) => {
+        event.preventDefault();
+        post(
+            route("assessments.answer", {
+                lesson: lesson.id,
+                attempt: attempt.id,
+            }),
+        );
+    };
+
+    return (
+        <>
             <Head title={assessment.title} />
 
             <main
-                className="min-h-[100dvh] w-full bg-black text-white"
+                className="min-h-[100dvh] w-full overflow-x-hidden bg-black text-white"
                 style={{ fontFamily: "'Montserrat', sans-serif" }}
             >
-                <div className="mx-auto flex min-h-[100dvh] w-full max-w-[980px] flex-col px-5 pb-8 pt-4 sm:px-8 sm:pb-10 sm:pt-5">
+                <div className="mx-auto flex min-h-[100dvh] w-full max-w-[960px] flex-col px-5 pb-8 pt-4 sm:px-8 sm:pb-10 sm:pt-5">
+                    {/* Timer tetap berjalan untuk assessment bertimer,
+                        tetapi tidak ditampilkan karena tidak ada pada desain referensi. */}
                     <span className="sr-only" aria-live="polite">
                         Time remaining: {remaining}
                     </span>
 
-                    <div className="flex justify-center">
+                    {/* Logo */}
+                    <div className="flex shrink-0 justify-center">
                         {assessment.design.logo_link ? (
                             <a
                                 href={assessment.design.logo_link}
@@ -74,7 +354,7 @@ function shouldUseMultilineInput(question) {
                                         "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
                                     }
                                     alt="YogaFX"
-                                    className="h-auto w-[170px] object-contain sm:w-[190px]"
+                                    className="h-auto w-[178px] object-contain sm:w-[205px]"
                                 />
                             </a>
                         ) : (
@@ -84,20 +364,21 @@ function shouldUseMultilineInput(question) {
                                     "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
                                 }
                                 alt="YogaFX"
-                                className="h-auto w-[170px] object-contain sm:w-[190px]"
+                                className="h-auto w-[178px] object-contain sm:w-[205px]"
                             />
                         )}
                     </div>
 
-                    <div className="mt-10 flex justify-center sm:mt-11">
+                    {/* Back */}
+                    <div className="mt-8 flex shrink-0 justify-center sm:mt-9">
                         <button
                             type="button"
                             onClick={handleTopBack}
-                            className="inline-flex items-center gap-2 bg-transparent px-2 py-1 text-[15px] font-medium uppercase text-white transition-opacity hover:opacity-75 sm:text-[17px]"
+                            className="inline-flex items-center gap-2 bg-transparent px-2 py-1 text-[15px] font-medium uppercase leading-none text-white transition-opacity hover:opacity-75 sm:text-[17px]"
                         >
                             <span
                                 aria-hidden="true"
-                                className="text-[24px] font-light leading-none"
+                                className="text-[25px] font-light leading-none"
                             >
                                 ←
                             </span>
@@ -105,11 +386,12 @@ function shouldUseMultilineInput(question) {
                         </button>
                     </div>
 
+                    {/* Question area */}
                     <div className="mx-auto mt-5 flex w-full max-w-[760px] flex-1 flex-col items-center sm:mt-6">
-                        <div className="sr-only">
+                        <span className="sr-only">
                             Question {assessment.progress.current} out of{" "}
                             {assessment.progress.total}
-                        </div>
+                        </span>
 
                         {question.show_instruction &&
                             question.instruction_text && (
@@ -119,7 +401,7 @@ function shouldUseMultilineInput(question) {
                             )}
 
                         <div
-                            className="mx-auto max-w-[720px] text-center text-[27px] font-medium leading-[1.45] tracking-[-0.02em] text-white sm:text-[34px]"
+                            className="mx-auto max-w-[720px] text-center text-[27px] font-medium leading-[1.42] tracking-[-0.02em] text-white sm:text-[35px]"
                             dangerouslySetInnerHTML={{
                                 __html:
                                     question.question_text ||
@@ -129,7 +411,7 @@ function shouldUseMultilineInput(question) {
 
                         <form
                             onSubmit={submit}
-                            className="mt-7 flex w-full flex-1 flex-col items-center sm:mt-8"
+                            className="mt-6 flex w-full flex-1 flex-col items-center sm:mt-7"
                         >
                             {isInfoScreen ? (
                                 <div className="mx-auto max-w-[560px] text-center text-[16px] font-medium leading-7 text-white/80">
@@ -142,7 +424,7 @@ function shouldUseMultilineInput(question) {
                                         question.question_type ===
                                         "image_button"
                                             ? "grid max-w-[720px] gap-4"
-                                            : "flex max-w-[360px] flex-col gap-[10px]",
+                                            : "flex max-w-[350px] flex-col gap-[8px]",
                                     ].join(" ")}
                                     style={
                                         question.question_type ===
@@ -199,7 +481,7 @@ function shouldUseMultilineInput(question) {
                                                             }
                                                             alt={option.label}
                                                             className={[
-                                                                "aspect-video w-full rounded-[4px] border-2 object-cover",
+                                                                "aspect-video w-full rounded-[4px] border-2",
                                                                 selected
                                                                     ? "border-[#ff1717]"
                                                                     : "border-transparent",
@@ -485,7 +767,7 @@ function shouldUseMultilineInput(question) {
                                 </div>
                             )}
 
-                            <div className="mx-auto mt-5 w-full max-w-[560px] space-y-2">
+                            <div className="mx-auto mt-4 w-full max-w-[560px] space-y-2">
                                 {isOptionBased && optionFeedback.message && (
                                     <div
                                         className={[
@@ -520,29 +802,31 @@ function shouldUseMultilineInput(question) {
                                 )}
                             </div>
 
-                            <div className="mt-7 flex w-full justify-center">
-                                <Button
+                            {/* Next */}
+                            <div className="mt-6 flex w-full justify-center">
+                                <button
                                     type="submit"
                                     disabled={
                                         processing ||
                                         (isOptionBased &&
                                             !canSubmitOptionQuestion)
                                     }
-                                    className="h-[52px] min-w-[168px] rounded-[5px] bg-[#ff1111] px-8 text-[17px] font-medium text-white shadow-none transition-colors hover:bg-[#e60000] disabled:cursor-not-allowed disabled:bg-[#ff1111] disabled:opacity-100"
+                                    className="h-[52px] min-w-[168px] rounded-[5px] bg-[#ff1111] px-8 text-[17px] font-medium text-white transition-colors hover:bg-[#e60000] disabled:cursor-not-allowed disabled:bg-[#ff1111] disabled:opacity-55"
                                 >
                                     {isLastQuestion ? "Submit" : "Next"}
-                                </Button>
+                                </button>
                             </div>
 
+                            {/* Progress */}
                             {assessment.show_progress_bar && (
-                                <div className="mx-auto mt-auto w-full max-w-[300px] pt-16 sm:pt-20">
-                                    <div className="mb-2 text-left text-[16px] font-medium text-white sm:text-[17px]">
+                                <div className="mx-auto mt-auto w-full max-w-[300px] pt-14 sm:pt-16">
+                                    <div className="mb-2 text-left text-[16px] font-medium leading-none text-white sm:text-[17px]">
                                         {progressPercentage}% Complete
                                     </div>
 
-                                    <div className="relative h-[4px] w-full bg-[#d9d9d9]">
+                                    <div className="relative h-[4px] w-full bg-[#ff9a9a]">
                                         <div
-                                            className="absolute inset-y-0 left-0 bg-[#ff1717] transition-[width] duration-500 ease-out"
+                                            className="absolute inset-y-0 left-0 bg-[#ff1111] transition-[width] duration-500 ease-out"
                                             style={{
                                                 width: progressWidth,
                                             }}
@@ -552,14 +836,8 @@ function shouldUseMultilineInput(question) {
                             )}
                         </form>
                     </div>
-
-                    {assessment.design.footer_content && (
-                        <div className="mt-5 text-center text-[12px] font-medium text-white/55">
-                            {assessment.design.footer_content}
-                        </div>
-                    )}
                 </div>
             </main>
-        </AuthenticatedLayout>
+        </>
     );
 }
