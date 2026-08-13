@@ -508,16 +508,47 @@ export default function StudentLessonShow({
 
         if (nextTarget.type === "lesson") {
             const autoplayUrl = withAutoplayQuery(nextTarget.url);
-            const loaded = await loadLessonInPlace(autoplayUrl);
 
-            if (!loaded && autoplayUrl) {
-                router.visit(autoplayUrl);
+            try {
+                const loaded = await loadLessonInPlace(autoplayUrl);
+
+                if (loaded) {
+                    // Jangan reset di sini.
+                    // Saat lesson baru masuk, useEffect [lesson]
+                    // akan reset lock secara otomatis.
+                    return;
+                }
+
+                // In-place navigation gagal.
+                // Lepaskan lock sebelum mencoba Inertia navigation.
+                autoNextNavigatingRef.current = false;
+
+                if (autoplayUrl) {
+                    router.visit(autoplayUrl, {
+                        onStart: () => {
+                            autoNextNavigatingRef.current = true;
+                        },
+                        onFinish: () => {
+                            autoNextNavigatingRef.current = false;
+                        },
+                    });
+                }
+
+                return;
+            } catch (error) {
+                console.error("Failed to open next lesson.", error);
+
+                // PENTING: jangan biarkan tombol terkunci.
+                autoNextNavigatingRef.current = false;
+                return;
             }
-
-            return;
         }
 
-        router.visit(nextTarget.url);
+        router.visit(nextTarget.url, {
+            onFinish: () => {
+                autoNextNavigatingRef.current = false;
+            },
+        });
     };
     const autoNextOverlay =
         autoNextCountdown !== null && nextTarget?.title ? (
