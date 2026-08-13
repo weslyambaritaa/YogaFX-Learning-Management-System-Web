@@ -317,10 +317,7 @@ export default function StudentLessonShow({
         initialAccessTimeSummary,
     );
     const hasWorkbook = Boolean(lesson.workbook_download_url);
-    const initialWorkbookDownloadStarted =
-        typeof window !== "undefined" &&
-        window.sessionStorage.getItem(workbookSessionStorageKey(lesson.id)) ===
-            "1";
+    const initialWorkbookDownloadStarted = false;
     const [playerWarning, setPlayerWarning] = useState(null);
     const [watchProgress, setWatchProgress] = useState(
         lesson.progress?.watch_progress ?? 0,
@@ -575,11 +572,7 @@ export default function StudentLessonShow({
     }, [initialLesson, initialAccessTimeSummary]);
 
     useEffect(() => {
-        const persistedWorkbookDownloadStarted =
-            typeof window !== "undefined" &&
-            window.sessionStorage.getItem(
-                workbookSessionStorageKey(lesson.id),
-            ) === "1";
+        const persistedWorkbookDownloadStarted = false;
 
         setWatchProgress(lesson.progress?.watch_progress ?? 0);
         setIsLessonDone(Boolean(lesson.progress?.is_done));
@@ -617,13 +610,8 @@ export default function StudentLessonShow({
 
         const storageKey = workbookSessionStorageKey(lesson.id);
 
-        if (workbookDownloadStarted) {
-            window.sessionStorage.setItem(storageKey, "1");
-            return;
-        }
-
         window.sessionStorage.removeItem(storageKey);
-    }, [lesson.id, workbookDownloadStarted]);
+    }, [lesson.id]);
 
     useEffect(() => {
         if (
@@ -711,54 +699,20 @@ export default function StudentLessonShow({
         }
 
         try {
-            const response = await fetch(downloadUrl, {
-                credentials: "same-origin",
-            });
-
-            if (!response.ok) {
-                throw new Error(
-                    `Workbook download request failed (${response.status}).`,
-                );
-            }
-
-            const blob = await response.blob();
-            const objectUrl = window.URL.createObjectURL(blob);
-            const anchor = document.createElement("a");
-
-            anchor.href = objectUrl;
-            anchor.download = workbookFileNameFromResponse(
-                response,
-                downloadUrl,
-                lesson.title,
-            );
-            anchor.style.display = "none";
-
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-
-            window.setTimeout(() => {
-                window.URL.revokeObjectURL(objectUrl);
-            }, 1000);
-
-            return true;
-        } catch (error) {
-            console.warn(
-                "Direct workbook download could not be forced. Falling back to the workbook URL.",
-                error,
-            );
-
             const anchor = document.createElement("a");
 
             anchor.href = downloadUrl;
             anchor.target = "_blank";
             anchor.rel = "noopener noreferrer";
-            anchor.download = "";
             anchor.style.display = "none";
 
             document.body.appendChild(anchor);
             anchor.click();
             anchor.remove();
+
+            return true;
+        } catch (error) {
+            console.warn("Workbook could not be opened automatically.", error);
 
             return false;
         }
@@ -831,12 +785,12 @@ export default function StudentLessonShow({
 
                 setDownloadNotice({
                     tone: "success",
-                    title: "Workbook download started",
+                    title: "Workbook opened",
                     message: result?.was_first_trigger
-                        ? "Your workbook download has started. We also sent the workbook to your email as an attachment."
+                        ? "Your workbook has been opened automatically. We also sent it to your email as an attachment."
                         : forcedDownload
-                          ? "Your workbook download has started."
-                          : "The workbook was opened through your browser because a direct download could not be forced. You can use Download Workbook Again at any time.",
+                          ? "Your workbook has been opened automatically."
+                          : "Your browser may have blocked the automatic workbook window. Use the button above to open it manually.",
                 });
             } catch (error) {
                 console.error("Failed to trigger workbook delivery.", error);
@@ -1283,8 +1237,8 @@ export default function StudentLessonShow({
                                                     </div>
                                                     <p className="font-['Montserrat'] text-sm leading-6 text-white/72">
                                                         {isTriggeringWorkbook
-                                                            ? "We are preparing your workbook and starting the download before this lesson begins."
-                                                            : "Please wait while we finish the workbook download for this lesson."}
+                                                            ? "We are preparing your workbook and opening it before this lesson begins."
+                                                            : "Please wait while we finish opening the workbook for this lesson."}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1358,11 +1312,11 @@ export default function StudentLessonShow({
                                                         );
                                                         setDownloadNotice({
                                                             tone: "success",
-                                                            title: "Workbook download started",
+                                                            title: "Workbook opened",
                                                             message:
                                                                 downloadStarted
-                                                                    ? "Your workbook download has started."
-                                                                    : "The workbook was opened through your browser because a direct download could not be forced.",
+                                                                    ? "Your workbook has been opened in a new browser tab."
+                                                                    : "Your browser may have blocked the workbook window. Please allow pop-ups and try again.",
                                                         });
                                                     }}
                                                 >
@@ -1372,15 +1326,15 @@ export default function StudentLessonShow({
                                                         <FileText className="mr-2 size-4" />
                                                     )}
                                                     {workbookDownloadStarted
-                                                        ? "Download Workbook Again"
-                                                        : "Download Workbook"}
+                                                        ? "Open Workbook Again"
+                                                        : "Open Workbook"}
                                                 </Button>
                                             ) : null}
 
                                             {hasWorkbook &&
                                             isTriggeringWorkbook ? (
                                                 <span className="font-['Montserrat'] text-[12px] text-white/55">
-                                                    Preparing workbook...
+                                                    Opening workbook...
                                                 </span>
                                             ) : null}
 
