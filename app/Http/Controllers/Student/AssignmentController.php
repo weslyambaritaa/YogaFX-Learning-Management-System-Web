@@ -121,12 +121,14 @@ class AssignmentController extends Controller
         $submission->reviewed_by = null;
         $submission->save();
 
-        event(new AssignmentReviewRequested([
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'assignment_type' => AssignmentSubmission::emailTypeLabelFor($assignment),
-            'admin_email' => config('mail.from.address'),
-        ], 'assignment_submission', $submission->id));
+event(new AssignmentReviewRequested([
+    'user_name' => $user->name,
+    'user_email' => $user->email,
+    'assignment_type' => AssignmentSubmission::emailTypeLabelFor($assignment),
+    'module_title' => $assignment->module?->title ?? 'Assignment',
+    'admin_email' => config('mail.from.address'),
+    'review_url' => $submission->reviewUrl(),
+], 'assignment_submission', $submission->id));
 
         return redirect()
             ->route('assignments.show', $assignment)

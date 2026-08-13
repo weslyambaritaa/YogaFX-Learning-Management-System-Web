@@ -1,0 +1,112 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    private function actionBlock(): string
+    {
+        return implode('', [
+            '<p style="margin:28px 0;text-align:center;">',
+            '<a href="{review_url}" style="display:inline-block;background:#DB202C;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 24px;border-radius:8px;">',
+            'Review Assignment',
+            '</a>',
+            '</p>',
+            '<p style="font-size:12px;color:#64748b;">',
+            'This is your permanent assignment review link. No LMS login is required.',
+            '</p>',
+        ]);
+    }
+
+    public function up(): void
+    {
+        if (! Schema::hasTable('email_templates')) {
+            return;
+        }
+
+        $template = DB::table('email_templates')
+            ->where('notification_type', 'assignment_review')
+            ->first();
+
+        if (! $template) {
+            return;
+        }
+
+        $updates = [];
+
+        if (blank($template->subject_admin)) {
+            $updates['subject_admin'] =
+                'Assignment ready for review: {user_name}';
+        }
+
+        $currentBody = (string) ($template->body_admin ?? '');
+
+        if (blank($currentBody)) {
+            $updates['body_admin'] = implode('', [
+                '<p>Hi Mr Ian,</p>',
+                '<p>A student has submitted an assignment and it is ready for your review.</p>',
+                '<p><strong>Student:</strong> {user_name}</p>',
+                '<p><strong>Email:</strong> {user_email}</p>',
+                '<p><strong>Module:</strong> {module_title}</p>',
+                '<p><strong>Assignment:</strong> {assignment_type}</p>',
+                $this->actionBlock(),
+            ]);
+        } elseif (! str_contains($currentBody, '{review_url}')) {
+            /*
+             * Preserve custom admin email content that may already
+             * exist in production and only append the new CTA.
+             */
+            $updates['body_admin'] =
+                $currentBody.$this->actionBlock();
+        }
+
+        if ($updates === []) {
+            return;
+        }
+
+        $updates['updated_at'] = now();
+
+        DB::table('email_templates')
+            ->where('notification_type', 'assignment_review')
+            ->update($updates);
+    }
+
+    public function down(): void
+    {
+        if (! Schema::hasTable('email_templates')) {
+            return;
+        }
+
+        $template = DB::table('email_templates')
+            ->where('notification_type', 'assignment_review')
+            ->first();
+
+        if (! $template) {
+            return;
+        }
+
+        $body = str_replace(
+            $this->actionBlock(),
+            '',
+            (string) ($template->body_admin ?? ''),
+        );
+
+        $updates = [
+            'body_admin' => $body,
+            'updated_at' => now(),
+        ];
+
+        if (
+            $template->subject_admin
+            === 'Assignment ready for review: {user_name}'
+        ) {
+            $updates['subject_admin'] = null;
+        }
+
+        DB::table('email_templates')
+            ->where('notification_type', 'assignment_review')
+            ->update($updates);
+    }
+};

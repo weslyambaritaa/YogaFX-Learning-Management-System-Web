@@ -75,15 +75,38 @@ class EmailNotificationTemplateDefaults
                 ]),
                 'auto_enable' => true,
             ],
-            EmailNotificationTypeRegistry::ASSIGNMENT_REVIEW => [
-                'subject_user' => 'Your assignment is under review',
-                'body_user' => implode('', [
-                    '<p>Hi {user_name},</p>',
-                    '<p>Your assignment submission for <strong>{assignment_type}</strong> has been received.</p>',
-                    '<p>Our team is reviewing it now. We will email you again once the review is complete.</p>',
-                ]),
-                'auto_enable' => true,
-            ],
+EmailNotificationTypeRegistry::ASSIGNMENT_REVIEW => [
+    'subject_user' => 'Your assignment is under review',
+
+    'body_user' => implode('', [
+        '<p>Hi {user_name},</p>',
+        '<p>Your assignment submission for <strong>{assignment_type}</strong> has been received.</p>',
+        '<p>Our team is reviewing it now. We will email you again once the review is complete.</p>',
+    ]),
+
+    'subject_admin' => 'Assignment ready for review: {user_name}',
+
+    'body_admin' => implode('', [
+        '<p>Hi Mr Ian,</p>',
+        '<p>A student has submitted an assignment and it is ready for your review.</p>',
+        '<p><strong>Student:</strong> {user_name}</p>',
+        '<p><strong>Email:</strong> {user_email}</p>',
+        '<p><strong>Module:</strong> {module_title}</p>',
+        '<p><strong>Assignment:</strong> {assignment_type}</p>',
+
+        '<p style="margin:28px 0;text-align:center;">',
+        '<a href="{review_url}" style="display:inline-block;background:#DB202C;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 24px;border-radius:8px;">',
+        'Review Assignment',
+        '</a>',
+        '</p>',
+
+        '<p style="font-size:12px;color:#64748b;">',
+        'This is your permanent assignment review link. No LMS login is required.',
+        '</p>',
+    ]),
+
+    'auto_enable' => true,
+],
             EmailNotificationTypeRegistry::ASSIGNMENT_APPROVED => [
                 'subject_user' => 'Your YogaFX graduation requirements are complete',
                 'body_user' => implode('', [
