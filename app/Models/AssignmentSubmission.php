@@ -22,7 +22,10 @@ use Illuminate\Support\Str;
     'graded_at',
     'reviewed_at',
     'reviewed_by',
+    'review_token',
 ])]
+
+
 class AssignmentSubmission extends Model
 {
     /** @use HasFactory<AssignmentSubmissionFactory> */
@@ -34,15 +37,41 @@ class AssignmentSubmission extends Model
     public const STATUS_APPROVED = 'approved';
     public const STATUS_REJECTED = 'rejected';
 
-    public const STATUSES = [
-        self::STATUS_SUBMITTED,
-        self::STATUS_UNDER_REVIEW,
-        self::STATUS_PENDING_REVIEW,
-        self::STATUS_APPROVED,
-        self::STATUS_REJECTED,
-    ];
+public const STATUSES = [
+    self::STATUS_SUBMITTED,
+    self::STATUS_UNDER_REVIEW,
+    self::STATUS_PENDING_REVIEW,
+    self::STATUS_APPROVED,
+    self::STATUS_REJECTED,
+];
 
-    protected function casts(): array
+protected static function booted(): void
+{
+    static::creating(function (self $submission): void {
+        if (filled($submission->review_token)) {
+            return;
+        }
+
+        do {
+            $token = Str::random(64);
+        } while (
+            self::query()
+                ->where('review_token', $token)
+                ->exists()
+        );
+
+        $submission->review_token = $token;
+    });
+}
+
+public function reviewUrl(): string
+{
+    return route('assignment-review.show', [
+        'reviewToken' => $this->review_token,
+    ]);
+}
+
+protected function casts(): array
     {
         return [
             'submitted_at' => 'datetime',

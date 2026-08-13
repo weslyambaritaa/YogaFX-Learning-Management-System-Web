@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AccommodationBookingController as AdminAccommodat
 use App\Http\Controllers\Admin\AccommodationController;
 use App\Http\Controllers\Admin\AccommodationRoomTypeController;
 use App\Http\Controllers\AccommodationBookingController;
+use App\Http\Controllers\AssignmentReviewController;
 use App\Http\Controllers\Admin\AdminAccountController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminProfileController;
@@ -154,6 +155,22 @@ Route::middleware('signed')->group(function () {
 
 Route::get('/profile/password/change/{token}', [ProfilePasswordController::class, 'edit'])->name('profile.password.change.edit');
 Route::post('/profile/password/change', [ProfilePasswordController::class, 'update'])->name('profile.password.change.update');
+
+Route::get('/assignment-review/{reviewToken}', [AssignmentReviewController::class, 'show'])
+    ->where('reviewToken', '[A-Za-z0-9]{64}')
+    ->name('assignment-review.show');
+
+Route::post('/assignment-review/{reviewToken}', [AssignmentReviewController::class, 'update'])
+    ->where('reviewToken', '[A-Za-z0-9]{64}')
+    ->name('assignment-review.update');
+
+Route::get('/assignment-review/{reviewToken}/video', [AssignmentReviewController::class, 'video'])
+    ->where('reviewToken', '[A-Za-z0-9]{64}')
+    ->name('assignment-review.video');
+
+Route::get('/assignment-review/{reviewToken}/profile-photo', [AssignmentReviewController::class, 'profilePhoto'])
+    ->where('reviewToken', '[A-Za-z0-9]{64}')
+    ->name('assignment-review.profile-photo');
 
 Route::middleware('auth')->group(function () {
     Route::get('/media/{entity}/{id}/{field}', [ContentFileController::class, 'show'])->name('media.show');

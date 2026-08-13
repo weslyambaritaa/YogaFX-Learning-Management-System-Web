@@ -53,18 +53,20 @@ class EmailNotificationTypeRegistry
                     '{{ study_time }}',
                 ],
             ],
-            [
-                'value' => self::ASSIGNMENT_REVIEW,
-                'label' => 'Assignments Review',
-                'description' => 'Confirm that a submitted assignment has entered the review queue.',
-                'trigger' => 'Triggered when a student submits an assignment or graduation video.',
-                'merge_tags' => [
-                    '{{ user_name }}',
-                    '{{ user_email }}',
-                    '{{ assignment_type }}',
-                    '{{ admin_email }}',
-                ],
-            ],
+[
+    'value' => self::ASSIGNMENT_REVIEW,
+    'label' => 'Assignments Review',
+    'description' => 'Confirm that a submitted assignment has entered the review queue and provide the instructor with a direct review link.',
+    'trigger' => 'Triggered when a student submits an assignment or graduation video.',
+    'merge_tags' => [
+        '{{ user_name }}',
+        '{{ user_email }}',
+        '{{ assignment_type }}',
+        '{{ module_title }}',
+        '{{ admin_email }}',
+        '{{ review_url }}',
+    ],
+],
             [
                 'value' => self::ASSIGNMENT_APPROVED,
                 'label' => 'Assignments Approved',
