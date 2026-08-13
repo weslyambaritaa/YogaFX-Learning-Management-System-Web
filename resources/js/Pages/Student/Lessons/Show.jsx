@@ -361,6 +361,7 @@ export default function StudentLessonShow({
     const autoNextStartedRef = useRef(false);
     const autoNextNavigatingRef = useRef(false);
     const workbookTriggerAttemptedRef = useRef(false);
+    const workbookAutoOpenedLessonIdsRef = useRef(new Set());
     const lessonVideoUrl = lesson.video?.hls_url ?? null;
     const isWorkbookReadyForPlayback = !hasWorkbook || workbookDownloadStarted;
     const shouldAutoplayLesson =
@@ -572,7 +573,8 @@ export default function StudentLessonShow({
     }, [initialLesson, initialAccessTimeSummary]);
 
     useEffect(() => {
-        const persistedWorkbookDownloadStarted = false;
+        const workbookAlreadyAutoOpened =
+            workbookAutoOpenedLessonIdsRef.current.has(lesson.id);
 
         setWatchProgress(lesson.progress?.watch_progress ?? 0);
         setIsLessonDone(Boolean(lesson.progress?.is_done));
@@ -584,11 +586,11 @@ export default function StudentLessonShow({
         setDownloadNotice(null);
         setIsTriggeringWorkbook(false);
         setLockedReason(null);
-        setWorkbookDownloadStarted(persistedWorkbookDownloadStarted);
+        setWorkbookDownloadStarted(workbookAlreadyAutoOpened);
         setIsPlayerPlaying(false);
         autoNextNavigatingRef.current = false;
         autoNextStartedRef.current = false;
-        workbookTriggerAttemptedRef.current = false;
+        workbookTriggerAttemptedRef.current = workbookAlreadyAutoOpened;
         progressRequestRef.current = {
             inFlight: false,
             latestSent: Number(lesson.progress?.watch_progress ?? 0),
@@ -736,6 +738,7 @@ export default function StudentLessonShow({
             typeof window === "undefined" ||
             !hasWorkbook ||
             workbookDownloadStarted ||
+            workbookAutoOpenedLessonIdsRef.current.has(lesson.id) ||
             isTriggeringWorkbook ||
             workbookTriggerAttemptedRef.current
         ) {
@@ -743,6 +746,7 @@ export default function StudentLessonShow({
         }
 
         workbookTriggerAttemptedRef.current = true;
+        workbookAutoOpenedLessonIdsRef.current.add(lesson.id);
         setIsTriggeringWorkbook(true);
         setDownloadNotice(null);
 
