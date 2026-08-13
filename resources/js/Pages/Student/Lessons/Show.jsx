@@ -337,7 +337,6 @@ export default function StudentLessonShow({
     );
     const [isTriggeringWorkbook, setIsTriggeringWorkbook] = useState(false);
     const [downloadNotice, setDownloadNotice] = useState(null);
-    const [workbookOpenedInNewTab, setWorkbookOpenedInNewTab] = useState(false);
     const [showLockedDialog, setShowLockedDialog] = useState(false);
     const [lockedReason, setLockedReason] = useState(null);
     const [totalAccessSeconds, setTotalAccessSeconds] = useState(
@@ -583,7 +582,6 @@ export default function StudentLessonShow({
         setNextLesson(lesson.next_lesson);
         setAutoNextCountdown(null);
         setDownloadNotice(null);
-        setWorkbookOpenedInNewTab(false);
         setIsTriggeringWorkbook(false);
         setLockedReason(null);
         setWorkbookDownloadStarted(persistedWorkbookDownloadStarted);
@@ -695,18 +693,32 @@ export default function StudentLessonShow({
         };
     }, []);
 
-    const triggerBrowserDownload = async (downloadUrl) => {
+    const triggerBrowserDownload = (downloadUrl) => {
         if (typeof window === "undefined" || !downloadUrl) {
-            return false;
+            return null;
         }
 
-        const workbookTab = window.open(
-            downloadUrl,
-            "_blank",
-            "noopener,noreferrer",
-        );
+        try {
+            const workbookTab = window.open(downloadUrl, "_blank");
 
-        return Boolean(workbookTab);
+            if (workbookTab) {
+                try {
+                    workbookTab.opener = null;
+                    workbookTab.focus();
+                } catch (error) {
+                    // The workbook may already be navigating cross-origin.
+                }
+            }
+
+            return workbookTab;
+        } catch (error) {
+            console.warn(
+                "Workbook could not be opened in a new browser tab.",
+                error,
+            );
+
+            return null;
+        }
     };
 
     const readXsrfToken = () => {
@@ -733,6 +745,26 @@ export default function StudentLessonShow({
         workbookTriggerAttemptedRef.current = true;
         setIsTriggeringWorkbook(true);
         setDownloadNotice(null);
+
+        // IMPORTANT:
+        // Open the workbook tab immediately, before awaiting the backend request.
+        // This restores the original auto-open flow and avoids waiting for the
+        // workbook delivery API before attempting to create the new tab.
+        const workbookTab = triggerBrowserDownload(
+            lesson.workbook_download_url,
+        );
+        const workbookOpenedAutomatically = Boolean(workbookTab);
+
+        setWorkbookDownloadStarted(workbookOpenedAutomatically);
+
+        if (!workbookOpenedAutomatically) {
+            setDownloadNotice({
+                tone: "warning",
+                title: "Workbook tab was blocked",
+                message:
+                    "Click Open Workbook below to open the workbook in a new tab.",
+            });
+        }
 
         const triggerWorkbookDelivery = async () => {
             try {
@@ -765,37 +797,62 @@ export default function StudentLessonShow({
 
                 if (!downloadUrl) {
                     throw new Error(
-                        "Workbook download URL is not available for this lesson.",
+                        "Workbook URL is not available for this lesson.",
                     );
                 }
 
-                const forcedDownload =
-                    await triggerBrowserDownload(downloadUrl);
+                // If the backend provides a final URL different from the URL that
+                // was opened immediately, redirect the already-created tab.
+                if (
+                    workbookTab &&
+                    downloadUrl !== lesson.workbook_download_url
+                ) {
+                    try {
+                        workbookTab.location.href = downloadUrl;
+                    } catch (error) {
+                        console.warn(
+                            "Could not redirect the already-open workbook tab.",
+                            error,
+                        );
+                    }
+                }
 
-                setWorkbookDownloadStarted(true);
-                setWorkbookOpenedInNewTab(forcedDownload);
-
-                setDownloadNotice({
-                    tone: forcedDownload ? "success" : "warning",
-                    title: forcedDownload
-                        ? "Workbook opened in a new tab"
-                        : "Chrome blocked the automatic workbook tab",
-                    message: forcedDownload
-                        ? result?.was_first_trigger
-                            ? "Your workbook opened automatically in a new Chrome tab. We also sent it to your email as an attachment."
-                            : "Your workbook opened automatically in a new Chrome tab."
-                        : "Click Open Workbook below to open the workbook in a new Chrome tab.",
-                });
+                if (workbookOpenedAutomatically) {
+                    setDownloadNotice({
+                        tone: "success",
+                        title: "Workbook opened in a new tab",
+                        message: result?.was_first_trigger
+                            ? "Your workbook opened automatically in a new tab. We also sent it to your email as an attachment."
+                            : "Your workbook opened automatically in a new tab.",
+                    });
+                } else {
+                    setDownloadNotice({
+                        tone: "warning",
+                        title: "Workbook tab was blocked",
+                        message: result?.was_first_trigger
+                            ? "Click Open Workbook below to open it in a new tab. We also sent the workbook to your email as an attachment."
+                            : "Click Open Workbook below to open the workbook in a new tab.",
+                    });
+                }
             } catch (error) {
                 console.error("Failed to trigger workbook delivery.", error);
-                setWorkbookDownloadStarted(true);
-                setWorkbookOpenedInNewTab(false);
-                setDownloadNotice({
-                    tone: "warning",
-                    title: "Workbook needs manual opening",
-                    message:
-                        "We could not open the workbook automatically. Click Open Workbook below to open it in a new Chrome tab.",
-                });
+
+                if (workbookOpenedAutomatically) {
+                    setDownloadNotice({
+                        tone: "warning",
+                        title: "Workbook opened",
+                        message:
+                            "The workbook opened in a new tab, but we could not confirm the workbook delivery request.",
+                    });
+                } else {
+                    setWorkbookDownloadStarted(false);
+                    setDownloadNotice({
+                        tone: "warning",
+                        title: "Workbook needs manual opening",
+                        message:
+                            "Click Open Workbook below to open the workbook in a new tab.",
+                    });
+                }
             } finally {
                 setIsTriggeringWorkbook(false);
             }
@@ -806,7 +863,6 @@ export default function StudentLessonShow({
         hasWorkbook,
         isTriggeringWorkbook,
         lesson.id,
-        lesson.title,
         lesson.workbook_download_url,
         lesson.workbook_trigger_url,
         workbookDownloadStarted,
@@ -1232,7 +1288,7 @@ export default function StudentLessonShow({
                                                     </div>
                                                     <p className="font-['Montserrat'] text-sm leading-6 text-white/72">
                                                         {isTriggeringWorkbook
-                                                            ? "We are preparing your workbook and opening it in a new Chrome tab before this lesson begins."
+                                                            ? "We are preparing your workbook and opening it in a new tab before this lesson begins."
                                                             : "Please wait while we finish opening the workbook for this lesson."}
                                                     </p>
                                                 </div>
@@ -1296,16 +1352,17 @@ export default function StudentLessonShow({
                                                 <Button
                                                     type="button"
                                                     className="h-9 rounded-[5px] bg-[#DB202C] px-3 font-['Montserrat'] text-[13px] font-medium text-white hover:bg-[#c31c28]"
-                                                    onClick={async () => {
-                                                        const workbookOpened =
-                                                            await triggerBrowserDownload(
+                                                    onClick={() => {
+                                                        const workbookTab =
+                                                            triggerBrowserDownload(
                                                                 lesson.workbook_download_url,
+                                                            );
+                                                        const workbookOpened =
+                                                            Boolean(
+                                                                workbookTab,
                                                             );
 
                                                         setWorkbookDownloadStarted(
-                                                            true,
-                                                        );
-                                                        setWorkbookOpenedInNewTab(
                                                             workbookOpened,
                                                         );
                                                         setDownloadNotice({
@@ -1317,8 +1374,8 @@ export default function StudentLessonShow({
                                                                 : "Workbook tab was blocked",
                                                             message:
                                                                 workbookOpened
-                                                                    ? "Your workbook opened in a new Chrome tab."
-                                                                    : "Chrome blocked the new tab. Please allow pop-ups for this site and click Open Workbook again.",
+                                                                    ? "Your workbook opened in a new tab."
+                                                                    : "Please allow pop-ups for this site and click Open Workbook again.",
                                                         });
                                                     }}
                                                 >
@@ -1327,7 +1384,7 @@ export default function StudentLessonShow({
                                                     ) : (
                                                         <FileText className="mr-2 size-4" />
                                                     )}
-                                                    {workbookOpenedInNewTab
+                                                    {workbookDownloadStarted
                                                         ? "Open Workbook Again"
                                                         : "Open Workbook"}
                                                 </Button>
