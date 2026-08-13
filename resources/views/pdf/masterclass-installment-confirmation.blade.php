@@ -42,7 +42,7 @@
     background: #eff6ff;
     border: 1px solid #bfdbfe;
     border-radius: 6px;
-    color: #1e3a5f;
+    color: #000000;
     font-size: 19px;
     font-weight: 700;
     line-height: 1.55;

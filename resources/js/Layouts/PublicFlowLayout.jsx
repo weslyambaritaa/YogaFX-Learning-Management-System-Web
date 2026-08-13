@@ -164,7 +164,7 @@ export default function PublicFlowLayout({
                         <img
                             src="/images/yogafx-white-icon.png"
                             alt=""
-                            className="w-[300px] max-w-none select-none opacity-[0.15] sm:w-[420px] lg:w-[560px]"
+                            className="w-[300px] max-w-none select-none opacity-[0.20] sm:w-[420px] lg:w-[560px]"
                         />
                     </div>
                 ) : null}
