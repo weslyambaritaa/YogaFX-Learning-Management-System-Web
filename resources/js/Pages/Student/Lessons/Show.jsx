@@ -755,7 +755,10 @@ export default function StudentLessonShow({
         );
         const workbookOpenedAutomatically = Boolean(workbookTab);
 
-        setWorkbookDownloadStarted(workbookOpenedAutomatically);
+        // The workbook gate is considered resolved as soon as the browser
+        // has been asked to open the workbook. Do NOT keep the lesson blocked
+        // while waiting for the delivery API or while Chrome reports a blocked tab.
+        setWorkbookDownloadStarted(true);
 
         if (!workbookOpenedAutomatically) {
             setDownloadNotice({
@@ -845,7 +848,6 @@ export default function StudentLessonShow({
                             "The workbook opened in a new tab, but we could not confirm the workbook delivery request.",
                     });
                 } else {
-                    setWorkbookDownloadStarted(false);
                     setDownloadNotice({
                         tone: "warning",
                         title: "Workbook needs manual opening",
@@ -1363,7 +1365,7 @@ export default function StudentLessonShow({
                                                             );
 
                                                         setWorkbookDownloadStarted(
-                                                            workbookOpened,
+                                                            true,
                                                         );
                                                         setDownloadNotice({
                                                             tone: workbookOpened
