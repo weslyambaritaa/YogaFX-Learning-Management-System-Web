@@ -1,7 +1,6 @@
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Textarea } from "@/Components/ui/textarea";
-import StudentBackButton from "@/Components/student/StudentBackButton";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 import { Head, router, useForm } from "@inertiajs/react";
 import { useEffect, useMemo, useState } from "react";
@@ -46,362 +45,113 @@ function buildNumericInitial(question) {
 
 function shouldUseMultilineInput(question) {
     return (
-        question.input_type === "multi_line" ||
-        (question.character_limit || 0) > 140
-    );
-}
-
-function getImageFitClass(question) {
-    return question.answer_image_fit === "contain"
-        ? "object-contain"
-        : "object-cover";
-}
-
-function getScaleBounds(question) {
-    const min = Number.isFinite(Number(question.score_range_min))
-        ? Math.trunc(Number(question.score_range_min))
-        : 1;
-    const max = Number.isFinite(Number(question.score_range_max))
-        ? Math.trunc(Number(question.score_range_max))
-        : Math.max(min, 5);
-
-    return {
-        min,
-        max: Math.max(max, min),
-    };
-}
-
-function getIntegerScaleValues(question) {
-    const { min, max } = getScaleBounds(question);
-
-    return Array.from({ length: max - min + 1 }, (_, index) => min + index);
-}
-
-function groupScaleValues(question) {
-    const scaleValues = getIntegerScaleValues(question);
-    const sectionCount =
-        question.question_type === "divided_scale"
-            ? Math.max(1, Number(question.section_count || 1))
-            : 1;
-    const valuesPerGroup = Math.ceil(scaleValues.length / sectionCount);
-    const groups = [];
-
-    for (let index = 0; index < scaleValues.length; index += valuesPerGroup) {
-        groups.push(scaleValues.slice(index, index + valuesPerGroup));
-    }
-
-    return groups;
-}
-
-function checkboxSelectionLimitMessage(question) {
-    if (question.question_type !== "multiple_choice_checkboxes") {
-        return null;
-    }
-
-    const min = Number(question.min_count || 0);
-    const max = Number(question.max_count || 0);
-
-    if (min > 0 && max > 0) {
-        return `Choose between ${min} and ${max} answers.`;
-    }
-
-    if (min > 0) {
-        return `Choose at least ${min} answer${min === 1 ? "" : "s"}.`;
-    }
-
-    if (max > 0) {
-        return `Choose no more than ${max} answers.`;
-    }
-
-    return null;
-}
-
-function optionSelectionIds(question, data) {
-    return question.allow_multi_select
-        ? (data.option_ids ?? []).map((value) => Number(value))
-        : data.option_id === "" ||
-            data.option_id === null ||
-            data.option_id === undefined
-          ? []
-          : [Number(data.option_id)];
-}
-
-function evaluateOptionFeedback(question, data) {
-    if (!question.has_correctness_gate) {
-        return {
-            isGateComplete: true,
-            isCorrect: true,
-            message: null,
-            tone: null,
-            selectedStateMap: {},
-        };
-    }
-
-    const selectedIds = optionSelectionIds(question, data);
-    const selectedIdSet = new Set(selectedIds);
-    const correctIds = question.options
-        .filter((option) => option.is_correct)
-        .map((option) => Number(option.id));
-    const correctIdSet = new Set(correctIds);
-    const selectedStateMap = {};
-
-    question.options.forEach((option) => {
-        const optionId = Number(option.id);
-
-        if (!selectedIdSet.has(optionId)) {
-            return;
-        }
-
-        selectedStateMap[optionId] = correctIdSet.has(optionId)
-            ? "correct"
-            : "incorrect";
-    });
-
-    if (selectedIds.length === 0) {
-        return {
-            isGateComplete: false,
-            isCorrect: false,
-            message: null,
-            tone: null,
-            selectedStateMap,
-        };
-    }
-
-    const isExactMatch =
-        selectedIds.length === correctIds.length &&
-        selectedIds.every((id) => correctIdSet.has(id));
-
-    return {
-        isGateComplete: isExactMatch,
-        isCorrect: isExactMatch,
-        message: isExactMatch
-            ? "Correct!"
-            : "Oops!!! Wrong Answer! Please refer to your workbook and try again.",
-        tone: isExactMatch ? "success" : "error",
-        selectedStateMap,
-    };
-}
-
-export default function AssessmentShow({
-    lesson,
-    assessment,
-    attempt,
-    question,
-    canGoBack,
-    isLastQuestion,
-}) {
-    const [remaining, setRemaining] = useState(
-        formatRemaining(assessment.timer.expires_at),
-    );
-    const isOptionBased = [
-        "yes_no_maybe",
-        "multiple_choice_checkboxes",
-        "multiple_choice_buttons",
-        "radio_buttons",
-        "image_button",
-    ].includes(question.question_type);
-    const isNumericBased = [
-        "sliding_scale",
-        "linear_scale",
-        "divided_scale",
-        "numeric",
-    ].includes(question.question_type);
-    const isInfoScreen = question.question_type === "info_screen";
-    const imageColumns = Math.min(
-        Math.max(Number(question.answers_per_row || 2), 1),
-        4,
-    );
-
-    const { data, setData, post, processing, errors } = useForm({
-        option_id: question.saved.option_ids?.[0] ?? "",
-        option_ids: question.saved.option_ids ?? [],
-        answer_text: question.saved.answer_text ?? "",
-        answer_number: buildNumericInitial(question),
-    });
-    const [selectionFeedback, setSelectionFeedback] = useState(null);
-
-    useEffect(() => {
-        setData({
-            option_id: question.saved.option_ids?.[0] ?? "",
-            option_ids: question.saved.option_ids ?? [],
-            answer_text: question.saved.answer_text ?? "",
-            answer_number: buildNumericInitial(question),
-        });
-        setSelectionFeedback(null);
-    }, [question.id]);
-
-    useEffect(() => {
-        if (!assessment.timer.expires_at) {
-            return undefined;
-        }
-
-        const interval = window.setInterval(() => {
-            setRemaining(formatRemaining(assessment.timer.expires_at));
-        }, 1000);
-
-        return () => window.clearInterval(interval);
-    }, [assessment.timer.expires_at]);
-
-    const progressWidth = useMemo(() => {
-        if (!assessment.show_progress_bar || assessment.progress.total === 0) {
-            return "0%";
-        }
-
-        return `${(assessment.progress.current / assessment.progress.total) * 100}%`;
-    }, [
-        assessment.progress.current,
-        assessment.progress.total,
-        assessment.show_progress_bar,
-    ]);
-
-    const optionFeedback = useMemo(
-        () => evaluateOptionFeedback(question, data),
-        [data, question],
-    );
-    const selectedOptionCount = optionSelectionIds(question, data).length;
-    const hasOptionSelection = selectedOptionCount > 0;
-    const satisfiesMinSelection = question.min_count
-        ? selectedOptionCount >= Number(question.min_count)
-        : true;
-    const satisfiesMaxSelection = question.max_count
-        ? selectedOptionCount <= Number(question.max_count)
-        : true;
-    const canSubmitOptionQuestion = question.has_correctness_gate
-        ? optionFeedback.isGateComplete
-        : (question.required ? hasOptionSelection : true) &&
-          satisfiesMinSelection &&
-          satisfiesMaxSelection;
-
-    const toggleOption = (optionId) => {
-        const isSelected = data.option_ids.includes(optionId);
-        const next = isSelected
-            ? data.option_ids.filter((value) => value !== optionId)
-            : [...data.option_ids, optionId];
-        const maxCount = Number(question.max_count || 0);
-
-        if (!isSelected && maxCount > 0 && next.length > maxCount) {
-            setSelectionFeedback(
-                `You can select up to ${maxCount} answers for this question.`,
-            );
-
-            return;
-        }
-
-        setSelectionFeedback(null);
-        setData("option_ids", next);
-    };
-
-    const selectSingleOption = (optionId) => {
-        setSelectionFeedback(null);
-        setData("option_id", optionId);
-        setData("option_ids", [optionId]);
-    };
-
-    const submit = (event) => {
-        event.preventDefault();
-        post(
-            route("assessments.answer", {
-                lesson: lesson.id,
-                attempt: attempt.id,
-            }),
-        );
-    };
-
-    return (
         <AuthenticatedLayout
             studentVariant="immersive"
             studentContentClassName="bg-black"
-            header={
-                <div className="flex flex-col gap-4">
-                    <StudentBackButton
-                        fallbackHref={route("lessons.show", lesson.id)}
-                    />
-
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="min-w-0">
-                            <h2 className="text-2xl font-bold text-white">
-                                {assessment.title}
-                            </h2>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                            <div className="rounded-[5px] border border-red-400/20 bg-red-500/15 px-4 py-1.5 text-sm font-bold text-red-100">
-                                {remaining}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
         >
             <Head title={assessment.title} />
 
-            <div className="relative bg-black pt-4 pb-0 sm:pt-6">
-                <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
-                    {assessment.design.logo_url && (
-                        <div className="mb-4 flex justify-center">
-                            <div className="bg-transparent">
-                                {assessment.design.logo_link ? (
-                                    <a
-                                        href={assessment.design.logo_link}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        <img
-                                            src={assessment.design.logo_url}
-                                            alt="Assessment logo"
-                                            className="mx-auto h-12 object-contain"
-                                        />
-                                    </a>
-                                ) : (
-                                    <img
-                                        src={assessment.design.logo_url}
-                                        alt="Assessment logo"
-                                        className="mx-auto h-12 object-contain"
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    )}
+            <main
+                className="min-h-[100dvh] w-full bg-black text-white"
+                style={{ fontFamily: "'Montserrat', sans-serif" }}
+            >
+                <div className="mx-auto flex min-h-[100dvh] w-full max-w-[980px] flex-col px-5 pb-8 pt-4 sm:px-8 sm:pb-10 sm:pt-5">
+                    <span className="sr-only" aria-live="polite">
+                        Time remaining: {remaining}
+                    </span>
 
-                    <div className="w-full pb-2">
-                        <div className="mb-4 flex flex-col items-center text-center">
-                            <div className="text-[13px] font-bold tracking-wide text-white">
-                                Question {assessment.progress.current} out of{" "}
-                                {assessment.progress.total}
-                            </div>
-                        </div>
-
-                        <form onSubmit={submit} className="space-y-6">
-                            {question.show_instruction &&
-                                question.instruction_text && (
-                                    <div className="mx-auto max-w-2xl rounded-[5px] border border-white/10 bg-white/5 px-4 py-3 text-center text-xs font-bold text-white/80">
-                                        {question.instruction_text}
-                                    </div>
-                                )}
-
-                            <div
-                                className="mx-auto max-w-3xl text-center text-2xl font-bold leading-tight text-white md:text-3xl"
-                                dangerouslySetInnerHTML={{
-                                    __html:
-                                        question.question_text ||
-                                        "No content has been added for this screen yet.",
-                                }}
+                    <div className="flex justify-center">
+                        {assessment.design.logo_link ? (
+                            <a
+                                href={assessment.design.logo_link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center"
+                            >
+                                <img
+                                    src={
+                                        assessment.design.logo_url ||
+                                        "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
+                                    }
+                                    alt="YogaFX"
+                                    className="h-auto w-[170px] object-contain sm:w-[190px]"
+                                />
+                            </a>
+                        ) : (
+                            <img
+                                src={
+                                    assessment.design.logo_url ||
+                                    "https://yogafx.b-cdn.net/content/Logo%20YogAFX.png"
+                                }
+                                alt="YogaFX"
+                                className="h-auto w-[170px] object-contain sm:w-[190px]"
                             />
+                        )}
+                    </div>
 
+                    <div className="mt-10 flex justify-center sm:mt-11">
+                        <button
+                            type="button"
+                            onClick={handleTopBack}
+                            className="inline-flex items-center gap-2 bg-transparent px-2 py-1 text-[15px] font-medium uppercase text-white transition-opacity hover:opacity-75 sm:text-[17px]"
+                        >
+                            <span
+                                aria-hidden="true"
+                                className="text-[24px] font-light leading-none"
+                            >
+                                ←
+                            </span>
+                            <span>Back</span>
+                        </button>
+                    </div>
+
+                    <div className="mx-auto mt-5 flex w-full max-w-[760px] flex-1 flex-col items-center sm:mt-6">
+                        <div className="sr-only">
+                            Question {assessment.progress.current} out of{" "}
+                            {assessment.progress.total}
+                        </div>
+
+                        {question.show_instruction &&
+                            question.instruction_text && (
+                                <div className="mb-4 max-w-[620px] text-center text-[13px] font-medium leading-5 text-white/75 sm:text-[14px]">
+                                    {question.instruction_text}
+                                </div>
+                            )}
+
+                        <div
+                            className="mx-auto max-w-[720px] text-center text-[27px] font-medium leading-[1.45] tracking-[-0.02em] text-white sm:text-[34px]"
+                            dangerouslySetInnerHTML={{
+                                __html:
+                                    question.question_text ||
+                                    "No content has been added for this screen yet.",
+                            }}
+                        />
+
+                        <form
+                            onSubmit={submit}
+                            className="mt-7 flex w-full flex-1 flex-col items-center sm:mt-8"
+                        >
                             {isInfoScreen ? (
-                                <div className="mx-auto max-w-2xl rounded-[5px] border border-white/10 bg-white/5 px-4 py-5 text-center text-sm font-bold text-white/70">
+                                <div className="mx-auto max-w-[560px] text-center text-[16px] font-medium leading-7 text-white/80">
                                     This screen is informational only.
                                 </div>
                             ) : isOptionBased ? (
                                 <div
-                                    className="mx-auto mt-6 grid max-w-xl gap-3"
-                                    style={{
-                                        gridTemplateColumns:
-                                            question.question_type ===
-                                            "image_button"
-                                                ? `repeat(${imageColumns}, minmax(0, 1fr))`
-                                                : "repeat(1, minmax(0, 1fr))",
-                                    }}
+                                    className={[
+                                        "mx-auto w-full",
+                                        question.question_type ===
+                                        "image_button"
+                                            ? "grid max-w-[720px] gap-4"
+                                            : "flex max-w-[360px] flex-col gap-[10px]",
+                                    ].join(" ")}
+                                    style={
+                                        question.question_type ===
+                                        "image_button"
+                                            ? {
+                                                  gridTemplateColumns: `repeat(${imageColumns}, minmax(0, 1fr))`,
+                                              }
+                                            : undefined
+                                    }
                                 >
                                     {question.options.map((option) => {
                                         const selected =
@@ -411,21 +161,11 @@ export default function AssessmentShow({
                                                   )
                                                 : String(data.option_id) ===
                                                   String(option.id);
+
                                         const selectedState =
                                             optionFeedback.selectedStateMap[
                                                 Number(option.id)
                                             ];
-
-                                        const sharedClass = [
-                                            "group flex cursor-pointer items-center gap-4 rounded-[5px] bg-transparent px-4 py-2.5 text-left outline-none transition hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-red-500/50",
-                                            selectedState === "correct"
-                                                ? "bg-emerald-500/10"
-                                                : selectedState === "incorrect"
-                                                  ? "bg-rose-500/10"
-                                                  : selected
-                                                    ? "bg-white/5"
-                                                    : "",
-                                        ].join(" ");
 
                                         if (
                                             question.question_type ===
@@ -444,7 +184,13 @@ export default function AssessmentShow({
                                                                   option.id,
                                                               )
                                                     }
-                                                    className={`${sharedClass} flex-col !items-start`}
+                                                    className={[
+                                                        "group flex flex-col items-start gap-3 bg-transparent text-left outline-none transition-opacity hover:opacity-90",
+                                                        selectedState ===
+                                                        "incorrect"
+                                                            ? "opacity-80"
+                                                            : "",
+                                                    ].join(" ")}
                                                 >
                                                     {option.image_url && (
                                                         <img
@@ -452,33 +198,40 @@ export default function AssessmentShow({
                                                                 option.image_url
                                                             }
                                                             alt={option.label}
-                                                            className={`h-32 w-full rounded-[5px] border-2 shadow-md transition ${selected ? "border-[#DB202C]" : "border-transparent"} ${getImageFitClass(question)}`}
+                                                            className={[
+                                                                "aspect-video w-full rounded-[4px] border-2 object-cover",
+                                                                selected
+                                                                    ? "border-[#ff1717]"
+                                                                    : "border-transparent",
+                                                                getImageFitClass(
+                                                                    question,
+                                                                ),
+                                                            ].join(" ")}
                                                         />
                                                     )}
 
                                                     {question.show_labels && (
-                                                        <div className="mt-2 flex w-full items-center gap-3 text-lg font-bold text-white">
+                                                        <div className="flex items-center gap-3 text-[16px] font-medium text-white sm:text-[17px]">
                                                             <span
                                                                 className={[
-                                                                    "flex size-5 shrink-0 items-center justify-center border-2 transition-colors",
+                                                                    "flex size-[22px] shrink-0 items-center justify-center border-[2.5px] border-[#ff1717]",
                                                                     question.allow_multi_select
-                                                                        ? "rounded-[4px]"
+                                                                        ? "rounded-[3px]"
                                                                         : "rounded-full",
-                                                                    selected
-                                                                        ? "border-[#DB202C] bg-[#DB202C] text-white"
-                                                                        : "border-[#DB202C] bg-transparent text-transparent group-hover:bg-[#DB202C]/20",
                                                                 ].join(" ")}
                                                             >
-                                                                {question.allow_multi_select ? (
-                                                                    <Check className="size-3" />
-                                                                ) : (
-                                                                    selected && (
-                                                                        <span className="size-2 rounded-full bg-white" />
+                                                                {selected ? (
+                                                                    question.allow_multi_select ? (
+                                                                        <Check className="size-3.5 text-white" />
+                                                                    ) : (
+                                                                        <span className="size-2.5 rounded-full bg-[#ff1717]" />
                                                                     )
-                                                                )}
+                                                                ) : null}
                                                             </span>
 
-                                                            {option.label}
+                                                            <span>
+                                                                {option.label}
+                                                            </span>
                                                         </div>
                                                     )}
                                                 </button>
@@ -498,29 +251,26 @@ export default function AssessmentShow({
                                                               option.id,
                                                           )
                                                 }
-                                                className={sharedClass}
+                                                className="group flex w-full items-center gap-3 bg-transparent py-[5px] text-left outline-none transition-opacity hover:opacity-80 focus-visible:outline-none"
                                             >
                                                 <span
                                                     className={[
-                                                        "flex size-5 shrink-0 items-center justify-center border-2 transition-colors",
+                                                        "flex size-[22px] shrink-0 items-center justify-center border-[2.5px] border-[#ff1717]",
                                                         question.allow_multi_select
-                                                            ? "rounded-[4px]"
+                                                            ? "rounded-[3px]"
                                                             : "rounded-full",
-                                                        selected
-                                                            ? "border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_8px_rgba(219,32,44,0.4)]"
-                                                            : "border-[#DB202C] bg-transparent text-transparent group-hover:bg-[#DB202C]/20",
                                                     ].join(" ")}
                                                 >
-                                                    {question.allow_multi_select ? (
-                                                        <Check className="size-3" />
-                                                    ) : (
-                                                        selected && (
-                                                            <span className="size-2 rounded-full bg-white" />
+                                                    {selected ? (
+                                                        question.allow_multi_select ? (
+                                                            <Check className="size-3.5 text-white" />
+                                                        ) : (
+                                                            <span className="size-2.5 rounded-full bg-[#ff1717]" />
                                                         )
-                                                    )}
+                                                    ) : null}
                                                 </span>
 
-                                                <span className="text-lg font-bold text-white">
+                                                <span className="text-[16px] font-medium leading-6 text-white sm:text-[17px]">
                                                     {option.label}
                                                 </span>
                                             </button>
@@ -528,10 +278,10 @@ export default function AssessmentShow({
                                     })}
                                 </div>
                             ) : isNumericBased ? (
-                                <div className="mx-auto mt-6 max-w-2xl space-y-4">
+                                <div className="mx-auto w-full max-w-[560px]">
                                     {question.question_type === "numeric" ? (
-                                        <div className="mx-auto max-w-sm space-y-2">
-                                            <label className="block text-center text-sm font-bold text-white/80">
+                                        <div className="mx-auto max-w-[320px] space-y-3 text-center">
+                                            <label className="block text-[16px] font-medium text-white">
                                                 Enter your numeric answer
                                             </label>
 
@@ -549,10 +299,10 @@ export default function AssessmentShow({
                                                         event.target.value,
                                                     )
                                                 }
-                                                className="h-12 rounded-[5px] border-white/20 bg-white/5 text-center text-xl font-bold text-white placeholder:text-white/30 focus-visible:ring-[#DB202C]"
+                                                className="h-12 rounded-[4px] border border-white/45 bg-black text-center text-[18px] font-medium text-white focus-visible:border-[#ff1717] focus-visible:ring-[#ff1717]/20"
                                             />
 
-                                            <div className="text-center text-xs font-bold text-white/50">
+                                            <div className="text-[13px] font-medium text-white/60">
                                                 Allowed range:{" "}
                                                 {question.score_range_min ?? 0}{" "}
                                                 to{" "}
@@ -561,7 +311,7 @@ export default function AssessmentShow({
                                         </div>
                                     ) : question.question_type ===
                                       "sliding_scale" ? (
-                                        <div className="mx-auto max-w-lg space-y-4">
+                                        <div className="space-y-4">
                                             <input
                                                 type="range"
                                                 min={
@@ -584,10 +334,10 @@ export default function AssessmentShow({
                                                         event.target.value,
                                                     )
                                                 }
-                                                className="w-full accent-[#DB202C]"
+                                                className="w-full accent-[#ff1717]"
                                             />
 
-                                            <div className="flex items-center justify-between text-sm font-bold text-white/70">
+                                            <div className="flex items-center justify-between text-[14px] font-medium text-white">
                                                 <span>
                                                     {question.left_label ||
                                                         "Low"}
@@ -603,42 +353,28 @@ export default function AssessmentShow({
                                             </div>
 
                                             {question.show_score_tooltip && (
-                                                <div className="rounded-[5px] border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-bold text-white/70">
+                                                <div className="text-center text-[13px] font-medium leading-5 text-white/65">
                                                     {question.score_tooltip_format ||
                                                         "Selected value will be used as raw score."}
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="mx-auto max-w-xl space-y-4">
+                                        <div className="space-y-5">
                                             {groupScaleValues(question).map(
                                                 (group, groupIndex) => (
                                                     <div
                                                         key={`scale-group-${groupIndex}`}
-                                                        className={[
-                                                            "rounded-[5px] border border-white/10 bg-white/5 p-4",
-                                                            question.question_type ===
-                                                            "linear_scale"
-                                                                ? "overflow-x-auto"
-                                                                : "",
-                                                        ].join(" ")}
                                                     >
                                                         {question.question_type ===
                                                             "divided_scale" && (
-                                                            <div className="mb-3 text-center text-xs font-bold uppercase tracking-[0.16em] text-white/50">
+                                                            <div className="mb-3 text-center text-[13px] font-medium uppercase tracking-[0.12em] text-white/65">
                                                                 Section{" "}
                                                                 {groupIndex + 1}
                                                             </div>
                                                         )}
 
-                                                        <div
-                                                            className={
-                                                                question.question_type ===
-                                                                "linear_scale"
-                                                                    ? "flex items-center justify-center gap-3 whitespace-nowrap"
-                                                                    : "grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6"
-                                                            }
-                                                        >
+                                                        <div className="flex flex-wrap items-center justify-center gap-3">
                                                             {group.map(
                                                                 (
                                                                     scaleValue,
@@ -666,13 +402,10 @@ export default function AssessmentShow({
                                                                                 )
                                                                             }
                                                                             className={[
-                                                                                question.question_type ===
-                                                                                "linear_scale"
-                                                                                    ? "flex size-10 items-center justify-center rounded-full border-2 text-base font-bold transition-all"
-                                                                                    : "rounded-[5px] border-2 px-3 py-3 text-center text-lg font-bold transition-all",
+                                                                                "flex size-11 items-center justify-center rounded-full border-2 text-[16px] font-medium transition-colors",
                                                                                 isSelected
-                                                                                    ? "scale-105 border-[#DB202C] bg-[#DB202C] text-white shadow-[0_0_10px_rgba(219,32,44,0.4)]"
-                                                                                    : "border-[#DB202C]/50 bg-transparent text-white/80 hover:border-[#DB202C] hover:bg-[#DB202C]/10",
+                                                                                    ? "border-[#ff1717] bg-[#ff1717] text-white"
+                                                                                    : "border-[#ff1717] bg-black text-white hover:bg-[#ff1717]/10",
                                                                             ].join(
                                                                                 " ",
                                                                             )}
@@ -689,7 +422,7 @@ export default function AssessmentShow({
                                                 ),
                                             )}
 
-                                            <div className="flex items-center justify-between px-2 text-sm font-bold text-white/70">
+                                            <div className="flex items-center justify-between text-[14px] font-medium text-white">
                                                 <span>
                                                     {question.left_label ||
                                                         "Low"}
@@ -707,8 +440,8 @@ export default function AssessmentShow({
                                     )}
                                 </div>
                             ) : (
-                                <div className="mx-auto mt-6 max-w-2xl space-y-3">
-                                    <label className="block text-center text-base font-bold text-white">
+                                <div className="mx-auto w-full max-w-[560px] space-y-3">
+                                    <label className="block text-center text-[16px] font-medium text-white">
                                         Your Answer
                                     </label>
 
@@ -721,7 +454,7 @@ export default function AssessmentShow({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="min-h-24 rounded-[5px] border-white/20 bg-black/40 text-lg font-medium text-white placeholder:text-white/30 focus-visible:ring-[#DB202C]"
+                                            className="min-h-28 rounded-[4px] border border-white/45 bg-black text-[16px] font-medium text-white placeholder:text-white/35 focus-visible:border-[#ff1717] focus-visible:ring-[#ff1717]/20"
                                             placeholder="Type your answer here..."
                                         />
                                     ) : (
@@ -734,13 +467,13 @@ export default function AssessmentShow({
                                                     event.target.value,
                                                 )
                                             }
-                                            className="h-12 rounded-[5px] border-white/20 bg-black/40 text-lg font-medium text-white placeholder:text-white/30 focus-visible:ring-[#DB202C]"
+                                            className="h-12 rounded-[4px] border border-white/45 bg-black text-[16px] font-medium text-white placeholder:text-white/35 focus-visible:border-[#ff1717] focus-visible:ring-[#ff1717]/20"
                                             placeholder="Type your answer here..."
                                         />
                                     )}
 
                                     {question.character_limit && (
-                                        <div className="text-right text-xs font-bold text-white/50">
+                                        <div className="text-right text-[12px] font-medium text-white/55">
                                             {
                                                 String(data.answer_text || "")
                                                     .length
@@ -752,14 +485,14 @@ export default function AssessmentShow({
                                 </div>
                             )}
 
-                            <div className="mx-auto max-w-xl space-y-2">
+                            <div className="mx-auto mt-5 w-full max-w-[560px] space-y-2">
                                 {isOptionBased && optionFeedback.message && (
                                     <div
                                         className={[
-                                            "text-center text-base font-bold",
+                                            "text-center text-[14px] font-semibold",
                                             optionFeedback.tone === "success"
-                                                ? "text-emerald-500"
-                                                : "text-[#DB202C]",
+                                                ? "text-emerald-400"
+                                                : "text-[#ff5252]",
                                         ].join(" ")}
                                     >
                                         {optionFeedback.message}
@@ -767,7 +500,7 @@ export default function AssessmentShow({
                                 )}
 
                                 {checkboxSelectionLimitMessage(question) && (
-                                    <div className="text-center text-sm font-bold text-white/80">
+                                    <div className="text-center text-[13px] font-medium text-white/75">
                                         {checkboxSelectionLimitMessage(
                                             question,
                                         )}
@@ -775,19 +508,19 @@ export default function AssessmentShow({
                                 )}
 
                                 {selectionFeedback && (
-                                    <div className="text-center text-base font-bold text-[#DB202C]">
+                                    <div className="text-center text-[14px] font-semibold text-[#ff5252]">
                                         {selectionFeedback}
                                     </div>
                                 )}
 
                                 {Object.keys(errors).length > 0 && (
-                                    <div className="text-center text-base font-bold text-[#DB202C]">
+                                    <div className="text-center text-[14px] font-semibold text-[#ff5252]">
                                         {Object.values(errors)[0]}
                                     </div>
                                 )}
                             </div>
 
-                            <div className="mt-5 flex flex-col items-center justify-center gap-3 pb-1">
+                            <div className="mt-7 flex w-full justify-center">
                                 <Button
                                     type="submit"
                                     disabled={
@@ -795,54 +528,38 @@ export default function AssessmentShow({
                                         (isOptionBased &&
                                             !canSubmitOptionQuestion)
                                     }
-                                    className="h-auto min-w-[150px] w-auto rounded-[5px] bg-[#DB202C] px-8 py-3 text-base font-bold text-white shadow-[0_8px_20px_rgba(219,32,44,0.25)] transition-colors hover:bg-[#c31c28]"
+                                    className="h-[52px] min-w-[168px] rounded-[5px] bg-[#ff1111] px-8 text-[17px] font-medium text-white shadow-none transition-colors hover:bg-[#e60000] disabled:cursor-not-allowed disabled:bg-[#ff1111] disabled:opacity-100"
                                 >
-                                    {isLastQuestion
-                                        ? "Submit Assessment"
-                                        : "Next"}
+                                    {isLastQuestion ? "Submit" : "Next"}
                                 </Button>
-
-                                {canGoBack && (
-                                    <button
-                                        type="button"
-                                        className="mt-1 text-sm font-bold text-white transition-colors hover:text-white/80"
-                                        onClick={() =>
-                                            router.post(
-                                                route("assessments.back", {
-                                                    lesson: lesson.id,
-                                                    attempt: attempt.id,
-                                                }),
-                                            )
-                                        }
-                                    >
-                                        Previous Question
-                                    </button>
-                                )}
                             </div>
+
+                            {assessment.show_progress_bar && (
+                                <div className="mx-auto mt-auto w-full max-w-[300px] pt-16 sm:pt-20">
+                                    <div className="mb-2 text-left text-[16px] font-medium text-white sm:text-[17px]">
+                                        {progressPercentage}% Complete
+                                    </div>
+
+                                    <div className="relative h-[4px] w-full bg-[#d9d9d9]">
+                                        <div
+                                            className="absolute inset-y-0 left-0 bg-[#ff1717] transition-[width] duration-500 ease-out"
+                                            style={{
+                                                width: progressWidth,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </form>
                     </div>
 
-                    {assessment.show_progress_bar && (
-                        <div className="mx-auto w-full max-w-lg pt-4">
-                            <div className="h-1.5 overflow-hidden rounded-[3px] bg-white/10">
-                                <div
-                                    className="h-full rounded-[3px] transition-all duration-500 ease-out"
-                                    style={{
-                                        width: progressWidth,
-                                        background: "#DB202C",
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    )}
-
                     {assessment.design.footer_content && (
-                        <div className="pt-2 pb-2 text-center text-xs font-bold text-white/50">
+                        <div className="mt-5 text-center text-[12px] font-medium text-white/55">
                             {assessment.design.footer_content}
                         </div>
                     )}
                 </div>
-            </div>
+            </main>
         </AuthenticatedLayout>
     );
 }
