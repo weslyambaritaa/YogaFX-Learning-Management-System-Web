@@ -42,5 +42,15 @@ class AdminUserSeeder extends Seeder
                 'email_verified_at' => now(),
             ],
         );
+
+         User::query()->updateOrCreate(
+            ['email' => 'dumariahutagaol290@gmail.com'],
+            [
+                'name' => 'Maharani',
+                'role' => User::ROLE_ADMIN,
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+            ],
+        );
     }
 }
