@@ -265,7 +265,7 @@ class AdminDashboardAnalyticsService
         $tierIds = $tiers->pluck('id')->all();
         $lessons = Lesson::query()
             ->with([
-                'assessment:id,status,is_active',
+                'assessment:id,status',
                 'accessTiers:id',
                 'module.accessTiers:id',
             ])
